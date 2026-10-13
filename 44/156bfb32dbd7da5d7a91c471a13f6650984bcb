@@ -1,0 +1,29 @@
+site/src/content.config.ts
+  s_378d5db6c5f6de::t_bdbe1af58b6b5c 18
+site/src/data/stars.json
+  s_378d5db6c5f6de::t_37634a3e178c71 2-365
+site/src/lib/catalog.ts
+  s_378d5db6c5f6de::t_fb6059be528564 15,23-24,35-36,40,45-46
+site/src/pages/apps/index.astro
+  s_378d5db6c5f6de::t_a898818f963816 25,36-41
+site/src/scripts/catalog-view.js
+  s_378d5db6c5f6de::t_2ea33e32b2d2d8 7-17,19-20,26,31-33,86-87,89,99-101
+tools/sitestars/main.go
+  s_378d5db6c5f6de::t_b110381950bf66 155-159,162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "44156bfb32dbd7da5d7a91c471a13f6650984bcb",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
