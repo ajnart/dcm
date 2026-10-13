@@ -1,0 +1,218 @@
+{
+  "number": 313,
+  "headRefOid": "599bdafc8749ad69d1ffc1518f0239cf73e62aca",
+  "comments": [
+    {
+      "body": "<!-- This is an auto-generated comment: summarize by coderabbit.ai -->\n<!-- This is an auto-generated comment: skip review by coderabbit.ai -->\n\n> [!IMPORTANT]\n> ## Draft PR not reviewed\n> \n> Draft PRs are not automatically reviewed by default.\n> \n> - [ ] <!-- {\"checkboxId\":\"e9bb8d72-00e8-4f67-9cb2-caf3b22574fe\"} --> Trigger a manual review\n> \n> To automatically review draft PRs, update your CodeRabbit configuration:\n> \n> ```yaml\n> reviews:\n>   auto_review:\n>     drafts: true\n> ```\n\n<!-- end of auto-generated comment: skip review by coderabbit.ai -->\n\n<!-- autopilot:start -->\n- [ ] <!-- {\"checkboxId\":\"2708ad07-9f24-4260-9c11-7dc76a49f2e3\"} --> <strong title=\"Keep fixing CodeRabbit findings and required CI, and resolving merge conflicts\">Autofix</strong> \u00b7 Keep fixing CodeRabbit findings and required CI, and resolving merge conflicts\n<!-- autopilot:end -->\n<!-- tips_start -->\n\n---\n\n> [!NOTE]\n> <details>\n> <summary><strong>\ud83c\udf81 Summarized by CodeRabbit Free</strong></summary>\n> <dl>\n> <dd>\n> \n> Your organization is on the Free plan. CodeRabbit will generate a high-level summary and a walkthrough for each pull request. For a comprehensive line-by-line review, please upgrade your subscription to CodeRabbit Essentials by visiting <https://app.coderabbit.ai/settings/billing>.\n> \n> \n> <hr>\n> \n> </dd>\n> </dl>\n> </details>\n\n\n<sub>Comment `@coderabbitai help` to get the list of available commands.</sub>\n\n<!-- tips_end -->",
+      "url": "https://github.com/ajnart/selfhost-skills/pull/313#issuecomment-6113256357",
+      "createdAt": "2026-10-11T20:13:47Z"
+    },
+    {
+      "body": "## Documentation-only evidence follow-up\n\nHead `599bdafc8749ad69d1ffc1518f0239cf73e62aca` adds 30 lines only to `docs/releasing.md`. The reviewed production commit remains `d3d3e78c48c7b5004372c396f5483faaf40c2bed`; no deployment, installer, binary, build, runtime or source change. No new network probes or retests were run for this refresh.\n\nThe parent independently checked normal-host `curl --disable`, anonymously with no authorization, valid TLS and no `--resolve`:\n\n| Path                 | Status | Body bytes |\n| -------------------- | ------ | ---------- |\n| `/`                  | 200    | 1604       |\n| `/install.sh`        | 200    | 15983      |\n| `/install.sh.sha256` | 200    | 77         |\n| `/AGENTS.md`         | 404    | 0          |\n| `/go.mod`            | 404    | 0          |\n\nInstaller SHA256 `d4e064cbc5d1df531697a03bf303d8bf241f3c8246e1f6382f1aa5c9214398fe` matches the served checksum. The initial negative DNS observation and `--resolve` proof remain preserved as historical evidence; normal-client transport now works.\n\nBoth old and intended repository `/releases/latest` endpoints still returned anonymous 404. Authenticated metadata remains private `ajnart/selfhost-skills`, default branch `main`; intended `ajnart/selfhost` returns 404. The parent recorded the normal-DNS follow-up on #295.\n\n**These are transport and script-checksum reads, not installer execution or anonymous archive acceptance.** Artifact, rename, token-free install, self-update and publication holds remain. Keep this PR draft and unmerged. Repository visibility remains user-controlled.\n",
+      "url": "https://github.com/ajnart/selfhost-skills/pull/313#issuecomment-6114033939",
+      "createdAt": "2026-10-11T21:35:21Z"
+    },
+    {
+      "body": "Both independent final review axes pass with zero findings at 599bdafc8749ad69d1ffc1518f0239cf73e62aca. Standards verified the production diff is unchanged from reviewed d3d3e78c48c7b5004372c396f5483faaf40c2bed; Spec verified the 30-line normal-client followup preserves historical DNS evidence and does not overclaim installer/archive/update acceptance. These were read-only re-reviews, not new runtime tests. Keep draft and unmerged: repository rename, anonymous artifact distribution (#295), token-free install/old-binary redirect/self-update and publication remain held. Normal-client TLS and served-script checksum now pass only their stated transport gates.",
+      "url": "https://github.com/ajnart/selfhost-skills/pull/313#issuecomment-6114073426",
+      "createdAt": "2026-10-11T21:39:30Z"
+    }
+  ],
+  "reviews": [],
+  "commits": [
+    {
+      "oid": "d3d3e78c48c7b5004372c396f5483faaf40c2bed",
+      "messageHeadline": "feat(release): deploy gated installer site on selfhost.ajnart.dev",
+      "messageBody": "",
+      "committedDate": "2026-10-11T20:12:48Z"
+    },
+    {
+      "oid": "599bdafc8749ad69d1ffc1518f0239cf73e62aca",
+      "messageHeadline": "docs(release): record normal-client installer evidence",
+      "messageBody": "",
+      "committedDate": "2026-10-11T21:35:03Z"
+    }
+  ],
+  "files": [
+    {
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "AGENTS.md",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "README.md",
+      "additions": 25,
+      "deletions": 16,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/adr/0006-telemetry-on-by-default.md",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/agents/implementing.md",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "additions": 5,
+      "deletions": 3,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/releasing.md",
+      "additions": 111,
+      "deletions": 4,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "install.sh",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/cli/feedback.go",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/cli/feedback_test.go",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/cli/telemetry_test.go",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/release/installsh_skill_test.go",
+      "additions": 5,
+      "deletions": 5,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/release/release.go",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/release/release_test.go",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/skill/guide.md",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/telemetry/telemetry.go",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/telemetry/telemetry_test.go",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/tui/onboarding_telemetry_test.go",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/tui/testdata/onboarding-welcome-telemetry-narrow.golden",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "internal/tui/testdata/onboarding-welcome-telemetry.golden",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "scripts/build-installer-site.sh",
+      "additions": 34,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "scripts/publish-wiki.sh",
+      "additions": 2,
+      "deletions": 2,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "scripts/verify-install.sh",
+      "additions": 13,
+      "deletions": 7,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "site/_headers",
+      "additions": 12,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "site/index.html",
+      "additions": 27,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "site/site.css",
+      "additions": 118,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "site/wrangler.toml",
+      "additions": 12,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "skills/self-host/SKILL.md",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "wiki/Home.md",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "wiki/Telemetry.md",
+      "additions": 1,
+      "deletions": 1,
+      "changeType": "MODIFIED"
+    }
+  ]
+}

@@ -1,0 +1,680 @@
+{
+  "additions": 15231,
+  "baseRefName": "main",
+  "baseRefOid": "3800111d292005af38221da47845956694956185",
+  "body": "## Summary\n\n```text\nrequest \u2192 project-local router \u2192 frozen embedded guide \u2192 fixture conversation\n  \u2192 actual CLI verification \u2192 Recap\n  \u2192 complete-batch validity \u2192 blind/scripted grades \u2192 skill-creator viewer\n```\n\nHarness-only split from #257. No guide/router changes or new dependencies. Material AI assistance was used. Concurrent audit work is preserved through `16571438`; follow-up fixes are pushed in `2a2a83f6`.\n\n- Fail-closed macOS shell boundary; no bypassPermissions, live Project or real Docker execution. Synthetic media metadata, no pretend movie payloads; unmodeled machine probes are refused.\n- Owned model process-group cleanup on failure, timeout and signals. Retained frozen inputs/raw diagnostics; failed, malformed, unfinished and quota-limited attempts never become scores.\n- Stale grades/verdicts are invalidated; blind judgments are fingerprinted. Runtime identifiers don't reveal configuration labels.\n- Production-shaped credential/Debug/publication fixtures retain selected Apps, Recipe attribution, current Addresses and fallback Access.\n- Installation ends after successful CLI verification and Recap; optional browser/library follow-ups are declined. Verification must follow the latest mutation attempt, including host/Docker stop/disable. Separate blind Recap assessment leaves original assertion totals unchanged.\n- Guarded fixture Python resolves directly through already-required Command Line Tools, without broadening metadata permissions.\n\n## Evidence\n\n- **Before:** seven actual shell regressions failed because macOS's Python launcher required a forbidden developer-selection metadata read. Six runner subcases falsely accepted earlier Status after service stop/disable attempts.\n  **After:** direct CLT Python PATH and shared host-change classification pass all **60 existing offline tests**, Ruff lint/format and Pyright, including extensionless stubs. Both independent review axes rechecked and cleared their findings. No new testcases/files, dependencies or production contracts.\n- Concurrent audit commits also passed the documented Go formatting/build/vet/tests/race and installer-syntax gate; no Docker runtime, installer execution or live Project.\n- Historical iterations 9/11 scored **11/12 revised vs 10/12 original** for their frozen smoke inputs. They do not establish acceptance of the current harness; grades and caveats remain unchanged.\n- Iterations 10/12 are retained, invalid and ungraded. Iteration 12 completed only 6/42 and exposed simulation drift; no partial benchmark was accepted.\n- User approved the Recap boundary and continuing the comparison. Authentication status confirmed existing first-party Claude Pro login without API-key/custom-endpoint use. Sonnet 5.5 and Opus 5.5 preflights passed. Fresh iteration 13 smoke is running with unchanged snapshots and equal 16-turn budgets; at most one 42-run batch follows if execution/judgments are valid. No paid fallback, model switch or billing change.\n\nFull ledger and limitations: `evals/self-host/PROGRESS.md`. Raw attempts remain outside Git and require redaction before sharing.\n\n## Merge Danger\n\n**Door:** two-way\n\n**Blast Radius:** development\n\nKeep draft until complete current-input execution, complete blind judgments, supplied aggregation/viewer and human feedback pass. Debian/Mint/WSL remain platform simulations, not native proofs. Refusing probes is not full machine virtualization; Claude transport is outside OS containment. Writable fixture state/logs and deliberately detached hostile code are not tamper-proof. Approval labels establish timing, not complete authorization scope. Fixture outcomes do not prove real App installation or browser acceptance.\n",
+  "changedFiles": 205,
+  "deletions": 0,
+  "files": [
+    {
+      "path": ".gitignore",
+      "additions": 3,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "evals/self-host/PROGRESS.md",
+      "additions": 718,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/README.md",
+      "additions": 311,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/bin/ask_user_mcp.py",
+      "additions": 113,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/bin/docker",
+      "additions": 115,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/bin/dockerstate.py",
+      "additions": 22,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/bin/guard.py",
+      "additions": 195,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/bin/hosttool",
+      "additions": 239,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/bin/isolation.py",
+      "additions": 114,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/bin/self-host",
+      "additions": 616,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/checks.py",
+      "additions": 664,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/evals/evals.json",
+      "additions": 414,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/evals/trigger-queries.json",
+      "additions": 22,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/judge.py",
+      "additions": 286,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/processes.py",
+      "additions": 57,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/run.py",
+      "additions": 1169,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/apps-info/jellyfin.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/apps-info/paperless-ngx.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/apps-info/sonarr.json",
+      "additions": 13,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/apps-list.json",
+      "additions": 1406,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/config-review.json",
+      "additions": 6,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/config-set.jsonl",
+      "additions": 7,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/doctor.jsonl",
+      "additions": 12,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/profile.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/status-fixed.json",
+      "additions": 33,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/cant-reach-tv/status.json",
+      "additions": 34,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/apps-info/jellyfin.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/apps-info/paperless-ngx.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/apps-info/sonarr.json",
+      "additions": 13,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/apps-list.json",
+      "additions": 1406,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/credentials.json",
+      "additions": 6,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/debug/sonarr.json",
+      "additions": 29,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/profile.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/setup.jsonl",
+      "additions": 5,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/status-installed.json",
+      "additions": 44,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/failed-setup/status.json",
+      "additions": 50,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/apps-info",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/apps-list.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/config-set.jsonl",
+      "additions": 4,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/credentials.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/doctor-docker-missing.jsonl",
+      "additions": 3,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/doctor.jsonl",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/install.jsonl",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/os-release",
+      "additions": 5,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/platform.json",
+      "additions": 26,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/profile-set.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/profile.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/status-installed.json",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-debian/status.exit",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/actual-budget.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/adguard-home.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/archive-team-warrior.json",
+      "additions": 17,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/aria2.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/audiobookshelf.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/authelia.json",
+      "additions": 17,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/authentik.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/bazarr.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/beszel.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/bookstack.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/borgmatic.json",
+      "additions": 17,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/caddy.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/cloudflare-tunnel.json",
+      "additions": 18,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/dashdot.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/deluge.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/dockge.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/docmost.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/emby.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/firefly-iii.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/forgejo.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/freshrss.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/frigate.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/gatus.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/glances.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/gluetun.json",
+      "additions": 38,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/gotify.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/grafana.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/haproxy.json",
+      "additions": 23,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/headscale.json",
+      "additions": 23,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/homarr.json",
+      "additions": 21,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/home-assistant.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/homebridge.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/immich.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/jellyfin.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/keycloak.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/kopia.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/lidarr.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/linkwarden.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/lldap.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/loki.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/mayan-edms.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/minio.json",
+      "additions": 17,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/navidrome.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/netbird.json",
+      "additions": 17,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/netdata.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/nextcloud.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/nginx-proxy-manager.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/node-red.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/ntfy.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/nzbget.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "evals/self-host/scenarios/newbie-install/apps-info/ollama.json",
+      "additions": 10,
+      "deletions": 0,
+      "changeType": "ADDED"
+    }
+  ],
+  "headRefName": "test/skill-eval-harness",
+  "headRefOid": "3558e581856ae12bf803c6052384ee23ac2f93a2",
+  "isDraft": true,
+  "mergeStateStatus": "UNSTABLE",
+  "mergeable": "MERGEABLE",
+  "number": 259,
+  "reviewDecision": "",
+  "state": "OPEN",
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T05:42:50Z",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/ajnart/selfhost-skills/actions/runs/38352803704/job/115148802225",
+      "name": "test",
+      "startedAt": "2026-10-13T05:42:48Z",
+      "status": "COMPLETED",
+      "workflowName": "ci"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T05:42:49Z",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/ajnart/selfhost-skills/actions/runs/38352803704/job/115148802368",
+      "name": "Native linux/amd64",
+      "startedAt": "2026-10-13T05:42:48Z",
+      "status": "COMPLETED",
+      "workflowName": "ci"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T05:42:52Z",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/ajnart/selfhost-skills/actions/runs/38352803704/job/115148802520",
+      "name": "Native linux/arm64",
+      "startedAt": "2026-10-13T05:42:48Z",
+      "status": "COMPLETED",
+      "workflowName": "ci"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T05:42:51Z",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/ajnart/selfhost-skills/actions/runs/38352803704/job/115148802427",
+      "name": "Native darwin/amd64",
+      "startedAt": "2026-10-13T05:42:48Z",
+      "status": "COMPLETED",
+      "workflowName": "ci"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-13T05:42:52Z",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/ajnart/selfhost-skills/actions/runs/38352803704/job/115148802431",
+      "name": "Native darwin/arm64",
+      "startedAt": "2026-10-13T05:42:48Z",
+      "status": "COMPLETED",
+      "workflowName": "ci"
+    },
+    {
+      "__typename": "StatusContext",
+      "context": "CodeRabbit",
+      "startedAt": "2026-10-13T05:42:55Z",
+      "state": "SUCCESS",
+      "targetUrl": ""
+    }
+  ],
+  "title": "test(skill): isolate and verify the skill evaluation harness",
+  "updatedAt": "2026-10-13T05:42:54Z",
+  "url": "https://github.com/ajnart/selfhost-skills/pull/259"
+}

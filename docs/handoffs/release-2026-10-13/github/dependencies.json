@@ -1,0 +1,668 @@
+[
+  {
+    "issue": 354,
+    "blocked_by": []
+  },
+  {
+    "issue": 350,
+    "blocked_by": []
+  },
+  {
+    "issue": 332,
+    "blocked_by": []
+  },
+  {
+    "issue": 308,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 307,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 306,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 305,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 304,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 303,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 302,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 301,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 299,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 298,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 296,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 297,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 295,
+    "blocked_by": []
+  },
+  {
+    "issue": 294,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 293,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 292,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 291,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      },
+      {
+        "number": 350,
+        "title": "PatchMon: establish statistics-only credentials without enrollment authority",
+        "state": "open",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/350"
+      }
+    ]
+  },
+  {
+    "issue": 290,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      },
+      {
+        "number": 354,
+        "title": "Homarr: block NZBGet activation until credential-path errors are safely redacted",
+        "state": "open",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/354"
+      }
+    ]
+  },
+  {
+    "issue": 289,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 288,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 287,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 286,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 285,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 284,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 283,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 282,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 281,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 280,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 279,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      },
+      {
+        "number": 332,
+        "title": "Homarr/Gluetun: avoid provider-secret reads in native summaries",
+        "state": "open",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/332"
+      }
+    ]
+  },
+  {
+    "issue": 277,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 276,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 275,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 274,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 273,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 272,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 270,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 269,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 268,
+    "blocked_by": []
+  },
+  {
+    "issue": 267,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 266,
+    "blocked_by": [
+      {
+        "number": 262,
+        "title": "Homarr: complete Immich Setup, credentials and verified widgets",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/262"
+      }
+    ]
+  },
+  {
+    "issue": 254,
+    "blocked_by": []
+  },
+  {
+    "issue": 232,
+    "blocked_by": []
+  },
+  {
+    "issue": 194,
+    "blocked_by": [
+      {
+        "number": 193,
+        "title": "Rename the repository to ajnart/selfhost and make it public",
+        "state": "open",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/193"
+      }
+    ]
+  },
+  {
+    "issue": 193,
+    "blocked_by": [
+      {
+        "number": 192,
+        "title": "Restructure: the Go CLI at the repository root, legacy tree removed",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/192"
+      }
+    ]
+  },
+  {
+    "issue": 191,
+    "blocked_by": []
+  },
+  {
+    "issue": 187,
+    "blocked_by": []
+  },
+  {
+    "issue": 140,
+    "blocked_by": []
+  },
+  {
+    "issue": 100,
+    "blocked_by": []
+  },
+  {
+    "issue": 88,
+    "blocked_by": []
+  },
+  {
+    "issue": 86,
+    "blocked_by": []
+  },
+  {
+    "issue": 66,
+    "blocked_by": []
+  },
+  {
+    "issue": 50,
+    "blocked_by": [
+      {
+        "number": 88,
+        "title": "Isolate secondary DNS and BitTorrent ports in catalog acceptance",
+        "state": "open",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/88"
+      }
+    ]
+  },
+  {
+    "issue": 45,
+    "blocked_by": [
+      {
+        "number": 40,
+        "title": "Project: preserve exclusive lock ownership and cancellation",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/40"
+      },
+      {
+        "number": 41,
+        "title": "Backup: preserve App data and unrelated credentials on recovery",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/41"
+      },
+      {
+        "number": 42,
+        "title": "Restore: contain archive extraction across symlinks",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/42"
+      },
+      {
+        "number": 43,
+        "title": "Setup: redact credentials from stored and returned failures",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/43"
+      },
+      {
+        "number": 88,
+        "title": "Isolate secondary DNS and BitTorrent ports in catalog acceptance",
+        "state": "open",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/88"
+      },
+      {
+        "number": 89,
+        "title": "Exercise Renovate with an owned local Forgejo credential",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/89"
+      },
+      {
+        "number": 90,
+        "title": "Support approved TLS Docker watchers in WUD",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/90"
+      },
+      {
+        "number": 93,
+        "title": "Recognize Docmost initial workspace bootstrap response",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/93"
+      },
+      {
+        "number": 94,
+        "title": "Store Warrior generated helper as an executable for backup",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/94"
+      },
+      {
+        "number": 95,
+        "title": "Allow exact ntfy prerequisite setup in WUD acceptance",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/95"
+      },
+      {
+        "number": 96,
+        "title": "Pass Pi-hole password secret filename as a basename",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/96"
+      },
+      {
+        "number": 97,
+        "title": "Fix generated admin passwords for pinned application policies",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/97"
+      },
+      {
+        "number": 98,
+        "title": "Correct Nginx Proxy Manager first-owner setup flag",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/98"
+      },
+      {
+        "number": 99,
+        "title": "Exclude the exact transient Netdata FIFO from backup",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/99"
+      },
+      {
+        "number": 100,
+        "title": "Prepare Passbolt fresh GPG bind permissions before startup",
+        "state": "open",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/100"
+      },
+      {
+        "number": 101,
+        "title": "Encode NetBird storage encryption key in its required format",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/101"
+      },
+      {
+        "number": 103,
+        "title": "Reuse PatchMon authenticated CLI sessions with its device header",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/103"
+      },
+      {
+        "number": 104,
+        "title": "Match HAProxy stats password mode and selected administrator",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/104"
+      },
+      {
+        "number": 105,
+        "title": "Keep Netdata image stock shortcut out of owned backups",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/105"
+      },
+      {
+        "number": 106,
+        "title": "Linkwarden v2.16.3 setup polls a nonexistent health endpoint",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/106"
+      },
+      {
+        "number": 107,
+        "title": "Seafile 13 startup receives empty database names from the adapter",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/107"
+      },
+      {
+        "number": 108,
+        "title": "Prevent Immich and Nextcloud Redis service collisions in Recipes",
+        "state": "closed",
+        "html_url": "https://github.com/ajnart/selfhost-skills/issues/108"
+      }
+    ]
+  },
+  {
+    "issue": 15,
+    "blocked_by": []
+  }
+]

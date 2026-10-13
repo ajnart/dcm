@@ -1,0 +1,12 @@
+--- prior-immutable/.slim/aggregate-run/main.go
++++ new-owned/helper-source.go
+@@ -84,6 +84,9 @@
+ 	must(err)
+ 	if os.Args[1] == "check-args" {
+ 		for key, value := range secrets {
++			if value == "self-host-homarr" && (key == "GOTIFY_HOMARR_USERNAME" || key == "NZBGET_HOMARR_USERNAME" || key == "UMAMI_HOMARR_USERNAME") {
++				continue
++			}
+ 			if key != "ADMIN_USER" && len(value) >= 4 && strings.Contains(string(data), value) {
+ 				os.Exit(3)
+ 			}

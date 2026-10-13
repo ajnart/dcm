@@ -1,0 +1,70 @@
+{
+  "disposition": "Synthetic original script argv RED exit3 -> GREEN exit0 for source-fixed public usernames only; password and arbitrary ID controls remain exit3",
+  "rows": [
+    {
+      "probe": "ha_empty_values_control",
+      "predicate_exit": 0,
+      "synthetic_key_names": [],
+      "script_or_argv_executed": false
+    },
+    {
+      "probe": "ha_source_public_username",
+      "predicate_exit": 0,
+      "synthetic_key_names": [
+        "GOTIFY_HOMARR_USERNAME"
+      ],
+      "script_or_argv_executed": false
+    },
+    {
+      "probe": "nzbget_source_public_username",
+      "predicate_exit": 0,
+      "synthetic_key_names": [
+        "GOTIFY_HOMARR_USERNAME",
+        "NZBGET_HOMARR_USERNAME"
+      ],
+      "script_or_argv_executed": false
+    },
+    {
+      "probe": "ha_private_value_same_bytes_control",
+      "predicate_exit": 3,
+      "synthetic_key_names": [
+        "ADMIN_PASSWORD"
+      ],
+      "script_or_argv_executed": false
+    },
+    {
+      "probe": "ha_id_substring_control",
+      "predicate_exit": 3,
+      "synthetic_key_names": [
+        "HOME_ASSISTANT_HOMARR_USER_ID"
+      ],
+      "script_or_argv_executed": false
+    }
+  ],
+  "predicate_matches_prepared_helper": true,
+  "public_exception_pairs": [
+    {
+      "key": "GOTIFY_HOMARR_USERNAME",
+      "source_constant": "homarrUsername",
+      "source": "internal/apps/gotify/homarr.go:15,117"
+    },
+    {
+      "key": "NZBGET_HOMARR_USERNAME",
+      "source_constant": "homarrUsername",
+      "source": "internal/apps/nzbget/homarr.go:16,188-191"
+    },
+    {
+      "key": "UMAMI_HOMARR_USERNAME",
+      "source_constant": "homarrUsername",
+      "source": "internal/apps/umami/homarr.go:16,157"
+    }
+  ],
+  "all_output_redaction_unchanged": true,
+  "synthetic_only": true,
+  "fixture_values_only_in_memory": true,
+  "Project_secret_store_reads": 0,
+  "Docker_browser_calls": 0,
+  "actual_five_Setup_causes": "still unproven",
+  "helper_sha256": "76dbe715cab6f87d4096104fa3c704865f969466c9e3248c534ae26893244365",
+  "helper_source_sha256": "fd6f8cad39c09b9c63609cbf4191bec425229b31b106b5b330296cbcaf2e2127"
+}

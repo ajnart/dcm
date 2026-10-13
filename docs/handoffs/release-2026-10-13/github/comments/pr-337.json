@@ -1,0 +1,8 @@
+[
+  {
+    "body": "Both fresh independent SOURCE reviews pass with zero findings at dc9c2ea0166ed139fc4f799333272bc13ac7f442 against fixed 795c6d082c8affd213447e0629328fb7ba9d2fe4. The required-time P2 is resolved: native item time must be explicitly numeric and finite; zero and negative completed-item timing remain valid. Completed optional download speed and finite upload speed are unchanged. Existing helpers and pinned native schema/adapter support these semantics; coverage is source/schema/compile only because no existing native fixture seam was available, not direct behavioral/native proof. No tests, dependencies or common registry changes added. Reported full local gate passed and was not rerun by reviewers. Keep draft: final normalization/registration and real native/rendered, both installation orders and shared lifecycle acceptance remain held; #305 stays open.",
+    "html_url": "https://github.com/ajnart/selfhost-skills/pull/337#issuecomment-6122229434",
+    "created_at": "2026-10-12T10:15:51Z",
+    "updated_at": "2026-10-12T10:15:51Z"
+  }
+]

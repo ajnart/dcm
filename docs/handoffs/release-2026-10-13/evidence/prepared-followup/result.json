@@ -1,0 +1,243 @@
+{
+  "outcome": "Source-only synthetic argv guard correction and bounded pre-cleanup diagnostics prepared; actual five failure causes remain unproven",
+  "archive": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-failure-followup-p340jace",
+  "prepared_runner": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-failure-followup-p340jace/supervise.py",
+  "runner_sha256": "4d9e7cbcf2f485005f5c2eb23cdda17c7ce458adaf41288ce07e5ba49c6534f8",
+  "prepared_helper": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-failure-followup-p340jace/helper",
+  "helper_sha256": "76dbe715cab6f87d4096104fa3c704865f969466c9e3248c534ae26893244365",
+  "synthetic_probe": {
+    "before": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-failure-followup-p340jace/synthetic-argv.before.json",
+    "after": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-failure-followup-p340jace/synthetic-argv.after.json",
+    "public_source_scripts_probed": [
+      "internal/apps/homeassistant/homarr_auth.go:3-154",
+      "internal/apps/homeassistant/homarr.go:42-46",
+      "internal/apps/nzbget/homarr.go:195-227"
+    ],
+    "disposition": "Synthetic original script argv RED exit3 -> GREEN exit0 for source-fixed public usernames only; password and arbitrary ID controls remain exit3",
+    "actual_original_predicate_compiled_and_reused": true,
+    "all_fixture_values_in_memory_only": true,
+    "no_consumed_Project_secret_reads": true,
+    "original_predicate_minimum_length_4_unchanged": true,
+    "public_exception_pairs": [
+      {
+        "key": "GOTIFY_HOMARR_USERNAME",
+        "source_constant": "homarrUsername",
+        "source": "internal/apps/gotify/homarr.go:15,117"
+      },
+      {
+        "key": "NZBGET_HOMARR_USERNAME",
+        "source_constant": "homarrUsername",
+        "source": "internal/apps/nzbget/homarr.go:16,188-191"
+      },
+      {
+        "key": "UMAMI_HOMARR_USERNAME",
+        "source_constant": "homarrUsername",
+        "source": "internal/apps/umami/homarr.go:16,157"
+      }
+    ],
+    "arbitrary_IDs_and_passwords_not_exempt": true,
+    "all_output_masking_unchanged": true
+  },
+  "prepared_diagnostics": {
+    "apps": [
+      "home-assistant",
+      "immich",
+      "nzbget",
+      "patchmon",
+      "tracearr"
+    ],
+    "commands": [
+      [
+        "self-host",
+        "--json",
+        "debug",
+        "home-assistant"
+      ],
+      [
+        "self-host",
+        "--json",
+        "debug",
+        "immich"
+      ],
+      [
+        "self-host",
+        "--json",
+        "debug",
+        "nzbget"
+      ],
+      [
+        "self-host",
+        "--json",
+        "debug",
+        "patchmon"
+      ],
+      [
+        "self-host",
+        "--json",
+        "debug",
+        "tracearr"
+      ]
+    ],
+    "each_debug_includes_logs": {
+      "source": "internal/service/debug.go:84-106",
+      "tail_lines_maximum": 100,
+      "services": "Only services belonging to that App in the owned Project"
+    },
+    "public_redacted_paths_template": [
+      "<freshRoot>/debug-home-assistant.redacted.log",
+      "<freshRoot>/debug-immich.redacted.log",
+      "<freshRoot>/debug-nzbget.redacted.log",
+      "<freshRoot>/debug-patchmon.redacted.log",
+      "<freshRoot>/debug-tracearr.redacted.log"
+    ],
+    "masking": "Existing production Debug mask plus existing helper masking of every private Project key; no raw stderr/script/stdout saved as disposition metadata.",
+    "command_receipt_template": "<freshRoot>/command-<owned-stage>.json",
+    "wrapper_receipt_template": "<freshRoot>/subprocess-<wrapper-pid>.json",
+    "receipt_fields": "stage/category/exit/pid/timestamps and allowlisted operation/service names only; never command text, env values or exception payloads",
+    "runner_categories": [
+      "runner-guard",
+      "runner-private-argv-guard",
+      "runner-helper-error",
+      "runner-subprocess-error",
+      "runner-deadline",
+      "cleanup-reserve"
+    ],
+    "Docker_categories": [
+      "docker-client-start-error",
+      "docker-operation-started",
+      "docker-operation-ok",
+      "docker-compose-nonzero",
+      "docker-exec-or-container-command-nonzero"
+    ],
+    "ambiguity_retained": "A nonzero docker exec exit does not distinguish Docker/daemon failure from in-container command failure without the separately redacted Debug/log evidence. Interrupted executions retain started metadata rather than a fabricated exit.",
+    "absolute_deadline_seconds_unchanged": 5400,
+    "work_deadline_seconds_unchanged": 5100,
+    "install_reserve_seconds": 900,
+    "each_status_or_debug_max_seconds": 30,
+    "diagnostics_not_started_if_less_than_210_seconds_total_remain": true,
+    "child_cleanup_reserve_seconds": 150,
+    "browser_not_started_if_less_than_225_seconds_total_remain": true,
+    "new_OOM_restart_timeline_fields": [
+      "started_at",
+      "finished_at",
+      "restarting",
+      "restart_count"
+    ],
+    "timeline_source": "Additive fields from existing owned-ID Docker inspect snapshots; not a complete event history or extra wide inventory.",
+    "API_versions_or_independent_saved_records": "No new API/metrics/saved-record capture implemented; its secret safety could not be verified offline. Existing prepared browser/native code remains unexercised and unchanged.",
+    "reserve_reason": "Reserve the last 15 minutes for existing owned capture, five priority peer Debug/log reports, status/Homarr Debug, masking/process-stop overhead and cleanup. Keeps diagnostic Docker calls inside the unchanged 85-minute work deadline; total attempt remains 90 minutes.",
+    "maximum_status_and_six_Debug_reports_seconds": 210,
+    "priority": "Five failed-App Debug/log reports before the remaining status/Homarr Debug and any separately authorized rendering."
+  },
+  "five_causes_unproven": {
+    "home-assistant": "Runner public-username false positive reproduced offline; original wrapper/exec/API disposition missing. Missing executable, Docker/command failure or API behavior not ruled out.",
+    "immich": "512-MiB database OOM flag observed, but timing, restart counts and readiness logs were absent; causality and startup resource sufficiency not established.",
+    "nzbget": "Runner public-username false positive reproduced offline; original script versus ownership/permission/subprocess failure not distinguished.",
+    "patchmon": "Connection-refused readiness timeout observed; service/dependency startup logs and timeline missing.",
+    "tracearr": "Source version guard failed; independently observed API version and authentication/exec disposition missing. Do not bypass the guard."
+  },
+  "additional_source_policy_boundary": {
+    "source": "internal/apps/nzbget/homarr.go:231-233 and prepared supervise.py wrapper allowed operations",
+    "finding": "NZBGet may request a scoped Restart after saving restricted settings; current wrapper does not allow restart.",
+    "disposition": "Not relaxed and not claimed as the closed-attempt cause. The fresh phase plan must explicitly decide whether that existing Setup operation is authorized, or accept a guard stop."
+  },
+  "Frigate_hint_proposal": {
+    "patch": "<OLD_ARTIFACT_ROOT>/homarr-aggregate-failure-followup-p340jace/frigate-hint.proposed.patch",
+    "production_applied": false,
+    "dry_apply_check": "PASS",
+    "change": "Exactly three lines in existing per-target hint selection, like the NZBGet exception; no StepSpec/shared-helper redesign.",
+    "source_evidence": [
+      "internal/apps/homarr/links.go:152-167,1143-1147",
+      "internal/apps/homarr/target_frigate.go:19-24",
+      "internal/apps/frigate/frigate.go:306-310"
+    ],
+    "conditions": [
+      "Trusted HTTPS on authenticated port 8971",
+      "Explicit approval of Project-scoped private TLS and trust in Homarr and CLI",
+      "No disabled auth, port 5000, TLS verification bypass or public Access"
+    ],
+    "handoff": "Original Frigate owner/common custodian apply on their owned source branch only after phase planning."
+  },
+  "Immich_reallocation_recommendation_only": {
+    "current": {
+      "immich": {
+        "memory_mib": 1024,
+        "cpu": 0.5
+      },
+      "immich-database": {
+        "memory_mib": 512,
+        "cpu": 0.25
+      },
+      "immich-machine-learning": {
+        "memory_mib": 1024,
+        "cpu": 0.5
+      },
+      "immich-redis": {
+        "memory_mib": 128,
+        "cpu": 0.125
+      }
+    },
+    "proposed": {
+      "immich": {
+        "memory_mib": 1024,
+        "cpu": 0.5
+      },
+      "immich-database": {
+        "memory_mib": 1024,
+        "cpu": 0.5
+      },
+      "immich-machine-learning": {
+        "memory_mib": 512,
+        "cpu": 0.25
+      },
+      "immich-redis": {
+        "memory_mib": 128,
+        "cpu": 0.125
+      }
+    },
+    "unchanged_Immich_total_mib": 2688,
+    "unchanged_Immich_total_cpu": 1.375,
+    "aggregate_stays_memory_gib": 27,
+    "aggregate_stays_cpu": 15.75,
+    "reason": "Shift 512 MiB and 0.25 CPU from idle ML (no inference/media jobs approved) to the database with the observed OOM flag.",
+    "risk": "512-MiB ML startup sufficiency is unproven; approve and observe its startup before treating this allocation as viable. This may not fix Immich readiness.",
+    "applied": false
+  },
+  "fresh_plan_requirements": [
+    "Separate explicit USER approval for one fresh attempt; no consumed-plan reuse.",
+    "Fresh unique Project/absolute owned root, isolated HOME/Docker configuration/media/downloads and generated private values; preserve all retained old data.",
+    "Fixed source binary and production delta/manifest; pin prepared helper 76dbe715cab6f87d4096104fa3c704865f969466c9e3248c534ae26893244365 and runner 4d9e7cbcf2f485005f5c2eb23cdda17c7ce458adaf41288ce07e5ba49c6534f8 in the fresh plan.",
+    "Regenerate source-derived plan/caps override with exact source image/mount/service inventory; all 51 services, 27 GiB, 15.75 CPU and 512 PIDs. Reallocation above is a proposal only.",
+    "Offline effective Compose validation for the new fixture/paths; fresh unused loopback primary and distinct DNS ports, single standard owned bridge.",
+    "Retain all five startup exclusions, NZBGet #354/PatchMon #350 native Manual/privacy holds, Frigate TLS approval/trust and all native readiness/auth/version checks.",
+    "Fresh short owned browser HOME/IPC namespace/session with CLI-resolved socket <=103 bytes and metadata-inactive check before any separately approved browser startup; explicit empty configuration and owned Homarr-origin isolation.",
+    "Fresh endpoint/capacity/namespace/port admission; 5400-second absolute deadline and bounded diagnostics/cleanup reserves.",
+    "Explicit decision on existing NZBGet scoped Restart policy before runtime; no blanket restart/up/retry authorization."
+  ],
+  "validation": {
+    "helper_gofmt": "empty",
+    "helper_build": "PASS",
+    "helper_vet": "PASS",
+    "probe_gofmt_build_vet": "PASS",
+    "Python_syntax": "PASS",
+    "runner_patch_whitespace": "PASS",
+    "git_diff_check": "PASS",
+    "Frigate_patch_dry_check": "PASS",
+    "new_unit_cases": 0,
+    "full_production_gate_repeated": false,
+    "temporary_helper_build_source_removed": true
+  },
+  "preservation": {
+    "original_archives_and_actual_evidence_hashes_match": true,
+    "production_source_binary_manifest_unchanged": true,
+    "original_helper_source_unchanged": true,
+    "consumed_reference_plan_unchanged": true,
+    "private_Project_data_read_or_changed": false,
+    "git_status_matches_before": true,
+    "index_unchanged": true,
+    "root_ledger_and_peer_branches_untouched": true
+  },
+  "runtime_calls_this_followup": 0,
+  "functional_native_rendered_acceptance_granted": false,
+  "copied_consumed_plan_not_launchable": "Unchanged consumed reference plan still pins the original helper. A fresh authorized plan must pin the prepared helper/runner, fresh root/Project/override and browser configuration. Do not execute this archive as-is."
+}
