@@ -1,0 +1,25 @@
+internal/apps/homarr/installed.go
+  s_8e166456c2ed73::t_100e7a14771147 293-294
+internal/apps/homarr/links.go
+  s_8e166456c2ed73::t_27a51d6a3afd43 99,103,107,111,115,127,133,135
+internal/apps/homarr/target_caddy.go
+  s_8e166456c2ed73::t_db672aec90d0f3 14
+internal/apps/homarr/target_immich.go
+  s_8e166456c2ed73::t_6d92b6b2ce8eb2 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b351d778b0d1ebd84343b6a9607aa10a840dc09a",
+  "prompts": {},
+  "sessions": {
+    "s_8e166456c2ed73": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c54a2784-641d-452f-9f3f-bc4399a5fed7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
