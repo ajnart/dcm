@@ -328,8 +328,7 @@ export const other: DockerTool[] = [
   {
     id: "borgmatic",
     name: "borgmatic",
-    description:
-      "Containerized stack to easily manage backups with BorgBackup",
+    description: "Containerized stack to easily manage backups with BorgBackup",
     category: "Backup",
     tags: ["Monitoring", "Backup", "UI", "Integration", "Automation"],
     githubUrl: "https://github.com/borgmatic-collective/docker-borgmatic",
@@ -797,7 +796,8 @@ export const other: DockerTool[] = [
   {
     id: "betterbahn",
     name: "Better Bahn",
-    description: "Better Bahn - A German train schedule and public transit app for self-hosting. Track Deutsche Bahn departures, arrivals, and connections from your own infrastructure.",
+    description:
+      "Better Bahn - A German train schedule and public transit app for self-hosting. Track Deutsche Bahn departures, arrivals, and connections from your own infrastructure.",
     category: "Other",
     tags: ["Transit", "Train", "Public Transport", "Germany"],
     githubUrl: "https://github.com/l2xu/betterbahn",

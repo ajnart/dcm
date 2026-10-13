@@ -52,7 +52,9 @@ describe("Docker Compose Validation", () => {
           // Fail the test with the error message
           const errorMsg =
             error instanceof Error ? error.message : String(error)
-          expect.fail(`Service "${tool.name}" validation failed: ${errorMsg}`)
+          throw new Error(
+            `Service "${tool.name}" validation failed: ${errorMsg}`,
+          )
         }
       })
     }
@@ -78,7 +80,7 @@ describe("Docker Compose Validation", () => {
     } catch (error) {
       // Fail the test with the error message
       const errorMsg = error instanceof Error ? error.message : String(error)
-      expect.fail(`Combined services validation failed: ${errorMsg}`)
+      throw new Error(`Combined services validation failed: ${errorMsg}`)
     }
   })
 })

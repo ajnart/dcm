@@ -41,9 +41,11 @@
 > [!NOTE]
 > 🌟 **Community-Driven Project**: DCM started as a simple tool but aims to become the go-to resource for Docker Compose configurations, powered by the community. We believe everyone has their favorite self-hosted tools, and we'd love for you to share yours! Whether you're using a popular application or a hidden gem, your contribution helps others discover and easily deploy great software.
 
-DCM (Docker Compose Maker) is a simple yet powerful tool that helps you create `docker-compose.yaml` files for your self-hosted applications. Select from a curated list of popular containers and generate a ready-to-use configuration file with just a few clicks.
+DCM (Docker Compose Maker) turns a handful of clicks into a ready-to-use `docker-compose.yaml` and `.env` for your self-hosted apps. The catalog merges DCM's own compose definitions with the app and Recipe catalog of [self-host](https://selfhost.ajnart.dev/?ref=dcm), so you also see apps DCM has no YAML for yet, marked **self-host only**.
 
-No more copy-pasting from documentation or trying to remember the correct configuration options - this tool makes it easy to set up your Docker environment.
+Every selection shows the matching `self-host install <apps>` command. [self-host](https://selfhost.ajnart.dev/?ref=dcm) is the sister project: one Go binary that installs and wires these apps for you, for people and for AI agents. Rather not manage YAML? Use it. Prefer to own the YAML? DCM stays fully usable on its own.
+
+The interface follows the self-host design language: dark only, monospace, square corners and hard offset shadows.
 
 > [!TIP]
 > Most containers come pre-configured with best practices and sensible defaults, saving you hours of documentation reading and configuration tweaking.
@@ -158,8 +160,11 @@ cd dcm
 
 First install [Bun](https://bun.sh/) if you haven't already, then run:
 ```bash
-bun install
+bun install --linker hoisted
 ```
+
+> [!NOTE]
+> The hoisted linker is required: the default isolated linker breaks Turbopack.
 
 > [!WARNING]
 > Using npm instead of Bun may result in longer installation times and potential compatibility issues. We strongly recommend using Bun for development.
@@ -206,7 +211,9 @@ Each tool includes a detailed description, GitHub star count, and pre-configured
 
 ## 🎁 Want it installed for you?
 
-Skip the YAML. [self-host](https://selfhost.ajnart.dev/?ref=dcm) is one Go binary that installs, wires (API keys, Homarr tiles, download clients) and repairs self-hosted apps with Docker Compose. It has a terminal dashboard for people and `--json` commands for AI agents. DCM links to it from the header and the Copy Compose modal, prefilled with your selected services.
+Skip the YAML. [self-host](https://selfhost.ajnart.dev/?ref=dcm) is one Go binary that installs, wires (API keys, Homarr tiles, download clients) and repairs self-hosted apps with Docker Compose. It has a terminal dashboard for people and `--json` commands for AI agents. DCM links to it from the header, the selection bar and the Copy Compose modal, prefilled with your selected services (`https://selfhost.ajnart.dev/?apps=<ids>&ref=dcm`).
+
+The self-host catalog is vendored in `lib/selfhost-catalog.json`. Refresh it with `bun run sync:selfhost`.
 
 ## 🧪 Testing
 
