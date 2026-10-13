@@ -1,11 +1,17 @@
 # Paperless-ngx prerequisite and Homarr descriptor
 
+Source status, 13 October 2026 (before this docs update):
+`a463bd3dbed8856ccf990b94faaa6c9692e69615`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 Peer slice for #289. The prerequisite runtime evidence below belongs to
 11 October 2026 and implementation commit `368cc026`; the source-only ownership
 and Manual recovery follow-up is dated 12 October 2026. Neither is complete
 Homarr widget acceptance. #262's shared contract is now frozen at
-`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`; central wiring and new bounded
-rendered/lifecycle acceptance remain held. The 13 October source-only SDK
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`; central wiring is complete, while new bounded
+rendered/lifecycle acceptance remains held. The 13 October source-only SDK
 completion adds native and Stats verification; it does not add runtime evidence.
 
 ## Implemented boundary
@@ -129,7 +135,7 @@ removed regression scenarios or native/rendered/lifecycle acceptance.
   correspondents, tags and document types. Shared Stats selects `documentsTotal`,
   `documentsInbox`, `tagsCount`, `correspondentsCount` and `documentTypesCount`.
   No guessed document IDs or custom JSX.
-- Registry owner registers `paperlessTarget()` against the current SDK contract.
+- Registry owner registered `paperlessTarget()` against the current SDK contract.
   The Paperless completion makes no central registry, `links.go`, shared widget
   or plugin/init changes beyond the forward SDK merge.
 - The supported upstream widget default is 2 by 2 cells. The central placement
