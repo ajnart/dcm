@@ -8,6 +8,12 @@
 
 Run your own apps at home, like a movie server, without learning Docker.
 
+**Release gate:** the installer at [selfhost.ajnart.dev](https://selfhost.ajnart.dev)
+is public, but anonymous CLI downloads are not available yet. Releases, the skill
+and self-update still use the private `ajnart/selfhost-skills` repository. A
+repository rename and public artifact distribution remain separate release gates;
+changing repository visibility remains the maintainer's choice.
+
 **Using an AI assistant?** Paste this into it:
 
 > Install the self-host skill from github.com/ajnart/selfhost-skills and help me run my own movie server.
@@ -18,7 +24,7 @@ plugin. Linux, macOS, or Windows through WSL.
 1. **Install the CLI** (it then offers to add the skill to your AI agent):
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/ajnart/selfhost-skills/main/install.sh | bash
+   curl -fsSL https://selfhost.ajnart.dev/install.sh | bash
    export PATH="$HOME/.local/bin:$PATH"
    ```
 
@@ -96,13 +102,13 @@ updater follow the redirect.
 
 ### A custom domain
 
-The one-liner's URL is the only thing a domain changes. Point the domain at the
-raw `install.sh` (a redirect or a proxy to
-`https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh` works);
-the script, the updater and the releases stay where they are.
+The installer is served directly at `selfhost.ajnart.dev`, alongside a small
+landing page and `install.sh.sha256`. Only those allowlisted assets are uploaded;
+the site neither proxies authenticated GitHub requests nor publishes the source
+tree. The CLI release API, archives and checksums stay on GitHub.
 
 ```bash
-curl -fsSL https://your.domain/install.sh | bash
+curl -fsSL https://selfhost.ajnart.dev/install.sh | bash
 ```
 
 Check any URL with `scripts/verify-install.sh`: it runs the one-liner in
@@ -110,8 +116,11 @@ a throwaway `HOME`, then asserts `self-host --version` is the latest release,
 `self-host skill` works, and a pinned old version upgrades through
 `self-update`. While the repository is private, give it a token without printing
 it: `SELF_HOST_GITHUB_TOKEN="$(gh auth token)" scripts/verify-install.sh`.
-Once the repository is public, run it with no token. Set `VERIFY_INSTALL_URL`
-to test a different URL, or a local script as `file:///path/to/install.sh`.
+Once releases are anonymously accessible, run it with no token. Set
+`VERIFY_INSTALL_URL` to test a different URL, or a local script as
+`file:///path/to/install.sh`. Site reachability and the installer's own checksum
+do not establish archive availability or a successful install. See
+[site deployment and release gates](docs/releasing.md#installer-site).
 
 ## Staying up to date
 
