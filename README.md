@@ -646,10 +646,16 @@ Homarr Links support version **2.4.1**. Immich Setup prepares a dedicated
 read-only statistics key; retry with `self-host setup immich`, then
 `self-host setup homarr`. Server statistics are enabled, not album slideshows.
 Other Homarr versions stop with a recovery hint; back up before changing versions.
+Immich Links require genuinely refreshed Stats, not merely cached values. Retry
+Homarr Setup if its refresh cannot advance. User-referenced integrations and
+linked bookmarks survive removal and are not reclaimed on reinstall, including
+bookmarks with user-edited ping Addresses.
 See the [credential, widget and ownership contract](docs/homarr-integration-contract.md).
 The [Immich API/browser proof](docs/homarr-immich-proof.md) records authenticated
 empty-library statistics, rendered widgets and preservation/removal/reinstall
-at its exact source and image identities; it does not verify other peers.
+at its exact source and image identities, including retained legacy-App exclusion
+through two cycles and final post-lifecycle native/shared rendering. It does not
+verify populated media or other peers.
 
 | Capability         | Available behavior                                                                         | Evidence limit                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
