@@ -26,7 +26,7 @@ drift, while checking opacity, overlap, text size, layout stability and bounds.
 | 19.5–22 s   | CLI question | “Don’t want to learn the CLI?” lands over moving command lines.                                                                                                                                                                                         |
 | 22–28 s     | Agents       | A request types into the chat. Six agent headers switch while the plan, approval, install and result unfold. “One skill. Every agent.” uses the same sans-serif family as other prose.                                                                  |
 | 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “No rent.” enters from the opposite side; “Your data.” expands into place. Each keeps moving gently through its reading hold. No progress bar.           |
-| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://self-host.fyi/install.sh \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/selfhost-skills`. A slow push and caret keep the card alive.                         |
+| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://self-host.fyi/install \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/selfhost-skills`. A slow push and caret keep the card alive.                         |
 
 ## Music and UI sound
 
@@ -61,7 +61,7 @@ integrated and a true peak below −1 dBTP.
 - Subscription prices are illustrative inherited examples, totalling $92. The $0 comparison
   concerns software subscriptions, not hardware, electricity or hosting costs.
 - The maintainer's 2026-10-11 request changes the end card to the canonical installer Address,
-  **`https://self-host.fyi/install.sh`**. The repository line now names the existing
+  **`https://self-host.fyi/install`**. The repository line now names the existing
   **`ajnart/selfhost-skills`** repository. This supersedes the
   approved v5 npm preview, without changing the 34-second timeline or creative direction. The longer
   command uses 40 px type; the repository line uses 36 px and shares the counts' entrance.
@@ -177,3 +177,19 @@ publication remain separate gates under #295, #193 and #268.
   All 68 out-of-order and fresh-page seek samples pass (worst raster noise 53.4 dB PSNR).
 - The command fits its card at 40 px with no clipping; the repository line is unchanged.
 - MP4 SHA-256: `dac4f31932a77e1d9d86455220f112c9c85b23a00ead30daf136320e2e4f70a6`.
+
+### Verified extensionless-installer re-render, 2026-10-13
+
+- Re-rendered from `main` (`aee05f87`) so the end card shows `curl -fsSL https://self-host.fyi/install | bash`,
+  with Playwright updated 1.63.0 → 1.64.0 (the other packages were already latest; Chromium reinstalled).
+  No timeline, timing or direction changes. `audio/cues.json` was regenerated (209 cues, since the typed
+  command is shorter) and the original track was fetched and verified by `audio/mix.mjs`.
+- Final MP4: 2,040 frames, 1920×1080 at 60 fps, H.264 High `yuv420p`, faststart; AAC 48 kHz stereo.
+  Picture, sound and container all measure 34.000 seconds; size 7.69 MB.
+- Loudness −13.8 LUFS, true peak −2.0 dBTP, loudness range 6.0 LU. No flashes under the limited
+  luminance scan; 17 cuts have a mean absolute beat offset of 0.94 ms (worst 2.16 ms).
+- All 103 reading holds pass at 30 Hz, with no overlap, bounds, undeclared-text or terminology failures.
+  All 68 out-of-order and fresh-page seek samples pass (worst raster noise 53.4 dB PSNR).
+- Inspected the end-card stills at 31, 32, 33 and 33.95 seconds and the 34-frame contact sheet; the
+  command fits its card with no clipping.
+- MP4 SHA-256: `e2b9ec389c0d567ca6f870ce6c3c5dd188eecbf7cfa316ad706c92737ee0bd1c`.

@@ -13,6 +13,6 @@
     "@fontsource-variable/inter-tight": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "gsap": "^3.15.0",
-    "playwright": "^1.63.0"
+    "playwright": "1.64.0"
   }
 }
