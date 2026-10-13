@@ -1,0 +1,10 @@
+{
+  "id": "sabnzbd",
+  "name": "SABnzbd",
+  "description": "Automatically fetch files from Usenet, a paid file-sharing service",
+  "category": "Downloads",
+  "image": "linuxserver/sabnzbd:version-5.1.3",
+  "docs": "https://sabnzbd.org/wiki/",
+  "port": 8080,
+  "inputs": []
+}
