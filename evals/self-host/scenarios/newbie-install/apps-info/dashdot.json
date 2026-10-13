@@ -1,0 +1,10 @@
+{
+  "id": "dashdot",
+  "name": "Dash.",
+  "description": "See your computer's processor, memory and disk use at a glance",
+  "category": "Monitoring",
+  "image": "mauricenino/dashdot:6.3.4",
+  "docs": "https://getdashdot.com/docs/",
+  "port": 3001,
+  "inputs": []
+}

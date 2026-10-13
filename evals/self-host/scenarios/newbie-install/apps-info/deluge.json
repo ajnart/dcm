@@ -1,0 +1,10 @@
+{
+  "id": "deluge",
+  "name": "Deluge",
+  "description": "Download torrents in the background, with a simple web page to manage them",
+  "category": "Downloads",
+  "image": "lscr.io/linuxserver/deluge:2.2.0-ls381",
+  "docs": "https://deluge.readthedocs.io/en/latest/",
+  "port": 8112,
+  "inputs": []
+}

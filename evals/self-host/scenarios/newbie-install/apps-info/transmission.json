@@ -1,0 +1,10 @@
+{
+  "id": "transmission",
+  "name": "Transmission",
+  "description": "Download torrents in the background, light on your computer's resources",
+  "category": "Downloads",
+  "image": "linuxserver/transmission:version-4.1.3-r0",
+  "docs": "https://github.com/transmission/transmission/tree/main/docs",
+  "port": 9091,
+  "inputs": []
+}
