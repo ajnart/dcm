@@ -38,6 +38,9 @@ func planFromAnswers(backend Backend, v *answers) *plan {
 					setPrivateInput(&opts, a.Info().ID, in.Key, *value)
 					continue
 				}
+				if *value == in.Default {
+					continue
+				}
 				opts.Sets = append(opts.Sets, a.Info().ID+"."+in.Key+"="+*value)
 			}
 		}

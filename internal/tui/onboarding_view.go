@@ -7,6 +7,8 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
+
+	"github.com/ajnart/self-host/internal/host"
 )
 
 var (
@@ -188,17 +190,22 @@ func (o *onboarding) renderReview(ctx *viewContext) []string {
 			lines = append(lines, "  "+t.dim().Render("Change Access or the LAN address before approval."))
 		}
 	}
-	lines = append(lines, planLines(t, o.plan)...)
 	if len(o.hostChecks) > 0 {
 		lines = append(lines, "", "  "+t.heading().Render("Machine checks"))
-		for _, check := range o.hostChecks {
-			mark := t.dot(string(check.Level))
-			lines = append(lines, "  "+mark+" "+t.body().Render(check.Title)+t.dim().Render(" — "+check.Detail))
-			if check.Hint != "" {
-				lines = append(lines, "    "+t.dim().Render(check.Hint))
+		for _, level := range []host.Level{host.Fail, host.Warn, host.OK} {
+			for _, check := range o.hostChecks {
+				if check.Level != level {
+					continue
+				}
+				mark := t.dot(string(check.Level))
+				lines = append(lines, "  "+mark+" "+t.body().Render(check.Title)+t.dim().Render(" — "+check.Detail))
+				if check.Hint != "" {
+					lines = append(lines, "    "+t.dim().Render(check.Hint))
+				}
 			}
 		}
 	}
+	lines = append(lines, planLines(t, o.plan)...)
 	if o.answers.cloudflare {
 		lines = append(lines, "", "  "+t.body().Render("Your own web address: choose Apps in Settings after install; nothing public yet"))
 	}

@@ -2,42 +2,61 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"syscall"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/system"
 )
 
-func TestOnboardingChecksSelectedPortsAndHomeFolderSpace(t *testing.T) {
-	h := newHarness(t, &testApp{id: "homarr"}, &testApp{id: "ntfy"})
-	h.deps.DiskFree = func(path string) (uint64, error) {
+func TestOnboardingChecksUsePlannedPrimaryAndProtocolPorts(t *testing.T) {
+	primary := &testApp{id: "primary"}
+	paired := &portInputApp{testApp: testApp{id: "paired"}}
+	h := newHarness(t, primary, paired)
+	h.deps.DiskUsage = func(path string) (system.DiskUsage, error) {
 		if path != h.root() {
 			t.Fatalf("disk checked at %q, want Home folder %q", path, h.root())
 		}
-		return 12 << 30, nil
+		return system.DiskUsage{AvailableBytes: 20 << 30}, nil
 	}
-	h.deps.PortFree = func(int) bool { return false }
+	h.deps.BindTCP = busyPorts(19000)
+	h.deps.BindUDP = busyPorts(16900)
 
-	checks := h.svc.OnboardingChecks(context.Background(), []string{"homarr", "ntfy"})
-	if len(checks) != 3 {
-		t.Fatalf("checks = %+v, want disk and two selected App ports", checks)
+	checks := h.svc.OnboardingChecks(context.Background(), InstallOptions{
+		Targets: []string{"primary", "paired"},
+		Sets:    []string{"primary.port=19000", "paired.peer-port=16900"},
+	})
+	joined := checksText(checks)
+	for _, want := range []string{"primary", "19000", "paired Peer port", "16900", "TCP and UDP"} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("checks lack %q: %+v", want, checks)
+		}
 	}
-	if checks[0].ID != "disk" || checks[0].Level != "ok" || !strings.Contains(checks[0].Detail, "12 GiB free") {
-		t.Fatalf("disk check = %+v", checks[0])
+}
+
+func TestOnboardingDefaultPortConflictWarnsWithAllocatedAlternative(t *testing.T) {
+	h := newHarness(t, &testApp{id: "homarr"}, &portInputApp{testApp: testApp{id: "paired"}})
+	h.deps.DiskUsage = func(string) (system.DiskUsage, error) {
+		return system.DiskUsage{AvailableBytes: 20 << 30}, nil
 	}
-	if checks[1].ID != "port" || checks[1].App != "homarr" || checks[1].Level != "fail" {
-		t.Fatalf("Homarr port check = %+v", checks[1])
+	h.deps.BindTCP = busyPorts(9000)
+	h.deps.BindUDP = busyPorts(6881)
+
+	checks := h.svc.OnboardingChecks(context.Background(), InstallOptions{Targets: []string{"homarr", "paired"}})
+	if len(checks) != 4 || checks[1].Level != host.Warn ||
+		!strings.Contains(checks[1].Detail, "install will use 9001 instead") || checks[1].Hint != "" {
+		t.Fatalf("default conflict = %+v", checks)
 	}
-	if checks[2].ID != "port" || checks[2].App != "ntfy" || checks[2].Level != "fail" ||
-		!strings.Contains(checks[2].Detail, "9000") || checks[2].Hint == "" {
-		t.Fatalf("ntfy port check = %+v", checks[2])
+	if checks[3].Level != host.Warn || !strings.Contains(checks[3].Detail, "install will use 6882 instead") {
+		t.Fatalf("paired default conflict = %+v", checks[3])
 	}
 }
 
 func TestOnboardingChecksDoNotChangeDoctor(t *testing.T) {
 	h := newHarness(t)
-	h.deps.DiskFree = func(string) (uint64, error) { return 12 << 30, nil }
-	h.deps.PortFree = func(int) bool { return false }
 	h.runner.On("docker version --format {{.Server.Version}}", system.Result{Stdout: []byte("27.3.1")})
 	h.runner.On("docker compose version --short", system.Result{Stdout: []byte("2.29.7")})
 	h.runner.On("docker info --format {{json .SecurityOptions}}", system.Result{Stdout: []byte("[]")})
@@ -47,4 +66,29 @@ func TestOnboardingChecksDoNotChangeDoctor(t *testing.T) {
 			t.Fatalf("Doctor gained onboarding-only check %+v", check)
 		}
 	}
+}
+
+type portInputApp struct{ testApp }
+
+func (a *portInputApp) Inputs() []app.Input {
+	return []app.Input{{Key: "peer-port", Prompt: "Peer port", Default: "6881", HostPortProtocols: []string{"tcp", "udp"}}}
+}
+
+func busyPorts(ports ...int) func(string, string) error {
+	return func(_ string, address string) error {
+		for _, port := range ports {
+			if strings.HasSuffix(address, ":"+fmt.Sprint(port)) {
+				return syscall.EADDRINUSE
+			}
+		}
+		return nil
+	}
+}
+
+func checksText(checks []host.Check) string {
+	var lines []string
+	for _, check := range checks {
+		lines = append(lines, check.App, check.Title, check.Detail, check.Hint)
+	}
+	return strings.Join(lines, " ")
 }

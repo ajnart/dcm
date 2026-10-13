@@ -447,7 +447,7 @@ func (o *onboarding) checkPlan(ctx *viewContext) {
 		o.hostChecks = nil
 		return
 	}
-	o.hostChecks = ctx.backend.OnboardingChecks(context.Background(), o.plan.opts.Targets)
+	o.hostChecks = ctx.backend.OnboardingChecks(context.Background(), o.plan.opts)
 }
 
 func (o *onboarding) reviewNamesCheck() service.NamesCheck {

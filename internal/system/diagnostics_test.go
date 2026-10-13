@@ -2,8 +2,16 @@ package system
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 )
+
+func TestDiskUsageChecksTheFilesystemForAFutureProjectFolder(t *testing.T) {
+	parent := t.TempDir()
+	if got := existingPath(filepath.Join(parent, ".self-host", "apps")); got != parent {
+		t.Fatalf("existing path = %q, want %q", got, parent)
+	}
+}
 
 func TestMachineResourcesUsesEffectiveCgroupMemoryLimit(t *testing.T) {
 	tests := []struct {

@@ -309,7 +309,7 @@ func (s *Service) install(ctx context.Context, opts InstallOptions, locked *proj
 					return err
 				}
 				delete(values, "port")
-				if err := ss.allocateInputPorts(a, values, opts.Sets, st.Inputs); err != nil {
+				if err := ss.allocateInputPorts(a, values, opts.Sets, st.Inputs, port); err != nil {
 					return err
 				}
 				if err := ss.ensureSecrets(a); err != nil {
@@ -514,9 +514,9 @@ func inputWasSet(sets []string, id, key string) bool {
 	return false
 }
 
-func (ss *session) allocateInputPorts(a app.App, values map[string]string, sets []string, previous map[string]string) error {
+func (ss *session) allocateInputPorts(a app.App, values map[string]string, sets []string, previous map[string]string, primaryPort int) error {
 	id := a.Info().ID
-	used := map[int]bool{}
+	used := map[int]bool{primaryPort: true}
 	for installedID, st := range ss.state.Apps {
 		used[st.Port] = true
 		installed, found := ss.s.Catalog.App(installedID)

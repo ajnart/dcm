@@ -523,9 +523,10 @@ undetermined). With a Project it adds `project-lock`, `project-userns`
 Doctor does not check unapproved App ports or free disk, so its human and JSON
 output stay unchanged. Onboarding checks free space in the Home folder and the
 selected Apps' default ports at Review, before approval. A failed check blocks
-approval and `r` rechecks it. Outside Onboarding, `self-host install` takes the
-next free port from an App's default and emits `step.warn` step `port`; an
-explicit `--set <app>.port=N` is used as given, so check that port yourself.
+approval and `r` rechecks it. An occupied default is a warning naming the free
+port install will select; an occupied explicitly selected primary or secondary
+TCP/UDP port blocks approval. Outside Onboarding, `self-host install` takes the
+next free port from an App's default and emits `step.warn` step `port`.
 
 The LAN IP is detected at first install and stored. When the machine moves to
 another network (office to home), every App URL points at the old address:
