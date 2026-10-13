@@ -55,6 +55,8 @@ type program struct {
 	steps    telemetry.Progress
 	failure  error
 	panicked any
+	// experience is the Experience level a command saved, for Telemetry's person property.
+	experience string
 }
 
 func (a *program) service() *service.Service {
@@ -120,6 +122,9 @@ func (a *program) human(w io.Writer, verbose bool) events.Sink {
 	profiled := colorprofile.NewWriter(f, os.Environ())
 	if profiled.Profile <= colorprofile.NoTTY {
 		return events.Human(w, verbose)
+	}
+	if a.deps.Getenv("NO_COLOR") != "" {
+		profiled.Profile = min(profiled.Profile, colorprofile.ASCII)
 	}
 	width := func() int {
 		if cols, _, err := term.GetSize(f.Fd()); err == nil && cols > 0 {
