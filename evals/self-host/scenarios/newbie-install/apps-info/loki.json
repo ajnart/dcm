@@ -1,0 +1,10 @@
+{
+  "id": "loki",
+  "name": "Loki",
+  "description": "Gather your apps' activity messages in one place to search through",
+  "category": "Observability",
+  "image": "grafana/loki:3.7.0",
+  "docs": "https://grafana.com/docs/loki/latest/setup/install/docker/",
+  "port": 3100,
+  "inputs": []
+}

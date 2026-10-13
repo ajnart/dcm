@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -102,7 +103,23 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 	for _, a := range generatedApps() {
 		a := a
 		t.Run(a.Info().ID, func(t *testing.T) {
+			deps := systemtest.NewDeps(t)
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if a.Info().ID == "prometheus" {
+					switch r.URL.Path {
+					case "/api/v1/targets":
+						fmt.Fprint(w, `{"status":"success","data":{"activeTargets":[{"health":"up","labels":{"job":"prometheus","instance":"localhost:9090"},"scrapeUrl":"http://localhost:9090/metrics"}],"droppedTargets":[]}}`)
+					case "/api/v1/query":
+						if r.URL.Query().Get("query") != `up{job="prometheus",instance="localhost:9090"}[1m]` {
+							w.WriteHeader(http.StatusBadRequest)
+							return
+						}
+						fmt.Fprintf(w, `{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"__name__":"up","job":"prometheus","instance":"localhost:9090"},"values":[[%d,"1"]]}]}}`, deps.Now().Unix())
+					default:
+						w.WriteHeader(http.StatusNotFound)
+					}
+					return
+				}
 				w.WriteHeader(http.StatusOK)
 				if a.Info().ID == "dashdot" {
 					switch r.URL.Path {
@@ -119,7 +136,6 @@ func TestGeneratedAppsOnboard(t *testing.T) {
 			}))
 			defer srv.Close()
 			info := a.Info()
-			deps := systemtest.NewDeps(t)
 			h := helpers.New(helpers.Config{
 				App:     info.ID,
 				Service: info.Service,

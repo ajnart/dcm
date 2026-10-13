@@ -1,0 +1,10 @@
+{
+  "id": "lldap",
+  "name": "LLDAP",
+  "description": "Keep one list of users and passwords that your apps can share",
+  "category": "Identity",
+  "image": "lldap/lldap:2026-08-28",
+  "docs": "https://github.com/lldap/lldap/blob/main/docs/install.md",
+  "port": 17170,
+  "inputs": []
+}
