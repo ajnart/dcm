@@ -81,4 +81,6 @@ jobs:
             cmp "$asset" "$RUNNER_TEMP/release-download/${asset##*/}"
           done
           (cd "$RUNNER_TEMP/release-download" && sha256sum --check checksums.txt)
-          gh release edit "$RELEASE_TAG" --draft=false --latest=false
+          latest=true
+          [[ "$RELEASE_TAG" == new-cli-v* ]] && latest=false
+          gh release edit "$RELEASE_TAG" --draft=false --latest="$latest"

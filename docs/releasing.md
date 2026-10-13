@@ -12,8 +12,10 @@ self-host_X.Y.Z_darwin_amd64.tar.gz   self-host_X.Y.Z_darwin_arm64.tar.gz
 The installer and `self-host self-update` pick the highest semver among
 non-draft, non-prerelease releases that carry `checksums.txt` and a
 `self-host_<version>_*.tar.gz`. Releases without them (the legacy skill-pack
-releases `v1.0.0`, `v1.1.1`, `v1.1.2`) are never chosen. Create the release
-`--latest=false`: the CLI does not depend on GitHub's "Latest" badge.
+releases `v1.0.0`, `v1.1.1`, `v1.1.2`) are never chosen. The CLI does not read
+GitHub's "Latest" badge, but GitHub would give it to the legacy `v1.1.2` by
+version, so publish every `vX.Y.Z` release with `--latest` and its
+`new-cli-vX.Y.Z` twin with `--latest=false`.
 
 ## Prepare
 
@@ -33,8 +35,8 @@ Push the tag. `.github/workflows/release.yml` validates the tag against
 `^(new-cli-)?v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`, packages with
 goreleaser in snapshot mode (`SELF_HOST_RELEASE_VERSION` supplies `X.Y.Z`),
 smoke-tests the Linux binary, creates a **draft** release, downloads it, compares
-every asset with `cmp`, checks the checksums, and only then publishes with
-`--latest=false`.
+every asset with `cmp`, checks the checksums, and only then publishes it, as
+Latest for a `vX.Y.Z` tag.
 
 ```bash
 git tag vX.Y.Z && git push origin vX.Y.Z
@@ -58,7 +60,7 @@ gh release create vX.Y.Z "${assets[@]}" --target main --draft --title "self-host
   --notes "Linux and macOS amd64/arm64 CLI. WSL2 uses Linux binaries. Native Windows is unsupported."
 mkdir -p /tmp/self-host-release-check && gh release download vX.Y.Z --dir /tmp/self-host-release-check --clobber
 for a in "${assets[@]}"; do cmp "$a" "/tmp/self-host-release-check/$a"; done
-gh release edit vX.Y.Z --draft=false --latest=false
+gh release edit vX.Y.Z --draft=false --latest
 ```
 
 `gh release create` of a draft with `--target main` makes the tag when the
