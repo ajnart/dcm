@@ -1,0 +1,19 @@
+internal/systemtest/systemtest.go
+  s_8e166456c2ed73::t_71b5aa7656fb41 188-190,192,197-221,224-225,233-235,237-245,250,252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed7a1d6479db852eafd7f0488b63077ccd2bb110",
+  "prompts": {},
+  "sessions": {
+    "s_8e166456c2ed73": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c54a2784-641d-452f-9f3f-bc4399a5fed7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
