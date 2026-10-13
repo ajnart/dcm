@@ -15,6 +15,8 @@ const (
 	V1 = "/api/v1"
 )
 
+var scheme = helpers.KeyScheme{Header: "X-Api-Key"}
+
 type Servarr struct {
 	Name string
 	API  string
@@ -22,7 +24,7 @@ type Servarr struct {
 
 func Request(h *helpers.H, api string, req helpers.Request) helpers.Request {
 	req.Path = api + req.Path
-	req.Header = map[string]string{"X-Api-Key": h.Secret(h.Key("api_key"))}
+	req.Header = scheme.Headers(h.Secret(h.Key("api_key")))
 	return req
 }
 
@@ -34,12 +36,7 @@ func (s Servarr) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/ping"); err != nil {
 		return err
 	}
-	err := h.Step(ctx, "api-key", "read the "+s.Name+" API key", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return s.keyWorks(ctx, h) },
-		Do:    func(ctx context.Context) error { return s.ReadAPIKey(ctx, h) },
-		Hint:  "Copy the API key from " + s.Name + " > Settings > General into secrets.env as " + h.Key("api_key") + ".",
-	})
-	if err != nil {
+	if err := h.APIKeyStep(ctx, s.APIKey(h)); err != nil {
 		return err
 	}
 	return h.Step(ctx, "auth", "require the Admin login (forms authentication)", helpers.StepSpec{
@@ -51,7 +48,7 @@ func (s Servarr) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (s Servarr) Check(ctx context.Context, h *helpers.H) error {
-	if ok, err := s.keyWorks(ctx, h); !ok {
+	if ok, err := h.APIKeyAccepted(ctx, s.APIKey(h)); !ok {
 		return fmt.Errorf("the %s API key is not accepted: %v", s.Name, err)
 	}
 	if ok, err := loginWorks(ctx, h); !ok {
@@ -60,20 +57,14 @@ func (s Servarr) Check(ctx context.Context, h *helpers.H) error {
 	return nil
 }
 
-func (s Servarr) keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	if h.Secret(h.Key("api_key")) == "" {
-		return false, nil
+func (s Servarr) APIKey(h *helpers.H) helpers.APIKey {
+	return helpers.APIKey{
+		Msg:      "read the " + s.Name + " API key",
+		Hint:     "Copy the API key from " + s.Name + " > Settings > General into secrets.env as " + h.Key("api_key") + ".",
+		Scheme:   scheme,
+		Probe:    s.API + "/system/status",
+		Discover: helpers.ConfigKey(filepath.Join("config", "config.xml"), helpers.XMLElement("ApiKey"), 2*time.Minute),
 	}
-	resp, err := h.HTTP(ctx, s.Request(h, helpers.Request{Path: "/system/status"}))
-	return err == nil && resp.Status == 200, err
-}
-
-func (s Servarr) ReadAPIKey(ctx context.Context, h *helpers.H) error {
-	key, err := h.ConfigValue(ctx, filepath.Join("config", "config.xml"), helpers.XMLElement("ApiKey"), 2*time.Minute)
-	if err != nil {
-		return err
-	}
-	return h.SetSecret(h.Key("api_key"), key)
 }
 
 func loginWorks(ctx context.Context, h *helpers.H) (bool, error) {

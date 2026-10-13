@@ -93,12 +93,15 @@ func (l library) path() string { return "/media/" + l.folder }
 // authorization is the header Jellyfin 10.9 through 12 accept; token is a
 // session token or an API key, or "" before signing in.
 func authorization(token string) map[string]string {
-	value := `MediaBrowser Client="selfhost", Device="selfhost-cli", DeviceId="selfhost-cli", Version="1.0.0"`
-	if token != "" {
-		value += `, Token="` + token + `"`
+	if token == "" {
+		return map[string]string{"Authorization": mediaBrowser}
 	}
-	return map[string]string{"Authorization": value}
+	return keyScheme.Headers(token)
 }
+
+const mediaBrowser = `MediaBrowser Client="selfhost", Device="selfhost-cli", DeviceId="selfhost-cli", Version="1.0.0"`
+
+var keyScheme = helpers.KeyScheme{Header: "Authorization", Prefix: mediaBrowser + `, Token="`, Suffix: `"`}
 
 type publicInfo struct {
 	Version                string
@@ -221,13 +224,16 @@ func session(ctx context.Context, h *helpers.H) (string, error) {
 // APIKey is the stored key other Apps use to call Jellyfin.
 func APIKey(h *helpers.H) string { return h.Secret(h.Key("api_key")) }
 
-func keyWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	key := APIKey(h)
-	if key == "" {
-		return false, nil
+func apiKey(h *helpers.H) helpers.APIKey {
+	return helpers.APIKey{
+		Msg: "create the " + apiKeyApp + " API key",
+		Hint: "Open " + h.URL + "/web/#/dashboard/keys, add a key named " + apiKeyApp +
+			" and save it in secrets.env as " + h.Key("api_key") + ".",
+		Credential: "admin",
+		Scheme:     keyScheme,
+		Probe:      "/System/Info",
+		Discover:   createKey,
 	}
-	resp, err := h.HTTP(ctx, helpers.Request{Path: "/System/Info", Header: authorization(key)})
-	return err == nil && resp.Status == 200, err
 }
 
 type apiKeys struct {
@@ -258,27 +264,27 @@ func findKey(ctx context.Context, h *helpers.H, token string) (string, error) {
 
 // createKey reuses the selfhost key when it exists: POST answers 204 with no
 // body and never refuses a duplicate name.
-func createKey(ctx context.Context, h *helpers.H) error {
+func createKey(ctx context.Context, h *helpers.H) (string, error) {
 	token, err := session(ctx, h)
 	if err != nil {
-		return err
+		return "", err
 	}
 	key, err := findKey(ctx, h, token)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if key == "" {
 		if _, err := h.Expect(ctx, helpers.Request{Method: "POST", Path: "/Auth/Keys?app=" + apiKeyApp, Header: authorization(token)}); err != nil {
-			return err
+			return "", err
 		}
 		if key, err = findKey(ctx, h, token); err != nil {
-			return err
+			return "", err
 		}
 	}
 	if key == "" {
-		return errors.New("Jellyfin did not list the new API key")
+		return "", errors.New("Jellyfin did not list the new API key")
 	}
-	return h.SetSecret(h.Key("api_key"), key)
+	return key, nil
 }
 
 type virtualFolder struct {
@@ -350,14 +356,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
-	err = h.Step(ctx, "api-key", "create the "+apiKeyApp+" API key", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return keyWorks(ctx, h) },
-		Do:    func(ctx context.Context) error { return createKey(ctx, h) },
-		Hint: "Open " + h.URL + "/web/#/dashboard/keys, add a key named " + apiKeyApp +
-			" and save it in secrets.env as " + h.Key("api_key") + ".",
-		Credential: "admin",
-	})
-	if err != nil {
+	if err := h.APIKeyStep(ctx, apiKey(h)); err != nil {
 		return err
 	}
 	for _, l := range wanted(h) {
@@ -379,7 +378,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if token, err := signIn(ctx, h); token == "" {
 		return fmt.Errorf("the Admin login %s cannot sign in to Jellyfin: %v", h.AdminUser(), err)
 	}
-	if ok, err := keyWorks(ctx, h); !ok {
+	if ok, err := h.APIKeyAccepted(ctx, apiKey(h)); !ok {
 		return fmt.Errorf("the Jellyfin API key is not accepted: %v", err)
 	}
 	return nil

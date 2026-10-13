@@ -234,7 +234,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}
 	err := h.Step(ctx, "api-key", "read the Lidarr API key", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return keyWorks(ctx, h) },
-		Do:    func(ctx context.Context) error { return lidarrServarr.ReadAPIKey(ctx, h) },
+		Do:    func(ctx context.Context) error { return h.StoreAPIKey(ctx, lidarrServarr.APIKey(h)) },
 		Hint:  recoveryHint,
 	})
 	if err != nil {

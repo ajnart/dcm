@@ -233,3 +233,22 @@ func TestTheHintNamesTheSecurityPage(t *testing.T) {
 		t.Fatal("auth step must retain its Security-page hint without changing external authentication")
 	}
 }
+
+func TestAKeyLidarrRejectsFailsTheKeyStepWithTheRecoveryHint(t *testing.T) {
+	dir := t.TempDir()
+	writeConfig(t, dir, "stale-key-from-the-config-file")
+	server := httptest.NewServer((&fakeLidarr{key: "the-key-lidarr-uses"}).handler())
+	defer server.Close()
+	rec := &porttest.Recorder{}
+	h := porttest.New(t, porttest.Options{App: "lidarr", Service: "lidarr", Dir: dir,
+		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "secret"}}, server, rec)
+
+	if err := (lidarr.App{}).Setup(context.Background(), h); err == nil {
+		t.Fatal("Setup should fail when Lidarr rejects the key in its config file")
+	}
+
+	want := "Run self-host setup lidarr to reread its generated API key"
+	if rec.Status("api-key") != stepstatus.StepFail || !strings.Contains(rec.Hint(), want) {
+		t.Fatalf("api-key=%q hint=%q, want a failed step with %q", rec.Status("api-key"), rec.Hint(), want)
+	}
+}
