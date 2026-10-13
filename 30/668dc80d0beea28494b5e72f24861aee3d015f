@@ -1,0 +1,27 @@
+internal/cli/install_test.go
+  s_378d5db6c5f6de::t_ff5ae0573dddbd 238,257-260,331
+internal/cli/lan_test.go
+  s_378d5db6c5f6de::t_fabec6af3cd225 21,23-24,29-30,34,61-62,70,89
+internal/system/capabilities.go
+  s_378d5db6c5f6de::t_12c64f05b7f692 42-43,90
+internal/systemtest/fakes.go
+  s_378d5db6c5f6de::t_b3faa242f35075 23-24,39,46,65,70,73,84
+internal/systemtest/systemtest.go
+  s_378d5db6c5f6de::t_c513f11f18469d 189,197,224-225
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "30668dc80d0beea28494b5e72f24861aee3d015f",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
