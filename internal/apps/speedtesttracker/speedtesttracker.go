@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -126,15 +127,21 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready(ctx, h); err != nil {
 		return err
 	}
-	if err := h.Step(ctx, "admin-login", "verify the administrator "+adminEmail(h), helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(context.Context) error {
+	if err := (firstadmin.FirstAdmin{
+		StepID:   "admin-login",
+		Username: func(_ context.Context, h *helpers.H) (string, error) { return adminEmail(h), nil },
+		Title:    func(_ *helpers.H, user string) string { return "verify the administrator " + user },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminWorks(ctx, h)
+		},
+		Create: func(context.Context, *helpers.H, string, string) error {
 			return errors.New("Speedtest Tracker seeds the administrator from ADMIN_EMAIL/ADMIN_PASSWORD only on first start")
 		},
-		Hint: "Speedtest Tracker seeds the Admin login only on first start. Open " + h.URL +
-			" and verify the existing account with self-host credentials. Restore the matching Project credential through its secret boundary, then retry self-host setup speedtest-tracker; do not delete configuration or reset an existing account.",
-		Credential: "admin",
-	}); err != nil {
+		Hint: func(h *helpers.H, _ string) string {
+			return "Speedtest Tracker seeds the Admin login only on first start. Open " + h.URL +
+				" and verify the existing account with self-host credentials. Restore the matching Project credential through its secret boundary, then retry self-host setup speedtest-tracker; do not delete configuration or reset an existing account."
+		},
+	}).Admin(ctx, h); err != nil {
 		return err
 	}
 	if err := h.Step(ctx, "homarr-key", "verify the Speedtest Tracker results credential", helpers.StepSpec{

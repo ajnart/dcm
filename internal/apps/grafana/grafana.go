@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -77,15 +78,20 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/api/health"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(context.Context) error {
+	return firstadmin.FirstAdmin{
+		StepID: "admin-login",
+		Title:  func(_ *helpers.H, user string) string { return "verify the administrator " + user },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminWorks(ctx, h)
+		},
+		Create: func(context.Context, *helpers.H, string, string) error {
 			return errors.New("Grafana reads GF_SECURITY_ADMIN_USER and GF_SECURITY_ADMIN_PASSWORD only on first start")
 		},
-		Hint: "Grafana applies the Admin login on first start. Recreate the container so it reads secrets.env: " +
-			"self-host start grafana, then sign in at " + h.URL + " with the password from `self-host credentials`.",
-		Credential: "admin",
-	})
+		Hint: func(h *helpers.H, _ string) string {
+			return "Grafana applies the Admin login on first start. Recreate the container so it reads secrets.env: " +
+				"self-host start grafana, then sign in at " + h.URL + " with the password from `self-host credentials`."
+		},
+	}.Admin(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

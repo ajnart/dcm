@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -153,9 +154,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/api/server/config"); err != nil {
 		return err
 	}
-	if err := h.Step(ctx, "admin", "create the first administrator "+email, helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
-		Do: func(ctx context.Context) error {
+	if err := (firstadmin.FirstAdmin{
+		Username: func(context.Context, *helpers.H) (string, error) { return email, nil },
+		Title:    func(_ *helpers.H, user string) string { return "create the first administrator " + user },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return login(ctx, h)
+		},
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error {
 			setUp, err := initialized(ctx, h)
 			if err != nil {
 				return err
@@ -177,9 +182,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return nil
 		},
-		Hint:       "Open " + h.URL + ", finish the Immich setup with email " + email + " and the password shown by `self-host credentials`, then run: self-host setup immich",
-		Credential: "admin",
-	}); err != nil {
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + ", finish the Immich setup with email " + user + " and the password shown by `self-host credentials`, then run: self-host setup immich"
+		},
+	}).Admin(ctx, h); err != nil {
 		return err
 	}
 	return h.Step(ctx, "homarr-key", "prepare read-only Immich statistics", helpers.StepSpec{

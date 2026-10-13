@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -126,15 +127,20 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/auth/login"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(context.Context) error {
+	return firstadmin.FirstAdmin{
+		StepID: "admin-login",
+		Title:  func(_ *helpers.H, user string) string { return "verify the administrator " + user },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminWorks(ctx, h)
+		},
+		Create: func(context.Context, *helpers.H, string, string) error {
 			return errors.New("Node-RED reads /data/settings.js at start; the file is generated before the container starts")
 		},
-		Hint: "Regenerate /data/settings.js and recreate the container: self-host install node-red, then self-host start node-red. " +
-			"Sign in at " + h.URL + " as " + h.AdminUser() + " with the password from `self-host credentials`.",
-		Credential: "admin",
-	})
+		Hint: func(h *helpers.H, user string) string {
+			return "Regenerate /data/settings.js and recreate the container: self-host install node-red, then self-host start node-red. " +
+				"Sign in at " + h.URL + " as " + user + " with the password from `self-host credentials`."
+		},
+	}.Admin(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

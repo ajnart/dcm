@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -124,14 +125,18 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/realms/master"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin", "the Admin login reads the master realm", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminRealm(ctx, h) },
-		Do: func(context.Context) error {
+	return firstadmin.FirstAdmin{
+		Title: func(*helpers.H, string) string { return "the Admin login reads the master realm" },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminRealm(ctx, h)
+		},
+		Create: func(context.Context, *helpers.H, string, string) error {
 			return errors.New("the bootstrap administrator is created only at first start")
 		},
-		Hint:       "Recreate Keycloak so it reads KC_BOOTSTRAP_ADMIN_PASSWORD from secrets.env: self-host start keycloak",
-		Credential: "admin",
-	})
+		Hint: func(*helpers.H, string) string {
+			return "Recreate Keycloak so it reads KC_BOOTSTRAP_ADMIN_PASSWORD from secrets.env: self-host start keycloak"
+		},
+	}.Admin(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

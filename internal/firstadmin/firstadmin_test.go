@@ -469,3 +469,54 @@ func TestProbeRequestDefaultsToConfiguredPath(t *testing.T) {
 		})
 	}
 }
+
+func TestFirstAdminAdminRunsOnlyTheAdminStep(t *testing.T) {
+	srv := okServer()
+	defer srv.Close()
+	var results []helpers.StepResult
+	h := newH(t, srv, &results)
+	st := &adminState{}
+	f := firstadmin.FirstAdmin{Create: st.make, Login: st.signIn}
+
+	if err := f.Admin(context.Background(), h); err != nil {
+		t.Fatalf("Admin: %v", err)
+	}
+	if len(results) != 1 || results[0].ID != "admin" || results[0].Status != stepstatus.StepOK {
+		t.Fatalf("results = %+v, want one ok admin step", results)
+	}
+	if results[0].Msg != "create the administrator admin" {
+		t.Errorf("Msg = %q, want the default title", results[0].Msg)
+	}
+	if st.count() != 1 {
+		t.Errorf("Create called %d times, want 1", st.count())
+	}
+}
+
+func TestFirstAdminStepWordingOverrides(t *testing.T) {
+	srv := okServer()
+	defer srv.Close()
+	var results []helpers.StepResult
+	h := newH(t, srv, &results)
+	st := &adminState{}
+	f := firstadmin.FirstAdmin{
+		StepID:   "admin-login",
+		Username: func(context.Context, *helpers.H) (string, error) { return "root@demo.local", nil },
+		Title:    func(_ *helpers.H, user string) string { return "administrator " + user + " signs in" },
+		Hint:     func(h *helpers.H, user string) string { return "sign in to " + h.URL + " as " + user },
+		Create:   func(context.Context, *helpers.H, string, string) error { return errors.New("seeded at first start") },
+		Login:    st.signIn,
+	}
+
+	err := f.Admin(context.Background(), h)
+	if err == nil || !strings.Contains(err.Error(), "seeded at first start") {
+		t.Fatalf("Admin = %v, want the Create error", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("results = %+v, want one step", results)
+	}
+	got := results[0]
+	if got.ID != "admin-login" || got.Msg != "administrator root@demo.local signs in" ||
+		got.Hint != "sign in to "+srv.URL+" as root@demo.local" || got.Status != stepstatus.StepFail {
+		t.Errorf("result = %+v", got)
+	}
+}

@@ -152,15 +152,21 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "administrator "+adminEmail(h)+" signs in", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(ctx context.Context) error {
+	return firstadmin.FirstAdmin{
+		StepID:   "admin-login",
+		Username: func(_ context.Context, h *helpers.H) (string, error) { return adminEmail(h), nil },
+		Title:    func(_ *helpers.H, user string) string { return "administrator " + user + " signs in" },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminWorks(ctx, h)
+		},
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error {
 			return h.Poll(ctx, 10*time.Minute, func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) })
 		},
-		Hint: "Open " + h.URL + " and sign in as " + adminEmail(h) +
-			" with the password shown by `self-host credentials`; read the logs with: self-host logs seafile",
-		Credential: "admin",
-	})
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + " and sign in as " + user +
+				" with the password shown by `self-host credentials`; read the logs with: self-host logs seafile"
+		},
+	}.Admin(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

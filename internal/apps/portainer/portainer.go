@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -99,14 +100,16 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin", "the preseeded administrator signs in", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return loginWorks(ctx, h, h.AdminUser(), h.AdminPassword()) },
-		Do: func(context.Context) error {
+	return firstadmin.FirstAdmin{
+		Title: func(*helpers.H, string) string { return "the preseeded administrator signs in" },
+		Login: loginWorks,
+		Create: func(context.Context, *helpers.H, string, string) error {
 			return errors.New("Portainer seeds its administrator from the password file at first start")
 		},
-		Hint:       "Open " + h.URL + ", sign in as " + h.AdminUser() + " with the password shown by `self-host credentials`, then connect a Docker environment separately.",
-		Credential: "admin",
-	})
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + ", sign in as " + user + " with the password shown by `self-host credentials`, then connect a Docker environment separately."
+		},
+	}.Admin(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

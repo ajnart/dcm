@@ -142,15 +142,20 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready.Setup(ctx, h); err != nil {
 		return err
 	}
-	if err := h.Step(ctx, "admin-login", "administrator "+h.AdminUser()+" signs in", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(ctx context.Context) error {
+	if err := (firstadmin.FirstAdmin{
+		StepID: "admin-login",
+		Title:  func(_ *helpers.H, user string) string { return "administrator " + user + " signs in" },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminWorks(ctx, h)
+		},
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error {
 			return h.Poll(ctx, 5*time.Minute, func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) })
 		},
-		Hint: "Open " + h.URL + " and sign in as " + h.AdminUser() +
-			". The password is in the admin-password file; if the first start failed, read: self-host logs paperless-ngx",
-		Credential: "admin",
-	}); err != nil {
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + " and sign in as " + user +
+				". The password is in the admin-password file; if the first start failed, read: self-host logs paperless-ngx"
+		},
+	}).Admin(ctx, h); err != nil {
 		return err
 	}
 	return h.Step(ctx, "api-key", "save a read-only Paperless-ngx token for Homarr", helpers.StepSpec{

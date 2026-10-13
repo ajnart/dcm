@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -154,9 +155,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/login"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin", "register the first owner "+adminEmail(h), helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
-		Do: func(ctx context.Context) error {
+	return firstadmin.FirstAdmin{
+		Username: func(_ context.Context, h *helpers.H) (string, error) { return adminEmail(h), nil },
+		Title:    func(_ *helpers.H, user string) string { return "register the first owner " + user },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return login(ctx, h)
+		},
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error {
 			if err := register(ctx, h); err != nil {
 				return err
 			}
@@ -169,9 +174,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return nil
 		},
-		Hint:       "Open " + h.URL + "/register and create the first owner with email " + adminEmail(h) + " and the password shown by `self-host credentials`, then run: self-host setup firefly-iii",
-		Credential: "admin",
-	})
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + "/register and create the first owner with email " + user + " and the password shown by `self-host credentials`, then run: self-host setup firefly-iii"
+		},
+	}.Admin(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

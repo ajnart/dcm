@@ -133,22 +133,28 @@ type FirstAdmin struct {
 	Valid func(user, password string) error
 	// Manual says what to do in the web UI, e.g. "open Settings › Users".
 	Manual string
+	// StepID names the step in Setup output; empty keeps "admin".
+	StepID string
+	// Title words the step; nil keeps "create the administrator <user>".
+	Title func(h *helpers.H, user string) string
+	// Hint replaces the whole hand-finish hint; nil keeps the standard one.
+	Hint func(h *helpers.H, user string) string
 }
 
 func (f FirstAdmin) Setup(ctx context.Context, h *helpers.H) error {
 	if err := f.Ready.step(ctx, h); err != nil {
 		return err
 	}
-	return f.admin(ctx, h)
+	return f.Admin(ctx, h)
 }
 
-func (f FirstAdmin) admin(ctx context.Context, h *helpers.H) error {
+func (f FirstAdmin) Admin(ctx context.Context, h *helpers.H) error {
 	user, err := f.username(ctx, h)
 	if err != nil {
 		return err
 	}
 	password := h.AdminPassword()
-	return h.Step(ctx, "admin", "create the administrator "+user, helpers.StepSpec{
+	return h.Step(ctx, f.stepID(), f.title(h, user), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return f.signIn(ctx, h, user, password) },
 		Do: func(ctx context.Context) error {
 			if f.Valid != nil {
@@ -189,7 +195,24 @@ func (f FirstAdmin) signIn(ctx context.Context, h *helpers.H, user, password str
 	return f.Login(ctx, h, user, password)
 }
 
+func (f FirstAdmin) stepID() string {
+	if f.StepID == "" {
+		return "admin"
+	}
+	return f.StepID
+}
+
+func (f FirstAdmin) title(h *helpers.H, user string) string {
+	if f.Title == nil {
+		return "create the administrator " + user
+	}
+	return f.Title(h, user)
+}
+
 func (f FirstAdmin) hint(h *helpers.H, user string) string {
+	if f.Hint != nil {
+		return f.Hint(h, user)
+	}
 	hint := "Open " + h.URL + ", create the administrator " + user +
 		" with the password shown by `self-host credentials`"
 	if f.Manual != "" {

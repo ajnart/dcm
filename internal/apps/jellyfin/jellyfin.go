@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -346,13 +347,18 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := waitReady(ctx, h); err != nil {
 		return err
 	}
-	err := h.Step(ctx, "wizard", "finish the startup wizard with the Admin login", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return wizardDone(ctx, h) },
-		Do:    func(ctx context.Context) error { return runWizard(ctx, h) },
-		Hint: "Open " + h.URL + " and finish the setup wizard: create the administrator " + h.AdminUser() +
-			" with the password shown by `self-host credentials`, then run: self-host setup jellyfin",
-		Credential: "admin",
-	})
+	err := firstadmin.FirstAdmin{
+		StepID: "wizard",
+		Title:  func(*helpers.H, string) string { return "finish the startup wizard with the Admin login" },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return wizardDone(ctx, h)
+		},
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error { return runWizard(ctx, h) },
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + " and finish the setup wizard: create the administrator " + user +
+				" with the password shown by `self-host credentials`, then run: self-host setup jellyfin"
+		},
+	}.Admin(ctx, h)
 	if err != nil {
 		return err
 	}

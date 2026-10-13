@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -121,15 +122,20 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/api/v0/session/enabled"); err != nil {
 		return err
 	}
-	if err := h.Step(ctx, "admin-login", "verify the administrator "+h.AdminUser(), helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(context.Context) error {
+	if err := (firstadmin.FirstAdmin{
+		StepID: "admin-login",
+		Title:  func(_ *helpers.H, user string) string { return "verify the administrator " + user },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminWorks(ctx, h)
+		},
+		Create: func(context.Context, *helpers.H, string, string) error {
 			return errors.New("slskd reads SLSKD_USERNAME/SLSKD_PASSWORD/SLSKD_API_KEY only when the container starts")
 		},
-		Hint: "slskd applies the Web UI login and API key on first start. Recreate the container: self-host start slskd, " +
-			"then open " + h.URL + " and sign in with the password from `self-host credentials`.",
-		Credential: "admin",
-	}); err != nil {
+		Hint: func(h *helpers.H, _ string) string {
+			return "slskd applies the Web UI login and API key on first start. Recreate the container: self-host start slskd, " +
+				"then open " + h.URL + " and sign in with the password from `self-host credentials`."
+		},
+	}).Admin(ctx, h); err != nil {
 		return err
 	}
 	if err := h.Step(ctx, "homarr-api", "verify Slskd download data", helpers.StepSpec{

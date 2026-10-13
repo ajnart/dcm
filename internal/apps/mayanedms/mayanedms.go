@@ -184,14 +184,17 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		_, ok, err := identity(ctx, h)
 		return ok, err
 	}
-	if err := h.Step(ctx, "admin-login", "administrator "+h.AdminUser()+" signs in", helpers.StepSpec{
-		Check: login,
-		Do: func(ctx context.Context) error {
+	if err := (firstadmin.FirstAdmin{
+		StepID: "admin-login",
+		Title:  func(_ *helpers.H, user string) string { return "administrator " + user + " signs in" },
+		Login:  func(ctx context.Context, _ *helpers.H, _, _ string) (bool, error) { return login(ctx) },
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error {
 			return h.Poll(ctx, 5*time.Minute, login)
 		},
-		Hint:       "Open " + h.URL + " and sign in as " + h.AdminUser() + " with the password shown by `self-host credentials`.",
-		Credential: "admin",
-	}); err != nil {
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + " and sign in as " + user + " with the password shown by `self-host credentials`."
+		},
+	}).Admin(ctx, h); err != nil {
 		return err
 	}
 	return h.Step(ctx, "clear-display", "the login page no longer shows the initial password", helpers.StepSpec{

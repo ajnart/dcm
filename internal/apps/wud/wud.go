@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -222,14 +223,18 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/auth/user"); err != nil {
 		return err
 	}
-	if err := h.Step(ctx, "admin", "the web UI accepts the Admin login", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(context.Context) error {
+	if err := (firstadmin.FirstAdmin{
+		Title: func(*helpers.H, string) string { return "the web UI accepts the Admin login" },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminWorks(ctx, h)
+		},
+		Create: func(context.Context, *helpers.H, string, string) error {
 			return errors.New("the administrator is seeded from the environment when the container starts")
 		},
-		Hint:       "Recreate the container so it reads the Admin login from secrets.env: self-host start wud",
-		Credential: "admin",
-	}); err != nil {
+		Hint: func(*helpers.H, string) string {
+			return "Recreate the container so it reads the Admin login from secrets.env: self-host start wud"
+		},
+	}).Admin(ctx, h); err != nil {
 		return err
 	}
 	if err := setupHomarrReader(ctx, h); err != nil {

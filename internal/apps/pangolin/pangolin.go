@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -233,9 +234,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/api/v1/auth/initial-setup-complete"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin", "create the first Pangolin administrator "+email, helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return loginWorks(ctx, h, email) },
-		Do: func(ctx context.Context) error {
+	return firstadmin.FirstAdmin{
+		Username: func(context.Context, *helpers.H) (string, error) { return email, nil },
+		Title:    func(_ *helpers.H, user string) string { return "create the first Pangolin administrator " + user },
+		Login: func(ctx context.Context, h *helpers.H, user, _ string) (bool, error) {
+			return loginWorks(ctx, h, user)
+		},
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error {
 			resp, err := h.HTTP(ctx, helpers.Request{Path: "/api/v1/auth/initial-setup-complete"})
 			if err != nil {
 				return err
@@ -269,9 +274,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return nil
 		},
-		Hint:       "If the first administrator was already created, privately reconcile the saved Admin login with that administrator; preserve its data and do not replay creation. " + managementHint,
-		Credential: "admin",
-	})
+		Hint: func(*helpers.H, string) string {
+			return "If the first administrator was already created, privately reconcile the saved Admin login with that administrator; preserve its data and do not replay creation. " + managementHint
+		},
+	}.Admin(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

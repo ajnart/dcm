@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/names"
 )
@@ -175,9 +176,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	if err := h.Step(ctx, "admin-login", "administrator "+h.AdminUser()+" signs in", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(ctx context.Context) error {
+	if err := (firstadmin.FirstAdmin{
+		StepID: "admin-login",
+		Title:  func(_ *helpers.H, user string) string { return "administrator " + user + " signs in" },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminWorks(ctx, h)
+		},
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error {
 			if ok, err := adminWorks(ctx, h); err != nil || ok {
 				return err
 			}
@@ -191,10 +196,11 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return errors.New("Nextcloud rejected the saved administrator login; recover it using self-host credentials, then retry self-host setup nextcloud")
 		},
-		Hint: "Open " + h.URL + " and sign in as " + h.AdminUser() +
-			" using self-host credentials. " + HomarrRecoveryHint(h),
-		Credential: "admin",
-	}); err != nil {
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + " and sign in as " + user +
+				" using self-host credentials. " + HomarrRecoveryHint(h)
+		},
+	}).Admin(ctx, h); err != nil {
 		return err
 	}
 	return h.Step(ctx, "homarr-password", "prepare Nextcloud's Homarr app password", helpers.StepSpec{

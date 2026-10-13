@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -90,16 +91,22 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/health"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "verify the administrator "+adminEmail(h), helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
-		Do: func(context.Context) error {
+	return firstadmin.FirstAdmin{
+		StepID:   "admin-login",
+		Username: func(_ context.Context, h *helpers.H) (string, error) { return adminEmail(h), nil },
+		Title:    func(_ *helpers.H, user string) string { return "verify the administrator " + user },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminWorks(ctx, h)
+		},
+		Create: func(context.Context, *helpers.H, string, string) error {
 			return errors.New("Open WebUI creates the first administrator from WEBUI_ADMIN_EMAIL/WEBUI_ADMIN_PASSWORD only when the user database is empty")
 		},
-		Hint: "Open WebUI seeds the first administrator only on an empty database. Recreate the container with an empty " +
-			"data volume (self-host start open-webui), then open " + h.URL + " and sign in as " + adminEmail(h) +
-			" with the password from `self-host credentials`.",
-		Credential: "admin",
-	})
+		Hint: func(h *helpers.H, user string) string {
+			return "Open WebUI seeds the first administrator only on an empty database. Recreate the container with an empty " +
+				"data volume (self-host start open-webui), then open " + h.URL + " and sign in as " + user +
+				" with the password from `self-host credentials`."
+		},
+	}.Admin(ctx, h)
 }
 
 // Check verifies the administrator login only; model provider and API-key

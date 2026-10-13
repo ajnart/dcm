@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -137,10 +138,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready(ctx, h, "/api/"); err != nil {
 		return err
 	}
-	user := adminEmail(h)
-	return h.Step(ctx, "admin-login", "create the administrator "+user, helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminSignedIn(ctx, h) },
-		Do: func(ctx context.Context) error {
+	return firstadmin.FirstAdmin{
+		StepID:   "admin-login",
+		Username: func(_ context.Context, h *helpers.H) (string, error) { return adminEmail(h), nil },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminSignedIn(ctx, h)
+		},
+		Create: func(ctx context.Context, h *helpers.H, user, _ string) error {
 			pending, err := setupPending(ctx, h)
 			if err != nil {
 				return err
@@ -157,10 +161,11 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 				}}, http.StatusCreated)
 			return err
 		},
-		Hint: "Open " + h.URL + " and create the administrator " + user +
-			" with the password shown by `self-host credentials`, then run: self-host setup nginx-proxy-manager",
-		Credential: "admin",
-	})
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + " and create the administrator " + user +
+				" with the password shown by `self-host credentials`, then run: self-host setup nginx-proxy-manager"
+		},
+	}.Admin(ctx, h)
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {

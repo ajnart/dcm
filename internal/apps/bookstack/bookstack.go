@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -153,9 +154,12 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		return errors.Join(err, startupStatus(ctx, h))
 	}
 	email := (App{}).AdminEmail(h.AdminUser())
-	return h.Step(ctx, "admin", "create the administrator "+email, helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return login(ctx, h) },
-		Do: func(ctx context.Context) error {
+	return firstadmin.FirstAdmin{
+		Username: func(context.Context, *helpers.H) (string, error) { return email, nil },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return login(ctx, h)
+		},
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error {
 			if err := createAdmin(ctx, h); err != nil {
 				return err
 			}
@@ -168,12 +172,13 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			}
 			return nil
 		},
-		Hint: "Open " + h.URL + "/login and sign in as " + email +
-			" with the password shown by `self-host credentials`, or replace the seeded account inside the container with: " +
-			"php /app/www/artisan bookstack:create-admin --initial --email=" + email +
-			" --name=" + h.AdminUser() + ` --password="$SELFHOST_PW"`,
-		Credential: "admin",
-	})
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + "/login and sign in as " + user +
+				" with the password shown by `self-host credentials`, or replace the seeded account inside the container with: " +
+				"php /app/www/artisan bookstack:create-admin --initial --email=" + user +
+				" --name=" + h.AdminUser() + ` --password="$SELFHOST_PW"`
+		},
+	}.Admin(ctx, h)
 }
 
 // Failure-only observations distinguish image initialization from an absent

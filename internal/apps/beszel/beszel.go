@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -372,9 +373,14 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	user := AdminEmail(h)
-	if err := h.Step(ctx, "admin-login", "create the Hub administrator "+user, helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return adminSignedIn(ctx, h) },
-		Do: func(ctx context.Context) error {
+	if err := (firstadmin.FirstAdmin{
+		StepID:   "admin-login",
+		Username: func(context.Context, *helpers.H) (string, error) { return user, nil },
+		Title:    func(_ *helpers.H, user string) string { return "create the Hub administrator " + user },
+		Login: func(ctx context.Context, h *helpers.H, _, _ string) (bool, error) {
+			return adminSignedIn(ctx, h)
+		},
+		Create: func(ctx context.Context, h *helpers.H, _, _ string) error {
 			pending, err := firstRun(ctx, h)
 			if err != nil {
 				return err
@@ -386,10 +392,11 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 				JSON: map[string]string{"email": user, "password": h.AdminPassword()}}, http.StatusOK)
 			return err
 		},
-		Hint: "Open " + h.URL + " and create the administrator " + user +
-			" with the password shown by `self-host credentials`, then run: self-host setup beszel",
-		Credential: "admin",
-	}); err != nil {
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + " and create the administrator " + user +
+				" with the password shown by `self-host credentials`, then run: self-host setup beszel"
+		},
+	}).Admin(ctx, h); err != nil {
 		return err
 	}
 	if err := h.Step(ctx, "agent-settings", "get the agent's key and permanent token from the Hub", helpers.StepSpec{
