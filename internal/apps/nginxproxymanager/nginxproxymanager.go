@@ -15,6 +15,13 @@ import (
 
 type App struct{}
 
+func (App) AdminEmail(username string) string {
+	if username == "" {
+		return ""
+	}
+	return username + emailSuffix
+}
+
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "nginx-proxy-manager", Name: "Nginx Proxy Manager", Category: "Ingress",
@@ -45,7 +52,7 @@ func (App) Compose(rc app.RenderContext) string {
 
 const emailSuffix = "@selfhost.local"
 
-func adminEmail(h *helpers.H) string { return h.AdminUser() + emailSuffix }
+func adminEmail(h *helpers.H) string { return (App{}).AdminEmail(h.AdminUser()) }
 
 func setupPending(ctx context.Context, h *helpers.H) (bool, error) {
 	resp, err := h.Expect(ctx, helpers.Request{Path: "/api/"}, http.StatusOK)

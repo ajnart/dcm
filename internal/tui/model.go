@@ -87,7 +87,8 @@ type (
 )
 
 type Options struct {
-	Version string
+	Version       string
+	ReducedMotion bool
 	// NoColor is NO_COLOR: the pre-boot screen keeps its motion without colour.
 	NoColor bool
 	// NoUpdatePrompt keeps the "Update now?" question away, for CI and
@@ -111,9 +112,12 @@ type Model struct {
 
 	// frame is the animation frame; it advances only while ticking, which
 	// lasts while something runs or a transition still plays.
-	frame   int
-	ticking bool
-	tracker *activity.Tracker
+	frame        int
+	ticking      bool
+	tracker      *activity.Tracker
+	opening      int
+	frameContext context.Context
+	cancelFrames context.CancelFunc
 
 	status    service.Status
 	checks    []host.Check
@@ -174,18 +178,26 @@ func New(backend Backend, opts Options) Model {
 		opts.Now = time.Now
 	}
 	apps := newAppsView()
+	opening := openingFrames
+	if opts.ReducedMotion {
+		opening = 0
+	}
+	frameContext, cancelFrames := context.WithCancel(context.Background())
 	return Model{
-		backend:   backend,
-		opts:      opts,
-		theme:     newTheme(true),
-		glyphs:    activity.Simple,
-		keys:      newKeyMap(),
-		ticking:   true,
-		tracker:   &activity.Tracker{},
-		tasks:     &taskManager{},
-		apps:      apps,
-		dashboard: newDashboardView(apps),
-		helpView:  newHelpView(),
+		backend:      backend,
+		opts:         opts,
+		theme:        newTheme(true),
+		glyphs:       activity.Simple,
+		keys:         newKeyMap(),
+		ticking:      true,
+		opening:      opening,
+		frameContext: frameContext,
+		cancelFrames: cancelFrames,
+		tracker:      &activity.Tracker{},
+		tasks:        &taskManager{},
+		apps:         apps,
+		dashboard:    newDashboardView(apps),
+		helpView:     newHelpView(),
 	}
 }
 
@@ -199,7 +211,17 @@ func tick() tea.Cmd {
 }
 
 func (m Model) frameTick() tea.Cmd {
-	return tea.Tick(m.framePeriod(), func(time.Time) tea.Msg { return frameMsg{} })
+	period, ctx := m.framePeriod(), m.frameContext
+	return func() tea.Msg {
+		timer := time.NewTimer(period)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-timer.C:
+			return frameMsg{}
+		}
+	}
 }
 
 // startTicking runs the frame ticker unless it already runs.
@@ -215,6 +237,13 @@ func (m *Model) startTicking() tea.Cmd {
 // is still being read, Onboarding reveals the host checks, pre-boot plays, an
 // Action runs or a transition still plays.
 func (m Model) nextFrame() (tea.Model, tea.Cmd) {
+	if m.quitting {
+		m.ticking = false
+		return m, nil
+	}
+	if m.loaded && m.width > 0 && m.opening > 0 {
+		m.opening--
+	}
 	activityFrame := m.preboot == nil || m.preboot.frame%prebootFramesPerActivity == 0
 	if activityFrame {
 		m.frame++
@@ -225,7 +254,7 @@ func (m Model) nextFrame() (tea.Model, tea.Cmd) {
 	}
 	m = m.advancePreboot(s)
 	m = m.advanceInitializing()
-	if m.preboot != nil || !m.loaded || m.onboardingAnimating() || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
+	if m.opening > 0 || m.preboot != nil || !m.loaded || m.onboardingAnimating() || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
 		return m, m.frameTick()
 	}
 	m.ticking = false
@@ -500,6 +529,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.MouseWheelMsg:
+		m.opening = 0
 		if m.preboot != nil || m.upgrade != nil {
 			return m, nil
 		}
@@ -520,6 +550,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	m.loaded = true
 	if errors.Is(msg.err, service.ErrNoProject) {
+		m.opening = 0
 		if m.onboarding == nil {
 			m.onboarding = m.newOnboarding()
 			tick := m.startTicking()
@@ -529,6 +560,7 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	if msg.err != nil {
+		m.opening = 0
 		m.statusErr = msg.err.Error()
 		return m, nil
 	}
@@ -555,6 +587,7 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
+	m.opening = 0
 	m.tasks.finish(msg.id, msg.err)
 	if msg.err != nil {
 		m.preboot = nil
@@ -729,6 +762,7 @@ func (m *Model) setActive(v view) {
 // is capturing text takes every key but ctrl+c; otherwise the global keys
 // act first and the rest go to the active tab.
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	m.opening = 0
 	m.flashHeld = false
 	switch {
 	case m.upgrade != nil:
@@ -788,6 +822,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) quit() (tea.Model, tea.Cmd) {
 	m.quitting = true
+	m.cancelFrames()
 	m.tasks.cancelAll()
 	m.apps.details.stopLogs()
 	m.apps.details.stopUsage()
@@ -885,6 +920,7 @@ func (m Model) applyNav(nv nav, cmd tea.Cmd) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
+	m.opening = 0
 	if m.apps.overlayOpen() {
 		return m, nil
 	}
