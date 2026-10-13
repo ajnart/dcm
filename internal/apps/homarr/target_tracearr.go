@@ -33,6 +33,7 @@ func tracearrTarget() target {
 			return err
 		},
 		verify: verifyTracearr,
+		stats:  verifyTracearrStats,
 	}
 }
 
@@ -40,25 +41,7 @@ func verifyTracearr(ctx context.Context, from, to *helpers.H, integrationID stri
 	if err := tracearr.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
-	value, err := apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return err
-	}
-	catalog, _ := value.(map[string]any)
-	metrics, _ := catalog["metrics"].([]any)
-	for _, key := range tracearrMetrics() {
-		found := false
-		for _, raw := range metrics {
-			metric, _ := raw.(map[string]any)
-			if stringField(metric, "key") == key && stringField(metric, "unit") == "count" {
-				found = true
-			}
-		}
-		if !found {
-			return errors.New("Homarr lacks the supported Tracearr count metrics; use Homarr 2.4.1 and retry Setup")
-		}
-	}
-	value, err = apiKeyProcedure(ctx, from, "widget.tracearr.getDashboard", map[string]any{"integrationIds": []string{integrationID}})
+	value, err := apiKeyProcedure(ctx, from, "widget.tracearr.getDashboard", map[string]any{"integrationIds": []string{integrationID}})
 	if err != nil {
 		return err
 	}
@@ -111,22 +94,22 @@ func verifyTracearr(ctx context.Context, from, to *helpers.H, integrationID stri
 			return errors.New("Homarr returned an unsupported Tracearr playback state")
 		}
 	}
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, _ := value.(map[string]any)
-	if snapshot["error"] != false || snapshot["stale"] != false || !tracearrCount(snapshot, "updatedAt") {
+	return nil
+}
+
+func verifyTracearrStats(sample statsSample) error {
+	if math.Trunc(sample.updatedAt) != sample.updatedAt {
 		return errors.New("Homarr returned failed, stale or incomplete Tracearr Stats; retry self-host setup homarr")
 	}
-	updatedAt := snapshot["updatedAt"].(float64)
-	age := float64(from.Now().UnixMilli()) - updatedAt
-	if updatedAt <= 0 || age < -5000 || age > 30000 {
+	age := sample.completedAt - sample.updatedAt
+	if age < -5000 || age > 30000 {
 		return errors.New("Homarr did not freshly refresh Tracearr Stats; retry Setup after the refresh queue clears")
 	}
-	values, _ := snapshot["values"].(map[string]any)
 	for _, key := range tracearrMetrics() {
-		if !tracearrCount(values, key) {
+		if sample.units[key] != "count" {
+			return errors.New("Homarr lacks the supported Tracearr count metrics; use Homarr 2.4.1 and retry Setup")
+		}
+		if !tracearrCount(sample.values, key) {
 			return errors.New("Homarr returned incomplete Tracearr Stats; missing values are not zero")
 		}
 	}
