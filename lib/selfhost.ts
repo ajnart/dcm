@@ -1,6 +1,7 @@
 import data from "./selfhost-catalog.json"
 
 export const SELFHOST_URL = "https://selfhost.ajnart.dev"
+export const SELFHOST_SITE = "https://self-host.fyi"
 export const SELFHOST_ICON_BASE =
   "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/"
 

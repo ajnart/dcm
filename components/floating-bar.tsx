@@ -2,10 +2,11 @@
 
 import { ServiceCircles } from "@/components/magicui/avatar-circles"
 import { SearchCommand } from "@/components/search-command"
+import { SelfHostCommand } from "@/components/selfhost-command"
 import { Button } from "@/components/ui/button"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { type Catalog, resolveSelection, toSelfHostIds } from "@/lib/catalog"
-import { buildSelfHostCommand, buildSelfHostLink } from "@/lib/selfhost"
+import { buildSelfHostLink } from "@/lib/selfhost"
 import { generateShareUrl } from "@/lib/url-utils"
 import { cn } from "@/lib/utils"
 import { ExternalLink, RefreshCw, Search, Share2 } from "lucide-react"
@@ -50,7 +51,6 @@ export default function FloatingBar({
   const resolved = useMemo(() => resolveSelection(ids, catalog), [ids, catalog])
   const selfHostIds = useMemo(() => toSelfHostIds(ids, catalog), [ids, catalog])
   const selectedCount = resolved.entries.length
-  const command = buildSelfHostCommand(selfHostIds)
 
   useEffect(() => {
     setIsMounted(true)
@@ -247,20 +247,7 @@ export default function FloatingBar({
 
           {selfHostIds.length > 0 && (
             <div className="mt-4 flex flex-col gap-2 border-t pt-3 text-muted-foreground text-sm sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                onClick={() =>
-                  copy(command).then((ok) =>
-                    ok
-                      ? toast.success("Command copied")
-                      : toast.error("Failed to copy command"),
-                  )
-                }
-                aria-label="Copy self-host command"
-                className="min-w-0 max-w-full truncate rounded-md border bg-muted px-2 py-1 text-left font-mono text-foreground text-xs transition-colors hover:bg-accent"
-              >
-                {command}
-              </button>
+              <SelfHostCommand ids={selfHostIds} />
               <a
                 href={buildSelfHostLink(selfHostIds)}
                 target="_blank"
