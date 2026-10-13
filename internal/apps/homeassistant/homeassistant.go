@@ -3,6 +3,7 @@ package homeassistant
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -29,8 +30,18 @@ func (App) Info() app.Info {
 	}
 }
 
-func (App) Inputs() []app.Input { return nil }
-func (App) Links() []app.Link   { return nil }
+func (App) Inputs() []app.Input {
+	return []app.Input{{
+		Key: "homarr_entity_id", Prompt: "Home Assistant entity to show in Homarr (optional)",
+		Help:     "An existing entity ID, shown read-only. Leave empty to discover an existing Sun or text helper; no device or automation is created or controlled.",
+		Validate: validateEntityID,
+	}, {
+		Key: "homarr_token", Prompt: "Existing Homarr long-lived access token (optional recovery)", Private: true,
+		Help: "Only for the dedicated read-only self-host-homarr user. Use --set-file, never a command argument. A refresh token or onboarding code is not an access token.",
+	}}
+}
+
+func (App) Links() []app.Link { return nil }
 
 // Compose exposes only the web UI on loopback bridge networking; LAN
 // discovery, radios and microphones need separate approval.
@@ -80,7 +91,14 @@ func userStepDone(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 func adminExists(ctx context.Context, h *helpers.H) (bool, error) {
-	return userStepDone(ctx, h)
+	exists, err := userStepDone(ctx, h)
+	if err != nil || !exists {
+		return exists, err
+	}
+	if _, err := loginWorks(ctx, h, h.AdminUser(), h.AdminPassword()); errors.Is(err, helpers.ErrManual) {
+		return exists, err
+	}
+	return exists, nil
 }
 
 func createAdmin(ctx context.Context, h *helpers.H, user, password string) error {
@@ -135,6 +153,9 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	if err := verified.Decode(&result); err != nil {
 		return false, err
 	}
+	if result.Type == "form" {
+		return false, fmt.Errorf("%w: finish the Home Assistant login or MFA in the browser without disabling it", helpers.ErrManual)
+	}
 	return result.Type == "create_entry" && result.Result != "", nil
 }
 
@@ -149,7 +170,10 @@ func firstAdmin() firstadmin.FirstAdmin {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return firstAdmin().Setup(ctx, h)
+	if err := firstAdmin().Setup(ctx, h); err != nil {
+		return err
+	}
+	return errors.Join(setupHomarr(ctx, h), onboarding(ctx, h))
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
@@ -160,5 +184,6 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Admin login %s cannot sign in to Home Assistant", h.AdminUser())
 	}
-	return nil
+	_, entityErr := HomarrEntity(ctx, h)
+	return errors.Join(VerifyHomarr(ctx, h), entityErr, onboardingComplete(ctx, h))
 }

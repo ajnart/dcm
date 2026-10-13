@@ -1,0 +1,17 @@
+{
+  "id": "authelia",
+  "name": "Authelia",
+  "description": "Add a login page with a second security step in front of your other apps",
+  "category": "Identity",
+  "image": "docker.io/authelia/authelia:4.39.25",
+  "docs": "https://www.authelia.com/integration/deployment/docker/",
+  "port": 9091,
+  "inputs": [
+    {
+      "key": "origin",
+      "prompt": "Canonical HTTPS portal origin",
+      "help": "The exact approved HTTPS origin Authelia serves, e.g. https://auth.example.com (TLS and DNS are a separate ingress decision)",
+      "required": true
+    }
+  ]
+}

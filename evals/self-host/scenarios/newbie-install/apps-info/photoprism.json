@@ -1,0 +1,10 @@
+{
+  "id": "photoprism",
+  "name": "PhotoPrism",
+  "description": "Browse, organize and search your photo collection privately",
+  "category": "Photos",
+  "image": "docker.io/photoprism/photoprism:260728",
+  "docs": "https://docs.photoprism.app/getting-started/docker-compose/",
+  "port": 2342,
+  "inputs": []
+}

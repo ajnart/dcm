@@ -1,0 +1,10 @@
+{
+  "id": "grafana",
+  "name": "Grafana",
+  "description": "Turn numbers about your computers and apps into charts and alerts",
+  "category": "Observability",
+  "image": "grafana/grafana:13.2.2",
+  "docs": "https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/",
+  "port": 3000,
+  "inputs": []
+}

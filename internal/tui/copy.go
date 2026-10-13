@@ -67,6 +67,9 @@ func (v *appsView) openCopy(ctx *viewContext) tea.Cmd {
 			}
 			rows = append(rows, copyChoice{app: app.ID, key: name, label: label})
 		}
+		if app.ID == "deluge" && creds.Apps["deluge"]["DELUGE_WEB_PASSWORD"] != "" {
+			rows = append(rows, copyChoice{app: "deluge", key: "DELUGE_WEB_PASSWORD", label: "Deluge Web password"})
+		}
 		if creds.Admin.Username != "" {
 			rows = append(rows, copyChoice{key: "ADMIN_USER", label: "Admin username"})
 		}

@@ -1,0 +1,10 @@
+{
+  "id": "glances",
+  "name": "Glances",
+  "description": "See your computer's health and workload in a web page",
+  "category": "Monitoring",
+  "image": "nicolargo/glances:4.5.6",
+  "docs": "https://glances.readthedocs.io/en/latest/docker.html",
+  "port": 61208,
+  "inputs": []
+}
