@@ -5,7 +5,8 @@ Peer slice for #289. The prerequisite runtime evidence below belongs to
 and Manual recovery follow-up is dated 12 October 2026. Neither is complete
 Homarr widget acceptance. #262's shared contract is now frozen at
 `6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`; central wiring and new bounded
-native/rendered/lifecycle acceptance remain held.
+rendered/lifecycle acceptance remain held. The 13 October source-only SDK
+completion adds native and Stats verification; it does not add runtime evidence.
 
 ## Implemented boundary
 
@@ -118,20 +119,51 @@ removed regression scenarios or native/rendered/lifecycle acceptance.
 
 ## Homarr wiring handoff
 
-`internal/apps/homarr/integration_paperless.go` proposes
-`paperlessTarget() target` using only the existing `target` and `widget` types:
+`internal/apps/homarr/target_paperless_ngx.go` defines
+`paperlessTarget() target` through the current SDK descriptor:
 
 - Catalog ID `paperless-ngx`, upstream kind `paperlessNgx`.
 - Compose-side Address `http://paperless-ngx:8000`; browser Address stays separate.
 - Homarr credential `apiKey` from the peer's verified `api_key` secret.
 - Native `paperlessNgx` widget showing document and inbox totals, inbox ratio,
-  correspondents, tags and document types. No guessed document IDs or custom JSX.
-- Registry owner explicitly ports/registers `paperlessTarget()` against the
-  frozen contract. No central registry, `links.go`,
-  shared widget or plugin/init changes are included here.
+  correspondents, tags and document types. Shared Stats selects `documentsTotal`,
+  `documentsInbox`, `tagsCount`, `correspondentsCount` and `documentTypesCount`.
+  No guessed document IDs or custom JSX.
+- Registry owner registers `paperlessTarget()` against the current SDK contract.
+  The Paperless completion makes no central registry, `links.go`, shared widget
+  or plugin/init changes beyond the forward SDK merge.
 - The supported upstream widget default is 2 by 2 cells. The central placement
   helper on this branch defaults unknown widgets to 1 by 1; the registry owner
   must preserve a useful size when wiring this descriptor.
+
+Source-only completion forward-merges SDK commit
+`ecc21d9f95664ef6245863ddfb05930bf4cde3a3` and ports only the repaired aggregate's
+Paperless descriptor/verifier, without importing its registry or other peers.
+Read-only preflight and native verification authenticate the saved peer token
+against statistics and taxonomy counts. Every source/native count must be an
+explicit finite nonnegative integer; inbox count cannot exceed document count.
+A null source inbox is valid only with explicit null `inbox_tag` and
+`inbox_tags` metadata. Homarr's actual native schema normalizes this to zero;
+an absent native field or native null remains invalid. The notice distinguishes
+an unconfigured inbox from a processed inbox.
+
+The native call is authenticated `widget.paperlessNgx.getStats` with the owned
+integration ID. Its cached counts are validated independently of the direct
+peer sample, so changing legitimate counts do not cause equality failures.
+The pure `stats` callback receives the SDK's one completed central sample and
+catalog, requires `count` for all five metrics, and validates integrality and
+the inbox bound on that sample. It performs no HTTP calls or refreshes.
+Freshness, advancing timestamps and selected-field presence stay SDK-owned.
+
+Requested focused regression coverage uses the descriptor's production
+`verifyData` seam without registry registration. It exercises authenticated
+native calls and owned integration selection, valid independent cached counts,
+missing/null fields, absent-inbox metadata, legitimate document zeros, native
+credential denial, unchanged refresh timestamps, invalid first refreshed data,
+and exactly one central catalog/refresh per successful invocation. Pure count
+checks cover all five metrics, wrong units, negative/fractional/nonfinite values.
+This extends the Homarr tests only; the peer App's retained baseline cases and
+credential recovery coverage boundary above stay unchanged.
 
 The final isolated Homarr run still needs to verify useful rendered data,
 stable owned IDs on rerun, token-change propagation, preservation of manual
