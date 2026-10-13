@@ -42,7 +42,12 @@ export function buildCatalog(tools: DockerTool[]): Catalog {
     })
   }
 
-  return { entries }
+  return {
+    entries: [
+      ...entries.filter((entry) => entry.selfhostId),
+      ...entries.filter((entry) => !entry.selfhostId),
+    ],
+  }
 }
 
 export function canGenerateYaml(entry: CatalogEntry): boolean {
