@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/ajnart/self-host/internal/project"
 )
 
 // ExportHostnameSuffix ends the hostname placeholder suggested for each App.
@@ -78,7 +79,7 @@ func (s *Service) AccessExport(ctx context.Context) (AccessExport, error) {
 		a, found := s.Catalog.App(id)
 		st := state.Apps[id]
 		if !found || st == nil || p.IsExtra(id) {
-			item, err := unmanagedExport(p.FragmentPath(id), id, host)
+			item, err := unmanagedExport(p, id, host)
 			if err == nil {
 				err = p.ValidateFragment(id, "services:\n  "+item.Service+": {}\n")
 			}
@@ -117,12 +118,12 @@ func (s *Service) AccessExport(ctx context.Context) (AccessExport, error) {
 var exportAppID = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
 var exportServiceName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
 
-func unmanagedExport(path, id, host string) (ExportApp, error) {
+func unmanagedExport(p *project.Project, id, host string) (ExportApp, error) {
 	unsupported := fmt.Errorf("no unambiguous supported HTTP upstream")
 	if !exportAppID.MatchString(id) {
 		return ExportApp{}, unsupported
 	}
-	data, err := os.ReadFile(path)
+	data, err := p.ReadFragment(id)
 	if err != nil {
 		return ExportApp{}, unsupported
 	}

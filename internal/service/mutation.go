@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -325,14 +324,14 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 			return err
 		}
 		dir := ss.p.AppDir(id)
-		if err := os.Remove(ss.p.FragmentPath(id)); err != nil {
+		if err := ss.p.RemoveFragment(id); err != nil {
 			return err
 		}
 		delete(ss.state.Apps, id)
 		ss.forgetStep(tailscaleID, "name-"+id)
 		msg := "removed " + id + "; data kept in " + dir
 		if purge {
-			if err := os.RemoveAll(dir); err != nil {
+			if err := ss.p.RemoveAppDir(dir); err != nil {
 				return err
 			}
 			msg = "removed " + id + " and deleted its data"

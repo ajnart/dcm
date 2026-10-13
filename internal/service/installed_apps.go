@@ -58,7 +58,7 @@ func (ss *session) installedApps(ctx context.Context) ([]helpers.InstalledApp, e
 	byService := ss.navigationContainers
 	for _, index := range unmanaged {
 		item := &out[index]
-		services, err := fragmentServices(ss.p.FragmentPath(item.ID))
+		services, err := ss.p.FragmentServices(item.ID)
 		if err != nil {
 			return nil, err
 		}

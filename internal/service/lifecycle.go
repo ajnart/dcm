@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"maps"
-	"os"
 	"slices"
 	"strings"
 	"time"
@@ -269,7 +268,7 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 				if old == fragment {
 					continue
 				}
-				data, err := os.ReadFile(p.FragmentPath(id))
+				data, err := p.ReadFragment(id)
 				if err != nil {
 					return err
 				}
@@ -308,7 +307,7 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 			}
 			affected := slices.Clone(rendered)
 			for _, id := range ids {
-				data, err := os.ReadFile(ss.p.FragmentPath(id))
+				data, err := ss.p.ReadFragment(id)
 				if err != nil {
 					return nil, err
 				}
@@ -370,6 +369,6 @@ func (s *Service) Compose(ctx context.Context, id string) (string, error) {
 	if _, err := ss.targets([]string{id}); err != nil {
 		return "", err
 	}
-	data, err := os.ReadFile(ss.p.FragmentPath(id))
+	data, err := ss.p.ReadFragment(id)
 	return string(data), err
 }

@@ -425,7 +425,7 @@ func (ss *session) writeFiles(a app.App, rc app.RenderContext) error {
 		if path.IsAbs(clean) || clean == "." || strings.HasPrefix(clean, "..") {
 			return fmt.Errorf("%s: file %q must stay inside apps/%s", id, f.Path, id)
 		}
-		if _, err := os.Stat(ss.p.Path("apps", id, clean)); err == nil && f.Keep {
+		if f.Keep && ss.p.HasAppFile(id, clean) {
 			continue
 		}
 		mode := os.FileMode(f.Mode)
@@ -578,11 +578,8 @@ func (ss *session) ensureMediaFolders(apps []app.App) error {
 			if dir == "" {
 				continue
 			}
-			if err := os.MkdirAll(dir, 0o755); err != nil {
+			if err := ss.p.MkdirAllOwned(dir); err != nil {
 				return fmt.Errorf("%s %s: %w", key, dir, err)
-			}
-			if os.Geteuid() == 0 {
-				os.Chown(dir, ss.p.Owner.UID, ss.p.Owner.GID)
 			}
 		}
 		return nil

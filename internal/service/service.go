@@ -9,16 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
-
-	"go.yaml.in/yaml/v3"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
@@ -328,30 +324,10 @@ func (ss *session) recorder(id string) func(helpers.StepResult) {
 	}
 }
 
-// fragmentServices lists the service names declared in an app fragment.
-func fragmentServices(path string) ([]string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var doc struct {
-		Services map[string]any `yaml:"services"`
-	}
-	if err := yaml.Unmarshal(data, &doc); err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
-	}
-	names := make([]string, 0, len(doc.Services))
-	for name := range doc.Services {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names, nil
-}
-
 func (ss *session) services(ids ...string) ([]string, error) {
 	var all []string
 	for _, id := range ids {
-		names, err := fragmentServices(ss.p.FragmentPath(id))
+		names, err := ss.p.FragmentServices(id)
 		if err != nil {
 			return nil, err
 		}

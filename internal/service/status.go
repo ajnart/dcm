@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"os"
 	"slices"
 	"sort"
 	"strings"
@@ -137,7 +136,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	}
 	for _, id := range ids {
 		as := AppStatus{ID: id, Name: id, Setup: stepstatus.SetupUnmanaged, State: "missing"}
-		services, _ := fragmentServices(ss.p.FragmentPath(id))
+		services, _ := ss.p.FragmentServices(id)
 		as.Services = services
 		mainService := id
 		if a, found := s.Catalog.App(id); found && ss.state.Apps[id] != nil {
@@ -160,7 +159,10 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 		if psErr != nil {
 			as.State = "unknown"
 		} else {
-			completed := fragmentCompletionDependencies(ss.p.FragmentPath(id))
+			var completed map[string]bool
+			if fragment, err := ss.p.ReadFragment(id); err == nil {
+				completed = fragmentCompletionDependencies(fragment)
+			}
 			var deferred []string
 			if a, found := s.Catalog.App(id); found {
 				if deferrer, ok := a.(app.DeferredStarter); ok {
@@ -238,11 +240,7 @@ func fillContainer(as *AppStatus, byService map[string]compose.Container, main s
 // A dependency may finish instead of remaining running only when every
 // reference to that declared service requires successful completion.
 // Short-form and conflicting dependency conditions retain the running rule.
-func fragmentCompletionDependencies(path string) map[string]bool {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil
-	}
+func fragmentCompletionDependencies(data []byte) map[string]bool {
 	var doc struct {
 		Services map[string]struct {
 			DependsOn yaml.Node `yaml:"depends_on"`
@@ -384,7 +382,7 @@ func (s *Service) Containers(ctx context.Context) ([]ContainerStatus, error) {
 		return nil, err
 	}
 	for _, id := range ids {
-		services, _ := fragmentServices(ss.p.FragmentPath(id))
+		services, _ := ss.p.FragmentServices(id)
 		for _, service := range services {
 			byService[service] = id
 		}

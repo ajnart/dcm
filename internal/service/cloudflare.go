@@ -587,8 +587,8 @@ func writeCloudflareRecord(p *project.Project, rec cloudflareRecord) error {
 	return p.WriteHomeFile(cloudflareRecordFile, append(data, '\n'), 0o644)
 }
 
-func (ss *session) restoreCloudflare(ctx context.Context, staging string, targets []string) error {
-	archived, hasArchived, err := loadCloudflareRecord(&project.Project{Root: staging})
+func (ss *session) restoreCloudflare(ctx context.Context, staging *project.Staging, targets []string) error {
+	archived, hasArchived, err := loadCloudflareRecord(staging.Records())
 	if err != nil {
 		return err
 	}

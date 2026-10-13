@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"os"
 	"slices"
 	"sort"
 	"strings"
@@ -94,7 +93,7 @@ func (ss *session) renderTailscale() (bool, error) {
 	if err := ss.p.ValidateFragment(tailscaleID, fragment); err != nil {
 		return false, err
 	}
-	previous, _ := os.ReadFile(ss.p.FragmentPath(tailscaleID))
+	previous, _ := ss.p.ReadFragment(tailscaleID)
 	changed := !strings.HasSuffix(string(previous), fragment)
 	if err := ss.writeFiles(a, rc); err != nil {
 		return false, err
@@ -110,7 +109,7 @@ func (ss *session) retireNode(ctx context.Context, id string) error {
 	if !ss.tailscaleOn() || id == tailscaleID {
 		return nil
 	}
-	services, err := fragmentServices(ss.p.FragmentPath(tailscaleID))
+	services, err := ss.p.FragmentServices(tailscaleID)
 	if err != nil {
 		return err
 	}

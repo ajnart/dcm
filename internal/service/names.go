@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net"
-	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -381,7 +380,7 @@ func (ss *session) namesRuntimeProblem(ctx context.Context) string {
 	if !ss.p.HasNames() || !running {
 		return "binding"
 	}
-	data, err := os.ReadFile(ss.p.NamesCaddyfilePath())
+	data, err := ss.p.ReadNamesCaddyfile()
 	if err != nil {
 		return "binding"
 	}
