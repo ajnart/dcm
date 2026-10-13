@@ -354,6 +354,17 @@ shell canaries exercise the real OS sandbox. See [README.md](README.md) for comm
   nine-scenario batch and human viewer feedback remain due. PR #259 stays draft;
   guide improvements remain in #257 after trustworthy evidence and feedback.
 
+- **Iteration 25: expanded comparison running.** After the valid repeated Mint
+  smoke, the user asked to continue the unfinished work in response to the
+  pending full-comparison proposal. This starts one fresh nine-scenario batch,
+  both unchanged frozen guides, three repetitions (54 conversations), equal
+  16-turn limits and parallelism two. Sonnet and Opus access preflights passed.
+  Complete blind judgments and the supplied viewer follow only valid complete
+  execution. Failure or quota stops the attempt without fallback or automatic
+  retry; historical attempts remain unchanged. The guide PR #257 is now merged
+  according to GitHub; further guide changes will use a separate follow-up PR,
+  never the harness PR #259. Human feedback remains a merge gate for #259.
+
 Attempts are retained, not patched into successful runs or silently dropped from
 a benchmark. Changes to fixtures, models or budgets define a new comparison.
 
