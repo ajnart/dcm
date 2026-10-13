@@ -121,7 +121,7 @@ func (h *handlerTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 func tlsH(t *testing.T, dir string, inputs map[string]string, transport *handlerTransport) *helpers.H {
 	t.Helper()
 	deps := systemtest.NewDeps(t)
-	return helpers.New(helpers.Config{App: "wud", Dir: dir, BaseURL: "http://wud.fixture", Inputs: inputs, HTTP: &http.Client{Transport: transport}, Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass}, Log: events.Discard(), Now: deps.Now, Sleep: deps.Sleep})
+	return helpers.New(helpers.Config{App: "wud", Dir: dir, BaseURL: "http://wud.fixture", Inputs: inputs, HTTP: &http.Client{Transport: transport}, Secrets: fixtureSecrets(), Log: events.Discard(), Now: deps.Now, Sleep: deps.Sleep})
 }
 
 func TestSetupRejectsMissingOrUnsafeTLSBeforeUIReadiness(t *testing.T) {
@@ -263,7 +263,12 @@ func TestCheckRejectsStoredInventoryWhenFreshScanFails(t *testing.T) {
 	dir := t.TempDir()
 	writeTLSFixture(t, dir, false)
 	scans := 0
+	base := handler()
 	transport := &handlerTransport{handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if readerOK(r) {
+			base.ServeHTTP(w, r)
+			return
+		}
 		if !authOK(r) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
