@@ -49,8 +49,10 @@ fixture is bound by this Link. Sharing and recording must remain disabled.
   authenticated website, statistics, pageview-series and active-visitor reads.
 - Native widget kind: `umami`, with the recorded `websiteId`, `timeFrame: 24h`,
   chart/bar/grouped view and no selected custom events. Exactly one integration
-  and its explicitly owned fixture website are used. There is no shipped Umami
-  Stats provider, so no invented Stats metric or shared Stats binding is added.
+  and its explicitly owned fixture website are used. The actual image source
+  exposes `existingStatsProviders.umami`: `websites` with unit `count`, from
+  authenticated `getWebsitesAsync().length`. Shared Stats selects only that
+  supported metric; no visitor analytics Stats metrics are invented.
 - Read-only preflight runs before any Homarr mutation. Direct fresh reads reject
   missing fields, HTTP/authentication failures and incomplete series; explicit
   zero counts and empty arrays are valid. It never emits tracking events.
@@ -135,3 +137,24 @@ Project, credentials, browser, Docker or real tracking data was accessed.
 - [Umami website transfer](https://github.com/umami-software/umami/blob/v3.4.0/src/app/api/websites/%5BwebsiteId%5D/transfer/route.ts)
 - [Umami website permissions](https://github.com/umami-software/umami/blob/v3.4.0/src/permissions/website.ts)
 - [Umami active-visitors semantics](https://github.com/umami-software/umami/blob/v3.4.0/src/queries/sql/getActiveVisitors.ts)
+
+## Original-branch normalization, 13 October 2026
+
+The original release branch forward-merges the SDK and additive Stats contracts
+without rewriting history. Reinspection of the exact Homarr OCI source revision
+corrects the earlier absent-provider statement: the `websites` provider is in
+`existing.ts`. Its pure descriptor callback accepts finite nonnegative integer
+counts with `count` units from one central advancing refresh. Website counts from
+independently collected native and Stats samples are not compared for equality.
+Native analytics keeps the recorded website/account, 24h window, explicit empty
+series, direct authenticated reads and one-minute native timestamp limits. Native
+counts, bounce percentage, data-point timestamps and website name/domain are
+validated without fabricating nulls or missing values.
+
+Focused descriptor HTTP fixtures exercise native authentication/identity and the
+central catalog/snapshot/forced-refresh path, including invalid units/counts,
+missing/null values and no-op timestamps. They are synthetic source evidence;
+live/rendered/lifecycle acceptance remains outstanding. No Docker, browser,
+private Project, tracking events or external account actions were used.
+
+- [Actual image-source website Stats provider](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/stats/existing.ts)

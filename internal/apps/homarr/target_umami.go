@@ -3,6 +3,7 @@ package homarr
 import (
 	"context"
 	"errors"
+	"math"
 	"time"
 
 	"github.com/ajnart/self-host/internal/apps/umami"
@@ -27,7 +28,7 @@ func umamiTarget() target {
 				"websiteId": id, "timeFrame": "24h", "viewMode": "chart",
 				"chartType": "bar", "chartStyle": "grouped", "eventName": "", "eventNames": []string{}, "topCount": 5,
 			}, nil
-		}}},
+		}}, statWidget("websites")},
 		preflight: func(ctx context.Context, from, to *helpers.H) error {
 			if err := umami.VerifyHomarr(ctx, to); err != nil {
 				if errors.Is(err, helpers.ErrManual) {
@@ -38,6 +39,7 @@ func umamiTarget() target {
 			return nil
 		},
 		verify: verifyUmami,
+		stats:  verifyUmamiStats,
 	}
 }
 
@@ -55,7 +57,7 @@ func verifyUmami(ctx context.Context, from, to *helpers.H, integrationID string)
 		return errors.New("Homarr did not return the isolated Umami fixture website; retry self-host setup umami and self-host setup homarr")
 	}
 	website, _ := websites[0].(map[string]any)
-	if stringField(website, "id") != websiteID || stringField(website, "name") == "" || stringField(website, "domain") == "" {
+	if stringField(website, "id") != websiteID || stringField(website, "name") != "self-host Homarr fixture" || stringField(website, "domain") != "self-host.invalid" {
 		return errors.New("Homarr returned a different or incomplete Umami website")
 	}
 	value, err = apiKeyProcedure(ctx, from, "widget.umami.getVisitorStats", map[string]any{
@@ -70,7 +72,8 @@ func verifyUmami(ctx context.Context, from, to *helpers.H, integrationID string)
 	}
 	result, _ := results[0].(map[string]any)
 	stats, _ := result["visitorStats"].(map[string]any)
-	if stringField(result, "integrationId") != integrationID || stringField(stats, "websiteId") != websiteID || stringField(stats, "timeFrame") != "24h" {
+	if result["error"] != nil || stringField(result, "integrationId") != integrationID || stringField(stats, "websiteId") != websiteID || stringField(stats, "timeFrame") != "24h" ||
+		stringField(stats, "websiteName") != stringField(website, "name") || stringField(stats, "domain") != stringField(website, "domain") {
 		return errors.New("Homarr returned Umami statistics for a different website or time window")
 	}
 	updatedAt, err := time.Parse(time.RFC3339Nano, stringField(result, "updatedAt"))
@@ -80,8 +83,11 @@ func verifyUmami(ctx context.Context, from, to *helpers.H, integrationID string)
 	}
 	for _, metric := range []string{"totalVisitors", "totalPageviews", "totalVisits", "bounceRate", "avgDuration"} {
 		count, ok := stats[metric].(float64)
-		if !ok || count < 0 {
+		if !ok || count < 0 || math.IsNaN(count) || math.IsInf(count, 0) {
 			return errors.New("Homarr returned incomplete Umami statistics; missing values are not zero")
+		}
+		if math.Trunc(count) != count || metric == "bounceRate" && count > 100 {
+			return errors.New("Homarr returned invalid Umami counts or bounce percentage")
 		}
 	}
 	points, ok := stats["dataPoints"].([]any)
@@ -91,7 +97,7 @@ func verifyUmami(ctx context.Context, from, to *helpers.H, integrationID string)
 	for _, raw := range points {
 		point, _ := raw.(map[string]any)
 		visitors, ok := point["visitors"].(float64)
-		if !ok || visitors < 0 || stringField(point, "timestamp") == "" {
+		if !ok || visitors < 0 || math.IsNaN(visitors) || math.IsInf(visitors, 0) || math.Trunc(visitors) != visitors || !validUmamiTimestamp(stringField(point, "timestamp")) {
 			return errors.New("Homarr returned an invalid Umami visitor data point")
 		}
 	}
@@ -102,8 +108,25 @@ func verifyUmami(ctx context.Context, from, to *helpers.H, integrationID string)
 		return err
 	}
 	active, ok := value.(float64)
-	if !ok || active < 0 {
+	if !ok || active < 0 || math.IsNaN(active) || math.IsInf(active, 0) || math.Trunc(active) != active {
 		return errors.New("Homarr did not explicitly return Umami active visitors")
+	}
+	return nil
+}
+
+func validUmamiTimestamp(timestamp string) bool {
+	for _, layout := range []string{time.RFC3339Nano, "2006-01-02 15:04:05"} {
+		if _, err := time.Parse(layout, timestamp); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func verifyUmamiStats(sample statsSample) error {
+	websites, ok := sample.values["websites"].(float64)
+	if sample.units["websites"] != "count" || !ok || websites < 0 || math.IsNaN(websites) || math.IsInf(websites, 0) || math.Trunc(websites) != websites {
+		return errors.New("Homarr returned invalid Umami website Stats or units; retry self-host setup homarr")
 	}
 	return nil
 }
