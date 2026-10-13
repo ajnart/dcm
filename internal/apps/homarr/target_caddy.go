@@ -11,7 +11,7 @@ import (
 
 func caddyTarget() target {
 	return target{
-		id: "caddy", name: "Caddy", kind: "caddy", internal: fixed("http://caddy:2015"),
+		id: "caddy", name: "Caddy", kind: "caddy", internal: (*helpers.H).InternalURL,
 		secrets: func(_, _ *helpers.H) []secret { return []secret{} },
 		widgets: []widget{statWidget("upstreams", "requests", "requestsFailed")},
 		verify:  verifyCaddy,

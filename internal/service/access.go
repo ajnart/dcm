@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ajnart/self-host/internal/helpers"
 	"go.yaml.in/yaml/v3"
 
 	"github.com/ajnart/self-host/internal/project"
@@ -101,7 +102,7 @@ func (s *Service) AccessExport(ctx context.Context) (AccessExport, error) {
 		item := ExportApp{
 			ID: id, Name: info.Name, Hostname: id + ExportHostnameSuffix,
 			Service: info.Service, ContainerPort: info.ContainerPort,
-			Upstream: info.Service + ":" + strconv.Itoa(info.ContainerPort),
+			Upstream: helpers.InternalAddress(info.Service, info.ContainerPort),
 			Host:     host, HostPort: st.Port, HostUpstream: fmt.Sprintf("%s:%d", host, st.Port),
 		}
 		if info.WebSockets {
@@ -200,7 +201,7 @@ func unmanagedExport(p *project.Project, id, host string) (ExportApp, error) {
 			}
 			candidates = append(candidates, ExportApp{
 				ID: id, Name: id, Hostname: id + ExportHostnameSuffix,
-				Service: name, ContainerPort: containerPort, Upstream: name + ":" + strconv.Itoa(containerPort),
+				Service: name, ContainerPort: containerPort, Upstream: helpers.InternalAddress(name, containerPort),
 				Host: address, HostPort: hostPort, HostUpstream: net.JoinHostPort(address, strconv.Itoa(hostPort)),
 			})
 		}

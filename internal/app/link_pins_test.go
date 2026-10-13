@@ -21,17 +21,20 @@ func (unreachable) RoundTrip(*http.Request) (*http.Response, error) {
 	return nil, errors.New("unreachable")
 }
 
+var containerPorts = map[string]int{"prowlarr": 9696, "sonarr": 8989, "jellyfin": 8096, "seerr": 5055, "qbittorrent": 8080, "homarr": 7575}
+
 func pinnedPair(from, to string, port int) (*helpers.H, *helpers.H, *[]helpers.StepResult) {
 	var results []helpers.StepResult
 	build := func(name string, port int) *helpers.H {
 		return helpers.New(helpers.Config{
 			App: name, Service: name, BaseURL: "http://" + name + ".test", URL: "http://" + name + ".example", Port: port,
-			HTTP:    &http.Client{Transport: unreachable{}},
-			Secrets: secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"},
-			Log:     events.Discard(),
-			Now:     time.Now,
-			Sleep:   func(context.Context, time.Duration) error { return nil },
-			Record:  func(r helpers.StepResult) { results = append(results, r) },
+			ContainerPort: containerPorts[name],
+			HTTP:          &http.Client{Transport: unreachable{}},
+			Secrets:       secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"},
+			Log:           events.Discard(),
+			Now:           time.Now,
+			Sleep:         func(context.Context, time.Duration) error { return nil },
+			Record:        func(r helpers.StepResult) { results = append(results, r) },
 		})
 	}
 	return build(from, 0), build(to, port), &results

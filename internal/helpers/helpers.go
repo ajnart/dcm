@@ -52,8 +52,9 @@ type InstalledApp struct {
 }
 
 type Config struct {
-	App     string
-	Service string
+	App           string
+	Service       string
+	ContainerPort int
 	// Dir is the App's folder on the host (apps/<id>), where its config
 	// bind mounts live.
 	Dir      string

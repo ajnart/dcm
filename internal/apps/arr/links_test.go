@@ -1,13 +1,20 @@
 package arr_test
 
 import (
+	"context"
 	"encoding/json"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/apps/arr"
+	"github.com/ajnart/self-host/internal/apps/arrtest"
 	"github.com/ajnart/self-host/internal/apps/qbittorrent"
+	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/helpers"
 	stepstatus "github.com/ajnart/self-host/internal/status"
+	"github.com/ajnart/self-host/internal/systemtest"
 )
 
 type appStatus struct {
@@ -132,5 +139,38 @@ func TestAUsersOwnQBittorrentClientIsLeftAlone(t *testing.T) {
 	clients := e.Sonarr.DownloadClients()
 	if len(clients) != 1 || clients[0]["name"] != "NAS qBittorrent" {
 		t.Fatalf("the user's client must survive: %v", clients)
+	}
+}
+
+type secretMap map[string]string
+
+func (s secretMap) Get(key string) string       { return s[key] }
+func (s secretMap) Set(key, value string) error { s[key] = value; return nil }
+
+func TestProwlarrReachesItsTargetAtTheTargetsContainerPort(t *testing.T) {
+	prowlarr := arrtest.NewArr("prowlarr")
+	server := httptest.NewServer(prowlarr.Handler())
+	t.Cleanup(server.Close)
+	secrets := secretMap{"PROWLARR_API_KEY": prowlarr.Key, "SONARR_API_KEY": "sonarr-key"}
+	deps := systemtest.NewDeps(t)
+	from := helpers.New(helpers.Config{
+		App: "prowlarr", Service: "prowlarr", ContainerPort: 19696, BaseURL: server.URL, URL: server.URL,
+		HTTP: server.Client(), Secrets: secrets, Log: events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
+	})
+	to := helpers.New(helpers.Config{App: "sonarr", Service: "sonarr", ContainerPort: 18989, Port: 8989, Secrets: secrets, Log: events.Discard()})
+	var link app.Link
+	for _, l := range arr.Prowlarr().Links() {
+		if l.Target == "sonarr" {
+			link = l
+		}
+	}
+
+	if err := link.Apply(context.Background(), from, to); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+
+	applications := prowlarr.Applications()
+	if len(applications) != 1 || arrtest.Field(applications[0], "baseUrl") != "http://sonarr:18989" || arrtest.Field(applications[0], "prowlarrUrl") != "http://prowlarr:19696" {
+		t.Fatalf("applications %v, want Prowlarr at http://prowlarr:19696 syncing to http://sonarr:18989", applications)
 	}
 }

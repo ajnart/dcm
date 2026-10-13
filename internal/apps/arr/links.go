@@ -157,35 +157,35 @@ func downloadClientLink(categoryField, category string) app.Link {
 		})
 }
 
-// applicationTargets are the Apps Prowlarr syncs indexers to.
-var applicationTargets = map[string]struct{ implementation, baseURL string }{
-	"sonarr": {"Sonarr", "http://sonarr:8989"},
-	"radarr": {"Radarr", "http://radarr:7878"},
+// applicationImplementations are the Apps Prowlarr syncs indexers to.
+var applicationImplementations = map[string]string{
+	"sonarr": "Sonarr",
+	"radarr": "Radarr",
 }
-
-const prowlarrURL = "http://prowlarr:9696"
 
 // applicationLink makes Prowlarr sync indexers to Sonarr or Radarr, which it
 // reaches by Compose service name with their API key.
 func applicationLink(target string) app.Link {
-	t := applicationTargets[target]
-	points := func(item object) bool {
-		return item["implementation"] == t.implementation && item.field("baseUrl") == t.baseURL
+	implementation := applicationImplementations[target]
+	points := func(to *helpers.H) func(object) bool {
+		return func(item object) bool {
+			return item["implementation"] == implementation && item.field("baseUrl") == to.InternalURL()
+		}
 	}
-	return app.NewLink("link-"+target, target, "sync indexers to "+t.implementation,
+	return app.NewLink("link-"+target, target, "sync indexers to "+implementation,
 		app.LinkStep{
-			Message: "sync indexers to " + t.implementation,
-			Check: func(ctx context.Context, from, _ *helpers.H) (bool, error) {
-				return exists(ctx, from, apiV1, "/applications", points)
+			Message: "sync indexers to " + implementation,
+			Check: func(ctx context.Context, from, to *helpers.H) (bool, error) {
+				return exists(ctx, from, apiV1, "/applications", points(to))
 			},
 			Do: func(ctx context.Context, from, to *helpers.H) error {
-				application, err := schemaFor(ctx, from, apiV1, "/applications", t.implementation)
+				application, err := schemaFor(ctx, from, apiV1, "/applications", implementation)
 				if err != nil {
 					return err
 				}
-				application["name"], application["syncLevel"] = t.implementation, "fullSync"
+				application["name"], application["syncLevel"] = implementation, "fullSync"
 				for _, f := range []field{
-					{"prowlarrUrl", prowlarrURL}, {"baseUrl", t.baseURL}, {"apiKey", to.Secret(to.Key("api_key"))},
+					{"prowlarrUrl", from.InternalURL()}, {"baseUrl", to.InternalURL()}, {"apiKey", to.Secret(to.Key("api_key"))},
 				} {
 					name, value := f.name, f.value
 					if err := application.setField(name, value); err != nil {
@@ -194,21 +194,21 @@ func applicationLink(target string) app.Link {
 				}
 				return create(ctx, from, apiV1, "/applications", application)
 			},
-			Hint: func(from, _ *helpers.H) string {
-				return "Open " + from.URL + " > Settings > Apps > add " + t.implementation + " with Prowlarr server " +
-					prowlarrURL + ", server " + t.baseURL + " and its API key."
+			Hint: func(from, to *helpers.H) string {
+				return "Open " + from.URL + " > Settings > Apps > add " + implementation + " with Prowlarr server " +
+					from.InternalURL() + ", server " + to.InternalURL() + " and its API key."
 			},
 		},
 		&app.LinkStep{
-			Message: "stop syncing indexers to " + t.implementation,
-			Check: app.Absent(func(ctx context.Context, from, _ *helpers.H) (bool, error) {
-				return exists(ctx, from, apiV1, "/applications", points)
+			Message: "stop syncing indexers to " + implementation,
+			Check: app.Absent(func(ctx context.Context, from, to *helpers.H) (bool, error) {
+				return exists(ctx, from, apiV1, "/applications", points(to))
 			}),
-			Do: func(ctx context.Context, from, _ *helpers.H) error {
-				return remove(ctx, from, apiV1, "/applications", points)
+			Do: func(ctx context.Context, from, to *helpers.H) error {
+				return remove(ctx, from, apiV1, "/applications", points(to))
 			},
 			Hint: func(from, _ *helpers.H) string {
-				return "Open " + from.URL + " > Settings > Apps and delete " + t.implementation + "."
+				return "Open " + from.URL + " > Settings > Apps and delete " + implementation + "."
 			},
 		})
 }

@@ -98,23 +98,23 @@ func ntfySecret(_, to *helpers.H) []secret {
 func existingTargets() []target {
 	return []target{
 		{
-			id: "sonarr", name: "Sonarr", kind: "sonarr", internal: fixed("http://sonarr:8989"), secrets: apiKeySecret,
+			id: "sonarr", name: "Sonarr", kind: "sonarr", internal: (*helpers.H).InternalURL, secrets: apiKeySecret,
 			widgets: []widget{plain("calendar"), plain("mediaMissing"), statWidget("shows", "downloaded", "missing", "queued")},
 		},
 		{
-			id: "radarr", name: "Radarr", kind: "radarr", internal: fixed("http://radarr:7878"), secrets: apiKeySecret,
+			id: "radarr", name: "Radarr", kind: "radarr", internal: (*helpers.H).InternalURL, secrets: apiKeySecret,
 			widgets: []widget{plain("calendar"), plain("mediaMissing"), statWidget("movies", "downloaded", "missing", "queued")},
 		},
 		{
-			id: "prowlarr", name: "Prowlarr", kind: "prowlarr", internal: fixed("http://prowlarr:9696"), secrets: apiKeySecret,
+			id: "prowlarr", name: "Prowlarr", kind: "prowlarr", internal: (*helpers.H).InternalURL, secrets: apiKeySecret,
 			widgets: []widget{plain("indexerManager"), statWidget("indexers")},
 		},
 		{
-			id: "jellyfin", name: "Jellyfin", kind: "jellyfin", internal: fixed("http://jellyfin:8096"), secrets: apiKeySecret,
+			id: "jellyfin", name: "Jellyfin", kind: "jellyfin", internal: (*helpers.H).InternalURL, secrets: apiKeySecret,
 			widgets: []widget{plain("mediaServer"), plain("mediaReleases"), statWidget("sessions")},
 		},
 		{
-			id: "seerr", name: "Seerr", kind: "seerr", internal: fixed("http://seerr:5055"), secrets: apiKeySecret,
+			id: "seerr", name: "Seerr", kind: "seerr", internal: (*helpers.H).InternalURL, secrets: apiKeySecret,
 			widgets: []widget{plain("mediaRequests-requestList"), plain("mediaRequests-requestStats"), statWidget("pending", "approved", "available")},
 		},
 		{
@@ -126,15 +126,15 @@ func existingTargets() []target {
 			widgets: []widget{plain("downloads"), statWidget("download", "upload", "paused")},
 		},
 		{
-			id: "beszel", name: "Beszel", kind: "beszel", internal: fixed("http://beszel:8090"),
+			id: "beszel", name: "Beszel", kind: "beszel", internal: (*helpers.H).InternalURL,
 			secrets: func(_, to *helpers.H) []secret {
 				return []secret{{Kind: "username", Value: beszel.AdminEmail(to)}, {Kind: "password", Value: to.AdminPassword()}}
 			},
 			widgets: []widget{beszelSystemStats()},
 		},
-		{id: "ntfy", name: "ntfy", kind: "ntfy", internal: fixed("http://ntfy:80"), secrets: ntfySecret,
+		{id: "ntfy", name: "ntfy", kind: "ntfy", internal: (*helpers.H).InternalURL, secrets: ntfySecret,
 			widgets: []widget{plain("notifications"), statWidget("messages")}},
-		{id: "vaultwarden", name: "Vaultwarden", internal: fixed("http://vaultwarden:80")},
+		{id: "vaultwarden", name: "Vaultwarden", internal: (*helpers.H).InternalURL},
 	}
 }
 

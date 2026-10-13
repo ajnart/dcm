@@ -290,8 +290,8 @@ func retireInstalledApp(ctx context.Context, h *helpers.H, existing map[string]a
 }
 
 func genericPing(item helpers.InstalledApp) string {
-	if item.Service != "" && item.ContainerPort > 0 {
-		return fmt.Sprintf("http://%s:%d", item.Service, item.ContainerPort)
+	if internal := item.InternalURL(); internal != "" {
+		return internal
 	}
 	return item.URL
 }

@@ -511,3 +511,28 @@ func TestManualSetupBlocksLinksUntilRetry(t *testing.T) {
 		t.Fatal("Link did not run after manual Setup completed")
 	}
 }
+
+type addressTestApp struct {
+	*testApp
+	target string
+	seen   string
+}
+
+func (a *addressTestApp) Links() []app.Link {
+	return []app.Link{{ID: "link-address", Target: a.target, Apply: func(_ context.Context, _, to *helpers.H) error {
+		a.seen = to.InternalURL()
+		return nil
+	}}}
+}
+
+func TestLinkTargetExposesItsComposeNetworkAddress(t *testing.T) {
+	target := &testApp{id: "one", done: map[string]bool{}}
+	consumer := &addressTestApp{testApp: &testApp{id: "two", done: map[string]bool{}}, target: "one"}
+	h := newHarness(t, target, consumer)
+
+	_ = h.install("one", "two")
+
+	if consumer.seen != "http://one:80" {
+		t.Fatalf("target address = %q, want http://one:80 (service name and container port, not the host port)", consumer.seen)
+	}
+}

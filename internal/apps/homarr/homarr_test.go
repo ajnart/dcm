@@ -617,11 +617,16 @@ func homarrH(t *testing.T, srv *httptest.Server, secrets fakeSecrets) *helpers.H
 	})
 }
 
+var targetContainerPorts = map[string]int{
+	"sonarr": 8989, "radarr": 7878, "prowlarr": 9696, "jellyfin": 8096, "seerr": 5055,
+	"beszel": 8090, "ntfy": 80, "vaultwarden": 80, "caddy": 2015, "immich": 2283,
+}
+
 func targetH(t *testing.T, srv *httptest.Server, id string, port int, secrets fakeSecrets) *helpers.H {
 	t.Helper()
 	deps := systemtest.NewDeps(t)
 	return helpers.New(helpers.Config{
-		App: id, Service: id, BaseURL: srv.URL, URL: "http://" + id + ".example", Port: port,
+		App: id, Service: id, ContainerPort: targetContainerPorts[id], BaseURL: srv.URL, URL: "http://" + id + ".example", Port: port,
 		HTTP: srv.Client(), Secrets: secrets, Log: events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 	})
 }
@@ -1388,6 +1393,28 @@ func TestLinkRerunRepairsMissingTileAndChangedBrowserURL(t *testing.T) {
 	}
 	if tiles != 1 || len(fake.apps) != 1 || fake.apps[0]["href"] != to.URL {
 		t.Fatalf("tile or browser URL not repaired: tiles=%d apps=%v", tiles, fake.apps)
+	}
+}
+
+func TestLinkReachesItsTargetAtTheTargetsContainerPort(t *testing.T) {
+	fake := newFake()
+	fake.apiKey = "keyid.secret"
+	srv := serve(t, fake)
+	from := homarrH(t, srv, allSecrets())
+	to := targetH(t, srv, "sonarr", 8989, allSecrets())
+	to.ContainerPort = 18989
+
+	if err := linkFor(t, "sonarr").Apply(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if len(fake.integrations) != 1 || fake.integrations[0]["url"] != "http://sonarr:18989" {
+		t.Fatalf("integration endpoint = %v, want http://sonarr:18989", fake.integrations)
+	}
+	if len(fake.apps) != 1 || fake.apps[0]["pingUrl"] != "http://sonarr:18989" {
+		t.Fatalf("tile ping endpoint = %v, want http://sonarr:18989", fake.apps)
 	}
 }
 

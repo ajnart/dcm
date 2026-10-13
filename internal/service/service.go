@@ -279,19 +279,20 @@ func (ss *session) helpers(a app.App) *helpers.H {
 		}
 	}
 	return helpers.New(helpers.Config{
-		App:      info.ID,
-		Service:  info.Service,
-		Dir:      ss.p.Path("apps", info.ID),
-		BaseURL:  fmt.Sprintf("http://127.0.0.1:%d", port),
-		URL:      AppURL(ss.settings, port, info.Path),
-		Port:     port,
-		Inputs:   inputs,
-		Settings: ss.settings,
-		Log:      ss.s.Log,
-		HTTP:     ss.s.Deps.HTTP,
-		Secrets:  ss.secrets,
-		Exec:     ss.compose,
-		Record:   ss.recorder(info.ID),
+		App:           info.ID,
+		Service:       info.Service,
+		ContainerPort: info.ContainerPort,
+		Dir:           ss.p.Path("apps", info.ID),
+		BaseURL:       fmt.Sprintf("http://127.0.0.1:%d", port),
+		URL:           AppURL(ss.settings, port, info.Path),
+		Port:          port,
+		Inputs:        inputs,
+		Settings:      ss.settings,
+		Log:           ss.s.Log,
+		HTTP:          ss.s.Deps.HTTP,
+		Secrets:       ss.secrets,
+		Exec:          ss.compose,
+		Record:        ss.recorder(info.ID),
 		Peer: func(id string) *helpers.H {
 			peer, found := ss.s.Catalog.App(id)
 			if !found || ss.state.Apps[id] == nil {

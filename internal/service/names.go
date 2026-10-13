@@ -11,6 +11,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/compose"
+	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/names"
 	"github.com/ajnart/self-host/internal/project"
@@ -228,7 +229,7 @@ func (ss *session) syncNames(ctx context.Context, start bool, configured []strin
 			}
 		}
 		if host, ok := names.Host(id, ss.settings["LAN_IP"]); ok {
-			routes = append(routes, names.Route{Host: host, Upstream: fmt.Sprintf("%s:%d", info.Service, info.ContainerPort)})
+			routes = append(routes, names.Route{Host: host, Upstream: helpers.InternalAddress(info.Service, info.ContainerPort)})
 		}
 	}
 	content := names.Caddyfile(routes)

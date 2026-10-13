@@ -10,7 +10,7 @@ import (
 
 func immichTarget() target {
 	return target{
-		id: "immich", name: "Immich", kind: "immich", internal: fixed("http://immich:2283"),
+		id: "immich", name: "Immich", kind: "immich", internal: (*helpers.H).InternalURL,
 		secrets: func(_, to *helpers.H) []secret {
 			return []secret{{Kind: "apiKey", Value: to.Secret(to.Key("homarr_api_key"))}}
 		},

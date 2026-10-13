@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
-	"github.com/ajnart/self-host/internal/apps/jellyfin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -107,10 +106,10 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 
 // signIn signs in to Seerr with the Jellyfin Admin login. The first time it
 // also binds Jellyfin (by service name) and creates Seerr's admin.
-func signIn(ctx context.Context, from *helpers.H, p public) (*helpers.Session, error) {
+func signIn(ctx context.Context, from, to *helpers.H, p public) (*helpers.Session, error) {
 	body := map[string]any{"username": from.AdminUser(), "password": from.AdminPassword()}
 	if p.MediaServerType == mediaServerNone {
-		body["hostname"], body["port"], body["useSsl"], body["urlBase"] = "jellyfin", jellyfin.ContainerPort, false, ""
+		body["hostname"], body["port"], body["useSsl"], body["urlBase"] = to.Service, to.ContainerPort, false, ""
 		body["serverType"], body["email"] = mediaServerJellyfin, from.AdminUser()+"@selfhost.local"
 	}
 	s := from.Session()
@@ -176,7 +175,7 @@ func connected(ctx context.Context, h *helpers.H) (bool, error) {
 	return true, nil
 }
 
-func connect(ctx context.Context, from *helpers.H) error {
+func connect(ctx context.Context, from, to *helpers.H) error {
 	p, err := readPublic(ctx, from)
 	if err != nil {
 		return err
@@ -184,7 +183,7 @@ func connect(ctx context.Context, from *helpers.H) error {
 	if p.MediaServerType != mediaServerNone && p.MediaServerType != mediaServerJellyfin {
 		return errors.New("Seerr is already set up with another media server; it is left as it is")
 	}
-	session, err := signIn(ctx, from, p)
+	session, err := signIn(ctx, from, to, p)
 	if err != nil {
 		return err
 	}
@@ -219,9 +218,9 @@ func jellyfinLink() app.Link {
 			Check: func(ctx context.Context, from, _ *helpers.H) (bool, error) {
 				return connected(ctx, from)
 			},
-			Do: func(ctx context.Context, from, _ *helpers.H) error { return connect(ctx, from) },
-			Hint: func(from, _ *helpers.H) string {
-				return "Open " + from.URL + "/setup: choose Jellyfin, server jellyfin port " + strconv.Itoa(jellyfin.ContainerPort) +
+			Do: func(ctx context.Context, from, to *helpers.H) error { return connect(ctx, from, to) },
+			Hint: func(from, to *helpers.H) string {
+				return "Open " + from.URL + "/setup: choose Jellyfin, server " + to.Service + " port " + strconv.Itoa(to.ContainerPort) +
 					", sign in with the Admin login (any email), enable every library and finish."
 			},
 		}, nil)
@@ -230,7 +229,6 @@ func jellyfinLink() app.Link {
 // server is Sonarr or Radarr as Seerr sees them.
 type server struct {
 	id, name string
-	port     int
 	// rootFolder is the library folder the server's own Setup registers.
 	rootFolder string
 	// extra holds the fields only this kind of server takes.
@@ -238,18 +236,18 @@ type server struct {
 }
 
 var (
-	sonarr = server{id: "sonarr", name: "Sonarr", port: 8989, rootFolder: "/media/tv", extra: map[string]any{
+	sonarr = server{id: "sonarr", name: "Sonarr", rootFolder: "/media/tv", extra: map[string]any{
 		"enableSeasonFolders": true, "seriesType": "standard", "animeSeriesType": "standard",
 		"animeTags": []any{}, "monitorNewItems": "all",
 	}}
-	radarr = server{id: "radarr", name: "Radarr", port: 7878, rootFolder: "/media/movies", extra: map[string]any{
+	radarr = server{id: "radarr", name: "Radarr", rootFolder: "/media/movies", extra: map[string]any{
 		"minimumAvailability": "released",
 	}}
 )
 
-func (s server) points(item map[string]any) bool {
+func (s server) points(item map[string]any, to *helpers.H) bool {
 	port, _ := item["port"].(float64)
-	return item["hostname"] == s.id && int(port) == s.port
+	return item["hostname"] == to.Service && int(port) == to.ContainerPort
 }
 
 func (s server) list(ctx context.Context, h *helpers.H) ([]map[string]any, error) {
@@ -261,13 +259,13 @@ func (s server) list(ctx context.Context, h *helpers.H) ([]map[string]any, error
 	return items, resp.Decode(&items)
 }
 
-func (s server) linked(ctx context.Context, h *helpers.H) (bool, error) {
+func (s server) linked(ctx context.Context, h, to *helpers.H) (bool, error) {
 	items, err := s.list(ctx, h)
 	if err != nil {
 		return false, err
 	}
 	for _, item := range items {
-		if s.points(item) {
+		if s.points(item, to) {
 			return true, nil
 		}
 	}
@@ -294,13 +292,13 @@ func (s server) add(ctx context.Context, from, to *helpers.H) error {
 	if !p.Initialized {
 		return errors.New("Seerr is not connected to Jellyfin yet (see link-jellyfin)")
 	}
-	conn := map[string]any{"hostname": s.id, "port": s.port, "apiKey": to.Secret(to.Key("api_key")), "useSsl": false, "baseUrl": ""}
+	conn := map[string]any{"hostname": to.Service, "port": to.ContainerPort, "apiKey": to.Secret(to.Key("api_key")), "useSsl": false, "baseUrl": ""}
 	resp, err := from.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api/v1/settings/" + s.id + "/test", Header: keyHeader(from), JSON: conn})
 	if err != nil {
 		return err
 	}
 	if !resp.OK() {
-		return fmt.Errorf("Seerr cannot reach %s at http://%s:%d (HTTP %d)", s.name, s.id, s.port, resp.Status)
+		return fmt.Errorf("Seerr cannot reach %s at %s (HTTP %d)", s.name, to.InternalURL(), resp.Status)
 	}
 	var test testResult
 	if err := resp.Decode(&test); err != nil {
@@ -333,13 +331,13 @@ func (s server) add(ctx context.Context, from, to *helpers.H) error {
 	return err
 }
 
-func (s server) remove(ctx context.Context, h *helpers.H) error {
+func (s server) remove(ctx context.Context, h, to *helpers.H) error {
 	items, err := s.list(ctx, h)
 	if err != nil {
 		return err
 	}
 	for _, item := range items {
-		if !s.points(item) {
+		if !s.points(item, to) {
 			continue
 		}
 		id, _ := item["id"].(float64)
@@ -353,21 +351,21 @@ func (s server) remove(ctx context.Context, h *helpers.H) error {
 // serverLink makes Sonarr or Radarr the default server Seerr sends requests
 // to, reached by Compose service name with its API key.
 func serverLink(s server) app.Link {
-	linked := func(ctx context.Context, from, _ *helpers.H) (bool, error) { return s.linked(ctx, from) }
+	linked := s.linked
 	return app.NewLink("link-"+s.id, s.id, "requests go to "+s.name,
 		app.LinkStep{
 			Message: "send requests to " + s.name,
 			Check:   linked,
 			Do:      func(ctx context.Context, from, to *helpers.H) error { return s.add(ctx, from, to) },
-			Hint: func(from, _ *helpers.H) string {
-				return "Open " + from.URL + "/settings/services, add " + s.name + " with host " + s.id + ", port " + strconv.Itoa(s.port) +
+			Hint: func(from, to *helpers.H) string {
+				return "Open " + from.URL + "/settings/services, add " + s.name + " with host " + to.Service + ", port " + strconv.Itoa(to.ContainerPort) +
 					", its API key from `self-host credentials`, the first quality profile and root folder " + s.rootFolder + ", marked default."
 			},
 		},
 		&app.LinkStep{
 			Message: "stop sending requests to " + s.name,
 			Check:   app.Absent(linked),
-			Do:      func(ctx context.Context, from, _ *helpers.H) error { return s.remove(ctx, from) },
+			Do:      func(ctx context.Context, from, to *helpers.H) error { return s.remove(ctx, from, to) },
 			Hint: func(from, _ *helpers.H) string {
 				return "Open " + from.URL + "/settings/services and delete " + s.name + "."
 			},
