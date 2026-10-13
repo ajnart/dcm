@@ -140,7 +140,7 @@ func (f *frame) segs(cv *canvas, x, y int, ss []seg, fade float64) int {
 		if s.bold {
 			lum = 1
 		}
-		x = cv.text(x, y, s.s, f.pal.Fade(s.c, fade), lum, s.bold)
+		x = cv.Text(x, y, s.s, f.pal.Fade(s.c, fade), lum, s.bold)
 	}
 	return x
 }
@@ -152,7 +152,7 @@ func (f *frame) drawText(cv *canvas) {
 	}
 	for _, r := range f.text.rows {
 		if fade > 0.5 {
-			cv.clear(r.x-2, r.x+segWidth(r.ss)+2, r.y)
+			cv.Clear(r.x-2, r.x+segWidth(r.ss)+2, r.y)
 		}
 		f.segs(cv, r.x, r.y, r.ss, fade*(1-0.7*r.held))
 	}
@@ -163,8 +163,8 @@ func (f *frame) progressBar(cv *canvas, fade float64) {
 	p, l, t := f.pal, f.lay, f.t()
 	bw, x0 := l.barW, f.text.barX
 	if fade > 0.5 {
-		cv.clear(x0-2, x0+f.text.barW+2, l.barY)
-		cv.clear(x0-2, x0+f.text.barW+2, l.barY-1)
+		cv.Clear(x0-2, x0+f.text.barW+2, l.barY)
+		cv.Clear(x0-2, x0+f.text.barW+2, l.barY-1)
 	}
 	eighths := int(clamp01(f.pr.Fraction) * float64(bw*8))
 	whole, part := eighths/8, eighths%8
@@ -179,9 +179,9 @@ func (f *frame) progressBar(cv *canvas, fade float64) {
 			}
 			g := math.Exp(-math.Pow((float64(i)-shimmer)/2.5, 2))
 			c := p.Glow(p.Sweep(float64(i)/float64(bw)*0.9-t*0.12), g*0.85)
-			cv.put(x, l.barY, ch, p.Fade(c, fade), 0.55+0.45*g)
+			cv.Put(x, l.barY, ch, p.Fade(c, fade), 0.55+0.45*g)
 		default:
-			cv.put(x, l.barY, '░', p.Fade(p.Faint, fade), 0.1)
+			cv.Put(x, l.barY, '░', p.Fade(p.Faint, fade), 0.1)
 		}
 	}
 	if f.pr.Fraction > 0 && f.pr.Fraction < 1 {
@@ -206,7 +206,7 @@ func (f *frame) narrative(cv *canvas, fade float64) {
 	w := segWidth(ss)
 	x := (f.w - w) / 2
 	if fade > 0.5 {
-		cv.clear(x-2, x+w+2, f.lay.narrY)
+		cv.Clear(x-2, x+w+2, f.lay.narrY)
 	}
 	f.segs(cv, x, f.lay.narrY, ss, fade)
 }
