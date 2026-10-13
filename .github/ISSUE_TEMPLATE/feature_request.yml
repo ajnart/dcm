@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a new App, command or behaviour.
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: Never paste secrets or credentials.
+  - type: dropdown
+    id: reporter
+    attributes:
+      label: Requested by
+      options: [A person, An agent]
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [New App, Existing App, Easy names / ports, Backup and restore, Dashboard (TUI), CLI, Agent skill, Docs, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you are trying to do and what blocks you today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and workarounds

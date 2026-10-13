@@ -1,0 +1,83 @@
+name: Bug report
+description: Something self-host did, or refused to do, that it should not have.
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never paste secrets, `secrets.env`, `.env*` contents, tokens or credentials. Redact them. Report vulnerabilities privately through the security advisory link instead.
+  - type: dropdown
+    id: reporter
+    attributes:
+      label: Reported by
+      options: [A person, An agent]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: self-host version
+      description: Output of `self-host --version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Install, Easy names / ports, Setup of an App, Backup and restore, Status and doctor, Dashboard (TUI), Self-update, Agent skill, Docs, Other]
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: App involved
+      description: App id, or "none".
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Exact command run
+      description: Include flags. Redact secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Full output, or `--json` output where available.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Host environment
+      description: OS and version, CPU architecture, Docker runtime and version (Docker Engine, Docker Desktop, OrbStack, rootless), and whether you run as root.
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`self-host doctor` output"
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: What was already installed, and what you did, in order.
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Workarounds tried, related issues, suspected cause.

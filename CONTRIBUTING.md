@@ -27,3 +27,8 @@ Docker, e2e and browser runs happen only when the ticket asks.
 ## Pull requests
 
 Use conventional commit titles, one ticket per branch, and end the body with `Closes #<n>`. Disclose material AI assistance. Keep secrets, private hosts and session data out of every file and screenshot.
+
+- Be detailed, not padded. Say what was wrong, what you changed and why, in plain words. Prefer simple fixes; reviewers will push back on AI filler, restated diffs and speculative extras.
+- Show the change. For anything a person can see, attach before and after screenshots in a table using `gh pr create --attach`, or the GitHub UI if you are not on the CLI.
+- Large PRs need prior discussion. A pull request touching 100 or more files that was not agreed in an issue first is closed without review. Open an issue, get a yes, then split the work.
+- Tests are welcome.
