@@ -1,48 +1,50 @@
 # All 39 App handoff queue
 
+**Original-branch snapshot:** peer heads remain unchanged. [LATEST-UPDATE.md](LATEST-UPDATE.md) records later candidate-only verifiers/common/version/rendering work on #356, not on these original peer branches. Reconcile with its owner before repeating historical next actions. New combined smoke does not close individual acceptance tickets.
+
 This is a generated live-head/tested-pin reconciliation, not a new acceptance result. Common gates and ownership are in [HANDOFF.md](HANDOFF.md). Four peers (Bazarr, Caddy, Gatus, Prometheus) already have individual registration and normalized source passes; the others still need registration reconciliation. Every non-reference App still needs final exact accepted-head review and approved native/rendered/lifecycle proof. [PR-STACKS.md](PR-STACKS.md) explains each branch and actual stack. The old manifest contains historical authorization/observed fields; those are not current permission.
 
-| App | Issue | PR | Tested own Setup | Tested Homarr Link | Live head |
-| --- | --- | --- | --- | --- | --- |
-| AdGuard Home / `adguard-home` | [#266](https://github.com/ajnart/selfhost-skills/issues/266) | [#311](https://github.com/ajnart/selfhost-skills/pull/311) | ok | ok | `6731356c57d1` |
-| ArchiveTeam Warrior / `archive-team-warrior` | [#267](https://github.com/ajnart/selfhost-skills/issues/267) | [#323](https://github.com/ajnart/selfhost-skills/pull/323) | not-selected | not selected | `35979a24463f` |
-| Aria2 / `aria2` | [#269](https://github.com/ajnart/selfhost-skills/issues/269) | [#317](https://github.com/ajnart/selfhost-skills/pull/317) | ok | ok | `71e5c0fc1afd` |
-| Audiobookshelf / `audiobookshelf` | [#270](https://github.com/ajnart/selfhost-skills/issues/270) | [#310](https://github.com/ajnart/selfhost-skills/pull/310) | ok | ok | `895fb166f652` |
-| Bazarr / `bazarr` | [#272](https://github.com/ajnart/selfhost-skills/issues/272) | [#320](https://github.com/ajnart/selfhost-skills/pull/320) | ok | ok | `ed73c7651ca5` |
-| Caddy / `caddy` | [#273](https://github.com/ajnart/selfhost-skills/issues/273) | [#315](https://github.com/ajnart/selfhost-skills/pull/315) | ok | ok | `259033989ef4` |
-| Dash. / `dashdot` | [#274](https://github.com/ajnart/selfhost-skills/issues/274) | [#319](https://github.com/ajnart/selfhost-skills/pull/319) | ok | ok | `e0577f082b8b` |
-| Deluge / `deluge` | [#275](https://github.com/ajnart/selfhost-skills/issues/275) | [#324](https://github.com/ajnart/selfhost-skills/pull/324) | ok | ok | `0b3155367e64` |
-| Emby / `emby` | [#276](https://github.com/ajnart/selfhost-skills/issues/276) | [#322](https://github.com/ajnart/selfhost-skills/pull/322) | manual | skip | `eed53d89603f` |
-| Frigate / `frigate` | [#277](https://github.com/ajnart/selfhost-skills/issues/277) | [#331](https://github.com/ajnart/selfhost-skills/pull/331) | ok | manual | `0d06cdf51334` |
-| Gatus / `gatus` | [#280](https://github.com/ajnart/selfhost-skills/issues/280) | [#321](https://github.com/ajnart/selfhost-skills/pull/321) | ok | ok | `b8ab54070762` |
-| Glances / `glances` | [#281](https://github.com/ajnart/selfhost-skills/issues/281) | [#326](https://github.com/ajnart/selfhost-skills/pull/326) | ok | ok | `e68ea343cca6` |
-| Gluetun / `gluetun` | [#279](https://github.com/ajnart/selfhost-skills/issues/279) | [#327](https://github.com/ajnart/selfhost-skills/pull/327) | not-selected | not selected | `7d70c832c426` |
-| Gotify / `gotify` | [#282](https://github.com/ajnart/selfhost-skills/issues/282) | [#325](https://github.com/ajnart/selfhost-skills/pull/325) | ok | ok | `384111f93671` |
-| Home Assistant / `home-assistant` | [#285](https://github.com/ajnart/selfhost-skills/issues/285) | [#333](https://github.com/ajnart/selfhost-skills/pull/333) | incomplete | skip | `2ea747b1ee94` |
-| Immich / `immich` | [#262](https://github.com/ajnart/selfhost-skills/issues/262) | [#309](https://github.com/ajnart/selfhost-skills/pull/309) | incomplete | skip | `33e7fbccb754` |
-| Lidarr / `lidarr` | [#283](https://github.com/ajnart/selfhost-skills/issues/283) | [#318](https://github.com/ajnart/selfhost-skills/pull/318) | ok | ok | `e8ea969a9d3a` |
-| Linkwarden / `linkwarden` | [#286](https://github.com/ajnart/selfhost-skills/issues/286) | [#328](https://github.com/ajnart/selfhost-skills/pull/328) | ok | ok | `76ff8634ddaa` |
-| Navidrome / `navidrome` | [#284](https://github.com/ajnart/selfhost-skills/issues/284) | [#330](https://github.com/ajnart/selfhost-skills/pull/330) | ok | ok | `f34392800878` |
-| Netdata / `netdata` | [#287](https://github.com/ajnart/selfhost-skills/issues/287) | [#329](https://github.com/ajnart/selfhost-skills/pull/329) | ok | ok | `87a69b36ab07` |
-| Nextcloud / `nextcloud` | [#288](https://github.com/ajnart/selfhost-skills/issues/288) | [#340](https://github.com/ajnart/selfhost-skills/pull/340) | ok | ok | `21f74e29d9c7` |
-| NZBGet / `nzbget` | [#290](https://github.com/ajnart/selfhost-skills/issues/290) | [#335](https://github.com/ajnart/selfhost-skills/pull/335) | incomplete | skip | `d03616aac0a2` |
-| Paperless-ngx / `paperless-ngx` | [#289](https://github.com/ajnart/selfhost-skills/issues/289) | [#312](https://github.com/ajnart/selfhost-skills/pull/312) | ok | ok | `df16f7231e92` |
-| PatchMon / `patchmon` | [#291](https://github.com/ajnart/selfhost-skills/issues/291) | [#345](https://github.com/ajnart/selfhost-skills/pull/345) | incomplete | skip | `05f68f3bd937` |
-| PeaNUT / `peanut` | [#293](https://github.com/ajnart/selfhost-skills/issues/293) | [#347](https://github.com/ajnart/selfhost-skills/pull/347) | manual | skip | `fc5583b0f5b4` |
-| Pi-hole / `pihole` | [#292](https://github.com/ajnart/selfhost-skills/issues/292) | [#339](https://github.com/ajnart/selfhost-skills/pull/339) | ok | ok | `64be8d4ba38f` |
-| Plex / `plex` | [#294](https://github.com/ajnart/selfhost-skills/issues/294) | [#348](https://github.com/ajnart/selfhost-skills/pull/348) | not-selected | not selected | `8db89ddd5057` |
-| Prometheus / `prometheus` | [#299](https://github.com/ajnart/selfhost-skills/issues/299) | [#336](https://github.com/ajnart/selfhost-skills/pull/336) | ok | ok | `2231ee7542a1` |
-| SABnzbd / `sabnzbd` | [#298](https://github.com/ajnart/selfhost-skills/issues/298) | [#334](https://github.com/ajnart/selfhost-skills/pull/334) | manual | skip | `908931b24cf9` |
-| Slskd / `slskd` | [#297](https://github.com/ajnart/selfhost-skills/issues/297) | [#342](https://github.com/ajnart/selfhost-skills/pull/342) | not-selected | not selected | `2cf210a6700b` |
-| Speedtest Tracker / `speedtest-tracker` | [#296](https://github.com/ajnart/selfhost-skills/issues/296) | [#351](https://github.com/ajnart/selfhost-skills/pull/351) | manual | skip | `29659099e33d` |
-| Tdarr / `tdarr` | [#301](https://github.com/ajnart/selfhost-skills/issues/301) | [#349](https://github.com/ajnart/selfhost-skills/pull/349) | ok | ok | `21d3624b8641` |
-| Technitium DNS / `technitium-dns` | [#303](https://github.com/ajnart/selfhost-skills/issues/303) | [#338](https://github.com/ajnart/selfhost-skills/pull/338) | ok | ok | `aafb8c4e71cc` |
-| Tracearr / `tracearr` | [#302](https://github.com/ajnart/selfhost-skills/issues/302) | [#346](https://github.com/ajnart/selfhost-skills/pull/346) | incomplete | skip | `ab4ac17a94c0` |
-| Traefik / `traefik` | [#304](https://github.com/ajnart/selfhost-skills/issues/304) | [#352](https://github.com/ajnart/selfhost-skills/pull/352) | ok | ok | `3ecd50a43461` |
-| Transmission / `transmission` | [#305](https://github.com/ajnart/selfhost-skills/issues/305) | [#337](https://github.com/ajnart/selfhost-skills/pull/337) | ok | ok | `dc9c2ea0166e` |
-| Umami / `umami` | [#308](https://github.com/ajnart/selfhost-skills/issues/308) | [#344](https://github.com/ajnart/selfhost-skills/pull/344) | ok | ok | `b6fe06345f84` |
-| Uptime Kuma / `uptime-kuma` | [#307](https://github.com/ajnart/selfhost-skills/issues/307) | [#341](https://github.com/ajnart/selfhost-skills/pull/341) | manual | skip | `980e9c8730a1` |
-| What's Up Docker / `wud` | [#306](https://github.com/ajnart/selfhost-skills/issues/306) | [#343](https://github.com/ajnart/selfhost-skills/pull/343) | not-selected | not selected | `00d57bf66104` |
+| App                                          | Issue                                                        | PR                                                         | Tested own Setup | Tested Homarr Link | Live head      |
+| -------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------- | ---------------- | ------------------ | -------------- |
+| AdGuard Home / `adguard-home`                | [#266](https://github.com/ajnart/selfhost-skills/issues/266) | [#311](https://github.com/ajnart/selfhost-skills/pull/311) | ok               | ok                 | `6731356c57d1` |
+| ArchiveTeam Warrior / `archive-team-warrior` | [#267](https://github.com/ajnart/selfhost-skills/issues/267) | [#323](https://github.com/ajnart/selfhost-skills/pull/323) | not-selected     | not selected       | `35979a24463f` |
+| Aria2 / `aria2`                              | [#269](https://github.com/ajnart/selfhost-skills/issues/269) | [#317](https://github.com/ajnart/selfhost-skills/pull/317) | ok               | ok                 | `71e5c0fc1afd` |
+| Audiobookshelf / `audiobookshelf`            | [#270](https://github.com/ajnart/selfhost-skills/issues/270) | [#310](https://github.com/ajnart/selfhost-skills/pull/310) | ok               | ok                 | `895fb166f652` |
+| Bazarr / `bazarr`                            | [#272](https://github.com/ajnart/selfhost-skills/issues/272) | [#320](https://github.com/ajnart/selfhost-skills/pull/320) | ok               | ok                 | `ed73c7651ca5` |
+| Caddy / `caddy`                              | [#273](https://github.com/ajnart/selfhost-skills/issues/273) | [#315](https://github.com/ajnart/selfhost-skills/pull/315) | ok               | ok                 | `259033989ef4` |
+| Dash. / `dashdot`                            | [#274](https://github.com/ajnart/selfhost-skills/issues/274) | [#319](https://github.com/ajnart/selfhost-skills/pull/319) | ok               | ok                 | `e0577f082b8b` |
+| Deluge / `deluge`                            | [#275](https://github.com/ajnart/selfhost-skills/issues/275) | [#324](https://github.com/ajnart/selfhost-skills/pull/324) | ok               | ok                 | `0b3155367e64` |
+| Emby / `emby`                                | [#276](https://github.com/ajnart/selfhost-skills/issues/276) | [#322](https://github.com/ajnart/selfhost-skills/pull/322) | manual           | skip               | `eed53d89603f` |
+| Frigate / `frigate`                          | [#277](https://github.com/ajnart/selfhost-skills/issues/277) | [#331](https://github.com/ajnart/selfhost-skills/pull/331) | ok               | manual             | `0d06cdf51334` |
+| Gatus / `gatus`                              | [#280](https://github.com/ajnart/selfhost-skills/issues/280) | [#321](https://github.com/ajnart/selfhost-skills/pull/321) | ok               | ok                 | `b8ab54070762` |
+| Glances / `glances`                          | [#281](https://github.com/ajnart/selfhost-skills/issues/281) | [#326](https://github.com/ajnart/selfhost-skills/pull/326) | ok               | ok                 | `e68ea343cca6` |
+| Gluetun / `gluetun`                          | [#279](https://github.com/ajnart/selfhost-skills/issues/279) | [#327](https://github.com/ajnart/selfhost-skills/pull/327) | not-selected     | not selected       | `7d70c832c426` |
+| Gotify / `gotify`                            | [#282](https://github.com/ajnart/selfhost-skills/issues/282) | [#325](https://github.com/ajnart/selfhost-skills/pull/325) | ok               | ok                 | `384111f93671` |
+| Home Assistant / `home-assistant`            | [#285](https://github.com/ajnart/selfhost-skills/issues/285) | [#333](https://github.com/ajnart/selfhost-skills/pull/333) | incomplete       | skip               | `2ea747b1ee94` |
+| Immich / `immich`                            | [#262](https://github.com/ajnart/selfhost-skills/issues/262) | [#309](https://github.com/ajnart/selfhost-skills/pull/309) | incomplete       | skip               | `33e7fbccb754` |
+| Lidarr / `lidarr`                            | [#283](https://github.com/ajnart/selfhost-skills/issues/283) | [#318](https://github.com/ajnart/selfhost-skills/pull/318) | ok               | ok                 | `e8ea969a9d3a` |
+| Linkwarden / `linkwarden`                    | [#286](https://github.com/ajnart/selfhost-skills/issues/286) | [#328](https://github.com/ajnart/selfhost-skills/pull/328) | ok               | ok                 | `76ff8634ddaa` |
+| Navidrome / `navidrome`                      | [#284](https://github.com/ajnart/selfhost-skills/issues/284) | [#330](https://github.com/ajnart/selfhost-skills/pull/330) | ok               | ok                 | `f34392800878` |
+| Netdata / `netdata`                          | [#287](https://github.com/ajnart/selfhost-skills/issues/287) | [#329](https://github.com/ajnart/selfhost-skills/pull/329) | ok               | ok                 | `87a69b36ab07` |
+| Nextcloud / `nextcloud`                      | [#288](https://github.com/ajnart/selfhost-skills/issues/288) | [#340](https://github.com/ajnart/selfhost-skills/pull/340) | ok               | ok                 | `21f74e29d9c7` |
+| NZBGet / `nzbget`                            | [#290](https://github.com/ajnart/selfhost-skills/issues/290) | [#335](https://github.com/ajnart/selfhost-skills/pull/335) | incomplete       | skip               | `d03616aac0a2` |
+| Paperless-ngx / `paperless-ngx`              | [#289](https://github.com/ajnart/selfhost-skills/issues/289) | [#312](https://github.com/ajnart/selfhost-skills/pull/312) | ok               | ok                 | `df16f7231e92` |
+| PatchMon / `patchmon`                        | [#291](https://github.com/ajnart/selfhost-skills/issues/291) | [#345](https://github.com/ajnart/selfhost-skills/pull/345) | incomplete       | skip               | `05f68f3bd937` |
+| PeaNUT / `peanut`                            | [#293](https://github.com/ajnart/selfhost-skills/issues/293) | [#347](https://github.com/ajnart/selfhost-skills/pull/347) | manual           | skip               | `fc5583b0f5b4` |
+| Pi-hole / `pihole`                           | [#292](https://github.com/ajnart/selfhost-skills/issues/292) | [#339](https://github.com/ajnart/selfhost-skills/pull/339) | ok               | ok                 | `64be8d4ba38f` |
+| Plex / `plex`                                | [#294](https://github.com/ajnart/selfhost-skills/issues/294) | [#348](https://github.com/ajnart/selfhost-skills/pull/348) | not-selected     | not selected       | `8db89ddd5057` |
+| Prometheus / `prometheus`                    | [#299](https://github.com/ajnart/selfhost-skills/issues/299) | [#336](https://github.com/ajnart/selfhost-skills/pull/336) | ok               | ok                 | `2231ee7542a1` |
+| SABnzbd / `sabnzbd`                          | [#298](https://github.com/ajnart/selfhost-skills/issues/298) | [#334](https://github.com/ajnart/selfhost-skills/pull/334) | manual           | skip               | `908931b24cf9` |
+| Slskd / `slskd`                              | [#297](https://github.com/ajnart/selfhost-skills/issues/297) | [#342](https://github.com/ajnart/selfhost-skills/pull/342) | not-selected     | not selected       | `2cf210a6700b` |
+| Speedtest Tracker / `speedtest-tracker`      | [#296](https://github.com/ajnart/selfhost-skills/issues/296) | [#351](https://github.com/ajnart/selfhost-skills/pull/351) | manual           | skip               | `29659099e33d` |
+| Tdarr / `tdarr`                              | [#301](https://github.com/ajnart/selfhost-skills/issues/301) | [#349](https://github.com/ajnart/selfhost-skills/pull/349) | ok               | ok                 | `21d3624b8641` |
+| Technitium DNS / `technitium-dns`            | [#303](https://github.com/ajnart/selfhost-skills/issues/303) | [#338](https://github.com/ajnart/selfhost-skills/pull/338) | ok               | ok                 | `aafb8c4e71cc` |
+| Tracearr / `tracearr`                        | [#302](https://github.com/ajnart/selfhost-skills/issues/302) | [#346](https://github.com/ajnart/selfhost-skills/pull/346) | incomplete       | skip               | `ab4ac17a94c0` |
+| Traefik / `traefik`                          | [#304](https://github.com/ajnart/selfhost-skills/issues/304) | [#352](https://github.com/ajnart/selfhost-skills/pull/352) | ok               | ok                 | `3ecd50a43461` |
+| Transmission / `transmission`                | [#305](https://github.com/ajnart/selfhost-skills/issues/305) | [#337](https://github.com/ajnart/selfhost-skills/pull/337) | ok               | ok                 | `dc9c2ea0166e` |
+| Umami / `umami`                              | [#308](https://github.com/ajnart/selfhost-skills/issues/308) | [#344](https://github.com/ajnart/selfhost-skills/pull/344) | ok               | ok                 | `b6fe06345f84` |
+| Uptime Kuma / `uptime-kuma`                  | [#307](https://github.com/ajnart/selfhost-skills/issues/307) | [#341](https://github.com/ajnart/selfhost-skills/pull/341) | manual           | skip               | `980e9c8730a1` |
+| What's Up Docker / `wud`                     | [#306](https://github.com/ajnart/selfhost-skills/issues/306) | [#343](https://github.com/ajnart/selfhost-skills/pull/343) | not-selected     | not selected       | `00d57bf66104` |
 
 ## Per-App records
 

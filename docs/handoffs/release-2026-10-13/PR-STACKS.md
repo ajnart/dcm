@@ -2,6 +2,8 @@
 
 Snapshot: **43 pre-existing open PRs**. The handoff documentation PR is additional and recorded separately. This is a source/tracker reconciliation, not a new code-review or acceptance verdict. Every PR below has a named original branch, exact head, actual base relationship and remaining action. Full historical PR accounting is in [PR-HISTORY.md](PR-HISTORY.md).
 
+**Latest precedence:** [LATEST-UPDATE.md](LATEST-UPDATE.md) and the [three additional dossiers](#concurrent-additions-at-final-publication) bring this complete account to 46 open PRs. The 43-prior-head audit below is historical; #357 now adds a real #259 child, and #356 reports newer candidate/runtime work.
+
 ## Why there are so many PRs
 
 Each of the 38 remaining Homarr peers owns a separate App/leaf PR. Immich #309 and its common compatibility/ownership/freshness seam already merged. Thirty peers still name its branch as their base, often from an older reference commit; they are **siblings**, not a 30-PR chain. Thirteen existing PRs name main as base: eight peers, evaluation/site/video, one diagnostic and legacy #14.
@@ -1688,6 +1690,346 @@ internal/apps/homarr/target_traefik.go
 
 ```text
 internal/apps/homarr/links.go
+```
+
+</details>
+
+## Concurrent additions at final publication
+
+The initial 43-open-PR snapshot above remains immutable. Final readback adds **#356/#357/#358**, producing **46 open / 128 total PRs**. Read [LATEST-UPDATE.md](LATEST-UPDATE.md) for precedence over older source/runtime next actions. Original peer heads/bases remain unchanged. The current topology has 15 main-based PRs, 30 reference-based siblings and one evaluation child. [github/concurrent-additional-prs.json](github/concurrent-additional-prs.json) records complete new diffs and exact ancestry.
+
+### PR 356
+
+**[test(release): validate the current Homarr integration candidate](https://github.com/ajnart/selfhost-skills/pull/356)**
+
+- **State:** OPEN, draft. No merge approval inferred.
+- **Checkout:** `feat/current-release-completion` (`gh pr checkout 356` in a clean new clone). **Recorded head:** `f245f7872d891ef51d7990cbebe8a30692cdcd73`. Exact independently published candidate head.
+- **Base / stack:** `main` at `ab4c92c428a2c2c9ab284a83f79f726418c1498b`; actual merge base `ab4c92c428a2c2c9ab284a83f79f726418c1498b`, current captured base in ancestry: **yes**.
+- **Meaning:** Newer independently owned Homarr production-shaped candidate reconstructed from the preservation checkpoint; source repairs include semantic AdGuard/Paperless verifiers, observed pinned Slskd/Tracearr versions, referenced-App ownership preservation, bounded owned Stats and a confined helper.
+- **Source/evidence state:** Owner reports Linux/amd64 55-service smoke, 25 saved integrations and 24 reviewed widgets, scoped cleanup and source reviews. Not independently reproduced/audited here, not all-39 lifecycle acceptance, not a merged replacement for individual PRs.
+- **Remaining / next:** Coordinate with its owner. Review exact candidate source/evidence/authorization and decide combined-versus-original-individual production route with the maintainer before any merge or repeat runtime. Speedtest shared-host AppArmor choice, Manual/privacy prerequisites, complete peer lifecycle and distribution/evaluation remain held.
+- **Original-PR overlap:** imports/repairs many peer slices but does not rewrite their PR heads. New semantic verifiers are on this candidate, not original #311/#312. Prior individual-PR integration decision and this combined draft require an explicit maintainer reconciliation.
+- **Owner source record:** [pinned handoff](references/concurrent-release-handoff.pr-356.md); private runtime receipts intentionally not copied. Complete 152-file GitHub listing: [github/pr-356-files.complete.json](github/pr-356-files.complete.json).
+
+<details>
+<summary>Complete changed paths at the recorded head</summary>
+
+```text
+docs/release-handoff.md
+internal/apps/adguard/adguard.go
+internal/apps/adguard/adguard_test.go
+internal/apps/archiveteamwarrior/archiveteamwarrior.go
+internal/apps/archiveteamwarrior/archiveteamwarrior_test.go
+internal/apps/archiveteamwarrior/status.go
+internal/apps/aria2/aria2.go
+internal/apps/aria2/aria2_test.go
+internal/apps/audiobookshelf/audiobookshelf.go
+internal/apps/audiobookshelf/audiobookshelf_test.go
+internal/apps/audiobookshelf/homarr_credentials.go
+internal/apps/bazarr/api.go
+internal/apps/bazarr/bazarr.go
+internal/apps/bazarr/bazarr_test.go
+internal/apps/caddy/caddy.go
+internal/apps/caddy/caddy_test.go
+internal/apps/dashdot/dashdot.go
+internal/apps/dashdot/metrics.go
+internal/apps/deluge/deluge.go
+internal/apps/deluge/deluge_test.go
+internal/apps/emby/emby.go
+internal/apps/emby/emby_test.go
+internal/apps/emby/homarr.go
+internal/apps/frigate/frigate.go
+internal/apps/frigate/frigate_test.go
+internal/apps/gatus/gatus.go
+internal/apps/gatus/gatus_test.go
+internal/apps/glances/glances.go
+internal/apps/glances/homarr.go
+internal/apps/gluetun/gluetun.go
+internal/apps/gluetun/gluetun_test.go
+internal/apps/gotify/gotify.go
+internal/apps/gotify/gotify_test.go
+internal/apps/gotify/homarr.go
+internal/apps/homarr/homarr_test.go
+internal/apps/homarr/installed.go
+internal/apps/homarr/installed_test.go
+internal/apps/homarr/links.go
+internal/apps/homarr/shared_widgets.go
+internal/apps/homarr/target_adguard.go
+internal/apps/homarr/target_adguard_test.go
+internal/apps/homarr/target_archive_team_warrior.go
+internal/apps/homarr/target_aria2.go
+internal/apps/homarr/target_audiobookshelf.go
+internal/apps/homarr/target_bazarr.go
+internal/apps/homarr/target_caddy.go
+internal/apps/homarr/target_dashdot.go
+internal/apps/homarr/target_deluge.go
+internal/apps/homarr/target_emby.go
+internal/apps/homarr/target_frigate.go
+internal/apps/homarr/target_gatus.go
+internal/apps/homarr/target_glances.go
+internal/apps/homarr/target_gluetun.go
+internal/apps/homarr/target_gluetun_test.go
+internal/apps/homarr/target_gotify.go
+internal/apps/homarr/target_home_assistant.go
+internal/apps/homarr/target_lidarr.go
+internal/apps/homarr/target_linkwarden.go
+internal/apps/homarr/target_navidrome.go
+internal/apps/homarr/target_netdata.go
+internal/apps/homarr/target_nextcloud.go
+internal/apps/homarr/target_nzbget.go
+internal/apps/homarr/target_paperless.go
+internal/apps/homarr/target_paperless_test.go
+internal/apps/homarr/target_patchmon.go
+internal/apps/homarr/target_peanut.go
+internal/apps/homarr/target_pihole.go
+internal/apps/homarr/target_plex.go
+internal/apps/homarr/target_prometheus.go
+internal/apps/homarr/target_sabnzbd.go
+internal/apps/homarr/target_slskd.go
+internal/apps/homarr/target_speedtest_tracker.go
+internal/apps/homarr/target_tdarr.go
+internal/apps/homarr/target_technitium_dns.go
+internal/apps/homarr/target_tracearr.go
+internal/apps/homarr/target_traefik.go
+internal/apps/homarr/target_transmission.go
+internal/apps/homarr/target_umami.go
+internal/apps/homarr/target_uptime_kuma.go
+internal/apps/homarr/target_wud.go
+internal/apps/homarr/targets.go
+internal/apps/homeassistant/homarr.go
+internal/apps/homeassistant/homarr_auth.go
+internal/apps/homeassistant/homeassistant.go
+internal/apps/homeassistant/homeassistant_test.go
+internal/apps/lidarr/lidarr.go
+internal/apps/lidarr/lidarr_test.go
+internal/apps/linkwarden/homarr.go
+internal/apps/linkwarden/linkwarden.go
+internal/apps/linkwarden/linkwarden_test.go
+internal/apps/navidrome/homarr.go
+internal/apps/navidrome/navidrome.go
+internal/apps/navidrome/navidrome_test.go
+internal/apps/netdata/metrics.go
+internal/apps/netdata/netdata.go
+internal/apps/nextcloud/nextcloud.go
+internal/apps/nextcloud/nextcloud_test.go
+internal/apps/nzbget/homarr.go
+internal/apps/nzbget/nzbget.go
+internal/apps/nzbget/nzbget_test.go
+internal/apps/paperlessngx/paperlessngx.go
+internal/apps/paperlessngx/paperlessngx_test.go
+internal/apps/paperlessngx/token.go
+internal/apps/patchmon/homarr.go
+internal/apps/patchmon/patchmon.go
+internal/apps/peanut/peanut.go
+internal/apps/peanut/peanut_test.go
+internal/apps/pihole/homarr.go
+internal/apps/pihole/install_test.go
+internal/apps/pihole/pihole.go
+internal/apps/pihole/pihole_test.go
+internal/apps/plex/plex.go
+internal/apps/plex/plex_test.go
+internal/apps/prometheus/prometheus.go
+internal/apps/prometheus/prometheus_test.go
+internal/apps/prometheus/readiness.go
+internal/apps/sabnzbd/api.go
+internal/apps/sabnzbd/sabnzbd.go
+internal/apps/sabnzbd/sabnzbd_test.go
+internal/apps/slskd/homarr.go
+internal/apps/slskd/slskd.go
+internal/apps/slskd/slskd_test.go
+internal/apps/speedtesttracker/homarr.go
+internal/apps/speedtesttracker/readiness_test.go
+internal/apps/speedtesttracker/speedtesttracker.go
+internal/apps/speedtesttracker/speedtesttracker_test.go
+internal/apps/tdarr/homarr.go
+internal/apps/tdarr/tdarr.go
+internal/apps/tdarr/tdarr_test.go
+internal/apps/technitiumdns/technitiumdns.go
+internal/apps/technitiumdns/technitiumdns_test.go
+internal/apps/tracearr/homarr.go
+internal/apps/tracearr/homarr_test.go
+internal/apps/tracearr/tracearr.go
+internal/apps/transmission/transmission.go
+internal/apps/transmission/transmission_test.go
+internal/apps/umami/homarr.go
+internal/apps/umami/umami.go
+internal/apps/umami/umami_test.go
+internal/apps/uptimekuma/uptimekuma.go
+internal/apps/wud/discovery_test.go
+internal/apps/wud/preflight_test.go
+internal/apps/wud/wud.go
+internal/apps/wud/wud_test.go
+internal/catalog/generated_test.go
+internal/release/installsh_skill_test.go
+internal/skill/guide.md
+internal/tui/copy.go
+tools/release-proof/README.md
+tools/release-proof/fixture.go
+tools/release-proof/fixture_test.go
+tools/release-proof/main.go
+```
+
+</details>
+
+### PR 357
+
+**[fix(eval): invalidate derived results before judging](https://github.com/ajnart/selfhost-skills/pull/357)**
+
+- **State:** OPEN, draft. No merge approval inferred.
+- **Checkout:** `feat/skill-eval-invalidation` (`gh pr checkout 357` in a clean new clone). **Recorded head:** `ccd742dc2e01c0388873eaa570ef8ce7ee40a220`. Exact independently published candidate head.
+- **Base / stack:** `test/skill-eval-harness` at `3558e581856ae12bf803c6052384ee23ac2f93a2`; actual merge base `3558e581856ae12bf803c6052384ee23ac2f93a2`, current captured base in ancestry: **yes**.
+- **Meaning:** Remove stale benchmark.json/review.html before judging and on failure, preserving valid execution inputs/raw diagnostics. Exactly three files above #259.
+- **Source/evidence state:** Owner reports three focused existing fake-Claude CLI regressions and independent source passes. Parent #259 still lacks complete iteration-25 judgments/viewer/human acceptance.
+- **Remaining / next:** Reconcile parent 3558e581 and child ccd742dc; obtain exact source merge direction and preserve the real stack. Coordinate separately authorized judgment-only recovery. No model retry, conversation rerun or paid fallback from reading this source fix.
+- **Real dependency:** #259 → #357. Unlike the 30 Homarr siblings, this child actually contains the open parent head in ancestry. Review/merge order and parent update must preserve that boundary.
+
+<details>
+<summary>Complete changed paths at the recorded head</summary>
+
+```text
+evals/self-host/PROGRESS.md
+evals/self-host/judge.py
+evals/self-host/tests/test_grading.py
+```
+
+</details>
+
+### PR 358
+
+**[docs(handoff): preserve release backlog, PR topology and continuation prompt](https://github.com/ajnart/selfhost-skills/pull/358)**
+
+- **State:** OPEN, draft. No merge approval inferred.
+- **Checkout:** `docs/release-handoff` (`gh pr checkout 358` in a clean new clone). **Recorded head:** `cc6accce8c58dbdfb878aed6f278825777d6667a`. Exact initial publication head; later documentation receipt commits advance this branch without rewriting it.
+- **Base / stack:** `main` at `ab4c92c428a2c2c9ab284a83f79f726418c1498b`; actual merge base `ab4c92c428a2c2c9ab284a83f79f726418c1498b`, current captured base in ancestry: **yes**.
+- **Meaning:** This private documentation/evidence handoff with source checkpoints, every PR branch/state/stack, all 39 App records and the continuation prompt.
+- **Source/evidence state:** Static JSON/Markdown/hash/secret-home-email/patch reconstruction gates pass; no feature merge or runtime/model/installer/deployment/release operation by this session.
+- **Remaining / next:** Human review of handoff accuracy/private publication boundaries. Start another agent on docs/release-handoff; use LATEST-UPDATE and CONTINUE-PROMPT before historical plans. Do not merge archival candidate/notes branches into production.
+
+<details>
+<summary>Complete changed paths at the recorded head</summary>
+
+```text
+docs/handoffs/release-2026-10-13/.gitattributes
+docs/handoffs/release-2026-10-13/APP-QUEUE.md
+docs/handoffs/release-2026-10-13/CHECKPOINTS.md
+docs/handoffs/release-2026-10-13/CONTINUE-PROMPT.md
+docs/handoffs/release-2026-10-13/HANDOFF.md
+docs/handoffs/release-2026-10-13/PR-HISTORY.md
+docs/handoffs/release-2026-10-13/PR-STACKS.md
+docs/handoffs/release-2026-10-13/SHA256SUMS
+docs/handoffs/release-2026-10-13/START-HERE.md
+docs/handoffs/release-2026-10-13/TRACKER-INVENTORY.md
+docs/handoffs/release-2026-10-13/evidence/aggregate/artifact-hashes.reconciled.final.json
+docs/handoffs/release-2026-10-13/evidence/aggregate/browser-cleanup-readback.final.json
+docs/handoffs/release-2026-10-13/evidence/aggregate/captured-resources.json
+docs/handoffs/release-2026-10-13/evidence/aggregate/cleanup.final.json
+docs/handoffs/release-2026-10-13/evidence/aggregate/cleanup.json
+docs/handoffs/release-2026-10-13/evidence/aggregate/debug-homarr.redacted.log
+docs/handoffs/release-2026-10-13/evidence/aggregate/image-provenance.final.json
+docs/handoffs/release-2026-10-13/evidence/aggregate/install.redacted.log
+docs/handoffs/release-2026-10-13/evidence/aggregate/per-app-results.reconciled.final.json
+docs/handoffs/release-2026-10-13/evidence/aggregate/status.redacted.log
+docs/handoffs/release-2026-10-13/evidence/aggregate/summary.reconciled.final.json
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/hashes.json
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/result.json
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/synthetic-argv.after.json
+docs/handoffs/release-2026-10-13/evidence/prepared-followup/synthetic-argv.before.json
+docs/handoffs/release-2026-10-13/evidence/tested-source/checks.json
+docs/handoffs/release-2026-10-13/evidence/tested-source/gate.json
+docs/handoffs/release-2026-10-13/evidence/tested-source/inventory.json
+docs/handoffs/release-2026-10-13/evidence/tested-source/manifest.final.json
+docs/handoffs/release-2026-10-13/evidence/tested-source/plugin-probe.json
+docs/handoffs/release-2026-10-13/export-provenance.json
+docs/handoffs/release-2026-10-13/github/app-queue.json
+docs/handoffs/release-2026-10-13/github/checkpoint-commits.json
+docs/handoffs/release-2026-10-13/github/comments/pr-259.json
+docs/handoffs/release-2026-10-13/github/comments/pr-300.json
+docs/handoffs/release-2026-10-13/github/comments/pr-310.json
+docs/handoffs/release-2026-10-13/github/comments/pr-311.json
+docs/handoffs/release-2026-10-13/github/comments/pr-312.json
+docs/handoffs/release-2026-10-13/github/comments/pr-313.json
+docs/handoffs/release-2026-10-13/github/comments/pr-315.json
+docs/handoffs/release-2026-10-13/github/comments/pr-317.json
+docs/handoffs/release-2026-10-13/github/comments/pr-318.json
+docs/handoffs/release-2026-10-13/github/comments/pr-319.json
+docs/handoffs/release-2026-10-13/github/comments/pr-320.json
+docs/handoffs/release-2026-10-13/github/comments/pr-321.json
+docs/handoffs/release-2026-10-13/github/comments/pr-322.json
+docs/handoffs/release-2026-10-13/github/comments/pr-323.json
+docs/handoffs/release-2026-10-13/github/comments/pr-324.json
+docs/handoffs/release-2026-10-13/github/comments/pr-325.json
+docs/handoffs/release-2026-10-13/github/comments/pr-326.json
+docs/handoffs/release-2026-10-13/github/comments/pr-327.json
+docs/handoffs/release-2026-10-13/github/comments/pr-328.json
+docs/handoffs/release-2026-10-13/github/comments/pr-329.json
+docs/handoffs/release-2026-10-13/github/comments/pr-330.json
+docs/handoffs/release-2026-10-13/github/comments/pr-331.json
+docs/handoffs/release-2026-10-13/github/comments/pr-333.json
+docs/handoffs/release-2026-10-13/github/comments/pr-334.json
+docs/handoffs/release-2026-10-13/github/comments/pr-335.json
+docs/handoffs/release-2026-10-13/github/comments/pr-336.json
+docs/handoffs/release-2026-10-13/github/comments/pr-337.json
+docs/handoffs/release-2026-10-13/github/comments/pr-338.json
+docs/handoffs/release-2026-10-13/github/comments/pr-339.json
+docs/handoffs/release-2026-10-13/github/comments/pr-340.json
+docs/handoffs/release-2026-10-13/github/comments/pr-341.json
+docs/handoffs/release-2026-10-13/github/comments/pr-342.json
+docs/handoffs/release-2026-10-13/github/comments/pr-343.json
+docs/handoffs/release-2026-10-13/github/comments/pr-344.json
+docs/handoffs/release-2026-10-13/github/comments/pr-345.json
+docs/handoffs/release-2026-10-13/github/comments/pr-346.json
+docs/handoffs/release-2026-10-13/github/comments/pr-347.json
+docs/handoffs/release-2026-10-13/github/comments/pr-348.json
+docs/handoffs/release-2026-10-13/github/comments/pr-349.json
+docs/handoffs/release-2026-10-13/github/comments/pr-351.json
+docs/handoffs/release-2026-10-13/github/comments/pr-352.json
+docs/handoffs/release-2026-10-13/github/comments/pr-355.json
+docs/handoffs/release-2026-10-13/github/dependencies.json
+docs/handoffs/release-2026-10-13/github/evaluation-current.json
+docs/handoffs/release-2026-10-13/github/issues.json
+docs/handoffs/release-2026-10-13/github/pr-259-detail.json
+docs/handoffs/release-2026-10-13/github/pr-259-files.complete.json
+docs/handoffs/release-2026-10-13/github/pr-300-detail.json
+docs/handoffs/release-2026-10-13/github/pr-313-detail.json
+docs/handoffs/release-2026-10-13/github/pr-355-detail.json
+docs/handoffs/release-2026-10-13/github/pr-stack-audit.json
+docs/handoffs/release-2026-10-13/github/pull-requests.json
+docs/handoffs/release-2026-10-13/github/repository.json
+docs/handoffs/release-2026-10-13/machine-observation.json
+docs/handoffs/release-2026-10-13/references/aria2-final-source-review.md
+docs/handoffs/release-2026-10-13/references/audiobookshelf-final-source-review.md
+docs/handoffs/release-2026-10-13/references/bazarr-final-source-review.md
+docs/handoffs/release-2026-10-13/references/evaluation-progress.live-head.md
+docs/handoffs/release-2026-10-13/references/evaluation-readme.live-head.md
+docs/handoffs/release-2026-10-13/references/frigate-hint-final-source-review.md
+docs/handoffs/release-2026-10-13/references/gluetun-native-blocker.md
+docs/handoffs/release-2026-10-13/references/homarr-aggregate-inspection.md
+docs/handoffs/release-2026-10-13/references/homarr-aggregate-plan.md
+docs/handoffs/release-2026-10-13/references/nzbget-diagnostic-source-review.md
+docs/handoffs/release-2026-10-13/references/nzbget-native-logging-blocker.md
+docs/handoffs/release-2026-10-13/references/release-homarr.md
+docs/handoffs/release-2026-10-13/references/repository/AGENTS.md
+docs/handoffs/release-2026-10-13/references/repository/CONTEXT.md
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/domain.md
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/homarr-integrations.md
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/implementing.md
+docs/handoffs/release-2026-10-13/references/repository/docs/agents/issue-tracker.md
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-external-coverage-plan.md
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-immich-proof.md
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-integration-contract.md
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-integration-coverage-research.md
+docs/handoffs/release-2026-10-13/references/repository/docs/homarr-ticket-index.md
+docs/handoffs/release-2026-10-13/references/repository/docs/releasing.md
+docs/handoffs/release-2026-10-13/references/video-handoff.pinned.md
+docs/handoffs/release-2026-10-13/references/video-storyboard.pinned.md
+docs/handoffs/release-2026-10-13/snapshot.json
+docs/handoffs/release-2026-10-13/source/helper-public-username.prepared.patch
+docs/handoffs/release-2026-10-13/source/prepared-helper.go.reference
+docs/handoffs/release-2026-10-13/source/prepared-supervise.py.reference
+docs/handoffs/release-2026-10-13/source/runner-diagnostics.prepared.patch
+docs/handoffs/release-2026-10-13/source/synthetic-argv-probe.go.reference
+docs/handoffs/release-2026-10-13/source/tested-candidate.patch
+docs/handoffs/release-2026-10-13/validation.json
 ```
 
 </details>

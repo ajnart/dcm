@@ -7,5 +7,14 @@
   "user_approved_scope": "Current release only; legacy new-cli checkout excluded; original worktrees preserved",
   "checkpoints_pushed": 4,
   "pre_handoff_open_pr_count": 43,
-  "all_pr_history_count": 125
+  "all_pr_history_count": 125,
+  "final_publication_pr": 358,
+  "latest_open_pr_count": 46,
+  "latest_all_state_pr_count": 128,
+  "concurrent_new_prs": [
+    356,
+    357
+  ],
+  "latest_read_first": "LATEST-UPDATE.md",
+  "precedence": "Original source/evidence snapshot retained; later candidate/reporting requires owner reconciliation, not duplicated operations"
 }

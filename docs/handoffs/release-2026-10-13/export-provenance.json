@@ -369,5 +369,19 @@
     "original_sha256": "6d493a4f61ad76b940e9df5170df89db826a6169416a998e41ad50e56cef15d3",
     "export_sha256": "6d493a4f61ad76b940e9df5170df89db826a6169416a998e41ad50e56cef15d3",
     "byte_identical": true
+  },
+  {
+    "export": "references/concurrent-release-handoff.pr-356.md",
+    "origin": "git:f245f7872d891ef51d7990cbebe8a30692cdcd73:docs/release-handoff.md",
+    "original_sha256": "561655f391076196d817355f3acd135c5b73790b5a39a024ee4e4c6e48e76d8d",
+    "export_sha256": "561655f391076196d817355f3acd135c5b73790b5a39a024ee4e4c6e48e76d8d",
+    "byte_identical": true
+  },
+  {
+    "export": "references/evaluation-progress.pr-357.md",
+    "origin": "git:ccd742dc2e01c0388873eaa570ef8ce7ee40a220:evals/self-host/PROGRESS.md",
+    "original_sha256": "740fa74b87f4095cf991a6a2a112679635f6893710d443dbb3307b50bfe2ccb3",
+    "export_sha256": "740fa74b87f4095cf991a6a2a112679635f6893710d443dbb3307b50bfe2ccb3",
+    "byte_identical": true
   }
 ]

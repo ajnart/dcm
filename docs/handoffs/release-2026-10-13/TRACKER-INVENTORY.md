@@ -2,7 +2,9 @@
 
 Initial dependencies snapshot began 2026-10-13 05:13 UTC; PR/issue metadata refreshed at 05:38 UTC, ancestry audited at 05:41 UTC, and later evaluation reporting captured stopped head 3558e581. No model/runtime process was started or moved by this handoff. The new documentation PR is additional to these pre-existing counts. Refresh GitHub before applying or merging. Raw snapshots retain **125 PRs and 230 issues**, under a 500-row limit; open lists below are complete at capture. Native dependencies were read successfully for all **57 open issues**.
 
-## All 43 open PRs
+**Final readback:** concurrent #356/#357 and documentation #358 add three unchanged-history PRs. [LATEST-UPDATE.md](LATEST-UPDATE.md), [PR-STACKS.md](PR-STACKS.md#concurrent-additions-at-final-publication) and [PR-HISTORY.md](PR-HISTORY.md#concurrent-additions) complete the current 46-open / 128-total account; the original issue/PR snapshot below is retained.
+
+## All 43 original open PRs
 
 | PR | Title | Branch | Base | Head | Scope |
 | --- | --- | --- | --- | --- | --- |

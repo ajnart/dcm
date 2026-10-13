@@ -2,6 +2,8 @@
 
 **Checkout `docs/release-handoff`. Read `docs/handoffs/release-2026-10-13/CONTINUE-PROMPT.md` to start another agent.** This branch contains documentation and transported redacted evidence, not a combined production implementation. No feature PR was merged by this handoff.
 
+**Latest precedence:** [LATEST-UPDATE.md](LATEST-UPDATE.md) records concurrent #356 candidate/runtime reporting and #357's real stack above #259. Final readback is **46 open / 128 total PRs**, including documentation #358. Read it before acting on the older App/source resume plan.
+
 ## Get the exact starting checkout
 
 On a new machine with your own authenticated GitHub access:
@@ -24,6 +26,8 @@ Read repository `AGENTS.md`, `CONTEXT.md` and `docs/agents/domain.md`. Worktrees
 
 ## Read in this order
 
+First read [LATEST-UPDATE.md](LATEST-UPDATE.md); then use the table for the preserved original snapshot and continuation prompt.
+
 | File                                         | What it answers                                                                   |
 | -------------------------------------------- | --------------------------------------------------------------------------------- |
 | [CONTINUE-PROMPT.md](CONTINUE-PROMPT.md)     | Copyable prompt and the first source-only deliverable                             |
@@ -38,9 +42,9 @@ Read repository `AGENTS.md`, `CONTEXT.md` and `docs/agents/domain.md`. Worktrees
 
 - **39 source slices exist, not 39 accepted native integrations.** Immich is the one accepted bounded empty-library reference. The other 38 peers remain draft; four are individually registered with source passes, not final native/rendered/lifecycle acceptance.
 - **The PRs are mostly siblings, not a long merge chain.** Thirty still name the already-merged Immich branch as base; thirteen existing PRs target main. None of the 43 pre-existing open heads contains another open head. Current reference/main tips differ from most recorded GitHub base OIDs, so retargeting alone is not source reconciliation.
-- **The aggregate attempt is over and cleaned up.** Five incomplete own Setups remain unexplained; the browser never reached rendering. Held/manual prerequisites remain honest holds. Another attempt needs a new plan and approval.
+- **The historical aggregate is over and cleaned up.** Its five failures and missing rendering remain historical facts. #356 independently reports a later cleaned-up Linux run with reviewed widgets and candidate fixes; reconcile that owner/evidence before duplicating anything. Another attempt needs a new plan and approval.
 - **Evaluation #259 completed 54 conversations, then judging stopped on quota.** There is no iteration-25 score or viewer. Coordinate judgment-only recovery with the owner under separate authorization; do not start another conversation batch.
 - **Four checkpoint branches are pushed.** Original worktrees/indexes, existing feature PRs and retained data are preserved. The unrelated legacy `new-cli/` checkout was explicitly excluded. Secrets, binaries, raw model attempts and runtime data are excluded.
 - **Distribution and publication are still held.** The repository remains private; anonymous binary install/update, rename/defaults, final packaging and video publication are not accepted.
 
-Snapshot: 13 October 2026, 43 pre-existing open PRs, 125 pre-existing PRs total and 57 open issues. Opening this documentation PR adds one more PR; its own receipt is tracked separately in `github/handoff-publication.json` once recorded. Refresh live state before repairs or merges. This private handoff must be reviewed for publication separately from the product's repository-visibility decision.
+Original snapshot: 13 October 2026, 43 pre-existing open PRs, 125 pre-existing PRs total and 57 open issues. Final readback adds #356/#357 and documentation #358: 46 open / 128 total PRs, recorded separately to preserve historical evidence. Refresh live state before repairs/merges. This private handoff needs its own publication review, separately from product visibility.

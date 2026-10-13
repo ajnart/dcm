@@ -131,3 +131,13 @@ Merged means GitHub recorded a merge, not that every broader acceptance ticket c
 | [#352](https://github.com/ajnart/selfhost-skills/pull/352) — feat(homarr): add protected Traefik native Link descriptor | OPEN / draft | `feat/homarr-traefik-sol` | feat/homarr-immich-sol; #309 merged | `3ecd50a434613b649e072cd33917d22e4d780e93` | [Remaining gates](PR-STACKS.md#pr-352); do not infer merge approval |
 | [#353](https://github.com/ajnart/selfhost-skills/pull/353) — docs(homarr): reconcile coverage research and ticket status | MERGED | `docs/homarr-coverage-status` | main | `c40ab5bc82b90c061f0d721eddc211942d30a75d` | Merged 2026-10-12T05:20:56Z; `ab4c92c428a2c2c9ab284a83f79f726418c1498b`; do not redo |
 | [#355](https://github.com/ajnart/selfhost-skills/pull/355) — fix(homarr): preserve Frigate TLS recovery hint | OPEN / draft | `fix/homarr-frigate-recovery-hint` | main | `aaa37b83e99d116936a4353fedf0a8a61068205d` | [Remaining gates](PR-STACKS.md#pr-355); do not infer merge approval |
+
+## Concurrent additions
+
+Final readback adds these three PRs to the preserved 125-row snapshot: **128 PRs total / 46 open**. Exact additional metadata and complete diff lists are in `github/concurrent-additional-prs.json`; all original heads/bases/states stayed unchanged.
+
+| PR / meaning | State | Original branch | Base / actual relationship | Recorded head | Remaining action |
+| --- | --- | --- | --- | --- | --- |
+| [#356](https://github.com/ajnart/selfhost-skills/pull/356) — test(release): validate the current Homarr integration candidate | OPEN / draft | `feat/current-release-completion` | main, independent lane | `f245f7872d891ef51d7990cbebe8a30692cdcd73` | [Dossier](PR-STACKS.md#pr-356); #358 recorded head is initial publication, not self-referential final receipt head |
+| [#357](https://github.com/ajnart/selfhost-skills/pull/357) — fix(eval): invalidate derived results before judging | OPEN / draft | `feat/skill-eval-invalidation` | test/skill-eval-harness; actual child of OPEN #259 | `ccd742dc2e01c0388873eaa570ef8ce7ee40a220` | [Dossier](PR-STACKS.md#pr-357); #358 recorded head is initial publication, not self-referential final receipt head |
+| [#358](https://github.com/ajnart/selfhost-skills/pull/358) — docs(handoff): preserve release backlog, PR topology and continuation prompt | OPEN / draft | `docs/release-handoff` | main, independent lane | `cc6accce8c58dbdfb878aed6f278825777d6667a` | [Dossier](PR-STACKS.md#pr-358); #358 recorded head is initial publication, not self-referential final receipt head |

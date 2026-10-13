@@ -1,5 +1,7 @@
 # What was committed and pushed
 
+[LATEST-UPDATE.md](LATEST-UPDATE.md) also records independently published #356/#357 discovered at final readback. They are not additional commits or runtime operations made by this handoff session. Documentation #358 preserves both historical and later source/reporting contexts without changing those other branches.
+
 The user approved **current-release work only** and a dedicated documentation PR. No feature PR was merged, retargeted or rewritten. Four preservation commits were made with isolated Git indexes and verified on the remote; original HEADs, indexes and dirty files were left in place. Thus an original worktree may intentionally still show dirty paths whose exact bytes are safely checkpointed.
 
 ## Four archival branches
