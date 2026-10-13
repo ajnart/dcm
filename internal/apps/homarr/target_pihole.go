@@ -25,6 +25,7 @@ func piholeTarget() target {
 			return err
 		},
 		verify: verifyPihole,
+		stats:  verifyPiholeStats,
 	}
 }
 
@@ -53,37 +54,7 @@ func verifyPihole(ctx context.Context, from, to *helpers.H, integrationID string
 	if err := pihole.VerifyHomarr(ctx, to); err != nil {
 		return err
 	}
-	value, err := apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return err
-	}
-	catalog, _ := value.(map[string]any)
-	metrics, _ := catalog["metrics"].([]any)
-	for key, unit := range map[string]string{"dnsQueriesToday": "count", "adsBlockedToday": "count", "adsBlockedTodayPercentage": "percent", "domainsBeingBlocked": "count"} {
-		found := false
-		for _, raw := range metrics {
-			metric, _ := raw.(map[string]any)
-			if stringField(metric, "key") == key && stringField(metric, "unit") == unit {
-				found = true
-			}
-		}
-		if !found {
-			return errors.New("Homarr does not expose the supported Pi-hole Stats keys and units; use Homarr 2.4.1, then retry Setup")
-		}
-	}
-	started := from.Now().UnixMilli()
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, _ := value.(map[string]any)
-	failed, hasError := snapshot["error"].(bool)
-	stale, hasStale := snapshot["stale"].(bool)
-	updated, hasUpdated := snapshot["updatedAt"].(float64)
-	if !hasError || failed || !hasStale || stale || !hasUpdated || updated < float64(started) || !piholeStatistics(snapshot["values"]) {
-		return errors.New("Homarr did not return fresh authenticated Pi-hole Stats; explicit zero counts are valid, missing or failed results are not. Retry self-host setup pihole, then self-host setup homarr")
-	}
-	value, err = apiKeyProcedure(ctx, from, "widget.dnsHole.summary", map[string]any{"integrationIds": []string{integrationID}})
+	value, err := apiKeyProcedure(ctx, from, "widget.dnsHole.summary", map[string]any{"integrationIds": []string{integrationID}})
 	if err != nil {
 		return err
 	}
@@ -95,6 +66,18 @@ func verifyPihole(ctx context.Context, from, to *helpers.H, integrationID string
 	summary, _ := result["summary"].(map[string]any)
 	if stringField(result, "integrationId") != integrationID || result["error"] != nil || !piholeStatistics(summary) || stringField(summary, "status") != "enabled" && stringField(summary, "status") != "disabled" {
 		return errors.New("Homarr returned incomplete or failed Pi-hole DNS Hole data; retry self-host setup pihole, then self-host setup homarr")
+	}
+	return nil
+}
+
+func verifyPiholeStats(sample statsSample) error {
+	for key, unit := range map[string]string{"dnsQueriesToday": "count", "adsBlockedToday": "count", "adsBlockedTodayPercentage": "percent", "domainsBeingBlocked": "count"} {
+		if sample.units[key] != unit {
+			return errors.New("Homarr does not expose the supported Pi-hole Stats keys and units; use Homarr 2.4.1, then retry Setup")
+		}
+	}
+	if sample.updatedAt < sample.startedAt || !piholeStatistics(sample.values) {
+		return errors.New("Homarr did not return fresh authenticated Pi-hole Stats; explicit zero counts are valid, missing or failed results are not. Retry self-host setup pihole, then self-host setup homarr")
 	}
 	return nil
 }

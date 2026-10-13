@@ -58,21 +58,29 @@ Its preflight is read-only and runs before Homarr mutations. Defaults are
 | `adsBlockedTodayPercentage` | percent (0–100) |
 | `domainsBeingBlocked`       | count           |
 
-Native verification checks the Stats catalog's exact keys and units, forces
-`widget.stats.refresh`, requires a successful non-stale snapshot timestamped
-at or after this attempt, and validates `widget.dnsHole.summary` for the owned
-integration. Explicit zeros and enabled/disabled blocking are valid;
+Native verification retains the scoped application-session probe and validates
+`widget.dnsHole.summary` for the owned integration. The shared Stats SDK reads
+the catalog and prior snapshot, then forces exactly one `widget.stats.refresh`
+per verification invocation. `verifyPiholeStats` checks that same sample's exact
+units, integral counts, percentage range and blocked/query relationship, and
+retains the timestamp requirement at or after this attempt. The central guard
+rejects failed, stale or non-advancing refreshes. Native and refreshed Stats
+values may change between requests and are not compared for equality. Explicit zeros and enabled/disabled blocking are valid;
 missing/null fields, negative counts, body errors, rejected sessions and
 unavailable data are not empty datasets. Shared Stats ownership and removal
 follow the [reference contract](../../homarr-integration-contract.md).
 
 ### Verification boundary
 
-Existing Pi-hole Setup/install fixtures now model generation, activation,
-application-session metadata, permissions and authenticated zero statistics;
-the existing rerun test asserts a single generation and activation. No new
-test cases, test files, dependencies or shared registry edits were added.
-Focused tests and the full local Go build/vet/test/race gate pass.
+Existing Pi-hole Setup/install fixtures model generation, activation,
+application-session metadata, permissions and authenticated zero statistics.
+Descriptor HTTP fixtures use the shared `statsFixture` through `verifyData`:
+explicit zeros and independently changing native/Stats values pass; negative
+or fractional counts, invalid percentages, inconsistent blocked counts, wrong
+units, missing/null fields, a timestamp predating the attempt and no-op refresh
+fail. Scope and missing native-data failures stop before Stats acquisition.
+Only focused App/Homarr tests and package build/vet/format/diff checks were run
+for this SDK migration; the shared registry and common implementation are unchanged.
 
 This is **source and fixture evidence, not live functional acceptance**.
 The registry owner must add `piholeTarget()` to `targets()`. No provider DNS
@@ -96,3 +104,8 @@ Sources:
 - [Homarr DNS Hole queries](https://github.com/homarr-labs/homarr/blob/v2.4.1/packages/api/src/router/widgets/dns-hole.ts)
 - [Homarr Stats metric keys and units](https://github.com/homarr-labs/homarr/blob/v2.4.1/packages/integrations/src/stats/existing.ts)
 - [Homarr native Stats refresh](https://github.com/homarr-labs/homarr/blob/v2.4.1/packages/request-handler/src/stats.ts)
+
+SDK migration source checked read-only at the resolved OCI revision
+`3d4150e59f600876b7e308f857b2f21572b75348`:
+[Stats mapping](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/stats/existing.ts),
+[Pi-hole v6 adapter](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/pi-hole/v6/pi-hole-integration-v6.ts).
