@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/netip"
 	"strconv"
-	"time"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -99,7 +99,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		},
 		Do: func(context.Context) error {
 			if h.Inputs["openvpn-user"] == "" || h.Inputs["openvpn-password"] == "" {
-				return errors.New("no provider OpenVPN credentials were provided")
+				return helpers.ErrManual
 			}
 			if err := h.SetSecret(h.Key("openvpn_user"), h.Inputs["openvpn-user"]); err != nil {
 				return err
@@ -112,51 +112,105 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	return h.Step(ctx, "control", "the VPN is running behind the authenticated control API", helpers.StepSpec{
+	if err := h.Step(ctx, "control", "verify the saved read-only control API key", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			_, err := controlStatus(ctx, h)
+			return err == nil, err
+		},
+		Do: func(ctx context.Context) error {
+			_, err := controlStatus(ctx, h)
+			return err
+		},
+		Hint: "Restore the Project's saved control key if missing. An outdated control-auth.toml needs an approved repeat of " +
+			"self-host install gluetun, then self-host start gluetun and self-host setup gluetun. Do not enable anonymous access or VPN control writes.",
+		Credential: h.Key("control_api_key"),
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "vpn", "verify the VPN is running and reports its public IP", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return controlRunning(ctx, h) },
 		Do: func(ctx context.Context) error {
-			return h.Poll(ctx, 2*time.Minute, func(ctx context.Context) (bool, error) { return controlRunning(ctx, h) })
+			running, err := controlRunning(ctx, h)
+			if err != nil || running {
+				return err
+			}
+			return helpers.ErrManual
 		},
-		Hint: "Gluetun is not running yet; confirm the provider, country and OpenVPN credentials, recreate the container " +
-			"(self-host start gluetun) and read its logs with: self-host logs gluetun",
-		Credential: h.Key("control_api_key"),
+		Hint: "The control API answered, but the VPN is not ready. Confirm your provider account, country and privately supplied OpenVPN credentials, " +
+			"then self-host start gluetun and self-host setup gluetun. Do not disable the firewall or reroute traffic to finish Setup.",
 	})
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	anon, err := h.HTTP(ctx, helpers.Request{Path: "/v1/vpn/status"})
-	if err != nil {
+	if ok, err := controlRunning(ctx, h); err != nil {
 		return err
-	}
-	if anon.Status != http.StatusUnauthorized {
-		return fmt.Errorf("Gluetun control access is not authenticated (HTTP %d); the read-only control role is not applied", anon.Status)
-	}
-	if ok, err := controlRunning(ctx, h); !ok {
-		return fmt.Errorf("the Gluetun control API does not report a running VPN: %v", err)
+	} else if !ok {
+		return errors.New("Gluetun has not reported both a running VPN and a public IP; finish the provider Manual step and retry self-host setup gluetun")
 	}
 	return nil
 }
 
 func (App) Links() []app.Link { return nil }
 
-// controlRunning authenticates with the saved read-only key and reads status.
-func controlRunning(ctx context.Context, h *helpers.H) (bool, error) {
+func controlStatus(ctx context.Context, h *helpers.H) (string, error) {
 	key := h.Secret(h.Key("control_api_key"))
 	if key == "" {
-		return false, errors.New("the Gluetun control API key is missing from secrets.env")
+		return "", errors.New("the Gluetun control API key is missing; restore it through the Project's secret boundary and retry self-host setup gluetun")
 	}
-	resp, err := h.HTTP(ctx, helpers.Request{Path: "/v1/vpn/status", Header: map[string]string{"X-API-Key": key}})
+	anon, err := h.HTTP(ctx, helpers.Request{Path: "/v1/vpn/status", NoRedirect: true})
 	if err != nil {
-		return false, err
+		return "", fmt.Errorf("cannot reach the Gluetun control API; retry self-host setup gluetun: %w", err)
+	}
+	if anon.Status != http.StatusUnauthorized {
+		return "", fmt.Errorf("Gluetun must reject anonymous control access (HTTP %d); restore its read-only role and retry self-host setup gluetun", anon.Status)
+	}
+	resp, err := h.HTTP(ctx, helpers.Request{Path: "/v1/vpn/status", NoRedirect: true, Header: map[string]string{"X-API-Key": key}})
+	if err != nil {
+		return "", fmt.Errorf("cannot read Gluetun VPN status: %w", err)
 	}
 	if resp.Status != http.StatusOK {
-		return false, nil
+		return "", fmt.Errorf("Gluetun rejected the saved control request (HTTP %d); repair its read-only key and retry self-host setup gluetun", resp.Status)
 	}
 	var body struct {
 		Status string `json:"status"`
 	}
 	if err := resp.Decode(&body); err != nil {
+		return "", errors.New("Gluetun returned invalid VPN status data")
+	}
+	switch body.Status {
+	case "running", "stopped", "starting", "stopping", "crashed":
+		return body.Status, nil
+	default:
+		return "", errors.New("Gluetun returned missing or unsupported VPN status data")
+	}
+}
+
+func controlRunning(ctx context.Context, h *helpers.H) (bool, error) {
+	status, err := controlStatus(ctx, h)
+	if err != nil || status != "running" {
 		return false, err
 	}
-	return body.Status == "running", nil
+	resp, err := h.HTTP(ctx, helpers.Request{
+		Path: "/v1/publicip/ip", NoRedirect: true,
+		Header: map[string]string{"X-API-Key": h.Secret(h.Key("control_api_key"))},
+	})
+	if err != nil {
+		return false, fmt.Errorf("cannot read Gluetun public IP: %w", err)
+	}
+	if resp.Status != http.StatusOK {
+		return false, fmt.Errorf("Gluetun public IP request returned HTTP %d; repair its read-only control key and retry self-host setup gluetun", resp.Status)
+	}
+	var body struct {
+		IP *string `json:"public_ip"`
+	}
+	if resp.Decode(&body) != nil || body.IP == nil {
+		return false, errors.New("Gluetun returned incomplete public IP data")
+	}
+	if *body.IP == "" {
+		return false, nil
+	}
+	if ip, err := netip.ParseAddr(*body.IP); err != nil || !ip.IsGlobalUnicast() || ip.IsPrivate() {
+		return false, errors.New("Gluetun did not return a valid public IP address")
+	}
+	return true, nil
 }

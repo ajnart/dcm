@@ -1,0 +1,10 @@
+{
+  "id": "speedtest-tracker",
+  "name": "Speedtest Tracker",
+  "description": "Check your internet speed on a schedule and keep the history",
+  "category": "Monitoring",
+  "image": "lscr.io/linuxserver/speedtest-tracker:v1.14.7-ls165",
+  "docs": "https://docs.speedtest-tracker.dev/getting-started/installation/using-docker-compose",
+  "port": 8080,
+  "inputs": []
+}

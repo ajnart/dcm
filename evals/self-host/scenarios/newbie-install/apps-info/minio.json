@@ -1,0 +1,17 @@
+{
+  "id": "minio",
+  "name": "MinIO AIStor",
+  "description": "Store files for your apps and backups, like your own private cloud drive",
+  "category": "Storage",
+  "image": "quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z.hotfix.4ef74f03d6f2",
+  "docs": "https://docs.min.io/aistor/installation/container/install/",
+  "port": 9000,
+  "inputs": [
+    {
+      "key": "MINIO_LICENSE_FILE",
+      "prompt": "Path to the AIStor license file you obtained from MinIO",
+      "help": "Download the license from MinIO and pass its absolute path. See https://docs.min.io/aistor/installation/container/install/",
+      "required": true
+    }
+  ]
+}

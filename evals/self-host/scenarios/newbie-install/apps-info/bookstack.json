@@ -1,0 +1,10 @@
+{
+  "id": "bookstack",
+  "name": "BookStack",
+  "description": "Keep notes and how-to guides organized in books, chapters and pages",
+  "category": "Productivity",
+  "image": "lscr.io/linuxserver/bookstack:v26.05.3-ls277",
+  "docs": "https://www.bookstackapp.com/docs/admin/installation/",
+  "port": 8080,
+  "inputs": []
+}
