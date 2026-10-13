@@ -109,54 +109,28 @@ func TestTransmissionVerificationUsesDownloadsAndOneStatsSample(t *testing.T) {
 				json.NewEncoder(w).Encode(map[string]any{"result": "success", "arguments": arguments})
 			}))
 			t.Cleanup(peer.Close)
-			downloads, catalogs, refreshes := 0, 0, 0
+			downloads := 0
+			fixture := newStatsFixture()
+			fixture.values = stats
+			fixture.advance = !scenario.noAdvance
+			fixture.metrics = []any{}
+			for key, unit := range units {
+				fixture.metrics = append(fixture.metrics, map[string]any{"key": key, "unit": unit})
+			}
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/api/trpc/widget.downloads.getJobsAndStatuses" {
+					fixture.ServeHTTP(w, r)
+					return
+				}
 				if r.Header.Get("ApiKey") != "fixture-key" {
 					t.Error("missing Homarr API credential")
 				}
-				var value any
-				switch r.URL.Path {
-				case "/api/trpc/widget.downloads.getJobsAndStatuses":
-					downloads++
-					id := "transmission-owned"
-					if scenario.wrongIdentity {
-						id = "other"
-					}
-					value = []any{map[string]any{"integrationId": id, "integration": map[string]any{"id": id, "kind": "transmission"}, "data": map[string]any{"status": map[string]any{"rates": map[string]any{"down": 0, "up": 0}, "paused": false, "types": []string{"torrent"}}, "items": items}}}
-				case "/api/trpc/widget.stats.catalog":
-					catalogs++
-					metrics := []any{}
-					for key, unit := range units {
-						metrics = append(metrics, map[string]any{"key": key, "unit": unit})
-					}
-					value = map[string]any{"metrics": metrics}
-				case "/api/trpc/widget.stats.snapshot":
-					value = map[string]any{"updatedAt": 1000}
-				case "/api/trpc/widget.stats.refresh":
-					refreshes++
-					var input struct {
-						JSON struct {
-							IntegrationID string `json:"integrationId"`
-							Force         bool   `json:"force"`
-						} `json:"json"`
-					}
-					if json.NewDecoder(r.Body).Decode(&input) != nil || !input.JSON.Force || input.JSON.IntegrationID != "transmission-owned" {
-						t.Error("refresh lost its force flag or owned identity")
-					}
-					updated := 2000
-					if scenario.noAdvance {
-						updated = 1000
-					}
-					values := stats
-					if refreshes > 1 {
-						values = map[string]any{"download": 0, "upload": 0, "paused": false}
-					}
-					value = map[string]any{"updatedAt": updated, "error": false, "stale": false, "values": values}
-				default:
-					t.Errorf("unexpected Homarr request %s", r.URL.Path)
-					w.WriteHeader(http.StatusNotFound)
-					return
+				downloads++
+				id := "transmission-owned"
+				if scenario.wrongIdentity {
+					id = "other"
 				}
+				value := []any{map[string]any{"integrationId": id, "integration": map[string]any{"id": id, "kind": "transmission"}, "data": map[string]any{"status": map[string]any{"rates": map[string]any{"down": 0, "up": 0}, "paused": false, "types": []string{"torrent"}}, "items": items}}}
 				json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"data": map[string]any{"json": value}}})
 			}))
 			t.Cleanup(server.Close)
@@ -170,8 +144,11 @@ func TestTransmissionVerificationUsesDownloadsAndOneStatsSample(t *testing.T) {
 			if scenario.beforeStats {
 				wantStats = 0
 			}
-			if catalogs != wantStats || refreshes != wantStats {
-				t.Fatalf("catalogs=%d refreshes=%d, want %d of each", catalogs, refreshes, wantStats)
+			if fixture.catalogs != wantStats || fixture.refreshes != wantStats {
+				t.Fatalf("catalogs=%d refreshes=%d, want %d of each", fixture.catalogs, fixture.refreshes, wantStats)
+			}
+			if wantStats > 0 && (!fixture.force || fixture.integrationID != "transmission-owned") {
+				t.Fatal("refresh lost its force flag or owned identity")
 			}
 			wantDownloads := 1
 			if scenario.rejected {
