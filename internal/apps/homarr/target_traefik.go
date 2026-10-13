@@ -28,6 +28,7 @@ func traefikTarget() target {
 			return err
 		},
 		verify: verifyTraefik,
+		stats:  verifyTraefikStats,
 	}
 }
 
@@ -133,7 +134,7 @@ func traefikRequestError(ctx context.Context) error {
 }
 
 func verifyTraefik(ctx context.Context, from, to *helpers.H, integrationID string) error {
-	metrics, err := readTraefikAPI(ctx, from, to)
+	_, err := readTraefikAPI(ctx, from, to)
 	if err != nil {
 		return err
 	}
@@ -194,28 +195,13 @@ func verifyTraefik(ctx context.Context, from, to *helpers.H, integrationID strin
 			return errors.New("Homarr returned malformed Traefik resource details")
 		}
 	}
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return errors.New("Homarr could not refresh Traefik statistics; retry self-host setup homarr")
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return Traefik statistics")
-	}
-	failedRefresh, hasError := snapshot["error"].(bool)
-	stale, hasStale := snapshot["stale"].(bool)
-	updated, hasUpdated := snapshot["updatedAt"].(float64)
-	if !hasError || failedRefresh || !hasStale || stale || !hasUpdated || updated <= 0 || math.IsNaN(updated) || math.IsInf(updated, 0) {
-		return errors.New("Homarr Traefik statistics are unavailable or stale; retry self-host setup homarr")
-	}
-	values, ok := snapshot["values"].(map[string]any)
-	if !ok {
-		return errors.New("Homarr did not return Traefik statistic values")
-	}
+	return nil
+}
+
+func verifyTraefikStats(sample statsSample) error {
 	for _, key := range []string{"routers", "services", "middlewares"} {
-		count, ok := traefikCount(values[key])
-		if !ok || count != metrics[key] {
-			return errors.New("Homarr Traefik counts are incomplete or changed during verification; retry self-host setup homarr after the protected API is ready")
+		if _, ok := traefikCount(sample.values[key]); !ok || sample.units[key] != "count" {
+			return errors.New("Homarr Traefik counts are incomplete; retry self-host setup homarr after the protected API is ready")
 		}
 	}
 	return nil
