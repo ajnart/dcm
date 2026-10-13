@@ -1,0 +1,25 @@
+docs/releasing.md
+  s_378d5db6c5f6de::t_66220af4fe7d22 113
+scripts/build-installer-site.sh
+  s_378d5db6c5f6de::t_c702d8ffc1f66c 27
+site/index.html
+  s_378d5db6c5f6de::t_7644b0973aa6db 8-15,87-88,114,126
+site/play.js
+  s_378d5db6c5f6de::t_f9bcfd653e8fb9 51,95,103,106,150,300,349,674,746,751-752,962,966-1000,1026,1039-1040,1042-1044,1047,1063-1067,1196-1202,1235-1275,1315-1316
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b8fdfdaf509ab6800f21104016597d67dc9b674b",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
