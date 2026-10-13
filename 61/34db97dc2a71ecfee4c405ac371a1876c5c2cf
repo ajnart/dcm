@@ -1,0 +1,31 @@
+scripts/build-installer-site.sh
+  s_378d5db6c5f6de::t_7da8402c4b9018 27
+site/_headers
+  s_378d5db6c5f6de::t_b79df939cf278e 4
+site/index.html
+  s_378d5db6c5f6de::t_b7f6117699ae70 6-11,14-25,27-154,157-161
+site/logo.svg
+  s_378d5db6c5f6de::t_789f481e9d4439 1-128
+site/play.js
+  s_378d5db6c5f6de::t_eac7f423abfd5c 1-938
+site/site.css
+  s_378d5db6c5f6de::t_28fbb47b51cc0c 2-21,26,28-36,39-43,45,47-73,75-113,118-137,140-164,166,168,170-236,238,240-241,243-246,248-251,253-319,321-348,350-351,353,355-490,492-494,496-499,501-507,509-512,514-558,560-564,566-588,592-754,756-783
+tools/sitecatalog/main.go
+  s_378d5db6c5f6de::t_3d2d21dc86348d 1-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6134db97dc2a71ecfee4c405ac371a1876c5c2cf",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
