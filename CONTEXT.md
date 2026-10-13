@@ -163,7 +163,9 @@ a browser (agent-browser, when installed).
 What `self-host host report` prints about this machine without changing it:
 OS and architecture, Docker and socket reachability, IPv6, and bind results
 for ports 80 and 443. Its port probes are the same checks used before an App
-or Easy names claims a port.
+or Easy names claims a port. `--extra` opts into slower resource,
+connectivity, filesystem and temporary Docker resource checks; the temporary
+network and volume have unique names and are removed before the report ends.
 
 **Telemetry**:
 Anonymous usage and error data sent to the project's PostHog (through
