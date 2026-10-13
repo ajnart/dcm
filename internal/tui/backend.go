@@ -119,6 +119,12 @@ type Backend interface {
 	// TelemetryNotice is the one line that announces Telemetry the first
 	// time, and "" once it has been shown or while Telemetry is off.
 	TelemetryNotice() string
+	// PendingTelemetryNotice is the line TelemetryNotice would return now,
+	// without recording that it was shown.
+	PendingTelemetryNotice() string
+	// ReportOnboarding sends the one Telemetry event of an approved Review.
+	// It does nothing while Telemetry is off.
+	ReportOnboarding(o telemetry.Onboarding)
 	// ListFolders returns the names of the folders inside dir.
 	ListFolders(dir string) ([]string, error)
 	// UserHome is the person's own home directory, such as /home/alice.
@@ -140,6 +146,17 @@ func (b ServiceBackend) TelemetryNotice() string {
 		return telemetry.NoticeShort
 	}
 	return ""
+}
+
+func (b ServiceBackend) PendingTelemetryNotice() string {
+	if b.quiet().Telemetry().NoticeDue() {
+		return telemetry.NoticeShort
+	}
+	return ""
+}
+
+func (b ServiceBackend) ReportOnboarding(o telemetry.Onboarding) {
+	b.quiet().Telemetry().SendOnboarding(o)
 }
 
 func (b ServiceBackend) quiet() *service.Service {

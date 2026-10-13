@@ -26,7 +26,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "homarr", Name: "Homarr", Category: "Dashboard",
 		Description:   "Put all your apps on one home page, each a click away",
-		Image:         "ghcr.io/homarr-labs/homarr:v2.4.1",
+		Image:         "ghcr.io/homarr-labs/homarr:latest",
 		Docs:          "https://homarr.dev/docs/getting-started/",
 		Port:          7575,
 		ContainerPort: 7575,
@@ -46,7 +46,7 @@ func (App) Secrets() []app.SecretSpec {
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   homarr:
-    image: ghcr.io/homarr-labs/homarr:v2.4.1
+    image: ghcr.io/homarr-labs/homarr:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}
