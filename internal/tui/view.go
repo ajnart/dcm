@@ -12,6 +12,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 
 	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/events"
@@ -565,6 +566,23 @@ func barKey(t theme, k, desc string) string {
 // View composes the header, the active tab, the status line and the bar,
 // then the Help overlay when it is open.
 func (m Model) View() tea.View {
+	v := m.view()
+	if m.opts.NoColor {
+		v.SetContent(withoutColour(v.Content))
+	}
+	return v
+}
+
+// withoutColour drops every colour from s, keeping bold, faint and the other
+// text attributes, as NO_COLOR asks.
+func withoutColour(s string) string {
+	var out strings.Builder
+	w := &colorprofile.Writer{Forward: &out, Profile: colorprofile.ASCII}
+	w.WriteString(s)
+	return out.String()
+}
+
+func (m Model) view() tea.View {
 	var v tea.View
 	v.AltScreen = true
 	v.MouseMode = tea.MouseModeCellMotion
