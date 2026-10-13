@@ -97,6 +97,16 @@ without a new catalog request; nil `verify` still skips data verification.
 Migrate each peer by retaining its native checks and moving its Stats checks
 into `stats`. Preflight/Manual ordering and removal without Stats requests stay
 unchanged.
+Downloads peers may use `readDownloadsQueue(ctx, from, integrationID, kind)`.
+This package-private module owns the existing authenticated read with a requested
+limit of 50, exactly one result, its nil error field, matching outer/nested
+integration IDs and kind, object data/status and an explicit items array. An
+empty array is valid. It returns unchanged integration metadata, status and
+items, and fixed recovery errors without raw response details. Apps retain
+readiness/provider checks, response-count limits, rates, queue types, item
+states, numeric ranges, nullable speeds and finite negative time rules. The
+module does not acquire Stats or interpret queue meaning.
+
 No-auth kinds may omit the credential resolver: the common transport sends an
 explicit empty secrets array and validates it against the upstream empty alternative.
 Frigate is not a no-auth kind: Homarr 2.4.1 needs administrator username/password
