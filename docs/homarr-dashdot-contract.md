@@ -1,11 +1,17 @@
 # Dash. Homarr Link
 
+Source status, 13 October 2026 (before this docs update):
+`b712d87cf5f41752e88e2014293930273ca347d7`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 ## Scope and credentials
 
 This peer implements issue #274 against the [shared Link contract](homarr-integration-contract.md)
 at reference commit `573a206e2b4a76574fd7e8cbd1f21c5a4c2fd37d`.
-The reference owner must register `dashdotTarget()` in `targets.go`; this peer
-does not edit the shared registry or reconciliation.
+The reference owner registered `dashdotTarget()` in `targets.go`; shared
+registry and reconciliation remain custodian-owned.
 
 The Catalog image remains `mauricenino/dashdot:6.3.4`. Homarr supports
 `ghcr.io/homarr-labs/homarr:v2.4.1`, source
@@ -103,8 +109,8 @@ fresh probes, redacted rejection, unchanged Compose authority, exact empty
 credential capability, native widget selections and owned-ID native results.
 The shared reconciliation's existing tests cover its ownership behavior.
 
-No Docker or browser run has been performed in this peer lane. Registration,
-resolved image digests, real native data/rendering, freshness, restart, both
+No Docker or browser run has been performed in this peer lane. Resolved
+image digests, real native data/rendering, freshness, restart, both
 installation orders, late-peer readiness, removal/reinstallation and preservation
 of user/shared resources still require the parent's approved disposable-Project
 phase. This change is not full functional acceptance and must remain draft until
