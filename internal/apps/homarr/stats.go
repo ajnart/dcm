@@ -12,10 +12,11 @@ import (
 // statsSample carries one completed refresh and its catalog. Timestamps are
 // Unix milliseconds; leaves may enforce their own clock limits and units.
 type statsSample struct {
-	values    map[string]any
-	units     map[string]string
-	startedAt float64
-	updatedAt float64
+	values      map[string]any
+	units       map[string]string
+	startedAt   float64
+	completedAt float64
+	updatedAt   float64
 }
 
 func (t target) statsMetrics() []string {
@@ -97,6 +98,7 @@ func refreshStatsSample(ctx context.Context, h *helpers.H, integrationID string)
 	if err != nil {
 		return statsSample{}, err
 	}
+	completed := float64(h.Now().UnixMilli())
 	after, ok := value.(map[string]any)
 	if !ok || after["error"] != false || after["stale"] != false {
 		return statsSample{}, errors.New("Homarr Stats refresh failed; retry self-host setup homarr")
@@ -109,7 +111,7 @@ func refreshStatsSample(ctx context.Context, h *helpers.H, integrationID string)
 	if !ok {
 		return statsSample{}, errors.New("Homarr did not return refreshed Stats values")
 	}
-	return statsSample{values: values, startedAt: started, updatedAt: updated}, nil
+	return statsSample{values: values, startedAt: started, completedAt: completed, updatedAt: updated}, nil
 }
 
 func validStatsTimestamp(timestamp float64) bool {
