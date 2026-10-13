@@ -71,6 +71,32 @@ does not loop. The existing Step boundary may run Check followed by apply.
 Nil verifiers keep legacy behavior; removal never refreshes Stats.
 Peers keep their own semantic/destination checks without editing the common
 guard or widening its signature.
+Migrated descriptors additionally supply `stats func(statsSample) error` for
+Stats semantics. Their existing `verify` keeps native identity and useful-data
+checks and no longer acquires Stats. After that verifier succeeds, common
+`verifyData` deduplicates selected metric keys across Stats widgets, reads the
+authenticated catalog and obtains one completed refresh. It rejects missing
+catalog keys, malformed or duplicate catalog entries, missing/null selected
+values, non-finite or nonpositive timestamps and refreshes that do not advance.
+The callback receives that same sample's `values`, catalog `units`, `startedAt`,
+`completedAt` and `updatedAt` (Unix milliseconds), after these checks. `startedAt`
+is read before the refresh request and `completedAt` after its response, so leaves
+can retain their existing future-skew limits after a slow refresh. Common checks
+only timestamp finiteness, positivity and advancement; Apps own clock policy.
+Leaves retain expected
+units, integral counts, ranges, nullable-field rules, additional clock limits
+and relationships. Explicit zeros remain valid where the App allows them.
+Mutable native-widget results are separate cached samples; do not require
+equality between independently collected volatile values.
+
+One refresh applies per migrated verification invocation. The Step can run
+Check before and after apply, so a successful first Link can collect more than
+one sample across distinct invocations. Samples are never remembered across
+invocations. Descriptors without `stats` keep their current verification guard
+without a new catalog request; nil `verify` still skips data verification.
+Migrate each peer by retaining its native checks and moving its Stats checks
+into `stats`. Preflight/Manual ordering and removal without Stats requests stay
+unchanged.
 No-auth kinds may omit the credential resolver: the common transport sends an
 explicit empty secrets array and validates it against the upstream empty alternative.
 Frigate is not a no-auth kind: Homarr 2.4.1 needs administrator username/password
