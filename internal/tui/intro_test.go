@@ -346,7 +346,7 @@ func TestWelcomeRevisitHasNoIntro(t *testing.T) {
 }
 
 func (m Model) onboardingBarText() string {
-	mode, chips := m.onboardingBar()
+	mode, chips := m.onboarding.bar(m.ctx())
 	out := mode
 	for _, c := range chips {
 		out += " " + c.Help().Key
@@ -394,8 +394,9 @@ func TestTheLastExitFrameIsWelcomesFirstFrame(t *testing.T) {
 		for m.onboarding.intro.exit < 0 {
 			m = update(t, m, frameMsg{})
 		}
-		last := strings.Join(intro.RenderExit(m.introInput(), intro.ExitFrames-1, m.introTarget()), "\n")
-		welcome := m.endIntro()
+		last := strings.Join(intro.RenderExit(m.onboarding.introInput(m.ctx()), intro.ExitFrames-1, m.introTarget()), "\n")
+		m.onboarding.endIntro(m.ctx())
+		welcome := m
 		if trimLines(ansi.Strip(last)) != trimLines(screen(welcome)) {
 			t.Fatalf("%dx%d: the exit must land on Welcome\n%s\n---\n%s", size.width, size.height, ansi.Strip(last), screen(welcome))
 		}

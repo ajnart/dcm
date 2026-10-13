@@ -37,13 +37,13 @@ type introScreen struct {
 	hold     intro.Hold
 }
 
-func newIntroScreen(m Model) *introScreen {
-	i := &introScreen{exit: -1, reading: len(m.checks) == 0}
-	if m.opts.ReducedMotion {
+func newIntroScreen(ctx *viewContext) *introScreen {
+	i := &introScreen{exit: -1, reading: len(ctx.checks) == 0}
+	if ctx.opts.ReducedMotion {
 		i.frame = intro.SceneFrames
 	}
 	if !i.reading {
-		i.tickFrom = intro.TickStart(0, m.opts.ReducedMotion)
+		i.tickFrom = intro.TickStart(0, ctx.opts.ReducedMotion)
 	}
 	return i
 }
@@ -58,37 +58,34 @@ func introLevel(l host.Level) intro.Level {
 	return intro.OK
 }
 
-func (m Model) introDoctor() intro.Doctor {
-	i := m.onboarding.intro
-	checks := make([]intro.Check, len(m.checks))
-	for n, c := range m.checks {
+func (o *onboarding) introDoctor(ctx *viewContext) intro.Doctor {
+	i := o.intro
+	checks := make([]intro.Check, len(ctx.checks))
+	for n, c := range ctx.checks {
 		checks[n] = intro.Check{Title: c.Title, Detail: c.Detail, Hint: c.Hint, Docs: c.Docs, Level: introLevel(c.Level)}
 	}
 	return intro.Doctor{Checks: checks, Reading: i.reading, Again: i.again,
-		SettingsReading: !i.reading && m.defaults == nil, TickFrom: i.tickFrom}
+		SettingsReading: !i.reading && ctx.defaults == nil, TickFrom: i.tickFrom}
 }
 
-func (m Model) introPalette() intro.Palette {
-	if m.theme.dark {
+func introPalette(t theme) intro.Palette {
+	if t.dark {
 		return intro.Dark()
 	}
 	return intro.Light()
 }
 
-func (m Model) introInput() intro.Input {
-	i := m.onboarding.intro
-	return intro.Input{W: m.width, H: m.height, Frame: i.frame, Wall: i.wall, Doctor: m.introDoctor(),
-		Hold: i.hold, Pal: m.introPalette(), NoColor: m.opts.NoColor, Reduced: m.opts.ReducedMotion}
+func (o *onboarding) introInput(ctx *viewContext) intro.Input {
+	i := o.intro
+	return intro.Input{W: ctx.width, H: ctx.height, Frame: i.frame, Wall: i.wall, Doctor: o.introDoctor(ctx),
+		Hold: i.hold, Pal: introPalette(ctx.theme), NoColor: ctx.opts.NoColor, Reduced: ctx.opts.ReducedMotion}
 }
-
-// introShown reports that the Intro is on screen.
-func (m Model) introShown() bool { return m.onboardingShown() && m.onboarding.intro != nil }
 
 // introReady reports that the Intro may play its exit: the scene is settled,
 // every check has ticked and nothing holds it.
-func (m Model) introReady() bool {
-	i := m.onboarding.intro
-	d := m.introDoctor()
+func (o *onboarding) introReady(ctx *viewContext) bool {
+	i := o.intro
+	d := o.introDoctor(ctx)
 	if !intro.Settled(i.frame) || !intro.Ready(i.wall, d) {
 		return false
 	}
@@ -102,13 +99,13 @@ func (m Model) introReady() bool {
 }
 
 // introAnimating reports that the Intro still needs frames.
-func (m Model) introAnimating() bool {
-	i := m.onboarding.intro
-	if i.exit >= 0 || (!m.bgKnown && i.wall == 0) || m.introReady() {
+func (o *onboarding) introAnimating(ctx *viewContext) bool {
+	i := o.intro
+	if i.exit >= 0 || (!ctx.bgKnown && i.wall == 0) || o.introReady(ctx) {
 		return true
 	}
-	d := m.introDoctor()
-	reduced := m.opts.ReducedMotion
+	d := o.introDoctor(ctx)
+	reduced := ctx.opts.ReducedMotion
 	if !reduced && (!intro.Settled(i.frame) || i.reading || d.SettingsReading) {
 		return true
 	}
@@ -130,32 +127,38 @@ func (m Model) introAnimating() bool {
 	return false
 }
 
+// advance plays one frame of the Intro, or of Welcome's reaction once the
+// Intro is over.
+func (o *onboarding) advance(ctx *viewContext) {
+	if o.intro != nil {
+		o.advanceIntro(ctx)
+	}
+	o.advanceReaction()
+}
+
 // advanceIntro plays one frame of the Intro and moves it on: holding for a
 // warning or a failure, starting the exit once ready, and ending it.
-func (m Model) advanceIntro() Model {
-	if !m.introShown() {
-		return m
-	}
-	i := m.onboarding.intro
-	if !m.bgKnown && i.waited < introBackgroundWait {
+func (o *onboarding) advanceIntro(ctx *viewContext) {
+	i := o.intro
+	if !ctx.bgKnown && i.waited < introBackgroundWait {
 		i.waited++
-		return m
+		return
 	}
-	if m.opts.ReducedMotion && i.reading {
-		return m
+	if ctx.opts.ReducedMotion && i.reading {
+		return
 	}
 	i.wall++
 	if i.exit >= 0 {
 		i.exit++
 		if i.exit >= intro.ExitFrames-1 {
-			return m.endIntro()
+			o.endIntro(ctx)
 		}
-		return m
+		return
 	}
-	if !m.opts.ReducedMotion && !intro.Settled(i.frame) {
+	if !ctx.opts.ReducedMotion && !intro.Settled(i.frame) {
 		i.frame++
 	}
-	d := m.introDoctor()
+	d := o.introDoctor(ctx)
 	ticked := !i.reading && len(d.Checks) > 0 && i.wall >= i.tickFrom+len(d.Checks)*intro.BeatFrames
 	switch {
 	case i.hold.Level == intro.Unlit && ticked && intro.Worst(d) == intro.Fail:
@@ -165,116 +168,126 @@ func (m Model) advanceIntro() Model {
 	case i.hold.Level == intro.Fail && i.hold.Recover >= 0 && i.wall-i.hold.Recover >= intro.RecoverFrames:
 		i.hold = intro.Hold{}
 	}
-	if !m.introReady() {
-		return m
+	if !o.introReady(ctx) {
+		return
 	}
-	if m.opts.ReducedMotion {
-		return m.endIntro()
+	if ctx.opts.ReducedMotion {
+		o.endIntro(ctx)
+		return
 	}
-	m.previewNotice()
+	o.previewNotice(ctx)
 	i.exit = 0
-	return m
 }
 
 // endIntro hands the screen to Welcome.
-func (m Model) endIntro() Model {
-	m.revealNotice()
-	m.onboarding.intro = nil
-	return m
+func (o *onboarding) endIntro(ctx *viewContext) {
+	o.revealNotice(ctx)
+	o.intro = nil
 }
 
 // previewNotice lets the exit draw Welcome with the Telemetry notice it will
 // show, without recording it as shown: quitting during the exit leaves it
 // for the next run.
-func (m Model) previewNotice() {
-	o := m.onboarding
+func (o *onboarding) previewNotice(ctx *viewContext) {
 	if !o.noticeRead {
-		o.notice = m.backend.PendingTelemetryNotice()
+		o.notice = ctx.backend.PendingTelemetryNotice()
 	}
 }
 
-// introChecksArrived takes Doctor's answer: the checks start ticking into the
-// line, and a passing answer lifts a failure's hold.
-func (m *Model) introChecksArrived() {
-	i := m.onboarding.intro
-	i.tickFrom = intro.TickStart(i.wall, i.again || m.opts.ReducedMotion)
+// checksArrived takes Doctor's answer while the Intro reads: the checks start
+// ticking into the line, and a passing answer lifts a failure's hold. It
+// reports that frames are needed.
+func (o *onboarding) checksArrived(ctx *viewContext) bool {
+	i := o.intro
+	if i == nil || !i.reading {
+		return false
+	}
+	i.tickFrom = intro.TickStart(i.wall, i.again || ctx.opts.ReducedMotion)
 	i.reading, i.again = false, false
-	if i.hold.Level == intro.Fail && i.hold.Recover < 0 && host.Worst(m.checks) != host.Fail {
+	if i.hold.Level == intro.Fail && i.hold.Recover < 0 && host.Worst(ctx.checks) != host.Fail {
 		i.hold.Recover = i.wall
 		if i.hold.Out < 0 {
 			i.hold.Out = i.wall
 		}
 	}
+	return true
 }
 
-// introRecheck reads Doctor again while a failure holds the Intro.
-func (m Model) introRecheck() (Model, tea.Cmd) {
-	i := m.onboarding.intro
+// recheckOnFocus reads Doctor again when the terminal regains focus while a
+// failure holds the Intro, and reports that it does.
+func (o *onboarding) recheckOnFocus() bool {
+	i := o.intro
+	if i == nil || i.hold.Level != intro.Fail || i.reading {
+		return false
+	}
 	i.reading, i.again = true, true
-	return m, tea.Batch(m.loadDoctor(), m.startTicking())
+	return true
 }
 
-func (m Model) handleIntroKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	o := m.onboarding
+func (o *onboarding) introKey(ctx *viewContext, msg tea.KeyPressMsg) (tea.Cmd, onboardingAsk) {
 	i := o.intro
 	if s := msg.String(); s == "q" || s == "ctrl+c" {
-		return m.quit()
+		return nil, onboardingAsk{quit: true}
 	}
 	switch {
 	case i.exit >= 0:
 		o.introSkipped = true
-		return m.endIntro(), nil
+		o.endIntro(ctx)
 	case !intro.Settled(i.frame):
 		o.introSkipped = true
 		i.frame = intro.SceneFrames
-		return m, m.startTicking()
+		return nil, onboardingAsk{tick: true}
 	case i.hold.Level == intro.Fail && msg.String() == "r" && !i.reading:
-		return m.introRecheck()
+		i.reading, i.again = true, true
+		return nil, onboardingAsk{doctor: true, tick: true}
 	case i.hold.Level == intro.Warn && i.hold.Out < 0 && msg.String() == "enter":
 		i.hold.Out = i.wall
-		return m, m.startTicking()
-	case m.introReady():
+		return nil, onboardingAsk{tick: true}
+	case o.introReady(ctx):
 		o.introSkipped = true
-		return m.endIntro(), nil
+		o.endIntro(ctx)
 	}
-	return m, nil
+	return nil, onboardingAsk{}
 }
 
-// pokeIntro settles the scene for a click or a scroll; it never cuts.
-func (m Model) pokeIntro() (tea.Model, tea.Cmd) {
-	i := m.onboarding.intro
+// poke settles the scene for a click or a scroll; it never cuts.
+func (o *onboarding) poke() onboardingAsk {
+	i := o.intro
 	if intro.Settled(i.frame) {
-		return m, nil
+		return onboardingAsk{}
 	}
-	m.onboarding.introSkipped = true
+	o.introSkipped = true
 	i.frame = intro.SceneFrames
-	return m, m.startTicking()
+	return onboardingAsk{tick: true}
 }
 
 // revealNotice reads the Telemetry notice and records it as shown the first
 // time Welcome is on screen, so quitting during the Intro leaves it for the
 // next run.
-func (m Model) revealNotice() {
-	o := m.onboarding
+func (o *onboarding) revealNotice(ctx *viewContext) {
 	if o.noticeRead {
 		return
 	}
 	o.noticeRead = true
-	o.notice = m.backend.TelemetryNotice()
+	o.notice = ctx.backend.TelemetryNotice()
 }
 
 // renderIntro is the whole terminal while the Intro is on screen. The exit
 // lands on Welcome as it is drawn right now.
-func (m Model) renderIntro() string {
-	i := m.onboarding.intro
-	if !m.bgKnown && i.wall == 0 {
+func (o *onboarding) renderIntro(ctx *viewContext, target func() intro.Target) string {
+	i := o.intro
+	if !ctx.bgKnown && i.wall == 0 {
 		return ""
 	}
-	in := m.introInput()
+	in := o.introInput(ctx)
 	if i.exit < 0 {
 		return strings.Join(intro.Render(in), "\n")
 	}
-	return strings.Join(intro.RenderExit(in, i.exit, m.introTarget()), "\n")
+	return strings.Join(intro.RenderExit(in, i.exit, target()), "\n")
+}
+
+func (m Model) renderIntro() string {
+	return m.onboarding.renderIntro(m.ctx(), m.introTarget)
 }
 
 // introTarget is Welcome's first frame with where its title and emblem sit.
@@ -297,7 +310,8 @@ func (m Model) introTarget() intro.Target {
 			break
 		}
 	}
-	if m.welcomeEmblem(m.welcomeRoom()) {
+	ctx := m.ctx()
+	if o.welcomeEmblem(ctx, welcomeRoom(ctx)) {
 		w, h := intro.ScaleEmblem.Size()
 		tg.Emblem = &intro.Box{X: tg.TitleAt.X, Y: tg.TitleAt.Y - h - 1, W: w, H: h}
 	}

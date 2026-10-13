@@ -26,8 +26,7 @@ func TestGoldenOnboardingSelectionAndFocus(t *testing.T) {
 			t.Run(stage.name+size.suffix, func(t *testing.T) {
 				m, _ := freshHost(t)
 				m = update(t, m, windowSize(size.width, size.height))
-				next, _ := m.openStep(stage.step)
-				m = next.(Model)
+				m.onboarding.openStep(m.ctx(), stage.step)
 				for _, key := range stage.keys {
 					m = drive(t, m, press(key))
 				}

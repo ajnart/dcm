@@ -148,7 +148,7 @@ func TestAccessSpaceKeepsAPendingAnswerAndEnterContinuesIt(t *testing.T) {
 	}
 	m = drive(t, m, press("up"))
 	m = drive(t, m, press("enter"))
-	if m.onboarding.step != stepWho || !m.planFromAnswers(m.onboarding.answers).opts.EasyNames {
+	if m.onboarding.step != stepWho || !planFromAnswers(m.backend, m.onboarding.answers).opts.EasyNames {
 		t.Fatalf("Enter should continue Easy names, not the focused Home network\n%s", screen(m))
 	}
 	if len(backend.Actions()) != 0 {
@@ -277,8 +277,7 @@ func TestOnboardingSpaceRemainsTextInAppHostAndAdminInputs(t *testing.T) {
 	if got := m.onboarding.answers.tz; got != "Europe/Paris " {
 		t.Fatalf("Host text input lost spaces: %q", got)
 	}
-	next, cmd := m.openStep(stepWho)
-	m = next.(Model)
+	cmd := m.onboarding.openStep(m.ctx(), stepWho)
 	for _, msg := range runCmd(cmd) {
 		m = drive(t, m, msg)
 	}
@@ -303,8 +302,7 @@ func TestOnboardingSelectionReadsByMarkAndWeightInBothThemes(t *testing.T) {
 		} {
 			m, _ := freshHost(t)
 			m.theme = newTheme(dark)
-			next, _ := m.openStep(stage.step)
-			m = next.(Model)
+			m.onboarding.openStep(m.ctx(), stage.step)
 			for _, key := range stage.keys {
 				m = drive(t, m, press(key))
 			}
@@ -323,9 +321,8 @@ func TestOnboardingSelectionReadsByMarkAndWeightInBothThemes(t *testing.T) {
 func TestOnboardingChoiceKeybindAudit(t *testing.T) {
 	for _, stage := range []step{stepWelcome, stepAccess, stepLook} {
 		m, _ := freshHost(t)
-		next, _ := m.openStep(stage)
-		m = next.(Model)
-		_, bindings := m.onboardingBar()
+		m.onboarding.openStep(m.ctx(), stage)
+		_, bindings := m.onboarding.bar(m.ctx())
 		var got []string
 		for _, b := range bindings {
 			got = append(got, b.Help().Desc+": "+strings.Join(b.Keys(), " "))

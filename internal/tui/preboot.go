@@ -48,13 +48,9 @@ func (m Model) framePeriod() time.Duration {
 	return time.Second / activity.FPS
 }
 
-// advancePreboot plays one frame of pre-boot. The pull ending starts the
-// exit; a failure, or the exit ending, lands on Activity.
-func (m Model) advancePreboot(s activity.Snapshot) Model {
-	p := m.preboot
-	if p == nil {
-		return m
-	}
+// advance plays one frame of pre-boot. The pull ending starts the exit; a
+// failure, or the exit ending, reports that the scene is over.
+func (p *prebootScreen) advance(s activity.Snapshot) bool {
 	p.frame++
 	if p.since >= 0 {
 		p.since++
@@ -63,9 +59,16 @@ func (m Model) advancePreboot(s activity.Snapshot) Model {
 	}
 	switch {
 	case s.Pull.Failed || s.Action.Finished && s.Action.Error != "", p.since >= preboot.ExitFrames:
-		m.preboot = nil
+		return true
 	case p.since < 0 && pullEnded(s, p.frame):
 		p.since = 0
+	}
+	return false
+}
+
+func (m Model) advancePreboot(s activity.Snapshot) Model {
+	if m.preboot != nil && m.preboot.advance(s) {
+		m.preboot = nil
 	}
 	return m
 }
@@ -104,22 +107,26 @@ func prebootProgress(s activity.Snapshot, p *prebootScreen) preboot.Progress {
 	return pr
 }
 
-// renderPreboot is the whole terminal while pre-boot is on screen. The exit
-// opens onto the Dashboard with Activity focused as it is drawn right now.
-func (m Model) renderPreboot() string {
-	p := m.preboot
+// render is the whole terminal while pre-boot is on screen. The exit opens
+// onto the landing screen as it is drawn right now.
+func (p *prebootScreen) render(ctx *viewContext, landing func() string) string {
 	pal := preboot.Dark()
-	if !m.theme.dark {
+	if !ctx.theme.dark {
 		pal = preboot.Light()
 	}
-	pr := prebootProgress(m.ctx().snapshot(), p)
+	pr := prebootProgress(ctx.snapshot(), p)
 	if p.since < 0 {
 		if p.frame < preboot.EntranceFrames {
-			return strings.Join(preboot.RenderEntrance(p.frame, m.width, m.height, pr, pal, m.opts.NoColor), "\n")
+			return strings.Join(preboot.RenderEntrance(p.frame, ctx.width, ctx.height, pr, pal, ctx.opts.NoColor), "\n")
 		}
-		return strings.Join(preboot.Render(p.frame, m.width, m.height, pr, pal, m.opts.NoColor), "\n")
+		return strings.Join(preboot.Render(p.frame, ctx.width, ctx.height, pr, pal, ctx.opts.NoColor), "\n")
 	}
-	m.preboot = nil
-	landing := strings.Split(m.View().Content, "\n")
-	return strings.Join(preboot.RenderExit(p.frame, p.since, m.width, m.height, pr, pal, m.opts.NoColor, landing), "\n")
+	return strings.Join(preboot.RenderExit(p.frame, p.since, ctx.width, ctx.height, pr, pal, ctx.opts.NoColor, strings.Split(landing(), "\n")), "\n")
+}
+
+func (m Model) renderPreboot() string {
+	return m.preboot.render(m.ctx(), func() string {
+		m.preboot = nil
+		return m.View().Content
+	})
 }

@@ -34,7 +34,7 @@ func TestFailedInstallCopiesAndInspectsTheFullMaskedErrorBeforeProjectExists(t *
 		if !strings.Contains(flat(lastLine(screen(m))), "c copy error") || !strings.Contains(flat(lastLine(screen(m))), "e full error") {
 			t.Fatalf("copy and inspection must be discoverable\n%s", screen(m))
 		}
-		next, cmd := m.handleOnboardingKey(press("c"))
+		next, cmd := m.handleKey(press("c"))
 		m = next.(Model)
 		if cmd == nil {
 			t.Fatal("Review must return a copy command")

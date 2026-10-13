@@ -10,15 +10,14 @@ import (
 
 func TestOnboardingChoosesEasyNamesAndKeepsHomeNetwork(t *testing.T) {
 	m, _ := freshHost(t)
-	next, _ := m.openStep(stepAccess)
-	m = next.(Model)
+	m.onboarding.openStep(m.ctx(), stepAccess)
 	for _, key := range []string{"down", "space", "enter"} {
 		m = drive(t, m, press(key))
 	}
 	if m.onboarding.step != stepWho {
 		t.Fatalf("step %v, want Who", m.onboarding.step)
 	}
-	plan := m.planFromAnswers(m.onboarding.answers)
+	plan := planFromAnswers(m.backend, m.onboarding.answers)
 	if !plan.opts.EasyNames || plan.opts.Exposure != service.ExposureLAN {
 		t.Fatalf("plan %+v", plan.opts)
 	}
@@ -32,7 +31,7 @@ func TestOnboardingDefaultsToEasyNamesOnlyAfterSuccessfulInspection(t *testing.T
 			defaults["EASY_NAMES"] = "on"
 		}
 		m = drive(t, m, defaultsMsg{settings: defaults})
-		if got := m.planFromAnswers(m.onboarding.answers).opts.EasyNames; got != enabled {
+		if got := planFromAnswers(m.backend, m.onboarding.answers).opts.EasyNames; got != enabled {
 			t.Fatalf("inspection %v: EasyNames %v", enabled, got)
 		}
 	}

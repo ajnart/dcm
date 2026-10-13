@@ -109,6 +109,10 @@ type viewContext struct {
 	containers    []service.ContainerStatus
 	containersErr string
 
+	opts     Options
+	defaults map[string]string
+	bgKnown  bool
+
 	backend Backend
 	tasks   *taskManager
 
@@ -620,11 +624,11 @@ func (m Model) view() tea.View {
 	status := pad(m.footerStatus(ctxView), m.width)
 	var content string
 	if m.onboardingShown() {
-		mode, chips := m.onboardingBar()
+		mode, chips := m.onboarding.bar(ctxView)
 		if m.showHelp {
 			mode, chips = m.helpBar()
 		}
-		main := m.renderOnboarding()
+		main := m.onboarding.View(ctxView)
 		if m.showHelp && m.helpView.page != nil {
 			main = m.helpView.pageView(ctxView)
 		}
@@ -716,6 +720,16 @@ func (m Model) helpBar() (string, []key.Binding) {
 		closing = " · esc or ? closes"
 	}
 	return m.theme.fg(m.theme.accentText).Bold(true).Render("help") + m.theme.dim().Render(closing), m.helpView.Keys()
+}
+
+// renderLoading is the first screen, while the Project, the host checks
+// and the detected settings are still being read.
+func (m Model) renderLoading() string {
+	t := m.theme
+	block := lipgloss.JoinVertical(lipgloss.Center,
+		t.title().Render(m.glyphs.Brand())+" "+t.active().Render("self-host"), "",
+		t.fg(t.accentText).Render(activity.Spinner(m.frame))+" "+t.dim().Render("Getting ready…"))
+	return lipgloss.Place(m.width, m.mainHeight(), lipgloss.Center, lipgloss.Center, block)
 }
 
 func (m Model) renderStatusError() string {

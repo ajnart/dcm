@@ -59,8 +59,8 @@ func TestUnsupportedEasyNamesStopsBeforeApprovalAndPreservesRecoveryAnswers(t *t
 		if m.onboarding.step != stepWhere || m.onboarding.answers.lan != "192.0.0.2" || m.onboarding.answers.adminPassword != "synthetic pass phrase" {
 			t.Fatal("recovery must preserve answers at the LAN editor")
 		}
-		next, _ := m.openStep(stepReview)
-		m = drive(t, next.(Model), press("a"))
+		m.onboarding.openStep(m.ctx(), stepReview)
+		m = drive(t, m, press("a"))
 		if m.onboarding.step != stepAccess || m.onboarding.answers.accessChoice != "names" {
 			t.Fatal("recovery must preserve the chosen Access")
 		}

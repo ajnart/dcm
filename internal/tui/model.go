@@ -15,7 +15,6 @@ import (
 
 	"github.com/ajnart/self-host/internal/activity"
 	"github.com/ajnart/self-host/internal/host"
-	"github.com/ajnart/self-host/internal/intro"
 	"github.com/ajnart/self-host/internal/release"
 	"github.com/ajnart/self-host/internal/service"
 )
@@ -263,8 +262,9 @@ func (m Model) nextFrame() (tea.Model, tea.Cmd) {
 		m.tracker.Observe(s, m.frame)
 	}
 	m = m.advancePreboot(s)
-	m = m.advanceIntro()
-	m = m.advanceReaction()
+	if m.onboardingShown() {
+		m.onboarding.advance(m.ctx())
+	}
 	if m.opening > 0 || m.preboot != nil || !m.loaded || m.onboardingAnimating() || m.tasks.running() > 0 || activity.Animating(s, m.tracker.Motion(m.frame)) {
 		return m, m.frameTick()
 	}
@@ -367,7 +367,7 @@ func (m Model) ctx() *viewContext {
 		status: m.status, checks: m.checks, updates: m.updates, updatesAt: m.updatesAt, latest: m.latest,
 		releaseChecked: m.releaseChecked, version: m.opts.Version,
 		containers: m.containers, containersErr: m.containersErr,
-		backend: m.backend, tasks: m.tasks,
+		backend: m.backend, tasks: m.tasks, opts: m.opts, defaults: m.defaults, bgKnown: m.bgKnown,
 		flash: m.flash, flashLevel: m.flashLevel,
 		shared: true,
 	}
@@ -436,8 +436,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.FocusMsg:
 		var frame tea.Cmd
-		if m.introShown() && m.onboarding.intro.hold.Level == intro.Fail && !m.onboarding.intro.reading {
-			m.onboarding.intro.reading, m.onboarding.intro.again = true, true
+		if m.introShown() && m.onboarding.recheckOnFocus() {
 			frame = m.startTicking()
 		}
 		return m, tea.Batch(m.loadStatus(), m.loadDoctor(), frame)
@@ -448,11 +447,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case defaultsMsg:
 		m.defaults = msg.settings
 		if m.onboarding != nil {
-			m.onboarding.answers.fill(m.defaults)
-			if !m.onboarding.answers.accessChosen {
-				m.onboarding.answers.easyNames = m.defaults["EASY_NAMES"] == "on"
-				m.onboarding.answers.accessChoice = ""
-			}
+			m.onboarding.detected(m.defaults)
 		}
 		if m.introShown() {
 			return m, m.startTicking()
@@ -465,15 +460,14 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case doctorMsg:
 		m.checks = msg.checks
 		m.relayout()
-		if m.introShown() && m.onboarding.intro.reading {
-			m.introChecksArrived()
+		if m.onboardingShown() && m.onboarding.checksArrived(m.ctx()) {
 			return m, m.startTicking()
 		}
 		return m, nil
 
 	case introPokeMsg:
 		if m.introShown() {
-			return m.pokeIntro()
+			return m.onboardingAsked(nil, m.onboarding.poke())
 		}
 		return m, nil
 
@@ -555,7 +549,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseWheelMsg:
 		m.opening = 0
 		if m.introShown() {
-			return m.pokeIntro()
+			return m.onboardingAsked(nil, m.onboarding.poke())
 		}
 		if m.preboot != nil || m.upgrade != nil {
 			return m, nil
@@ -569,7 +563,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleKey(msg)
 	}
 	if m.onboardingShown() && m.onboarding.form != nil {
-		return m.updateOnboardingForm(msg)
+		return m.dispatchOnboarding(msg)
 	}
 	return m, nil
 }
@@ -579,14 +573,13 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	if errors.Is(msg.err, service.ErrNoProject) {
 		m.opening = 0
 		if m.onboarding == nil {
-			m.onboarding = m.newOnboarding()
-			next, _ := m.openStep(stepWelcome)
-			m = next.(Model)
-			m.onboarding.intro = newIntroScreen(m)
+			m.onboarding = newOnboarding(m.ctx())
 			tick := m.startTicking()
 			return m, tea.Batch(m.loadDefaults(), tick)
 		}
-		m.installEnded(msg.finishedTasks)
+		if m.onboarding.installEnded(m.tasks, msg.finishedTasks) {
+			m.preboot = nil
+		}
 		return m, nil
 	}
 	if msg.err != nil {
@@ -594,7 +587,7 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		m.statusErr = msg.err.Error()
 		return m, nil
 	}
-	if m.onboarding != nil && m.onboarding.answers != nil && m.onboarding.answers.cloudflare {
+	if m.onboarding != nil && m.onboarding.cloudflareChosen() {
 		m.cloudflareAfterInstall = true
 	}
 	m.onboarding = nil
@@ -649,8 +642,8 @@ func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 func (m *Model) relayout() {
 	ctxView := m.ctx()
 	m.apps.refreshDetails(ctxView)
-	if m.onboardingShown() && m.onboarding.form != nil {
-		m.onboarding.form.WithWidth(m.formWidth())
+	if m.onboardingShown() {
+		m.onboarding.resize(m.width)
 	}
 	if m.install != nil {
 		m.install.resize(m.width)
@@ -800,14 +793,14 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case m.preboot != nil:
 		return m.handlePrebootKey(msg)
 	case m.introShown():
-		return m.handleIntroKey(msg)
+		return m.dispatchOnboarding(msg)
 	case m.showHelp:
 		if m.helpView.page != nil && m.helpView.page.copyText != "" && msg.String() == "ctrl+c" {
 			return m.quit()
 		}
 		return m.dispatchHelp(msg)
 	case m.onboardingShown():
-		return m.handleOnboardingKey(msg)
+		return m.dispatchOnboarding(msg)
 	case msg.String() == "ctrl+c":
 		return m.quit()
 	case m.menu != nil:
@@ -981,20 +974,67 @@ func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
 
 // run starts a background Action; the status line shows its progress.
 func (m Model) run(req Request, title string) (tea.Model, tea.Cmd) {
-	var secrets []string
-	if o := m.onboarding; o != nil && o.answers != nil {
-		secrets = append(secrets, o.answers.adminPassword)
-		for _, a := range m.backend.Catalog().Apps() {
-			for _, input := range a.Inputs() {
-				if value := o.answers.inputs[a.Info().ID+"."+input.Key]; input.Private && value != nil {
-					secrets = append(secrets, *value)
-				}
-			}
-		}
-	}
-	cmd := m.ctx().run(req, title, secrets...)
+	cmd := m.ctx().run(req, title, m.onboarding.pendingSecrets(m.backend.Catalog())...)
 	tick := m.startTicking()
 	return m, tea.Batch(cmd, tick)
+}
+
+// onboardingShown reports that Onboarding is on screen rather than the Dashboard.
+func (m Model) onboardingShown() bool {
+	return m.onboarding != nil && m.onboarding.task == 0
+}
+
+// introShown reports that the Intro is on screen.
+func (m Model) introShown() bool { return m.onboardingShown() && m.onboarding.intro != nil }
+
+func (m Model) onboardingAnimating() bool {
+	return m.onboardingShown() && m.onboarding.animating(m.ctx())
+}
+
+// fastFrames reports that frames play at the Intro's rate rather than Activity's.
+func (m Model) fastFrames() bool { return m.onboardingShown() && m.onboarding.fast() }
+
+// dispatchOnboarding hands a message to Onboarding and carries out what it
+// asks of the Model.
+func (m Model) dispatchOnboarding(msg tea.Msg) (tea.Model, tea.Cmd) {
+	ctxView := m.ctx()
+	cmd, ask := m.onboarding.Update(ctxView, msg)
+	m.absorb(ctxView)
+	return m.onboardingAsked(cmd, ask)
+}
+
+func (m Model) onboardingAsked(cmd tea.Cmd, ask onboardingAsk) (tea.Model, tea.Cmd) {
+	switch {
+	case ask.quit:
+		return m.quit()
+	case ask.help:
+		return m.openHelp()
+	case ask.errorText != "":
+		return m.openError(ask.errorText)
+	case ask.approve:
+		return m.approveOnboarding()
+	}
+	if ask.doctor {
+		cmd = tea.Batch(cmd, m.loadDoctor())
+	}
+	if ask.tick {
+		cmd = tea.Batch(cmd, m.startTicking())
+	}
+	return m, cmd
+}
+
+// approveOnboarding hands the approved plan over to the Dashboard: Pre-boot
+// plays while the install runs, and Activity takes the focus.
+func (m Model) approveOnboarding() (tea.Model, tea.Cmd) {
+	o := m.onboarding
+	if !m.opts.ReducedMotion {
+		m.preboot = newPrebootScreen()
+	}
+	opts := o.plan.opts
+	next, cmd := m.run(Request{Action: ActionInstall, Install: &opts}, "install "+strings.Join(opts.Targets, " "))
+	m = next.(Model)
+	o.task, o.err = m.tasks.latest().id, ""
+	return m.focusActivity(tea.Batch(cmd, o.approved(m.ctx())))
 }
 
 // Test-facing accessors kept on the Model.

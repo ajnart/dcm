@@ -21,11 +21,11 @@ type whatList struct {
 	err            string
 }
 
-func (m Model) newWhatList() *whatList {
+func newWhatList(ctx *viewContext) *whatList {
 	l := &whatList{search: textinput.New()}
 	l.search.Prompt = "/ "
 	l.search.Placeholder = "filter by name or description"
-	l.search.SetWidth(max(m.formWidth()-6, 10))
+	l.search.SetWidth(max(formWidth(ctx.width)-6, 10))
 	return l
 }
 
@@ -46,16 +46,16 @@ func whatItems(cat *catalog.Catalog, recipe string) []installItem {
 	return items
 }
 
-func (m Model) whatRows(l *whatList) []installItem {
-	return filterItems(whatItems(m.backend.Catalog(), m.glyphs.Recipe()), l.search.Value())
+func whatRows(ctx *viewContext, l *whatList) []installItem {
+	return filterItems(whatItems(ctx.backend.Catalog(), ctx.glyphs.Recipe()), l.search.Value())
 }
 
 // whatMark is how much of the row is picked: an App is all or none, a
 // Recipe as many of its Apps as are picked.
-func (m Model) whatMark(it installItem) pickMark {
-	p := m.onboarding.answers.picks
+func (o *onboarding) whatMark(ctx *viewContext, it installItem) pickMark {
+	p := o.answers.picks
 	if strings.HasPrefix(it.key, "recipe:") {
-		r, _ := m.backend.Catalog().Recipe(it.id)
+		r, _ := ctx.backend.Catalog().Recipe(it.id)
 		return p.recipeMark(r, nil)
 	}
 	if p[it.id] {
@@ -66,13 +66,12 @@ func (m Model) whatMark(it installItem) pickMark {
 
 // whatKey handles a key on the What list; filtering keeps letters for the
 // filter and leaves the arrows and enter to the list.
-func (m Model) whatKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	o := m.onboarding
+func (o *onboarding) whatKey(ctx *viewContext, msg tea.KeyPressMsg) (tea.Cmd, onboardingAsk) {
 	l := o.list
-	rows := m.whatRows(l)
+	rows := whatRows(ctx, l)
 	switch msg.String() {
 	case "ctrl+c":
-		return m.backToWelcome()
+		return o.backToWelcome(ctx), onboardingAsk{}
 	case "up":
 		l.cursor = max(l.cursor-1, 0)
 	case "down":
@@ -85,9 +84,9 @@ func (m Model) whatKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if l.filtering {
 			l.filtering = false
 			l.search.Blur()
-			return m, nil
+			return nil, onboardingAsk{}
 		}
-		return m.whatNext()
+		return o.whatNext(ctx), onboardingAsk{}
 	case "esc":
 		switch {
 		case l.filtering || l.search.Value() != "":
@@ -95,7 +94,7 @@ func (m Model) whatKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			l.search.Reset()
 			l.search.Blur()
 		default:
-			return m.openStep(stepWelcome)
+			return o.openStep(ctx, stepWelcome), onboardingAsk{}
 		}
 	default:
 		switch {
@@ -110,46 +109,45 @@ func (m Model) whatKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		case msg.String() == "j":
 			l.cursor = min(l.cursor+1, max(len(rows)-1, 0))
 		case (msg.String() == "x" || msg.String() == "space") && l.cursor < len(rows):
-			o.answers.picks.toggle(m.backend.Catalog(), rows[l.cursor].key, nil)
+			o.answers.picks.toggle(ctx.backend.Catalog(), rows[l.cursor].key, nil)
 			l.err = ""
 		}
 	}
-	return m, nil
+	return nil, onboardingAsk{}
 }
 
 // whatNext leaves the list for the picked Apps' own inputs, if any ask for
 // some, or for Where.
-func (m Model) whatNext() (tea.Model, tea.Cmd) {
-	o := m.onboarding
-	apps := o.answers.picks.apps(m.backend.Catalog())
+func (o *onboarding) whatNext(ctx *viewContext) tea.Cmd {
+	apps := o.answers.picks.apps(ctx.backend.Catalog())
 	if len(apps) == 0 {
 		o.list.err = "pick at least one Recipe or App"
-		return m, nil
+		return nil
 	}
 	if !slices.ContainsFunc(apps, func(a app.App) bool { return len(a.Inputs()) > 0 }) {
-		return m.openStep(stepWhere)
+		return o.openStep(ctx, stepWhere)
 	}
-	o.list, o.form = nil, m.buildForm(stepWhat)
-	return m, o.form.Init()
+	o.list, o.form = nil, o.buildForm(ctx, stepWhat)
+	return o.form.Init()
 }
 
 // whatListHeight is what the list has left above the hovered description.
-func (m Model) whatListHeight() int {
-	return max(m.formHeight(stepWhat)-whatDetailLines-1, 4)
+func (o *onboarding) whatListHeight(ctx *viewContext) int {
+	return max(o.formHeight(ctx, stepWhat)-whatDetailLines-1, 4)
 }
 
 // renderWhatList draws the list: a title, the rows the height allows around
 // the cursor, and a line of keys, or of what is wrong.
-func (m Model) renderWhatList() []string {
-	t := m.theme
-	l := m.onboarding.list
-	width := max(m.width-4, 20)
-	rows := m.whatRows(l)
+func (o *onboarding) renderWhatList(ctx *viewContext) []string {
+	t := ctx.theme
+	l := o.list
+	width := max(ctx.width-4, 20)
+	rows := whatRows(ctx, l)
 	head := t.heading().Render("Apps and Recipes") + t.dim().Render(" · ✓ all · ◐ some · ○ none of a Recipe's Apps")
 	if l.filtering || l.search.Value() != "" {
 		head = l.search.View()
 	}
-	avail := max(m.whatListHeight()-2, 1)
+	avail := max(o.whatListHeight(ctx)-2, 1)
 	l.cursor = max(min(l.cursor, len(rows)-1), 0)
 	l.offset = scrolled(l.cursor, l.offset, avail, len(rows))
 
@@ -160,7 +158,7 @@ func (m Model) renderWhatList() []string {
 		if i == l.cursor {
 			cursor, style = t.cursor(), t.active()
 		}
-		mark := m.whatMark(it)
+		mark := o.whatMark(ctx, it)
 		markStyle := t.dim()
 		if mark != pickNone {
 			markStyle = t.title()

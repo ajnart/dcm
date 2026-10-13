@@ -159,7 +159,7 @@ func TestTheTUIInstallReportsTheChosenAccess(t *testing.T) {
 			backend := ServiceBackend{Deps: deps, Apps: wizardCatalog()}
 			backend.TelemetryNotice()
 			m := New(backend, Options{Version: "1.2.3"})
-			p := m.planFromAnswers(&answers{picks: picks{"ntfy": true}, exposure: choice.exposure, adminUser: "admin", inputs: map[string]*string{}})
+			p := planFromAnswers(m.backend, &answers{picks: picks{"ntfy": true}, exposure: choice.exposure, adminUser: "admin", inputs: map[string]*string{}})
 			backend.Run(context.Background(), Request{Action: ActionInstall, Install: &p.opts}, events.Discard())
 			var command map[string]any
 			for _, e := range net.Events() {

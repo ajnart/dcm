@@ -36,7 +36,7 @@ func TestOnboardingTailscaleAsksPrivatelyBeforeReview(t *testing.T) {
 	if m.onboarding.step != stepWho {
 		t.Fatalf("completed private input should reach Who, got %v", m.onboarding.step)
 	}
-	p := m.planFromAnswers(m.onboarding.answers)
+	p := planFromAnswers(m.backend, m.onboarding.answers)
 	if !slices.Contains(p.opts.Targets, "tailscale") || p.opts.PrivateInputs["tailscale"]["auth_key"] != "synthetic-private-key?" || p.opts.Exposure != "lan" {
 		t.Fatalf("Access must add Tailscale without replacing Home network")
 	}
