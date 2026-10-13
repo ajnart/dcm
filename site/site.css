@@ -1,0 +1,118 @@
+:root {
+  color-scheme: light dark;
+  --background: oklch(0.985 0 0);
+  --ink: oklch(0.22 0.006 290);
+  --muted: oklch(0.42 0.014 290);
+  --accent: oklch(0.43 0.17 295);
+  --surface: oklch(0.95 0.014 295);
+  font-family: system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--ink);
+}
+main {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 2rem clamp(1.25rem, 5vw, 4rem);
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+header a {
+  font-size: 1.25rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+header span,
+.detail,
+footer {
+  color: var(--muted);
+}
+h1 {
+  margin: 4rem 0 1.5rem;
+  font-size: clamp(3rem, 9vw, 5.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+h2 {
+  font-size: 1.35rem;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+p {
+  max-width: 65ch;
+  font-size: 1rem;
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+.intro {
+  font-size: 1.25rem;
+}
+section {
+  margin: 2.5rem 0 1.5rem;
+  padding: 1.5rem;
+  background: var(--surface);
+  border-radius: 12px;
+}
+section h2 {
+  margin-top: 0;
+}
+nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+}
+a:hover {
+  text-decoration-thickness: 2px;
+}
+a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+.primary {
+  display: inline-block;
+  background: var(--accent);
+  color: white;
+  padding: 0.8rem 1.1rem;
+  border-radius: 6px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.primary:hover {
+  text-decoration: underline;
+}
+footer {
+  margin-top: 3rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.2 0.006 290);
+    --ink: oklch(0.95 0 0);
+    --muted: oklch(0.77 0.01 290);
+    --accent: oklch(0.78 0.12 295);
+    --surface: oklch(0.27 0.022 295);
+  }
+  .primary {
+    color: oklch(0.2 0.006 290);
+  }
+}

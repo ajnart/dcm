@@ -170,6 +170,9 @@ func (t target) hint(from *helpers.H) string {
 	if t.id == "sabnzbd" {
 		return "SABnzbd credential-safety hold #363: use exactly Homarr 2.5.1 or 2.5.2 with the shipped privacy fix. Back up Homarr before changing its version, then retry self-host setup homarr. Older, unreadable or unreviewed versions remain Manual; do not bypass the hold or create a manual integration."
 	}
+	if t.id == "patchmon" {
+		return patchmonNativeHint
+	}
 	if t.kind == "" {
 		return "Open " + from.URL + "/manage/apps, add the " + t.name + " app tile, then place it on a board."
 	}
