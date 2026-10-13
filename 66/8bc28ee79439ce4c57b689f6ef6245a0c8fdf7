@@ -1,0 +1,39 @@
+internal/service/access.go
+  s_8e166456c2ed73::t_31cb8d148b76db 12-13,82,121,126
+internal/service/backup.go
+  s_8e166456c2ed73::t_80eaf390b28626 86
+internal/service/cloudflare.go
+  s_8e166456c2ed73::t_e7f131c4d51edf 590-591
+internal/service/install.go
+  s_8e166456c2ed73::t_cb314df79ea948 428,581
+internal/service/installed_apps.go
+  s_8e166456c2ed73::t_8c62d21ed2ebbb 61
+internal/service/lifecycle.go
+  s_8e166456c2ed73::t_a19d7831a80152 271,310,372
+internal/service/mutation.go
+  s_8e166456c2ed73::t_c05bb3cd745a7f 327,334
+internal/service/names.go
+  s_8e166456c2ed73::t_aec31972af3135 383
+internal/service/service.go
+  s_8e166456c2ed73::t_13a45e364a667e 330
+internal/service/status.go
+  s_8e166456c2ed73::t_9f1426d5a1b8f6 139,162-165,243,385
+internal/service/tailscale.go
+  s_8e166456c2ed73::t_6ea3ea08f147ef 96,112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "668bc28ee79439ce4c57b689f6ef6245a0c8fdf7",
+  "prompts": {},
+  "sessions": {
+    "s_8e166456c2ed73": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c54a2784-641d-452f-9f3f-bc4399a5fed7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
