@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
-	"reflect"
 
 	"github.com/ajnart/self-host/internal/apps/audiobookshelf"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -27,6 +27,7 @@ func audiobookshelfTarget() target {
 			_, err := audiobookshelf.VerifyHomarrCredential(ctx, to)
 			return err
 		},
+		stats: verifyAudiobookshelfStats,
 		verify: func(ctx context.Context, from, to *helpers.H, integrationID string) error {
 			if integrationID == "" || integrationID != from.Secret(from.Key("linked_audiobookshelf")) {
 				return errors.New("Homarr did not retain its owned Audiobookshelf integration ID")
@@ -74,21 +75,79 @@ func audiobookshelfTarget() target {
 			if !ok {
 				return errors.New("Homarr did not return native Audiobookshelf statistics")
 			}
-			for field, expectedValue := range expected {
-				if !reflect.DeepEqual(statistics[field], expectedValue) {
-					return fmt.Errorf("Homarr Audiobookshelf %s does not match fresh authenticated peer data; retry self-host setup homarr", field)
-				}
-			}
-			values, err := freshStatsSnapshot(ctx, from, integrationID)
-			if err != nil {
-				return err
-			}
-			for _, metric := range []string{"libraryCount", "totalAudiobooks", "totalPodcasts", "activeSessions"} {
-				if !reflect.DeepEqual(values[metric], expected[metric]) {
-					return fmt.Errorf("Homarr Audiobookshelf %s Stats does not match fresh authenticated peer data; retry self-host setup homarr", metric)
-				}
-			}
-			return nil
+			return verifyAudiobookshelfNative(statistics, expected)
 		},
 	}
+}
+
+func verifyAudiobookshelfStats(sample statsSample) error {
+	for _, metric := range []string{"libraryCount", "totalAudiobooks", "totalPodcasts", "activeSessions"} {
+		if sample.units[metric] != "count" || !audiobookshelfNumber(sample.values[metric], true) {
+			return fmt.Errorf("Homarr Audiobookshelf %s Stats is not a nonnegative integral count; retry self-host setup homarr", metric)
+		}
+	}
+	if sample.values["libraryCount"] == float64(0) && (sample.values["totalAudiobooks"] != float64(0) || sample.values["totalPodcasts"] != float64(0)) {
+		return errors.New("Homarr Audiobookshelf Stats reports media without a library; retry self-host setup homarr")
+	}
+	return nil
+}
+
+func audiobookshelfNumber(value any, integral bool) bool {
+	number, ok := value.(float64)
+	return ok && !math.IsNaN(number) && !math.IsInf(number, 0) && number >= 0 && (!integral || math.Trunc(number) == number)
+}
+
+func verifyAudiobookshelfNative(statistics, expected map[string]any) error {
+	const failure = "Homarr Audiobookshelf native statistics are incomplete or inconsistent; retry self-host setup homarr"
+	for _, metric := range []string{"libraryCount", "totalAudiobooks", "totalPodcasts", "activeSessions"} {
+		if !audiobookshelfNumber(statistics[metric], true) {
+			return errors.New(failure)
+		}
+	}
+	if !audiobookshelfNumber(statistics["totalListeningTimeSeconds"], false) {
+		return errors.New(failure)
+	}
+	libraries, ok := statistics["libraries"].([]any)
+	if !ok || statistics["libraryCount"] != float64(len(libraries)) {
+		return errors.New(failure)
+	}
+	known := map[string]map[string]any{}
+	expectedLibraries, ok := expected["libraries"].([]any)
+	if !ok {
+		return errors.New(failure)
+	}
+	for _, raw := range expectedLibraries {
+		library, ok := raw.(map[string]any)
+		if !ok {
+			return errors.New(failure)
+		}
+		known[stringField(library, "id")] = library
+	}
+	seen := map[string]bool{}
+	audiobooks, podcasts := float64(0), float64(0)
+	for _, raw := range libraries {
+		library, ok := raw.(map[string]any)
+		id := stringField(library, "id")
+		name, named := library["name"].(string)
+		mediaType := stringField(library, "mediaType")
+		if !ok || id == "" || seen[id] || !named || known[id] == nil || name != known[id]["name"] || mediaType != known[id]["mediaType"] || !audiobookshelfNumber(library["totalItems"], true) {
+			return errors.New(failure)
+		}
+		seen[id] = true
+		for _, field := range []string{"totalDurationSeconds", "totalSizeBytes"} {
+			value, present := library[field]
+			if !present || value != nil && !audiobookshelfNumber(value, field == "totalSizeBytes") {
+				return errors.New(failure)
+			}
+		}
+		if mediaType == "book" {
+			audiobooks += library["totalItems"].(float64)
+		} else {
+			podcasts += library["totalItems"].(float64)
+		}
+	}
+	if len(seen) != len(known) || statistics["totalAudiobooks"] != audiobooks || statistics["totalPodcasts"] != podcasts {
+		return errors.New(failure)
+	}
+	return nil
 }

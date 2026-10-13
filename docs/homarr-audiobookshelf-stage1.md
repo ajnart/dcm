@@ -1,8 +1,8 @@
 # Audiobookshelf credential prerequisite for Homarr
 
-Stage 1 only, 11 October 2026. Blocked by #262 for Homarr registry wiring,
-supported-version reconciliation and complete lifecycle acceptance. The target
-in `internal/apps/homarr/target_audiobookshelf.go` is deliberately not
+Source-only prerequisite and descriptor, updated 13 October 2026. The #262
+reference is merged; registry wiring and complete lifecycle acceptance remain
+with the reference owner. The target in `internal/apps/homarr/target_audiobookshelf.go` is deliberately not
 registered. This is not a claim of a working Homarr widget.
 
 ## Implemented boundary
@@ -61,18 +61,37 @@ reads the integration account's own listening history, not everyone's total.
 The widget supports exactly one integration. Browser Addresses remain the
 existing Link resolver's responsibility.
 
-The #262 owner must register the descriptor and arrange a fresh call to
-`audiobookshelf.VerifyHomarrCredential` before native connection acceptance.
+The reference owner must register the descriptor. Its preflight and native
+verification freshly call `audiobookshelf.VerifyHomarrCredential` before
+connection acceptance.
 No changes here touch `links.go`, shared widgets or the common registry.
 The final contract must preserve manual integration/widget ownership and define
 credential update/removal without treating an Address match as ownership.
+
+`verifyAudiobookshelfStats` consumes the shared SDK's single catalog-backed,
+forced advancing Stats sample for the four selected metrics. Each must have
+`count` units and finite, nonnegative integral values; zero libraries require
+zero audiobook/podcast totals within that sample. Native verification keeps
+saved destination/account authorization and real library identifiers, validates
+native counts against the native library entries, and accepts explicit null
+library duration/storage. Missing nullable fields still fail. Listening duration
+remains finite and nonnegative; storage remains integral. Direct/native/Stats
+counts, listening times and session counts are independently sampled and are
+not required to equal each other. No extra wall-clock limit is introduced beyond
+the central finite, positive, advancing timestamp policy.
 
 ## Verification and remaining acceptance
 
 The existing Audiobookshelf Setup/rerun test now models account/key acquisition,
 valid empty data, persistent reuse, malformed library data and fresh rejection
-of a revoked key without replacing it. No new test cases or dependencies were
-added. Local gate results are recorded in the draft PR.
+of a revoked key without replacing it. Descriptor HTTP fixtures now invoke the
+real `verifyData` seam with the existing
+`statsFixture`, including populated independently changing counts, explicit empty
+library/zero values, count/unit/catalog failures, no-op refreshes, native library
+identity and nullable-field failures. They require at most one catalog and one
+forced refresh per invocation; native failures acquire no Stats. No dependency
+was added. Focused App/Homarr tests, build, vet and formatting/diff checks are the
+source gate; they are not rendered acceptance.
 
 No Docker, browser or installer was run in this source-only stage. Resume needs
 an independently validated disposable Home folder, unique Compose Project and
@@ -97,3 +116,7 @@ Context7's monthly quota was exhausted; these pinned sources were checked:
 The [old API documentation](https://api.audiobookshelf.org/) warns it is no
 longer maintained; its login-token guidance is not a current persistent-key
 contract. Homarr v2.4.1 is a source baseline, not a tested image in this stage.
+
+Stats and native schemas were rechecked at the exact OCI revision
+`3d4150e59f600876b7e308f857b2f21572b75348` using the locally available source
+objects. The broad administrator authority described above is unchanged.
