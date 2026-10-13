@@ -212,7 +212,11 @@ def judge_run(run, model, timeout, stop):
     return run, "%d/%d" % (sum(o["passed"] for o in out), len(out))
 
 
-def invalidate_judgments(runs, model, retain_metrics=False):
+def invalidate_judgments(directory, runs, model, retain_metrics=False):
+    for name in ("benchmark.json", "review.html"):
+        path = os.path.join(directory, name)
+        if os.path.isfile(path):
+            os.unlink(path)
     for run in runs:
         for name in ("judged.json", "grading.json"):
             path = os.path.join(run, name)
@@ -238,7 +242,7 @@ def main(stop):
     if args.parallel < 1 or args.timeout < 1:
         ap.error("--parallel and --timeout must be positive")
     runs = sorted(glob.glob(os.path.join(args.iteration_dir, "eval-*", "*", "run-*")))
-    invalidate_judgments(runs, args.model)
+    invalidate_judgments(args.iteration_dir, runs, args.model)
     require_iteration(args.iteration_dir, runs)
     check_model(args.model, stop=stop)
     random.shuffle(runs)
@@ -273,7 +277,7 @@ def main(stop):
             for pending in futures:
                 pending.cancel()
     if failed:
-        invalidate_judgments(runs, args.model, retain_metrics=True)
+        invalidate_judgments(args.iteration_dir, runs, args.model, retain_metrics=True)
         raise SystemExit("judging failed; no partial iteration may be graded")
 
 

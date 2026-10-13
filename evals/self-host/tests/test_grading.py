@@ -566,10 +566,30 @@ class GradingCLI(unittest.TestCase):
         result = self.judge()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.grade().returncode, 0)
+        benchmark = self.iteration / "benchmark.json"
+        viewer = self.iteration / "review.html"
+        benchmark.write_text('{"previous_aggregate": true}')
+        viewer.write_text("<html>Previous review</html>")
+        previous_judge = self.run_dir / "raw" / "previous-judge.json"
+        previous_judge.write_bytes((self.run_dir / "raw" / "judge.json").read_bytes())
+        preserved = {
+            path: path.read_bytes()
+            for path in (
+                self.iteration / "execution.json",
+                self.run_dir / "raw" / "metrics.json",
+                self.run_dir / "outputs" / "replies.md",
+                previous_judge,
+            )
+        }
         result = self.judge("preflight-error")
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((self.run_dir / "judged.json").exists())
         self.assertFalse((self.run_dir / "grading.json").exists())
+        self.assertFalse(benchmark.exists())
+        self.assertFalse(viewer.exists())
+        for path, contents in preserved.items():
+            with self.subTest(preserved=path.name):
+                self.assertEqual(path.read_bytes(), contents)
         self.assertNotEqual(self.grade().returncode, 0)
 
     def test_changed_conversation_cannot_reuse_cached_judgment(self):
