@@ -1,0 +1,24 @@
+
+                         ·                                      ·
+
+                                                                          ·
+                                 █▀█▀█▀█▀█▀█▀█
+                                 █▄█▄█▄█▄█▄█▄█ ●
+              ·                  █▀█▀█▀█▀█▀█▀█
+                                 █▄█▄█▄█▄█▄█▄█ ●
+                                 █▀█▀█▀█▀█▀█▀█
+  ·                              █▄█▄█▄█▄█▄█▄█ ●
+                                 █▀█▀█▀█▀█▀█▀█
+                                 █▄█▄█▄█▄█▄█▄█ ●
+             ───────────────────━━━━━━━━━━━━━━━─────────────────────
+
+
+   ╭─ ✗ Docker daemon ──────────────────────────────────────────────────────╮
+   │ Cannot connect to the Docker daemon. Is the Docker daemon running?     │
+   │ → Open OrbStack so the Docker engine starts, then check again.         │
+   │ https://docs.orbstack.dev/quick-start                                  │
+   │                                                                        │
+   │ Onboarding cannot continue while a check fails.                        │
+   ╰────────────────────────────────────────────────────────────────────────╯
+
+ ✗ Docker daemon failed. Fix it, then press r to check…  r check again · q quit
