@@ -78,16 +78,17 @@ var (
 	errRateLimited = errors.New("the admin page is rate-limiting logins (HTTP 429)")
 )
 
-// adminCookie signs in to the admin page with the stored token. Vaultwarden
+// adminSession signs in to the admin page with the stored token. Vaultwarden
 // allows 3 logins per 5 minutes, so the session is remembered for the run:
 // Setup and Check together sign in once.
-func adminCookie(ctx context.Context, h *helpers.H) (string, error) {
-	return h.Remember("admin-cookie", func() (string, error) {
+func adminSession(ctx context.Context, h *helpers.H) (*helpers.Session, error) {
+	cookie, err := h.Remember("admin-cookie", func() (string, error) {
 		token := h.Secret(h.Key("admin_token"))
 		if token == "" {
 			return "", fmt.Errorf("%s is missing from secrets.env", h.Key("admin_token"))
 		}
-		resp, err := h.HTTP(ctx, helpers.Request{
+		s := h.Session()
+		resp, err := s.HTTP(ctx, helpers.Request{
 			Method: http.MethodPost, Path: "/admin",
 			Form: url.Values{"token": {token}},
 		})
@@ -97,12 +98,19 @@ func adminCookie(ctx context.Context, h *helpers.H) (string, error) {
 		if resp.Status == http.StatusTooManyRequests {
 			return "", errRateLimited
 		}
-		cookie := resp.Cookie(sessionCookie)
+		cookie := s.Cookie(sessionCookie)
 		if cookie == "" {
 			return "", fmt.Errorf("%w (HTTP %d)", errRejected, resp.Status)
 		}
-		return sessionCookie + "=" + cookie, nil
+		h.Log.Secret(cookie)
+		return cookie, nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	s := h.Session()
+	s.SetCookie(sessionCookie, cookie)
+	return s, nil
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
@@ -110,7 +118,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	// Sign in once up front so the hint can tell a rate limit from a stale token.
-	_, loginErr := adminCookie(ctx, h)
+	_, loginErr := adminSession(ctx, h)
 	hint := "The admin token is read from the container environment when it starts. " +
 		"Recreate the container so it picks up " + h.Key("admin_token") + " from secrets.env: self-host start vaultwarden"
 	if errors.Is(loginErr, errRateLimited) {
@@ -139,12 +147,12 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	cookie, err := adminCookie(ctx, h)
+	session, err := adminSession(ctx, h)
 	if err != nil {
 		return fmt.Errorf("admin login failed: %w", err)
 	}
 	// diagnostics/config is Vaultwarden's JSON dump of the effective settings.
-	resp, err := h.Expect(ctx, helpers.Request{Path: "/admin/diagnostics/config", Header: map[string]string{"Cookie": cookie}})
+	resp, err := session.Expect(ctx, helpers.Request{Path: "/admin/diagnostics/config"})
 	if err != nil {
 		return err
 	}

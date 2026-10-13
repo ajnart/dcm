@@ -167,7 +167,8 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if err != nil || portal.Scheme != "https" || portal.Hostname() == "" || portal.User != nil || portal.RawQuery != "" || portal.Fragment != "" || (portal.Path != "" && portal.Path != "/") {
 		return false, fmt.Errorf("Authelia requires the saved approved HTTPS portal origin and a trusted private TLS route")
 	}
-	resp, err := h.HTTP(ctx, helpers.Request{
+	session := h.Session()
+	resp, err := session.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/api/firstfactor", BaseURL: origin,
 		JSON: map[string]any{"username": h.AdminUser(), "password": h.AdminPassword(), "keepMeLoggedIn": false},
 	})
@@ -177,11 +178,10 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if resp.Status != http.StatusOK {
 		return false, nil
 	}
-	cookie := resp.Cookie("authelia_session")
-	if cookie == "" {
+	if session.Cookie("authelia_session") == "" {
 		return false, nil
 	}
-	state, err := h.HTTP(ctx, helpers.Request{Path: "/api/state", BaseURL: origin, Header: map[string]string{"Cookie": "authelia_session=" + cookie}})
+	state, err := session.HTTP(ctx, helpers.Request{Path: "/api/state", BaseURL: origin})
 	if err != nil {
 		return false, err
 	}

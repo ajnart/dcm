@@ -88,6 +88,7 @@ func (App) Compose(rc app.RenderContext) string {
 // login signs in with the saved owner credentials and reads the owner role
 // back through the pinned users/me endpoint.
 func login(ctx context.Context, h *helpers.H) (bool, error) {
+	session := h.Session()
 	// Docmost 0.96.0 uses a named auth throttler: ten requests per minute,
 	// Redis-backed, with Retry-After-auth in seconds.
 	resp, err := h.RetryAfter(ctx, helpers.RateLimit{
@@ -96,7 +97,7 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 		Bound:   2 * time.Minute,
 		Hint:    "self-host setup docmost",
 	}, func(ctx context.Context) (helpers.Response, error) {
-		return h.HTTP(ctx, helpers.Request{
+		return session.HTTP(ctx, helpers.Request{
 			Method: http.MethodPost, Path: "/api/auth/login",
 			JSON: map[string]string{"email": adminEmail(h), "password": h.AdminPassword()},
 		})
@@ -121,14 +122,12 @@ func login(ctx context.Context, h *helpers.H) (bool, error) {
 	if resp.Status != http.StatusOK && resp.Status != http.StatusCreated {
 		return false, fmt.Errorf("the login endpoint returned HTTP %d", resp.Status)
 	}
-	cookie := resp.Cookie("authToken")
-	if cookie == "" {
+	if session.Cookie("authToken") == "" {
 		return false, nil
 	}
-	identity, err := h.HTTP(ctx, helpers.Request{
+	identity, err := session.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/api/users/me",
-		JSON:   map[string]any{},
-		Header: map[string]string{"Cookie": "authToken=" + cookie},
+		JSON: map[string]any{},
 	})
 	if err != nil {
 		return false, err

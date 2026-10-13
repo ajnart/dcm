@@ -52,12 +52,13 @@ func (s *Session) HTTP(ctx context.Context, req Request) (Response, error) {
 		if !allowed {
 			return Response{}, errors.New("session request is outside its original origin")
 		}
-		req.NoRedirect = true
-		req.Header = s.withCookie(req.Header)
+		sent := req
+		sent.NoRedirect = true
+		sent.Header = s.withCookie(req.Header)
 		for key, value := range req.Header {
 			current.Header.Set(key, value)
 		}
-		resp, err := s.h.HTTP(ctx, req)
+		resp, err := s.h.HTTP(ctx, sent)
 		if err != nil {
 			return resp, err
 		}
@@ -80,11 +81,22 @@ func (s *Session) HTTP(ctx context.Context, req Request) (Response, error) {
 			return resp, fmt.Errorf("too many redirects from %s", req.Path)
 		}
 		via = append(via, current)
-		next, err := http.NewRequestWithContext(ctx, http.MethodGet, target.String(), nil)
+		method := orGet(req.Method)
+		keepBody := resp.Status == http.StatusTemporaryRedirect || resp.Status == http.StatusPermanentRedirect
+		if !keepBody && method != http.MethodGet && method != http.MethodHead {
+			method = http.MethodGet
+		}
+		next, err := http.NewRequestWithContext(ctx, method, target.String(), nil)
 		if err != nil {
 			return resp, errors.New("invalid session redirect request")
 		}
-		next.Header.Set("Accept", "text/html")
+		header := map[string]string{}
+		for key, value := range req.Header {
+			if keepBody || !strings.HasPrefix(http.CanonicalHeaderKey(key), "Content-") {
+				header[key] = value
+				next.Header.Set(key, value)
+			}
+		}
 		client := s.h.Config.HTTP
 		if client == nil {
 			client = http.DefaultClient
@@ -100,12 +112,45 @@ func (s *Session) HTTP(ctx context.Context, req Request) (Response, error) {
 		if !sameHTTPOrigin(&origin, next.URL) {
 			return resp, nil
 		}
-		// Login redirects become GETs without the submitted credentials.
-		req = Request{Method: next.Method, BaseURL: next.URL.Scheme + "://" + next.URL.Host, Path: next.URL.RequestURI(), Header: map[string]string{}}
-		for key, values := range next.Header {
-			req.Header[key] = strings.Join(values, ", ")
+		redirected := Request{Method: next.Method, BaseURL: next.URL.Scheme + "://" + next.URL.Host, Path: next.URL.RequestURI(),
+			Header: header, User: req.User, Password: req.Password}
+		if keepBody {
+			redirected.JSON, redirected.Form, redirected.Body = req.JSON, req.Form, req.Body
+		}
+		req = redirected
+	}
+}
+
+// Expect sends req through the session and fails unless the status is one of
+// want (2xx if empty).
+func (s *Session) Expect(ctx context.Context, req Request, want ...int) (Response, error) {
+	resp, err := s.HTTP(ctx, req)
+	if err != nil {
+		return resp, err
+	}
+	if len(want) == 0 && resp.OK() {
+		return resp, nil
+	}
+	for _, status := range want {
+		if resp.Status == status {
+			return resp, nil
 		}
 	}
+	return resp, fmt.Errorf("%s %s returned HTTP %d: %s", orGet(req.Method), req.Path, resp.Status, snippet(resp.Body))
+}
+
+// Cookie returns the jar's value for name, or "" when none was set.
+func (s *Session) Cookie(name string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.jar[name]
+}
+
+// SetCookie seeds the jar, for a session kept from an earlier login.
+func (s *Session) SetCookie(name, value string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.jar[name] = value
 }
 
 // FormToken GETs path and returns the value of the hidden input named

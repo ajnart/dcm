@@ -3,6 +3,7 @@ package helpers_test
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -109,5 +110,50 @@ func TestSessionRedirectLoopIsBounded(t *testing.T) {
 	_, err := h.Session().HTTP(context.Background(), helpers.Request{})
 	if err == nil || received.Load() != 10 {
 		t.Fatalf("session redirect limit missing: requests=%d error=%v", received.Load(), err)
+	}
+}
+
+func TestSessionRedirectKeepsMethodBodyAndHeadersOnTemporaryRedirect(t *testing.T) {
+	var got struct {
+		method, body, referer, user string
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/old" {
+			http.Redirect(w, r, "/new", http.StatusTemporaryRedirect)
+			return
+		}
+		data, _ := io.ReadAll(r.Body)
+		got.method, got.body, got.referer = r.Method, string(data), r.Header.Get("Referer")
+		got.user, _, _ = r.BasicAuth()
+	}))
+	defer server.Close()
+	h := &helpers.H{Config: helpers.Config{BaseURL: server.URL, HTTP: server.Client()}}
+	_, err := h.Session().HTTP(context.Background(), helpers.Request{
+		Method: http.MethodPost, Path: "/old", JSON: map[string]string{"a": "b"},
+		Header: map[string]string{"Referer": "synthetic-referer"}, User: "synthetic-user", Password: "synthetic-password",
+	})
+	if err != nil || got.method != http.MethodPost || got.body != `{"a":"b"}` || got.referer != "synthetic-referer" || got.user != "synthetic-user" {
+		t.Fatalf("307 did not replay the request: %+v error=%v", got, err)
+	}
+}
+
+func TestSessionRedirectSeeOtherBecomesGetAndKeepsHeaders(t *testing.T) {
+	var got struct{ method, body, referer string }
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/old" {
+			http.Redirect(w, r, "/new", http.StatusSeeOther)
+			return
+		}
+		data, _ := io.ReadAll(r.Body)
+		got.method, got.body, got.referer = r.Method, string(data), r.Header.Get("Referer")
+	}))
+	defer server.Close()
+	h := &helpers.H{Config: helpers.Config{BaseURL: server.URL, HTTP: server.Client()}}
+	_, err := h.Session().HTTP(context.Background(), helpers.Request{
+		Method: http.MethodPost, Path: "/old", Form: map[string][]string{"a": {"b"}},
+		Header: map[string]string{"Referer": "synthetic-referer"},
+	})
+	if err != nil || got.method != http.MethodGet || got.body != "" || got.referer != "synthetic-referer" {
+		t.Fatalf("303 did not become a plain GET: %+v error=%v", got, err)
 	}
 }

@@ -93,57 +93,55 @@ func (App) Compose(rc app.RenderContext) string {
 
 var temporaryPassword = regexp.MustCompile(`temporary password is provided for this session: (\S+)`)
 
-// session is a signed-in WebUI: the cookie qBittorrent hands out, named SID
-// up to 5.1 and QBT_SID_<port> since 5.2.
-type session struct{ cookie string }
-
 var errBanned = errors.New("qBittorrent has banned this address after too many failed logins; restart the container (self-host restart qbittorrent) or wait for the ban to expire")
 
-// login signs in. Bad credentials give ok=false and no error, so callers can
-// try the next candidate; a ban is an error.
-func login(ctx context.Context, h *helpers.H, user, password string) (session, bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{
+// login signs in; the Session keeps the cookie qBittorrent hands out, named
+// SID up to 5.1 and QBT_SID_<port> since 5.2. Bad credentials give ok=false and
+// no error, so callers can try the next candidate; a ban is an error.
+func login(ctx context.Context, h *helpers.H, user, password string) (*helpers.Session, bool, error) {
+	s := h.Session()
+	resp, err := s.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api/v2/auth/login",
 		Form:   url.Values{"username": {user}, "password": {password}},
 		Header: map[string]string{"Referer": h.BaseURL},
 	})
 	if err != nil {
-		return session{}, false, err
+		return nil, false, err
 	}
 	switch {
 	case resp.Status == 403:
-		return session{}, false, errBanned
+		return nil, false, errBanned
 	case resp.Status == 401, resp.Status == 200 && string(resp.Body) == "Fails.":
-		return session{}, false, nil
+		return nil, false, nil
 	case resp.Status != 200 && resp.Status != 204:
-		return session{}, false, fmt.Errorf("login returned HTTP %d", resp.Status)
+		return nil, false, fmt.Errorf("login returned HTTP %d", resp.Status)
 	}
 	for _, c := range (&http.Response{Header: resp.Header}).Cookies() {
 		if c.Name == "SID" || strings.HasPrefix(c.Name, "QBT_SID_") {
-			return session{cookie: c.Name + "=" + c.Value}, true, nil
+			return s, true, nil
 		}
 	}
-	return session{}, false, errors.New("login succeeded but qBittorrent set no session cookie")
+	return nil, false, errors.New("login succeeded but qBittorrent set no session cookie")
 }
 
-func (s session) request(h *helpers.H, req helpers.Request) helpers.Request {
-	req.Header = map[string]string{"Referer": h.BaseURL, "Cookie": s.cookie}
+func authorized(h *helpers.H, req helpers.Request) helpers.Request {
+	req.Header = map[string]string{"Referer": h.BaseURL}
 	return req
 }
 
-func setPreferences(ctx context.Context, h *helpers.H, s session, prefs map[string]string) error {
+func setPreferences(ctx context.Context, h *helpers.H, s *helpers.Session, prefs map[string]string) error {
 	body, err := json.Marshal(prefs)
 	if err != nil {
 		return err
 	}
-	_, err = h.Expect(ctx, s.request(h, helpers.Request{
+	_, err = s.Expect(ctx, authorized(h, helpers.Request{
 		Method: "POST", Path: "/api/v2/app/setPreferences",
 		Form: url.Values{"json": {string(body)}},
 	}))
 	return err
 }
 
-func adminSession(ctx context.Context, h *helpers.H) (session, bool, error) {
+func adminSession(ctx context.Context, h *helpers.H) (*helpers.Session, bool, error) {
 	return login(ctx, h, h.AdminUser(), h.AdminPassword())
 }
 
@@ -224,7 +222,7 @@ func savePath(ctx context.Context, h *helpers.H) (bool, error) {
 	if err != nil || !ok {
 		return false, err
 	}
-	resp, err := h.Expect(ctx, s.request(h, helpers.Request{Path: "/api/v2/app/preferences"}))
+	resp, err := s.Expect(ctx, authorized(h, helpers.Request{Path: "/api/v2/app/preferences"}))
 	if err != nil {
 		return false, err
 	}

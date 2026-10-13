@@ -95,20 +95,20 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if wrong.Status != http.StatusUnauthorized {
 		return false, fmt.Errorf("Kopia API accepted an incorrect administrator credential or returned an unexpected response (HTTP %d); expected HTTP 401", wrong.Status)
 	}
-	ui, err := h.HTTP(ctx, helpers.Request{Path: "/", User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true})
+	session := h.Session()
+	ui, err := session.HTTP(ctx, helpers.Request{Path: "/", User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true})
 	if err != nil {
 		return false, requestFailure(ctx)
 	}
 	if ui.Status != http.StatusOK {
 		return false, fmt.Errorf("saved administrator login to the Kopia UI returned HTTP %d; expected HTTP 200", ui.Status)
 	}
-	cookie := ui.Cookie(sessionCookie)
 	token := csrfMeta.FindSubmatch(ui.Body)
-	if cookie == "" || len(token) != 2 {
+	if session.Cookie(sessionCookie) == "" || len(token) != 2 {
 		return false, errors.New("authenticated Kopia UI did not supply its session cookie and CSRF token")
 	}
-	resp, err := h.HTTP(ctx, helpers.Request{Path: currentUserPath, User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true,
-		Header: map[string]string{"Cookie": sessionCookie + "=" + cookie, csrfHeader: string(token[1])}})
+	resp, err := session.HTTP(ctx, helpers.Request{Path: currentUserPath, User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true,
+		Header: map[string]string{csrfHeader: string(token[1])}})
 	if err != nil {
 		return false, requestFailure(ctx)
 	}

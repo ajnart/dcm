@@ -57,18 +57,9 @@ type rpcResponse struct {
 	ID     *int            `json:"id"`
 	Error  json.RawMessage `json:"error"`
 	Result json.RawMessage `json:"result"`
-	Cookie string          `json:"-"`
 }
 
-func rpc(ctx context.Context, h *helpers.H, method, cookie string, params ...any) (rpcResponse, error) {
-	if params == nil {
-		params = []any{}
-	}
-	req := helpers.Request{Method: http.MethodPost, Path: "/json", NoRedirect: true,
-		JSON: map[string]any{"method": method, "params": params, "id": 1}}
-	if cookie != "" {
-		req.Header = map[string]string{"Cookie": cookie}
-	}
+func newSession(h *helpers.H) *helpers.Session {
 	if h.Config.HTTP != nil {
 		client := *h.Config.HTTP
 		client.Jar = nil
@@ -76,7 +67,15 @@ func rpc(ctx context.Context, h *helpers.H, method, cookie string, params ...any
 		isolated.Config.HTTP = &client
 		h = &isolated
 	}
-	resp, err := h.HTTP(ctx, req)
+	return h.Session()
+}
+
+func rpc(ctx context.Context, s *helpers.Session, method string, params ...any) (rpcResponse, error) {
+	if params == nil {
+		params = []any{}
+	}
+	resp, err := s.HTTP(ctx, helpers.Request{Method: http.MethodPost, Path: "/json", NoRedirect: true,
+		JSON: map[string]any{"method": method, "params": params, "id": 1}})
 	if err != nil {
 		return rpcResponse{}, err
 	}
@@ -90,7 +89,6 @@ func rpc(ctx context.Context, h *helpers.H, method, cookie string, params ...any
 	if body.ID == nil || *body.ID != 1 || len(body.Error) == 0 || string(body.Error) != "null" || len(body.Result) == 0 {
 		return rpcResponse{}, errors.New("Deluge returned a JSON-RPC error or incomplete response; run self-host setup deluge")
 	}
-	body.Cookie = resp.Cookie("_session_id")
 	return body, nil
 }
 
@@ -102,62 +100,63 @@ func (r rpcResponse) boolean() (bool, error) {
 	return *value, nil
 }
 
-func login(ctx context.Context, h *helpers.H, password string) (string, error) {
+func login(ctx context.Context, h *helpers.H, password string) (*helpers.Session, error) {
 	if password == "" {
-		return "", errors.New("Deluge Web password is missing; run self-host setup deluge")
+		return nil, errors.New("Deluge Web password is missing; run self-host setup deluge")
 	}
-	body, err := rpc(ctx, h, "auth.login", "", password)
+	s := newSession(h)
+	body, err := rpc(ctx, s, "auth.login", password)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	ok, err := body.boolean()
 	if err != nil || !ok {
-		return "", err
+		return nil, err
 	}
-	if body.Cookie == "" {
-		return "", errors.New("Deluge did not issue an authenticated Web session")
+	cookie := s.Cookie("_session_id")
+	if cookie == "" {
+		return nil, errors.New("Deluge did not issue an authenticated Web session")
 	}
-	cookie := "_session_id=" + body.Cookie
-	h.Log.Secret(body.Cookie)
-	session, err := rpc(ctx, h, "auth.check_session", cookie)
+	h.Log.Secret(cookie)
+	session, err := rpc(ctx, s, "auth.check_session")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	valid, err := session.boolean()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if !valid {
-		return "", errors.New("Deluge rejected the new Web session; run self-host setup deluge")
+		return nil, errors.New("Deluge rejected the new Web session; run self-host setup deluge")
 	}
-	return cookie, nil
+	return s, nil
 }
 
 func WebPassword(h *helpers.H) string {
 	return h.Secret(h.Key("web_password"))
 }
 
-func webSession(ctx context.Context, h *helpers.H) (string, error) {
+func webSession(ctx context.Context, h *helpers.H) (*helpers.Session, error) {
 	password := WebPassword(h)
 	if password == initialPassword {
-		return "", errors.New("Deluge still uses its shared initial Web password; run self-host setup deluge")
+		return nil, errors.New("Deluge still uses its shared initial Web password; run self-host setup deluge")
 	}
-	cookie, err := login(ctx, h, password)
+	s, err := login(ctx, h, password)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if cookie == "" {
-		return "", errors.New("the saved Deluge Web password was rejected; restore it through the Project secret boundary or change it to the Admin login, then run self-host setup deluge")
+	if s == nil {
+		return nil, errors.New("the saved Deluge Web password was rejected; restore it through the Project secret boundary or change it to the Admin login, then run self-host setup deluge")
 	}
-	return cookie, nil
+	return s, nil
 }
 
 func canLogin(ctx context.Context, h *helpers.H, password string) (bool, error) {
-	cookie, err := login(ctx, h, password)
-	if cookie != "" {
-		defer rpc(ctx, h, "auth.delete_session", cookie)
+	s, err := login(ctx, h, password)
+	if s != nil {
+		defer rpc(ctx, s, "auth.delete_session")
 	}
-	return cookie != "", err
+	return s != nil, err
 }
 
 func establishPassword(ctx context.Context, h *helpers.H) error {
@@ -170,15 +169,15 @@ func establishPassword(ctx context.Context, h *helpers.H) error {
 	} else if ok {
 		return h.SetSecret(h.Key("web_password"), password)
 	}
-	cookie, err := login(ctx, h, initialPassword)
+	s, err := login(ctx, h, initialPassword)
 	if err != nil {
 		return err
 	}
-	if cookie == "" {
+	if s == nil {
 		return errors.New("the initial and Admin passwords were rejected; restore the saved Deluge Web password through the Project secret boundary or change it to the Admin login, then run self-host setup deluge")
 	}
-	defer rpc(ctx, h, "auth.delete_session", cookie)
-	rotated, err := rpc(ctx, h, "auth.change_password", cookie, initialPassword, password)
+	defer rpc(ctx, s, "auth.delete_session")
+	rotated, err := rpc(ctx, s, "auth.change_password", initialPassword, password)
 	if err != nil {
 		return err
 	}
@@ -198,19 +197,19 @@ func establishPassword(ctx context.Context, h *helpers.H) error {
 }
 
 func connectDaemon(ctx context.Context, h *helpers.H) error {
-	cookie, err := webSession(ctx, h)
+	s, err := webSession(ctx, h)
 	if err != nil {
 		return err
 	}
-	defer rpc(ctx, h, "auth.delete_session", cookie)
-	connected, err := daemonConnected(ctx, h, cookie)
+	defer rpc(ctx, s, "auth.delete_session")
+	connected, err := daemonConnected(ctx, s)
 	if err != nil {
 		return err
 	}
 	if connected {
-		return verifyQueue(ctx, h, cookie)
+		return verifyQueue(ctx, s)
 	}
-	configuration, err := rpc(ctx, h, "web.get_config", cookie)
+	configuration, err := rpc(ctx, s, "web.get_config")
 	if err != nil {
 		return err
 	}
@@ -220,7 +219,7 @@ func connectDaemon(ctx context.Context, h *helpers.H) error {
 	if json.Unmarshal(configuration.Result, &config) != nil || config.DefaultDaemon == nil {
 		return errors.New("Deluge did not return its Web connection settings")
 	}
-	response, err := rpc(ctx, h, "web.get_hosts", cookie)
+	response, err := rpc(ctx, s, "web.get_hosts")
 	if err != nil {
 		return err
 	}
@@ -252,24 +251,24 @@ func connectDaemon(ctx context.Context, h *helpers.H) error {
 	if id == "" {
 		return helpers.ErrManual
 	}
-	connected, err = daemonConnected(ctx, h, cookie)
+	connected, err = daemonConnected(ctx, s)
 	if err != nil {
 		return err
 	}
 	if connected {
-		return verifyQueue(ctx, h, cookie)
+		return verifyQueue(ctx, s)
 	}
-	if _, err := rpc(ctx, h, "web.connect", cookie, id); err != nil {
+	if _, err := rpc(ctx, s, "web.connect", id); err != nil {
 		return err
 	}
-	if err := verifyQueue(ctx, h, cookie); err != nil {
+	if err := verifyQueue(ctx, s); err != nil {
 		return err
 	}
 	if *config.DefaultDaemon == "" {
-		if _, err := rpc(ctx, h, "web.set_config", cookie, map[string]any{"default_daemon": id}); err != nil {
+		if _, err := rpc(ctx, s, "web.set_config", map[string]any{"default_daemon": id}); err != nil {
 			return err
 		}
-		response, err := rpc(ctx, h, "web.get_config", cookie)
+		response, err := rpc(ctx, s, "web.get_config")
 		if err != nil {
 			return err
 		}
@@ -280,23 +279,23 @@ func connectDaemon(ctx context.Context, h *helpers.H) error {
 	return nil
 }
 
-func daemonConnected(ctx context.Context, h *helpers.H, cookie string) (bool, error) {
-	connected, err := rpc(ctx, h, "web.connected", cookie)
+func daemonConnected(ctx context.Context, s *helpers.Session) (bool, error) {
+	connected, err := rpc(ctx, s, "web.connected")
 	if err != nil {
 		return false, err
 	}
 	return connected.boolean()
 }
 
-func verifyQueue(ctx context.Context, h *helpers.H, cookie string) error {
-	ok, err := daemonConnected(ctx, h, cookie)
+func verifyQueue(ctx context.Context, s *helpers.Session) error {
+	ok, err := daemonConnected(ctx, s)
 	if err != nil {
 		return err
 	}
 	if !ok {
 		return errors.New("Deluge Web authentication succeeded but its daemon is disconnected; run self-host setup deluge or select the local daemon in its Connection Manager")
 	}
-	response, err := rpc(ctx, h, "web.update_ui", cookie, []string{"name", "state", "progress"}, map[string]any{})
+	response, err := rpc(ctx, s, "web.update_ui", []string{"name", "state", "progress"}, map[string]any{})
 	if err != nil {
 		return err
 	}
@@ -320,12 +319,12 @@ func verifyQueue(ctx context.Context, h *helpers.H, cookie string) error {
 }
 
 func VerifyHomarr(ctx context.Context, h *helpers.H) error {
-	cookie, err := webSession(ctx, h)
+	s, err := webSession(ctx, h)
 	if err != nil {
 		return err
 	}
-	defer rpc(ctx, h, "auth.delete_session", cookie)
-	return verifyQueue(ctx, h, cookie)
+	defer rpc(ctx, s, "auth.delete_session")
+	return verifyQueue(ctx, s)
 }
 
 func ready(ctx context.Context, h *helpers.H, path string) error {

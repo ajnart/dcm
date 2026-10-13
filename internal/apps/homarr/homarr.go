@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -58,61 +57,14 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-// session is a cookie jar: helpers.HTTP has none, so it sends the cookies the
-// claim and login set and remembers the ones Homarr returns.
+// session is a signed-in Homarr: a cookie jar over the claim and login, and
+// whether the login was already proven this run.
 type session struct {
-	jar      map[string]string
+	http     *helpers.Session
 	loggedIn bool
 }
 
-func newSession() *session { return &session{jar: map[string]string{}} }
-
-func (s *session) cookieHeader() string {
-	names := make([]string, 0, len(s.jar))
-	for name := range s.jar {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	parts := make([]string, 0, len(names))
-	for _, name := range names {
-		parts = append(parts, name+"="+s.jar[name])
-	}
-	return strings.Join(parts, "; ")
-}
-
-func (s *session) absorb(resp helpers.Response) {
-	for _, raw := range resp.Header.Values("Set-Cookie") {
-		pair, _, _ := strings.Cut(raw, ";")
-		eq := strings.IndexByte(pair, '=')
-		if eq <= 0 {
-			continue
-		}
-		name := strings.TrimSpace(pair[:eq])
-		value := strings.TrimSpace(pair[eq+1:])
-		if strings.Contains(strings.ToLower(raw), "max-age=0") {
-			delete(s.jar, name)
-			continue
-		}
-		s.jar[name] = value
-	}
-}
-
-func (s *session) do(ctx context.Context, h *helpers.H, req helpers.Request) (helpers.Response, error) {
-	if len(s.jar) > 0 {
-		header := map[string]string{}
-		for name, value := range req.Header {
-			header[name] = value
-		}
-		header["Cookie"] = s.cookieHeader()
-		req.Header = header
-	}
-	resp, err := h.HTTP(ctx, req)
-	if err != nil {
-		return resp, err
-	}
-	s.absorb(resp)
-	return resp, nil
-}
+func newSession(h *helpers.H) *session { return &session{http: h.Session()} }
 
 // envelope is tRPC's SuperJSON reply: {"result":{"data":{"json":…}}} on
 // success, {"error":{"json":{"message","code"}}} otherwise.
@@ -172,7 +124,7 @@ func (s *session) mutation(ctx context.Context, h *helpers.H, proc string, input
 	} else {
 		req.JSON = map[string]any{"json": input}
 	}
-	resp, err := s.do(ctx, h, req)
+	resp, err := s.http.HTTP(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +136,7 @@ func (s *session) query(ctx context.Context, h *helpers.H, proc string, input an
 	if err != nil {
 		return nil, err
 	}
-	resp, err := s.do(ctx, h, helpers.Request{Path: path})
+	resp, err := s.http.HTTP(ctx, helpers.Request{Path: path})
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +149,7 @@ func (s *session) login(ctx context.Context, h *helpers.H) error {
 	if s.loggedIn {
 		return nil
 	}
-	resp, err := s.do(ctx, h, helpers.Request{Path: "/api/auth/csrf"})
+	resp, err := s.http.HTTP(ctx, helpers.Request{Path: "/api/auth/csrf"})
 	if err != nil {
 		return err
 	}
@@ -213,7 +165,7 @@ func (s *session) login(ctx context.Context, h *helpers.H) error {
 		"csrfToken":   {csrf.Token},
 		"callbackUrl": {h.URL},
 	}
-	resp, err = s.do(ctx, h, helpers.Request{
+	resp, err = s.http.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api/auth/callback/credentials", Form: form,
 		Header: map[string]string{"X-Auth-Return-Redirect": "1"},
 	})
@@ -223,7 +175,7 @@ func (s *session) login(ctx context.Context, h *helpers.H) error {
 	if !resp.OK() {
 		return fmt.Errorf("the login form returned HTTP %d", resp.Status)
 	}
-	resp, err = s.do(ctx, h, helpers.Request{Path: "/api/auth/session"})
+	resp, err = s.http.HTTP(ctx, helpers.Request{Path: "/api/auth/session"})
 	if err != nil {
 		return err
 	}
@@ -271,7 +223,7 @@ func (s *session) createAdmin(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	if step == "start" || step == "user" {
-		resp, err := s.do(ctx, h, helpers.Request{Method: "POST", Path: "/api/onboarding/claim"})
+		resp, err := s.http.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api/onboarding/claim"})
 		if err != nil {
 			return err
 		}
@@ -382,7 +334,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return err
 		}
 	}
-	s := newSession()
+	s := newSession(h)
 	err := h.Step(ctx, "admin", "sign in as the administrator "+h.AdminUser(), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return s.admin(ctx, h) },
 		Do:    func(ctx context.Context) error { return s.createAdmin(ctx, h) },
@@ -447,7 +399,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if err := supportedVersion(ctx, h); err != nil {
 		return err
 	}
-	if err := newSession().login(ctx, h); err != nil {
+	if err := newSession(h).login(ctx, h); err != nil {
 		return fmt.Errorf("the Admin login %s cannot sign in to Homarr: %w", h.AdminUser(), err)
 	}
 	return nil

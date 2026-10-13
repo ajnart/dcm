@@ -107,24 +107,24 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 
 // signIn signs in to Seerr with the Jellyfin Admin login. The first time it
 // also binds Jellyfin (by service name) and creates Seerr's admin.
-func signIn(ctx context.Context, from *helpers.H, p public) (string, error) {
+func signIn(ctx context.Context, from *helpers.H, p public) (*helpers.Session, error) {
 	body := map[string]any{"username": from.AdminUser(), "password": from.AdminPassword()}
 	if p.MediaServerType == mediaServerNone {
 		body["hostname"], body["port"], body["useSsl"], body["urlBase"] = "jellyfin", jellyfin.ContainerPort, false, ""
 		body["serverType"], body["email"] = mediaServerJellyfin, from.AdminUser()+"@selfhost.local"
 	}
-	resp, err := from.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api/v1/auth/jellyfin", JSON: body})
+	s := from.Session()
+	resp, err := s.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api/v1/auth/jellyfin", JSON: body})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if !resp.OK() {
-		return "", fmt.Errorf("Jellyfin sign-in returned HTTP %d: %s", resp.Status, strings.TrimSpace(string(resp.Body)))
+		return nil, fmt.Errorf("Jellyfin sign-in returned HTTP %d: %s", resp.Status, strings.TrimSpace(string(resp.Body)))
 	}
-	cookie := resp.Cookie("connect.sid")
-	if cookie == "" {
-		return "", errors.New("Seerr set no session cookie")
+	if s.Cookie("connect.sid") == "" {
+		return nil, errors.New("Seerr set no session cookie")
 	}
-	return "connect.sid=" + cookie, nil
+	return s, nil
 }
 
 type jellyfinLibrary struct {
@@ -184,7 +184,7 @@ func connect(ctx context.Context, from *helpers.H) error {
 	if p.MediaServerType != mediaServerNone && p.MediaServerType != mediaServerJellyfin {
 		return errors.New("Seerr is already set up with another media server; it is left as it is")
 	}
-	cookie, err := signIn(ctx, from, p)
+	session, err := signIn(ctx, from, p)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func connect(ctx context.Context, from *helpers.H) error {
 	if p.Initialized {
 		return nil
 	}
-	_, err = from.Expect(ctx, helpers.Request{Method: "POST", Path: "/api/v1/settings/initialize", Header: map[string]string{"Cookie": cookie}})
+	_, err = session.Expect(ctx, helpers.Request{Method: "POST", Path: "/api/v1/settings/initialize"})
 	return err
 }
 
