@@ -184,6 +184,7 @@ func validateTLS(h *helpers.H) error {
 }
 
 type identity struct {
+	ID       string `json:"id"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
 	Provider string `json:"provider"`
@@ -231,6 +232,9 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	if err := setupHomarrReader(ctx, h); err != nil {
+		return err
+	}
 	if err := h.Step(ctx, "homarr-api", "the private API returns supported container update data", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
 			_, err := ReadHomarrStats(ctx, h)
@@ -263,6 +267,9 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	}
 	if ok, err := adminWorks(ctx, h); !ok {
 		return fmt.Errorf("the administrator %s cannot sign in: %v", h.AdminUser(), err)
+	}
+	if err := VerifyHomarrReader(ctx, h); err != nil {
+		return err
 	}
 	resp, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers"})
 	if err != nil {
@@ -365,17 +372,14 @@ func ReadHomarrStats(ctx context.Context, h *helpers.H) (HomarrStatistics, error
 	if err := ctx.Err(); err != nil {
 		return statistics, err
 	}
-	if h.AdminUser() == "" || h.AdminPassword() == "" {
-		return statistics, errors.New("WUD Admin login is missing; restore it through the Project secret boundary and retry self-host setup wud")
-	}
-	if ok, err := adminWorks(ctx, h); err != nil || !ok {
-		return statistics, errors.New("WUD rejected the saved administrator identity; retry self-host setup wud without changing its account or role")
+	if err := VerifyHomarrReader(ctx, h); err != nil {
+		return statistics, err
 	}
 	anonymous, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers", NoRedirect: true})
 	if err != nil || anonymous.Status != http.StatusUnauthorized {
 		return statistics, errors.New("WUD anonymous inventory access is not verified as denied; repair its authentication and retry self-host setup wud")
 	}
-	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers", NoRedirect: true, User: h.AdminUser(), Password: h.AdminPassword()})
+	response, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers", NoRedirect: true, User: h.Secret(h.Key("homarr_username")), Password: h.Secret(h.Key("homarr_password"))})
 	if err != nil {
 		return statistics, errors.New("WUD authenticated inventory request failed; retry self-host setup wud")
 	}

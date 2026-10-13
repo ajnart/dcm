@@ -29,8 +29,11 @@ func (s fakeSecrets) Get(key string) string       { return s[key] }
 func (s fakeSecrets) Set(key, value string) error { s[key] = value; return nil }
 
 const (
-	adminUser = "admin"
-	adminPass = "correct-horse-battery"
+	readerUser = "self-host-homarr"
+	readerPass = "fixture-reader-password"
+	readerID   = "fixture-reader-id"
+	adminUser  = "admin"
+	adminPass  = "correct-horse-battery"
 )
 
 func authOK(r *http.Request) bool {
@@ -38,9 +41,33 @@ func authOK(r *http.Request) bool {
 	return ok && user == adminUser && pass == adminPass
 }
 
+func readerOK(r *http.Request) bool {
+	user, pass, ok := r.BasicAuth()
+	return ok && user == readerUser && pass == readerPass
+}
+
+func fixtureSecrets() fakeSecrets {
+	return fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass, "WUD_HOMARR_USERNAME": readerUser, "WUD_HOMARR_PASSWORD": readerPass, "WUD_HOMARR_USER_ID": readerID}
+}
+
 func handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/users", func(w http.ResponseWriter, r *http.Request) {
+		if readerOK(r) {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		if !authOK(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode([]any{map[string]string{"id": readerID, "username": readerUser, "role": "ro", "provider": "local"}})
+	})
 	mux.HandleFunc("GET /auth/user", func(w http.ResponseWriter, r *http.Request) {
+		if readerOK(r) {
+			json.NewEncoder(w).Encode(map[string]string{"id": readerID, "username": readerUser, "role": "ro", "provider": "local"})
+			return
+		}
 		if !authOK(r) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -48,7 +75,7 @@ func handler() http.Handler {
 		json.NewEncoder(w).Encode(map[string]any{"username": adminUser, "role": "admin", "provider": "local"})
 	})
 	mux.HandleFunc("GET /api/containers", func(w http.ResponseWriter, r *http.Request) {
-		if !authOK(r) {
+		if !authOK(r) && !readerOK(r) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -86,7 +113,7 @@ func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult, inp
 	return helpers.New(helpers.Config{
 		App: "wud", Service: "wud", Dir: dir, BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Inputs:  inputs,
-		Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass},
+		Secrets: fixtureSecrets(),
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 		Record: func(r helpers.StepResult) { *records = append(*records, r) },
 	})

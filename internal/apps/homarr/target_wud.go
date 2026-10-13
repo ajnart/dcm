@@ -14,7 +14,7 @@ func wudTarget() target {
 	return target{
 		id: "wud", name: "What's Up Docker", kind: "wud", internal: fixed("http://wud:3000"),
 		secrets: func(_, to *helpers.H) []secret {
-			return []secret{{Kind: "username", Value: to.AdminUser()}, {Kind: "password", Value: to.AdminPassword()}}
+			return []secret{{Kind: "username", Value: to.Secret(to.Key("homarr_username"))}, {Kind: "password", Value: to.Secret(to.Key("homarr_password"))}}
 		},
 		widgets: []widget{{kind: "wud", options: map[string]any{
 			"showTitle": true, "showRing": true, "layout": "horizontal", "showUpdateList": true,

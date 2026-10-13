@@ -56,13 +56,15 @@ func TestWUDDescriptorVerifyData(t *testing.T) {
 			scenario.change(fixture, details)
 			native := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				user, pass, ok := r.BasicAuth()
-				if !ok || user != "fixture-admin" || pass != "fixture-password" {
+				if !ok || user != "fixture-reader" || pass != "fixture-reader-password" {
 					w.WriteHeader(http.StatusUnauthorized)
 					return
 				}
 				switch r.URL.Path {
 				case "/auth/user":
-					json.NewEncoder(w).Encode(map[string]any{"username": "fixture-admin", "role": "admin"})
+					json.NewEncoder(w).Encode(map[string]any{"id": "fixture-reader-id", "username": "fixture-reader", "role": "ro", "provider": "local"})
+				case "/api/users":
+					w.WriteHeader(http.StatusForbidden)
 				case "/api/containers":
 					json.NewEncoder(w).Encode([]any{map[string]any{"id": "fixture-container", "name": "fixture image", "watcher": "approved", "updateAvailable": false}})
 				default:
@@ -84,7 +86,7 @@ func TestWUDDescriptorVerifyData(t *testing.T) {
 				}
 				return time.UnixMilli(47000)
 			}})
-			to := helpers.New(helpers.Config{App: "wud", BaseURL: native.URL, HTTP: native.Client(), Log: events.Discard(), Secrets: statsSecrets{"ADMIN_USER": "fixture-admin", "ADMIN_PASSWORD": "fixture-password"}})
+			to := helpers.New(helpers.Config{App: "wud", BaseURL: native.URL, HTTP: native.Client(), Log: events.Discard(), Secrets: statsSecrets{"ADMIN_USER": "fixture-admin", "ADMIN_PASSWORD": "fixture-password", "WUD_HOMARR_USERNAME": "fixture-reader", "WUD_HOMARR_PASSWORD": "fixture-reader-password", "WUD_HOMARR_USER_ID": "fixture-reader-id"}})
 			err := wudTarget().verifyData(t.Context(), from, to, "wud-owned")
 			if (err != nil) != scenario.wantError {
 				t.Fatalf("unexpected verification result: %v", err)
@@ -104,5 +106,16 @@ func TestWUDPreflightKeepsTLSPrerequisitesManual(t *testing.T) {
 	to := helpers.New(helpers.Config{App: "wud", Log: events.Discard(), Inputs: map[string]string{}})
 	if err := wudTarget().preflight(t.Context(), from, to); !errors.Is(err, helpers.ErrManual) {
 		t.Fatalf("missing approved TLS endpoint should remain Manual: %v", err)
+	}
+}
+
+func TestWUDDescriptorNeverUsesSharedAdmin(t *testing.T) {
+	to := helpers.New(helpers.Config{App: "wud", Log: events.Discard(), Secrets: statsSecrets{
+		"ADMIN_USER": "fixture-admin", "ADMIN_PASSWORD": "fixture-admin-password",
+		"WUD_HOMARR_USERNAME": "fixture-reader", "WUD_HOMARR_PASSWORD": "fixture-reader-password",
+	}})
+	credentials := wudTarget().credentials(to, to)
+	if len(credentials) != 2 || credentials[0].Value != "fixture-reader" || credentials[1].Value != "fixture-reader-password" {
+		t.Fatal("Homarr still receives shared administrator credentials instead of its dedicated reader")
 	}
 }
