@@ -1,0 +1,18 @@
+{
+  "id": "cloudflare-tunnel",
+  "name": "Cloudflare Tunnel",
+  "description": "Open your app to the internet safely through Cloudflare, with no router changes",
+  "category": "Remote access",
+  "image": "cloudflare/cloudflared:2026.9.1",
+  "docs": "https://developers.cloudflare.com/tunnel/",
+  "port": 0,
+  "inputs": [
+    {
+      "key": "token",
+      "prompt": "Cloudflare Tunnel connector token",
+      "help": "The tunnel run token, not the API token; self-host cloudflare publish obtains it automatically",
+      "required": true,
+      "private": true
+    }
+  ]
+}

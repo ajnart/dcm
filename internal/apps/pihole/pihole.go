@@ -89,6 +89,8 @@ func sessionWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if !body.Session.Valid || body.Session.SID == "" {
 		return false, authFailure(ctx, h, login.Status, body.Session.Valid, body.Session.SID, 0)
 	}
+	h.Log.Secret(body.Session.SID)
+	defer logoutSession(ctx, h, body.Session.SID)
 	// This protected local status endpoint avoids the separate update-metadata
 	// file required by /api/info/version. Both owner-selected states are valid.
 	blocking, err := h.HTTP(ctx, helpers.Request{Path: "/api/dns/blocking",
@@ -174,9 +176,23 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := ready(ctx, h, "/admin/"); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-login", "authenticate the web password", helpers.StepSpec{
-		Check:      func(ctx context.Context) (bool, error) { return sessionWorks(ctx, h) },
-		Hint:       "Recreate the container so it reads the web password file: self-host start pihole",
+	if err := h.Step(ctx, "admin-login", "authenticate the web password", helpers.StepSpec{
+		Check:      func(ctx context.Context) (bool, error) { return adminSessionWorks(ctx, h) },
+		Hint:       "Recreate the container so it reads the web password file: self-host start pihole. An existing two-factor Admin login is a person-owned prerequisite; Setup will not disable it or supply a token.",
+		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-password", "prepare the dedicated Homarr application password", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			if h.Secret(h.Key("homarr_app_password")) == "" {
+				return false, nil
+			}
+			err := VerifyHomarr(ctx, h)
+			return err == nil, err
+		},
+		Do:         func(ctx context.Context) error { return prepareHomarrPassword(ctx, h) },
+		Hint:       "Restore the Project's owned application password and hash through its secret boundary. If activation was interrupted, apply only that saved hash in Pi-hole's app_pwhash setting after checking the slot is empty. Keep app_sudo disabled, then retry self-host setup pihole. Never replace another application's password or use the Admin password.",
 		Credential: "admin",
 	})
 }

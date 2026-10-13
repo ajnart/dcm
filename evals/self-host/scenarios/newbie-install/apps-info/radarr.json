@@ -1,0 +1,13 @@
+{
+  "id": "radarr",
+  "name": "Radarr",
+  "description": "Find, download and organize movies automatically",
+  "category": "Requests",
+  "image": "lscr.io/linuxserver/radarr:latest",
+  "docs": "https://radarr.video/docs/",
+  "port": 7878,
+  "inputs": [],
+  "links": [
+    "qbittorrent"
+  ]
+}

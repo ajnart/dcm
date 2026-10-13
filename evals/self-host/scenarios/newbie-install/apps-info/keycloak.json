@@ -1,0 +1,10 @@
+{
+  "id": "keycloak",
+  "name": "Keycloak",
+  "description": "Manage logins in one place, so people sign in once to reach many apps",
+  "category": "Identity",
+  "image": "quay.io/keycloak/keycloak:26.7.4",
+  "docs": "https://www.keycloak.org/server/configuration-production",
+  "port": 8080,
+  "inputs": []
+}

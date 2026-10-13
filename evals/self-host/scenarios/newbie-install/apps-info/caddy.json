@@ -1,0 +1,10 @@
+{
+  "id": "caddy",
+  "name": "Caddy",
+  "description": "Give your apps their own web addresses, with the secure padlock set up for you",
+  "category": "Ingress",
+  "image": "caddy:2.11.4",
+  "docs": "https://caddyserver.com/docs/",
+  "port": 2015,
+  "inputs": []
+}
