@@ -6,15 +6,15 @@ The user authorized **source-only delivery now** and deferred outside prerequisi
 
 ## Source delivery
 
-At this snapshot, main is `6c0482ead7807b8ed146cd1574924a123c822ddb`. **37 of the 38 original peer PRs are merged**: the static receipt records 36 successful merges, and the owner separately records Caddy [#315](https://github.com/ajnart/selfhost-skills/pull/315). Earlier blocked attempts in that receipt were followed by successful merges and are not current holds.
+At this snapshot, main is `0c69f9b3ba2b9df86c2537a37b2524aedcac9f2a`. **All 38 original peer PRs are merged**: the static receipt records 36 successful merges, and the owner separately records Caddy [#315](https://github.com/ajnart/selfhost-skills/pull/315) and PatchMon [#345](https://github.com/ajnart/selfhost-skills/pull/345). Earlier blocked attempts in that receipt were followed by successful merges and are not current holds.
 
 - Accepted shared SDK changes [#359](https://github.com/ajnart/selfhost-skills/pull/359), [#362](https://github.com/ajnart/selfhost-skills/pull/362), [#366](https://github.com/ajnart/selfhost-skills/pull/366) and [#369](https://github.com/ajnart/selfhost-skills/pull/369) must remain intact. Their helper gating permits exactly `2.5.1` or `2.5.2`; normal compatibility from [#368](https://github.com/ajnart/selfhost-skills/pull/368) remains `>=2.4.1`.
-- The remaining original peer, PatchMon [#345](https://github.com/ajnart/selfhost-skills/pull/345), is pending its safe preparation / always-Manual source delivery. Privacy follow-up [#350](https://github.com/ajnart/selfhost-skills/issues/350) stays open; safe preparation does not accept native activation.
-- Evaluation [#357](https://github.com/ajnart/selfhost-skills/pull/357), corrected head `977d6ec`, has all three independent reviews clear and is ready for its authorized source merge. This accepts the correction, not an evaluation score or human viewer acceptance.
-- Installer [#313](https://github.com/ajnart/selfhost-skills/pull/313), actual-repository correction `6c209`, has source reviews ready. Video [#300](https://github.com/ajnart/selfhost-skills/pull/300) is receiving its actual-repository correction. Their remaining source merges are pending at this snapshot.
+- PatchMon [#345](https://github.com/ajnart/selfhost-skills/pull/345) merged as guarded preparation with an always-Manual boundary: source `6289b76658ab6a1b09fb24efcdeea16ae379679d`, merge `c7fe473c64efe8158ae54517062aa80194c9fe77`. Issue [#291](https://github.com/ajnart/selfhost-skills/issues/291) closed under source delivery; privacy follow-up [#350](https://github.com/ajnart/selfhost-skills/issues/350) stays open. This does not accept native activation.
+- Evaluation [#357](https://github.com/ajnart/selfhost-skills/pull/357) merged after all three independent reviews cleared: source `98f7044809faf9287477b782eef8b5b745bf848a`, merge `947cae01e7b04fc9d58fb469509142865efb2deb`. This accepts the correction, not an evaluation score or human viewer acceptance.
+- Installer [#313](https://github.com/ajnart/selfhost-skills/pull/313) merged its actual-repository correction after all three independent reviews cleared: source `5570708c5d4842955e4d27be91517250b91a06e7`, merge `ab86faf1c85656c30e691ff433d20035e04ab4ab`. Video [#300](https://github.com/ajnart/selfhost-skills/pull/300) also merged after all three independent reviews cleared: source `3f22f70474d636ecc4e6bf17c8d752394dbb6db2`, merge `0c69f9b3ba2b9df86c2537a37b2524aedcac9f2a`. Its source artifact is delivered; publication prerequisites [#268](https://github.com/ajnart/selfhost-skills/issues/268) remain open.
 - Relevant CodeRabbit reviews were requested, but the bot was rate-limited. Completed independent reviews remain separate evidence; no fresh CodeRabbit pass is claimed.
 
-Refresh exact PR heads and merge outcomes before calling source delivery complete. Publication issues [#193](https://github.com/ajnart/selfhost-skills/issues/193), [#194](https://github.com/ajnart/selfhost-skills/issues/194) and [#295](https://github.com/ajnart/selfhost-skills/issues/295) remain open.
+Documentation [#358](https://github.com/ajnart/selfhost-skills/pull/358) is still pending this update. Older Raspberry Pi source fix [#14](https://github.com/ajnart/selfhost-skills/pull/14) is under isolated applicability review and supplies no current-release runtime proof. Publication issues [#193](https://github.com/ajnart/selfhost-skills/issues/193), [#194](https://github.com/ajnart/selfhost-skills/issues/194) and [#295](https://github.com/ajnart/selfhost-skills/issues/295) remain open.
 
 ## Homarr source, image and runtime proof
 
@@ -49,7 +49,7 @@ At 14:54 UTC the user deferred these 11 prerequisites with: “I don't have this
 
 ## Continuation
 
-Finish the authorized remaining source merges and reconcile the final main/source state. Keep outside prerequisites, native/rendered/lifecycle acceptance, evaluation validity/human feedback, distribution and publication as separate outstanding work. Further runtime needs its approved containment and cleanup scope; this documentation launches none.
+Deliver this documentation update and reconcile the final main/source state. The 38 original peer PRs plus evaluation, installer and video source work are merged; documentation #358 remains pending at this snapshot. Keep outside prerequisites, native/rendered/lifecycle acceptance, evaluation validity/human feedback, distribution and publication as separate outstanding work. Further runtime needs its approved containment and cleanup scope; this documentation launches none.
 
 Static receipt provenance (SHA-256 of the inspected source files):
 

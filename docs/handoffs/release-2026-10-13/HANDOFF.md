@@ -1,6 +1,6 @@
 # self-host release handoff — another machine
 
-**Current instructions:** read [CURRENT-STATUS.md](CURRENT-STATUS.md) first. The user now authorizes source-only delivery: 37 of 38 original peer PRs are merged at the supplement's snapshot; remaining source merges are pending. Runtime acceptance and deferred outside prerequisites remain separate from source delivery. Publication is still held.
+**Current instructions:** read [CURRENT-STATUS.md](CURRENT-STATUS.md) first. The user now authorizes source-only delivery: all 38 original peer PRs plus evaluation, installer and video source work are merged at the supplement's snapshot; documentation #358 remains pending. Runtime acceptance and deferred outside prerequisites remain separate from source delivery. Publication is still held.
 
 Start at [START-HERE.md](START-HERE.md) on `docs/release-handoff`. Refresh live main and PR heads before continuing. This private documentation does not authorize public release or another runtime attempt.
 

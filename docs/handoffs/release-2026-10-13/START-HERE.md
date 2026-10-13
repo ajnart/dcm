@@ -1,6 +1,6 @@
 # Release handoff: start here
 
-**Read [CURRENT-STATUS.md](CURRENT-STATUS.md) first.** The user authorizes source-only delivery now: 37 of 38 original peer PRs are merged at that snapshot, and remaining source merges are pending. Outside prerequisites are deferred; native/rendered/lifecycle acceptance and public release remain separate outstanding work.
+**Read [CURRENT-STATUS.md](CURRENT-STATUS.md) first.** The user authorizes source-only delivery now: all 38 original peer PRs plus evaluation, installer and video source work are merged at that snapshot; documentation #358 remains pending. Outside prerequisites are deferred; native/rendered/lifecycle acceptance and public release remain separate outstanding work.
 
 The `docs/release-handoff` branch contains documentation and transported redacted evidence. This handoff does not itself merge production features or authorize runtime or publication.
 
@@ -39,7 +39,7 @@ Read repository `AGENTS.md`, `CONTEXT.md` and `docs/agents/domain.md`. Never tra
 ## Current boundary
 
 - Preserve accepted SDK helper gating exactly `2.5.1` or `2.5.2`, and normal compatibility `>=2.4.1`.
-- Finish remaining authorized source merges with exact-head review and merge receipts. PatchMon privacy follow-up #350 and publication #193/#194/#295 stay open.
+- Deliver documentation #358 and reconcile the final main/source state. PatchMon privacy follow-up #350 and publication #193/#194/#295 stay open.
 - The newest bounded three-peer fixture authenticated API 2.5.2 and passed cleanup; app geometry/rendering remained blocked by the tour. No all-39 runtime acceptance is established.
 - Keep historical archives, ledgers, tested heads and retained data unchanged. Secrets, binaries, raw model attempts and runtime state are excluded from this handoff.
 
