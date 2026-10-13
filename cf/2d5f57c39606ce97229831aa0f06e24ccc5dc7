@@ -1,0 +1,33 @@
+.github/workflows/pages.yml
+  s_22ff62fda90f47::t_cf3cbd95983017 1-50
+docs/releasing.md
+  s_378d5db6c5f6de::t_08c06b15aa99a1 101-105,108-126,131,161-162,164
+scripts/build-installer-site.sh
+  s_378d5db6c5f6de::t_d1bd50d8d79da0 27,35
+site/index.html
+  s_378d5db6c5f6de::t_61da7c647f0a83 5-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cf2d5f57c39606ce97229831aa0f06e24ccc5dc7",
+  "prompts": {},
+  "sessions": {
+    "s_22ff62fda90f47": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6ce308e1-3b59-44e6-a828-1ee4dec863b1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
