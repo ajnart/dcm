@@ -1,0 +1,21 @@
+{
+  "id": "homarr",
+  "name": "Homarr",
+  "description": "Put all your apps on one home page, each a click away",
+  "category": "Dashboard",
+  "image": "ghcr.io/homarr-labs/homarr:dev",
+  "docs": "https://homarr.dev/docs/getting-started/",
+  "port": 7575,
+  "inputs": [],
+  "links": [
+    "sonarr",
+    "radarr",
+    "prowlarr",
+    "jellyfin",
+    "seerr",
+    "qbittorrent",
+    "beszel",
+    "ntfy",
+    "vaultwarden"
+  ]
+}

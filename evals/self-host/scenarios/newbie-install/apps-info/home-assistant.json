@@ -1,0 +1,10 @@
+{
+  "id": "home-assistant",
+  "name": "Home Assistant",
+  "description": "Control and automate your lights, sensors and smart home devices",
+  "category": "Home automation",
+  "image": "ghcr.io/home-assistant/home-assistant:2026.9.3",
+  "docs": "https://www.home-assistant.io/installation/",
+  "port": 8123,
+  "inputs": []
+}

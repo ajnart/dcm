@@ -1,0 +1,38 @@
+{
+  "id": "gluetun",
+  "name": "Gluetun",
+  "description": "Send your downloads through a VPN, and stop them if it disconnects",
+  "category": "Downloads",
+  "image": "qmcgaw/gluetun:v3.41.3",
+  "docs": "https://github.com/qdm12/gluetun-wiki",
+  "port": 8000,
+  "inputs": [
+    {
+      "key": "provider",
+      "prompt": "VPN provider",
+      "help": "A supported OpenVPN provider: protonvpn or purevpn",
+      "default": "protonvpn",
+      "required": true
+    },
+    {
+      "key": "server-country",
+      "prompt": "VPN server country",
+      "help": "One provider-supported country name, e.g. Netherlands",
+      "required": true
+    },
+    {
+      "key": "openvpn-user",
+      "prompt": "Provider OpenVPN username",
+      "help": "The OpenVPN username issued by the provider (not your web-account login)",
+      "required": true,
+      "private": true
+    },
+    {
+      "key": "openvpn-password",
+      "prompt": "Provider OpenVPN password",
+      "help": "The OpenVPN password issued by the provider",
+      "required": true,
+      "private": true
+    }
+  ]
+}

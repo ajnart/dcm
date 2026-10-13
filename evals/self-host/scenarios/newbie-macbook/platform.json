@@ -1,0 +1,24 @@
+{
+ "uname": {
+  "s": "Darwin",
+  "n": "MacBook-Air",
+  "r": "24.6.0",
+  "m": "arm64"
+ },
+ "sw_vers": "ProductName:\tmacOS\nProductVersion:\t15.6\nBuildVersion:\t24G84",
+ "tools": [
+  "brew"
+ ],
+ "docker": "missing",
+  "media": {
+    "metadata_only": true,
+    "files": [
+      {"name": "Arrival (2016).mkv", "bytes": 134217728},
+      {"name": "Paddington 2 (2017).mkv", "bytes": 268435456},
+      {"name": "The Iron Giant (1999).mp4", "bytes": 67108864}
+    ]
+  },
+  "dirs": [
+  "/Volumes/FILMS/Movies"
+ ]
+}
