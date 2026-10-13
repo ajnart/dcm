@@ -21,10 +21,13 @@ type statsFixture struct {
 	advance       bool
 	refreshes     int
 	catalogs      int
+	snapshots     int
 	force         bool
 	integrationID string
 	beforeRaw     string
 	afterRaw      string
+	retryAt       any
+	hasRetryAt    bool
 }
 
 func newStatsFixture() *statsFixture {
@@ -46,11 +49,12 @@ func (f *statsFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.catalogs++
 		value = map[string]any{"metrics": f.metrics}
 	case "/api/trpc/widget.stats.snapshot":
+		f.snapshots++
 		if f.beforeRaw != "" {
 			w.Write([]byte(`{"result":{"data":{"json":{"updatedAt":` + f.beforeRaw + `}}}}`))
 			return
 		}
-		value = map[string]any{"updatedAt": f.timestamp}
+		value = map[string]any{"updatedAt": f.timestamp, "retryAt": float64(9000)}
 	case "/api/trpc/widget.stats.refresh":
 		f.refreshes++
 		var input struct {
@@ -73,7 +77,11 @@ func (f *statsFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if f.refreshes > 1 {
 			values = map[string]any{"requests": float64(0)}
 		}
-		value = map[string]any{"updatedAt": f.timestamp, "error": false, "stale": false, "values": values}
+		refreshed := map[string]any{"updatedAt": f.timestamp, "error": false, "stale": false, "values": values}
+		if f.hasRetryAt {
+			refreshed["retryAt"] = f.retryAt
+		}
+		value = refreshed
 	default:
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -149,6 +157,42 @@ func TestStatsVerificationAcceptsExplicitZeroWithOneRefresh(t *testing.T) {
 	}
 	if !validated || fixture.refreshes != 1 || fixture.catalogs != 1 || !fixture.force {
 		t.Fatalf("selected duplicate metrics must share one forced semantic sample: validated=%v refreshes=%d catalogs=%d force=%v", validated, fixture.refreshes, fixture.catalogs, fixture.force)
+	}
+}
+
+func TestStatsVerificationPreservesRefreshedRetryAt(t *testing.T) {
+	for _, scenario := range []struct {
+		name    string
+		present bool
+		value   any
+	}{
+		{"absent", false, nil},
+		{"null", true, nil},
+		{"numeric zero", true, float64(0)},
+		{"pending retry", true, float64(5000)},
+		{"text zero", true, "0"},
+		{"boolean", true, false},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			fixture := newStatsFixture()
+			fixture.values["requests"] = float64(0)
+			fixture.hasRetryAt, fixture.retryAt = scenario.present, scenario.value
+			h := fixture.helpers(t)
+			validated := false
+			target := statsTarget(func(sample statsSample) error {
+				validated = true
+				if sample.retryAt != scenario.value {
+					return errors.New("retry metadata differs from the refreshed response")
+				}
+				return nil
+			})
+			if err := target.verifyData(t.Context(), h, h, "caddy-owned"); err != nil {
+				t.Fatal(err)
+			}
+			if !validated || fixture.refreshes != 1 || fixture.catalogs != 1 || fixture.snapshots != 1 || !fixture.force {
+				t.Fatalf("retry metadata must share one forced sample: validated=%v refreshes=%d catalogs=%d snapshots=%d force=%v", validated, fixture.refreshes, fixture.catalogs, fixture.snapshots, fixture.force)
+			}
+		})
 	}
 }
 
