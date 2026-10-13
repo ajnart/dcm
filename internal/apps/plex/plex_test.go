@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -140,5 +141,43 @@ func TestMissingClaimTokenHintNamesTheClaimPage(t *testing.T) {
 	}
 	if !strings.Contains(hint, "plex.tv/claim") {
 		t.Errorf("hint should name where to get the claim token, got %q", hint)
+	}
+}
+
+func TestAlreadyClaimedSetupWaitsForDelayedIdentityWithoutClaimToken(t *testing.T) {
+	fake := &fakePlex{claimed: true}
+	upstream := fake.handler()
+	var identityRequests atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/identity" {
+			if identityRequests.Add(1) == 1 {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+		}
+		upstream.ServeHTTP(w, r)
+	}))
+	t.Cleanup(srv.Close)
+	var records []helpers.StepResult
+	h := newH(t, srv, &records, map[string]string{"verified_server_id": machineID})
+	if err := h.SetSecret(h.Key("api_key"), serverToken); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.SetSecret(h.Key("server_id"), machineID); err != nil {
+		t.Fatal(err)
+	}
+	if err := (plex.App{}).Setup(t.Context(), h); err != nil {
+		t.Fatalf("already claimed server must wait for identity instead of requesting a new claim token: %v", err)
+	}
+	if identityRequests.Load() < 2 {
+		t.Fatal("Setup did not retry the delayed identity endpoint")
+	}
+	for _, record := range records {
+		if record.Status == stepstatus.StepManual {
+			t.Fatalf("already verified ownership must not become Manual: %s", record.ID)
+		}
+	}
+	if h.Secret(h.Key("api_key")) != serverToken || h.Secret(h.Key("server_id")) != machineID {
+		t.Fatal("waiting for startup changed the existing server credentials")
 	}
 }

@@ -286,6 +286,9 @@ func ready(ctx context.Context, h *helpers.H, path string) error {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
+	if err := ready(ctx, h, "/identity"); err != nil {
+		return err
+	}
 	if err := h.Step(ctx, "claim-token", "read the Plex claim token", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
 			if h.Inputs["claim_token"] != "" {
@@ -299,9 +302,6 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			"--set-file plex.claim_token=/path/to/credential, then run: self-host install plex",
 		Credential: "admin",
 	}); err != nil {
-		return err
-	}
-	if err := ready(ctx, h, "/identity"); err != nil {
 		return err
 	}
 	if err := h.Step(ctx, "claimed", "verify and save the private Plex server token", helpers.StepSpec{

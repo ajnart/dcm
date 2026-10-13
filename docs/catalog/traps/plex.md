@@ -32,9 +32,11 @@ read-only token. This Link performs read-only server requests, but the token
 has wider authority; keep both the Project and Homarr private. No Plex Pass
 purchase, paid feature or externally reachable server is implied.
 
-An unclaimed server or missing claim prerequisite stays Manual. A server
-already claimed needs no new claim token. Claim exchange belongs to the
-official image's first-run bootstrap, not retry Setup; that bootstrap ignores
+Setup waits for `/identity` through its existing bounded readiness step before
+deciding whether a claim token is needed. A delayed server stays in readiness
+recovery; it does not request a new claim token. An unclaimed server or missing
+claim prerequisite stays Manual. A server already claimed needs no new claim
+token. Claim exchange belongs to the official image's first-run bootstrap, not retry Setup; that bootstrap ignores
 new claims once logged in and writes its first-run marker even on failure.
 Inspect an expired claim before any separately approved reclaim.
 
