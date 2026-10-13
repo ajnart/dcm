@@ -78,9 +78,13 @@ checks and no longer acquires Stats. After that verifier succeeds, common
 authenticated catalog and obtains one completed refresh. It rejects missing
 catalog keys, malformed or duplicate catalog entries, missing/null selected
 values, non-finite or nonpositive timestamps and refreshes that do not advance.
-The callback receives that same sample's `values`, catalog `units`, `startedAt`,
-`completedAt` and `updatedAt` (Unix milliseconds), after these checks. `startedAt`
-is read before the refresh request and `completedAt` after its response, so leaves
+The callback receives that same sample's `values`, catalog `units`, raw `retryAt`,
+`startedAt`, `completedAt` and `updatedAt` (Unix milliseconds), after these checks.
+`retryAt` comes from the refresh response without coercion; missing/null metadata
+remains nil, and malformed or nonzero metadata stays available for App-specific
+validation. Common checks impose no retry policy and perform no extra read.
+`startedAt` is read before the refresh request and `completedAt` after its response,
+so leaves
 can retain their existing future-skew limits after a slow refresh. Common checks
 only timestamp finiteness, positivity and advancement; Apps own clock policy.
 Leaves retain expected
