@@ -1,0 +1,106 @@
+name: Broken App, Link, or Homarr integration
+description: Report an App, Setup, Link, Homarr integration, or widget that is not working.
+title: "[broken app]: "
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us fix this. Report security vulnerabilities through the private security advisory link instead.
+
+        Before submitting, remove passwords, API keys, tokens, secret files, browser cookies, private hostnames, and private addresses from every answer and attachment.
+  - type: dropdown
+    id: failure-type
+    attributes:
+      label: What is broken?
+      options:
+        - App
+        - Setup
+        - Link between Apps
+        - Homarr integration
+        - Homarr widget
+    validations:
+      required: true
+  - type: input
+    id: affected-apps
+    attributes:
+      label: Affected App(s)
+      description: Name every App involved.
+      placeholder: e.g. Sonarr, qBittorrent, and Homarr
+    validations:
+      required: true
+  - type: input
+    id: consuming-app
+    attributes:
+      label: Consuming App (Link reports)
+      description: For a broken Link, name the App whose Setup creates the Link.
+      placeholder: e.g. Sonarr
+  - type: input
+    id: target-app
+    attributes:
+      label: Target App (Link reports)
+      description: For a broken Link, name the App being connected to.
+      placeholder: e.g. qBittorrent
+  - type: textarea
+    id: operation
+    attributes:
+      label: Failing operation
+      description: State the exact action or command, including flags. Redact secrets.
+      placeholder: self-host setup sonarr --json
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Explain what was already installed and what you did, in order.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the exact error after removing sensitive values.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and versions
+      description: Include the actual self-host CLI version, affected peer App versions, relevant Homarr version, OS and architecture, Docker version, and Docker Compose version. Use "not involved" where a component is not relevant.
+      placeholder: |
+        self-host: v1.2.3
+        Peer Apps: Sonarr 4.0.15, qBittorrent 5.0.4
+        Homarr: not involved
+        OS / architecture: Debian 13 / amd64
+        Docker / Compose: 28.5.1 / v2.40.0
+    validations:
+      required: true
+  - type: textarea
+    id: debug-reports
+    attributes:
+      label: Redacted Debug reports (optional)
+      description: Paste relevant `self-host debug <app>` output after removing passwords, API keys, tokens, private hostnames, and private addresses.
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted log excerpts (optional)
+      description: Paste only the relevant lines. Exclude passwords, API keys, tokens, secret files, and browser cookies.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots (optional)
+      description: Drag screenshots here after checking that they contain no secrets, cookies, private hostnames, or private addresses.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else (optional)
+      description: Add workarounds, related issues, or a suspected cause. Mark suspected causes as suspicion.
