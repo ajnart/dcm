@@ -1,0 +1,19 @@
+README.md
+  s_745bc3c8665896::t_f068a5d3f48451 11,13,15,23-25,27-28,40,42,44-46,48,51-52,55,57-61,83-163,189,191,193-200,215,239,283,293-298
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5bcd50e56b886638ca1595d6299a747bbf543e0f",
+  "prompts": {},
+  "sessions": {
+    "s_745bc3c8665896": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "db504ca7-928d-42aa-8c26-55f870ea24df",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
