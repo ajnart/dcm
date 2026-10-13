@@ -3,6 +3,7 @@
 import { useClipboard } from "@/hooks/use-clipboard"
 import { buildSelfHostCommand, buildSelfHostLink } from "@/lib/selfhost"
 import { Check, Copy, ExternalLink } from "lucide-react"
+import { toast } from "sonner"
 
 interface SelfHostCalloutProps {
   ids: string[]
@@ -28,7 +29,11 @@ export default function SelfHostCallout({
       <span>{lead}</span>
       <button
         type="button"
-        onClick={() => copy(command)}
+        onClick={() =>
+          copy(command).then((ok) => {
+            if (!ok) toast.error("Failed to copy command")
+          })
+        }
         aria-label="Copy self-host command"
         className="flex min-w-0 max-w-full items-center gap-2 rounded-md border bg-muted px-2 py-1 text-left font-mono text-foreground text-xs transition-colors hover:bg-accent"
       >
