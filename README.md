@@ -204,6 +204,10 @@ DCM includes configuration for many popular self-hosted applications, including:
 
 Each tool includes a detailed description, GitHub star count, and pre-configured docker-compose settings.
 
+## 🎁 Want it installed for you?
+
+Skip the YAML. [self-host](https://selfhost.ajnart.dev/?ref=dcm) is one Go binary that installs, wires (API keys, Homarr tiles, download clients) and repairs self-hosted apps with Docker Compose. It has a terminal dashboard for people and `--json` commands for AI agents. DCM links to it from the header and the Copy Compose modal, prefilled with your selected services.
+
 ## 🧪 Testing
 
 DCM uses [Bun](https://bun.sh/) for testing. To run the tests:

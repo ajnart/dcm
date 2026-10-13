@@ -13,6 +13,7 @@ import { TruncatedText } from "@/components/ui/truncated-text"
 import type { DockerTool } from "@/lib/docker-tools"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { getSelfHostId } from "@/lib/selfhost"
 import posthog from "posthog-js"
 
 interface DockerCardProps {
@@ -106,6 +107,14 @@ export default function DockerCard({
           <TruncatedText text={tool.description} />
         </div>
         <div className="mt-auto flex flex-wrap gap-1">
+          {getSelfHostId(tool.id) && (
+            <Badge
+              variant="outline"
+              className="rounded-md border-primary/40 px-1 font-normal text-primary text-xs"
+            >
+              self-host
+            </Badge>
+          )}
           {tool.tags.map((tag) => (
             <Badge
               key={tag}

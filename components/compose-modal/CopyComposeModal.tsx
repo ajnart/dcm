@@ -40,6 +40,7 @@ import {
 } from "@/lib/docker-compose/generators"
 import ActionButtons from "./ActionButtons"
 import PortConflictsAlert from "./PortConflictsAlert"
+import SelfHostCallout from "./SelfHostCallout"
 
 interface CopyComposeModalProps {
   isOpen: boolean
@@ -210,6 +211,8 @@ export function CopyComposeModal({
           {portConflicts && (
             <PortConflictsAlert portConflicts={portConflicts} />
           )}
+
+          <SelfHostCallout selectedTools={selectedTools} />
 
           <Tabs
             className="w-full"

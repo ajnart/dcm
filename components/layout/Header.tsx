@@ -1,5 +1,6 @@
 import { ContainerSubmissionForm } from "@/components/container-submission-form"
 import { McpSetupDialog } from "@/components/mcp-setup-dialog"
+import { SelfHostButton } from "@/components/layout/SelfHostButton"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Heart } from "lucide-react"
@@ -23,6 +24,8 @@ export function Header() {
             <ThemeToggle />
             <McpSetupDialog />
             <ContainerSubmissionForm />
+
+            <SelfHostButton />
 
             <GradientButton
               href="https://ko-fi.com/ajnart"
