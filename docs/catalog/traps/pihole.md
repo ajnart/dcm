@@ -1,5 +1,11 @@
 # Pi-hole traps
 
+Source status, 13 October 2026 (before this docs update):
+`3b22873d6da5c7034d1c4be997433f500e7cee39`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
 ## Pitfalls
 
 - The private admin recipe does not publish DNS port 53 or provide LAN DNS service.
@@ -83,7 +89,7 @@ Only focused App/Homarr tests and package build/vet/format/diff checks were run
 for this SDK migration; the shared registry and common implementation are unchanged.
 
 This is **source and fixture evidence, not live functional acceptance**.
-The registry owner must add `piholeTarget()` to `targets()`. No provider DNS
+The registry owner has added `piholeTarget()` to `targets()`. No provider DNS
 traffic, upstream-resolver changes, Docker runtime, installer or browser was
 used here. Real image digests, native Homarr execution, a nonzero container-local
 DNS fixture, rendered widgets, installation orders, late-peer readiness,
