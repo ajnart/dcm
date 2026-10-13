@@ -439,4 +439,30 @@ func TestFrameByteBudget(t *testing.T) {
 	if peak >= 1024 {
 		t.Fatalf("idle exceeds 1 KB per frame: %d", peak)
 	}
+	in.Doctor = Doctor{Reading: true}
+	in.Frame, in.Wall = SceneFrames, SceneFrames
+	prev = renderCanvas(newCtx(in, 0, false, Target{}))
+	peak = 0
+	for n := SceneFrames + 1; n < SceneFrames+24*16; n++ {
+		in.Frame, in.Wall = n, n
+		cur := renderCanvas(newCtx(in, 0, false, Target{}))
+		peak, prev = max(peak, changedBytes(prev, cur)), cur
+	}
+	t.Logf("Reading idle: peak %d bytes", peak)
+	if peak >= 1024 {
+		t.Fatalf("reading idle exceeds 1 KB per frame: %d", peak)
+	}
+	in.Frame, in.Wall = 0, 0
+	prev = renderCanvas(newCtx(in, 0, false, Target{}))
+	sum, peak = 0, 0
+	for n := 1; n <= SceneFrames; n++ {
+		in.Frame, in.Wall = n, n
+		cur := renderCanvas(newCtx(in, 0, false, Target{}))
+		b := changedBytes(prev, cur)
+		sum, peak, prev = sum+b, max(peak, b), cur
+	}
+	t.Logf("Reading Intro: average %d bytes, peak %d bytes", sum/SceneFrames, peak)
+	if sum/SceneFrames > 2600 || peak > 6144 {
+		t.Fatalf("reading Intro exceeds SSH budget: average %d, peak %d", sum/SceneFrames, peak)
+	}
 }

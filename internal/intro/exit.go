@@ -219,12 +219,11 @@ type landing struct {
 	rows   [][]rune
 	lines  []string
 	tg     Target
-	w, h   int
 	chrome map[int]bool
 }
 
 func newLanding(tg Target, w, h int) *landing {
-	l := &landing{lines: tg.Lines, tg: tg, w: w, h: h, chrome: map[int]bool{}}
+	l := &landing{lines: tg.Lines, tg: tg, chrome: map[int]bool{}}
 	for _, y := range tg.Chrome {
 		l.chrome[y] = true
 	}

@@ -45,6 +45,9 @@ func withoutColor(s string) string {
 		params := strings.Split(seq[2:len(seq)-1], ";")
 		var keep []string
 		for i := 0; i < len(params); i++ {
+			if strings.Contains(params[i], ":") {
+				continue
+			}
 			n, _ := strconv.Atoi(params[i])
 			switch n {
 			case 0, 1, 2, 22:

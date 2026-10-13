@@ -70,7 +70,6 @@ type sctx struct {
 	scale    Scale
 	target   Target
 	doc      Doctor
-	settling bool
 }
 
 func newCtx(in Input, exitN int, exiting bool, tg Target) *sctx {
@@ -162,8 +161,7 @@ func (c *sctx) cardRoom() (float64, int) {
 }
 
 func (c *sctx) layout() lay {
-	lw, lh := c.scale.Size()
-	_ = lw
+	_, lh := c.scale.Size()
 	s := 1
 	if c.w >= 116 && c.h-2 >= lh+1+1+7+2 {
 		s = 2
@@ -227,15 +225,28 @@ func (c *sctx) lightOf(i int) (Level, float64, bool) {
 }
 
 func (c *sctx) waiting(b box) float64 {
+	return c.waitingAt(b, 0)
+}
+
+func (c *sctx) waitingAt(b box, column int) float64 {
 	if !c.reading || c.reduced || c.t < land[b.i]+0.3 {
 		return 0
 	}
-	pos := math.Mod(c.t/2.2, 1)*float64(containers+3) - 1
+	t := c.t
+	if tau := t - dur - 2.5; tau >= 0 {
+		t -= math.Floor(tau/7)*1.3 + math.Min(math.Mod(tau, 7), 1.3)
+	}
+	t -= float64(column) / FPS
+	pos := math.Mod(t/2.2, 1)*float64(containers+3) - 1
 	d := pos - float64(b.ru)
 	return math.Round(math.Exp(-(d*d)/0.6)*3) / 3
 }
 
 func (c *sctx) tint(b box, sweep bool) (color.RGBA, float64) {
+	return c.tintColumn(b, sweep, 0)
+}
+
+func (c *sctx) tintColumn(b box, sweep bool, column int) (color.RGBA, float64) {
 	pal := c.pal
 	own := pal.container(b.i)
 	lv, age, ok := c.lightOf(b.i)
@@ -246,7 +257,7 @@ func (c *sctx) tint(b box, sweep bool) (color.RGBA, float64) {
 	col := mix(mix(own, pal.Muted, 0.6), own, on)
 	pw := 0.62 + 0.38*on
 	if !ok {
-		col = pal.Glow(col, 0.4*c.waiting(b))
+		col = pal.Glow(col, 0.4*c.waitingAt(b, column))
 	} else {
 		if lv != OK {
 			col = mix(col, pal.level(lv), 0.4)
@@ -394,7 +405,13 @@ func (c *sctx) drawDrop(cv *scene.Canvas, L lay, idle float64) {
 			continue
 		}
 		col, lum := c.tint(b, true)
-		DrawContainer(cv, pal.Palette, d.x, d.py, d.w, d.hp, flat(col), lum)
+		DrawContainer(cv, pal.Palette, d.x, d.py, d.w, d.hp, func(column int) color.RGBA {
+			if !c.reading {
+				return col
+			}
+			col, _ := c.tintColumn(b, true, column)
+			return col
+		}, lum)
 		if d.vel > 0 {
 			n := rnd(d.vel / grav / d.f * 7)
 			for _, sx := range [2]int{2 * d.x, 2*(d.x+d.w) - 1} {
