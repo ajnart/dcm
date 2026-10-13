@@ -1,0 +1,19 @@
+internal/intro/reaction.go
+  s_a426323822b13f::t_b8d8a5414848b7 1-394
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "31309bd30a7359dbfb595a2094fe9ab716b8fab1",
+  "prompts": {},
+  "sessions": {
+    "s_a426323822b13f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11bc1-af3d-7e01-b9f4-a625eaa7ba40",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
