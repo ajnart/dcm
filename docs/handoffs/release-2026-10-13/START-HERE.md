@@ -1,5 +1,7 @@
 # Release handoff: start here
 
+**Current source status:** read [CURRENT-STATUS.md](CURRENT-STATUS.md) first for the later SDK merges, image target and human-deferred prerequisites. Older ledgers and runtime evidence below retain their captured heads and scope.
+
 **Checkout `docs/release-handoff`. Read `docs/handoffs/release-2026-10-13/CONTINUE-PROMPT.md` to start another agent.** This branch contains documentation and transported redacted evidence, not a combined production implementation. No feature PR was merged by this handoff.
 
 **Latest precedence:** [LATEST-UPDATE.md](LATEST-UPDATE.md) records concurrent #356 candidate/runtime reporting and #357's real stack above #259. Final readback is **46 open / 128 total PRs**, including documentation #358. Read it before acting on the older App/source resume plan.

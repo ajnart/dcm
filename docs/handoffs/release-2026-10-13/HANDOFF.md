@@ -1,5 +1,7 @@
 # self-host release handoff — another machine
 
+**Current source status:** read [CURRENT-STATUS.md](CURRENT-STATUS.md) first for the later SDK merges, image target and human-deferred prerequisites. Older ledgers and runtime evidence below retain their captured heads and scope.
+
 **Prepared 13 October 2026. Start on branch `docs/release-handoff`, at `docs/handoffs/release-2026-10-13/START-HERE.md`.** Then read this file, [PR-STACKS.md](PR-STACKS.md), [APP-QUEUE.md](APP-QUEUE.md) and [TRACKER-INVENTORY.md](TRACKER-INVENTORY.md). [CONTINUE-PROMPT.md](CONTINUE-PROMPT.md) is the copyable next-agent prompt. Transfer the whole private bundle or fetch the handoff branch, not just this file. This is not a public release or authorization to launch anything.
 
 **Read [LATEST-UPDATE.md](LATEST-UPDATE.md) first.** Concurrent #356 reports a newer Linux candidate/run and candidate-only verifier/common/version repairs; #357 is a real stacked fix above #259. The old-run/source plan below is historical original-branch state, not permission to duplicate or undo later work. Latest final readback is 46 open / 128 total PRs including documentation #358. Owner approvals/receipts and combined-versus-individual merge route still need reconciliation.
