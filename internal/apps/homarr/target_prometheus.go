@@ -21,7 +21,7 @@ func prometheusTarget() target {
 		},
 		widgets: []widget{statWidget("total", "up", "down")},
 		preflight: func(ctx context.Context, from, to *helpers.H) error {
-			_, err := prometheus.VerifyHomarr(ctx, to)
+			err := prometheus.VerifyHomarr(ctx, to)
 			if errors.Is(err, helpers.ErrManual) {
 				from.Info("Preserve Prometheus authentication and its scrape configuration. Run self-host setup prometheus for the private credential or self-scrape recovery instructions, then retry self-host setup homarr.")
 			}
@@ -33,8 +33,7 @@ func prometheusTarget() target {
 }
 
 func verifyPrometheus(ctx context.Context, _, to *helpers.H, _ string) error {
-	_, err := prometheus.VerifyHomarr(ctx, to)
-	return err
+	return prometheus.VerifyHomarr(ctx, to)
 }
 
 func verifyPrometheusStats(sample statsSample) error {

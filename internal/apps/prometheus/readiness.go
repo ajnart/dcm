@@ -20,12 +20,6 @@ const selfQuery = `up{job="prometheus",instance="localhost:9090"}[1m]`
 
 var errDiscoveryPending = errors.New("Prometheus target discovery has no active scrape targets yet")
 
-type Counts struct {
-	Total int
-	Up    int
-	Down  int
-}
-
 type scrapeTarget struct {
 	Health    *string           `json:"health"`
 	Labels    map[string]string `json:"labels"`
@@ -67,32 +61,25 @@ func readAPI(ctx context.Context, h *helpers.H, path string, destination any) er
 	return nil
 }
 
-func VerifyHomarr(ctx context.Context, h *helpers.H) (Counts, error) {
+func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 	var data struct {
 		Active  []scrapeTarget    `json:"activeTargets"`
 		Dropped []json.RawMessage `json:"droppedTargets"`
 	}
 	if err := readAPI(ctx, h, "/api/v1/targets", &data); err != nil {
-		return Counts{}, err
+		return err
 	}
 	if data.Active == nil || data.Dropped == nil {
-		return Counts{}, errors.New("Prometheus returned incomplete target discovery data")
+		return errors.New("Prometheus returned incomplete target discovery data")
 	}
-	counts := Counts{Total: len(data.Active)}
 	if len(data.Active) == 0 {
-		return counts, errDiscoveryPending
+		return errDiscoveryPending
 	}
 	selfHealth := ""
 	selfCount := 0
 	for _, target := range data.Active {
 		if target.Health == nil {
-			return Counts{}, errors.New("Prometheus returned a target without its health")
-		}
-		switch *target.Health {
-		case "up":
-			counts.Up++
-		case "down":
-			counts.Down++
+			return errors.New("Prometheus returned a target without its health")
 		}
 		if target.Labels["job"] == "prometheus" && target.Labels["instance"] == "localhost:9090" && target.ScrapeURL == "http://localhost:9090/metrics" {
 			selfCount++
@@ -101,15 +88,12 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) (Counts, error) {
 	}
 	if selfCount != 1 {
 		h.Info(recoveryHint)
-		return counts, fmt.Errorf("%w: Prometheus has no unique starter self-scrape target in its active configuration", helpers.ErrManual)
+		return fmt.Errorf("%w: Prometheus has no unique starter self-scrape target in its active configuration", helpers.ErrManual)
 	}
 	if selfHealth != "up" && selfHealth != "down" {
-		return counts, errors.New("Prometheus has not completed its starter self-scrape; retry self-host setup prometheus")
+		return errors.New("Prometheus has not completed its starter self-scrape; retry self-host setup prometheus")
 	}
-	if err := verifySelfQuery(ctx, h, selfHealth); err != nil {
-		return counts, err
-	}
-	return counts, nil
+	return verifySelfQuery(ctx, h, selfHealth)
 }
 
 func verifySelfQuery(ctx context.Context, h *helpers.H, health string) error {

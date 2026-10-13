@@ -50,13 +50,13 @@ func (App) Compose(rc app.RenderContext) string {
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	return h.Step(ctx, "ready", "verify Prometheus query data and scrape targets", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
-			_, err := VerifyHomarr(ctx, h)
+			err := VerifyHomarr(ctx, h)
 			return err == nil, err
 		},
 		Do: func(ctx context.Context) error {
 			var manual error
 			err := h.Poll(ctx, time.Minute, func(ctx context.Context) (bool, error) {
-				_, err := VerifyHomarr(ctx, h)
+				err := VerifyHomarr(ctx, h)
 				if errors.Is(err, helpers.ErrManual) {
 					manual = err
 					return true, nil
@@ -77,8 +77,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	_, err := VerifyHomarr(ctx, h)
-	return err
+	return VerifyHomarr(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }
