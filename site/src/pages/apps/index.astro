@@ -3,9 +3,9 @@ import { getCollection } from "astro:content";
 import AppIcon from "../../components/AppIcon.astro";
 import SectionHead from "../../components/SectionHead.astro";
 import Base from "../../layouts/Base.astro";
-import { linkCount } from "../../lib/catalog";
+import { byPopularity, linkCount, starLabel } from "../../lib/catalog";
 
-const apps = (await getCollection("apps")).sort((a, b) => a.data.name.localeCompare(b.data.name));
+const apps = (await getCollection("apps")).sort((a, b) => byPopularity(a.data, b.data));
 const byCategory = Map.groupBy(apps, (a) => a.data.category);
 const categories = [...byCategory.keys()].sort();
 ---
@@ -32,6 +32,7 @@ const categories = [...byCategory.keys()].sort();
                       <span class="muted">{app.data.port ? `:${app.data.port}` : "no ui"}</span>
                     </span>
                     <small>{app.data.description}</small>
+                    {app.data.stars > 0 && <span class="meta">{starLabel(app.data.stars)}</span>}
                   </a>
                 </li>
               ))}

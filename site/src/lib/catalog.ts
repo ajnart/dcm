@@ -1,4 +1,5 @@
 import data from "../data/catalog.json";
+import starCounts from "../data/stars.json";
 
 export type Link = { from: string; to: string; title: string };
 
@@ -10,6 +11,7 @@ export type App = {
   image: string;
   port: number;
   icon: string;
+  stars: number;
   links: Link[];
 };
 
@@ -27,10 +29,18 @@ export const toApp = (a: RawApp): App => ({
   image: a.img,
   port: a.p,
   icon: a.i ? ICONS + a.i : "",
+  stars: (starCounts as Record<string, number>)[a.id] ?? 0,
   links: a.l.map((to, i) => ({ from: a.id, to, title: a.lt[i] })),
 });
 
-export const apps: App[] = data.apps.map(toApp);
+export const byPopularity = (a: App, b: App): number => b.stars - a.stars || a.name.localeCompare(b.name);
+
+export const apps: App[] = data.apps.map(toApp).sort(byPopularity);
+
+export function starLabel(stars: number): string {
+  if (stars >= 1000) return `★ ${Math.round(stars / 1000)}k`;
+  return `★ ${stars}`;
+}
 
 export const recipes: Recipe[] = data.recipes.map((r) => ({ id: r.id, name: r.name, description: r.d, apps: r.apps }));
 

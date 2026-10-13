@@ -1,4 +1,4 @@
-import { apps as APPS, appById } from "../lib/catalog";
+import { apps as APPS, appById, starLabel } from "../lib/catalog";
 import { selection } from "./selection.js";
 import { $, copy, esc, iconEl, toast } from "./util.js";
 
@@ -10,7 +10,8 @@ function card(app) {
   b.className = "card";
   const port = app.port ? `:${app.port}` : "no ui";
   const wires = app.links.length ? `wires to ${app.links.length} App${app.links.length === 1 ? "" : "s"}` : "&nbsp;";
-  b.innerHTML = `<span class="t"><span class="who"></span><span class="muted">${port}</span></span><small>${esc(app.description)}</small><span class="meta">${wires}</span>`;
+  const stars = app.stars ? `<span>${starLabel(app.stars)}</span>` : "";
+  b.innerHTML = `<span class="t"><span class="who"></span><span class="muted">${port}</span></span><small>${esc(app.description)}</small><span class="meta"><span>${wires}</span>${stars}</span>`;
   const name = document.createElement("b");
   name.textContent = app.name;
   b.querySelector(".who").append(iconEl(app), name);
@@ -52,9 +53,11 @@ function drawWires() {
     }
   }
   if (tiles.length) {
-    const hint = document.createElement("span");
+    const hint = document.createElement("button");
+    hint.type = "button";
     hint.className = "hint";
     hint.textContent = `+ add Homarr and these ${tiles.length} get tiles and widgets on one dashboard`;
+    hint.addEventListener("click", () => selection.add(["homarr"]));
     box.append(hint);
   }
   box.hidden = !box.childElementCount;

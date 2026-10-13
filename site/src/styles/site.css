@@ -824,6 +824,9 @@ h2 {
 }
 
 .card .meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1ch;
   color: var(--dim);
   font-size: 0.75rem;
 }
@@ -935,6 +938,17 @@ h2 {
 
 .wires .hint {
   color: var(--gold);
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wires .hint:hover,
+.wires .hint:focus-visible {
+  text-decoration: underline;
 }
 
 .wires .pair {

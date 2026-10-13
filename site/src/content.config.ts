@@ -14,6 +14,7 @@ const apps = defineCollection({
     image: z.string().min(1),
     port: z.number().int().nonnegative(),
     icon: z.string(),
+    stars: z.number().int().nonnegative(),
     links: z.array(link),
   }),
 });
