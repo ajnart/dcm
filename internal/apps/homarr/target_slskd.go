@@ -29,6 +29,7 @@ func slskdTarget() target {
 			return nil
 		},
 		verify: verifySlskd,
+		stats:  verifySlskdStats,
 	}
 }
 
@@ -40,36 +41,15 @@ func verifySlskd(ctx context.Context, from, to *helpers.H, integrationID string)
 		return err
 	}
 	const failure = "Homarr returned incomplete Slskd downloads; check Slskd's connection and retry self-host setup homarr"
-	value, err := apiKeyProcedure(ctx, from, "widget.downloads.getJobsAndStatuses", map[string]any{
-		"integrationIds": []string{integrationID}, "limitPerIntegration": 50,
-	})
+	queue, err := readDownloadsQueue(ctx, from, integrationID, "slskd")
 	if err != nil {
 		return err
 	}
-	results, ok := value.([]any)
-	if !ok || len(results) != 1 {
-		return errors.New(failure)
-	}
-	result, ok := results[0].(map[string]any)
-	if !ok || stringField(result, "integrationId") != integrationID || result["error"] != nil {
-		return errors.New(failure)
-	}
-	integration, ok := result["integration"].(map[string]any)
-	if !ok || stringField(integration, "id") != integrationID || stringField(integration, "kind") != "slskd" {
-		return errors.New(failure)
-	}
-	updatedAt, err := time.Parse(time.RFC3339Nano, stringField(integration, "updatedAt"))
+	updatedAt, err := time.Parse(time.RFC3339Nano, stringField(queue.integration, "updatedAt"))
 	if err != nil || !slskdFresh(from.Now(), updatedAt) {
 		return errors.New("Homarr's Slskd download data is missing or stale; retry self-host setup homarr")
 	}
-	data, ok := result["data"].(map[string]any)
-	if !ok {
-		return errors.New(failure)
-	}
-	status, ok := data["status"].(map[string]any)
-	if !ok {
-		return errors.New(failure)
-	}
+	status := queue.status
 	rates, ok := status["rates"].(map[string]any)
 	if !ok || !slskdNumber(rates["down"]) || rates["up"] != float64(0) || status["paused"] != false {
 		return errors.New(failure)
@@ -78,8 +58,8 @@ func verifySlskd(ctx context.Context, from, to *helpers.H, integrationID string)
 	if !ok || len(types) != 1 || types[0] != "miscellaneous" {
 		return errors.New(failure)
 	}
-	items, ok := data["items"].([]any)
-	if !ok || len(items) > 50 {
+	items := queue.items
+	if len(items) > 50 {
 		return errors.New(failure)
 	}
 	for _, raw := range items {
@@ -96,47 +76,16 @@ func verifySlskd(ctx context.Context, from, to *helpers.H, integrationID string)
 			return errors.New(failure)
 		}
 	}
-	return verifySlskdStats(ctx, from, integrationID)
+	return nil
 }
 
-func verifySlskdStats(ctx context.Context, h *helpers.H, integrationID string) error {
+func verifySlskdStats(sample statsSample) error {
 	const failure = "Homarr did not return fresh Slskd download statistics; retry self-host setup homarr"
-	value, err := apiKeyProcedure(ctx, h, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return err
-	}
-	catalog, ok := value.(map[string]any)
-	if !ok {
-		return errors.New(failure)
-	}
-	metrics, ok := catalog["metrics"].([]any)
-	if !ok {
-		return errors.New(failure)
-	}
-	found := false
-	for _, raw := range metrics {
-		metric, ok := raw.(map[string]any)
-		if ok && stringField(metric, "key") == "download" && stringField(metric, "unit") == "bytesPerSecond" {
-			found = true
-		}
-	}
-	if !found {
+	if sample.units["download"] != "bytesPerSecond" {
 		return errors.New("Homarr lacks Slskd's supported download statistic in bytes/s; use Homarr 2.4.1 and retry Setup")
 	}
-	value, err = apiKeyWrite(ctx, h, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok || snapshot["error"] != false || snapshot["stale"] != false || snapshot["retryAt"] != float64(0) {
-		return errors.New(failure)
-	}
-	updatedAt, ok := snapshot["updatedAt"].(float64)
-	if !ok || !slskdNumber(updatedAt) || !slskdFresh(h.Now(), time.UnixMilli(int64(updatedAt))) {
-		return errors.New(failure)
-	}
-	values, ok := snapshot["values"].(map[string]any)
-	if !ok || !slskdNumber(values["download"]) {
+	age := sample.completedAt - math.Trunc(sample.updatedAt)
+	if age < -60000 || age > 60000 || sample.retryAt != float64(0) || !slskdNumber(sample.values["download"]) {
 		return errors.New(failure)
 	}
 	return nil
