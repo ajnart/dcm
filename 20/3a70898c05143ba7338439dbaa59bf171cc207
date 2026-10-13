@@ -1,0 +1,19 @@
+docs/research/tui-welcome-animation.md
+  s_3c43925141065f::t_3c0b75c431a6b3 1-267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "203a70898c05143ba7338439dbaa59bf171cc207",
+  "prompts": {},
+  "sessions": {
+    "s_3c43925141065f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6fd30541-1d26-4fb3-b4a2-8422d6383ec2",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
