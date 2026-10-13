@@ -230,7 +230,7 @@ func atWhereMedia(t *testing.T) (Model, *fakeBackend) {
 func atWhereMediaSized(t *testing.T, width, height int) (Model, *fakeBackend) {
 	t.Helper()
 	m, backend := onboardingHost(t, width, height, readyChecks...)
-	m = frames(t, m, 60)
+	m = frames(t, m, introFrames)
 	backend.folders = &systemtest.Folders{}
 	backend.folders.Add("/", "media", "mnt")
 	m = drive(t, m, press("enter"))
