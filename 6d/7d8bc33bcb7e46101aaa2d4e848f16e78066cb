@@ -1,0 +1,51 @@
+site/catalog.js
+  s_378d5db6c5f6de::t_6418ba44cb175d 2
+site/catalog.json
+  s_378d5db6c5f6de::t_30929dd376405b 11,22,33,44,55,66,77,88,99,110,121,132,143,154,165,176,186-187,197,208,219,230,241,252,263,274,285,296,307,318,378-427,438,449,460,471,482,493,504,514-515,525,536,547,558,569,580,591,602,613,624,635,646,657,668,679,690,700-701,711,722,733,744,755,766,777,788,802-805,816,829-831,842,852-853,863,873-874,884,899-903,914,927-929,939-940,950,961,972,983,994,1005,1016,1027,1038,1049,1060,1071,1082,1093,1104,1115,1126,1137
+site/intro.json
+  s_378d5db6c5f6de::t_92c5420eebaf4b 1
+site/js/catalog-view.js
+  s_378d5db6c5f6de::t_39123e8a425924 37,40,42,44-52
+site/js/project.js
+  s_378d5db6c5f6de::t_967486a728e9f9 17-28,63,119-125
+site/js/selection.js
+  s_378d5db6c5f6de::t_9aafa17ad27e8e 1,41
+site/js/shell.js
+  s_22ff62fda90f47::t_7f09a8918e1d35 2,69-70,94-100,170
+tools/introframes/main.go
+  s_18fb16dea0e4db::t_f6680cc58d4370 1-192
+tools/sitecatalog/main.go
+  s_378d5db6c5f6de::t_b13d1abb704053 20,62,65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6d7d8bc33bcb7e46101aaa2d4e848f16e78066cb",
+  "prompts": {},
+  "sessions": {
+    "s_18fb16dea0e4db": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "252c7f71-5e08-4c19-a1ce-9ac61d55e3a9",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_22ff62fda90f47": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6ce308e1-3b59-44e6-a828-1ee4dec863b1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
