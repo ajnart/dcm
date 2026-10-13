@@ -140,6 +140,13 @@ func installedTiles(ctx context.Context, h *helpers.H, apply bool) (bool, error)
 		if !wanted || duplicate {
 			complete = false
 			if apply {
+				if !inspectReferences {
+					referenced, _, err = installedAppReferences(ctx, h)
+					if err != nil {
+						return false, err
+					}
+					inspectReferences = true
+				}
 				if err := retireInstalledApp(ctx, h, existing, referenced[id], duplicate); err != nil {
 					return false, err
 				}
