@@ -1,0 +1,23 @@
+AGENTS.md
+  s_7483fc463c4a1b::t_bf8722ddbc93eb 59
+CONTRIBUTING.md
+  s_7483fc463c4a1b::t_6638eddd65d67c 34
+docs/agents/filing-issues.md
+  s_7483fc463c4a1b::t_734f76698346b0 1,3,5,7-11,13-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1ae4a4f23c46bcab73bd2fedd884d436991b9163",
+  "prompts": {},
+  "sessions": {
+    "s_7483fc463c4a1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7b6432c6-ee0d-4e52-b004-9dbb7d3613ee",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
