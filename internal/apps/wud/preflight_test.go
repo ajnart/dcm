@@ -98,18 +98,74 @@ func TestLifecycleRejectsTLSBeforeCompose(t *testing.T) {
 }
 
 func installHandler() http.Handler {
+	var adminPassword string
+	var reader struct {
+		ID       string `json:"id"`
+		Username string `json:"username"`
+		Role     string `json:"role"`
+		Provider string `json:"provider"`
+	}
+	var readerPassword string
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, _, ok := r.BasicAuth()
-		if !ok {
+		user, password, ok := r.BasicAuth()
+		if !ok || password == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if user == "admin" && adminPassword == "" {
+			adminPassword = password
+		}
+		admin := user == "admin" && password == adminPassword
+		if !admin && (reader.Username == "" || user != reader.Username || password != readerPassword) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Path == "/auth/user" {
-			json.NewEncoder(w).Encode(map[string]string{"username": user, "role": "admin"})
+			if admin {
+				json.NewEncoder(w).Encode(map[string]string{"id": "fixture-admin-id", "username": user, "role": "admin", "provider": "local"})
+			} else {
+				json.NewEncoder(w).Encode(reader)
+			}
+			return
+		}
+		if r.URL.Path == "/api/users" {
+			if !admin {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+			if r.Method == http.MethodGet {
+				users := []any{map[string]string{"id": "fixture-admin-id", "username": user, "role": "admin", "provider": "local"}}
+				if reader.Username != "" {
+					users = append(users, reader)
+				}
+				json.NewEncoder(w).Encode(users)
+				return
+			}
+			if r.Method == http.MethodPost {
+				var body struct{ Username, Password, Role string }
+				if json.NewDecoder(r.Body).Decode(&body) != nil || body.Username != "self-host-homarr" || body.Password == "" || body.Role != "ro" {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				if reader.Username != "" {
+					w.WriteHeader(http.StatusConflict)
+					return
+				}
+				reader.ID, reader.Username, reader.Role, reader.Provider = "fixture-reader-id", body.Username, body.Role, "local"
+				readerPassword = body.Password
+				w.WriteHeader(http.StatusCreated)
+				json.NewEncoder(w).Encode(reader)
+				return
+			}
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 		if strings.HasSuffix(r.URL.Path, "/watch") {
+			if !admin {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
 			w.Write([]byte(`{"id":"owned-fixture","watcher":"approved","image":{"id":"sha256:owned-image"}}`))
 			return
 		}
