@@ -102,3 +102,36 @@ redacted evidence; unavailable upstream work remains a limitation.
 - [Installed Seesaw protected handler](https://github.com/ArchiveTeam/seesaw-kit/blob/bb6673d27a8717e13efe5d7deb3628349cd08585/seesaw/web_util.py)
 - [SockJS XHR receive transport](https://github.com/mrjoes/sockjs-tornado/blob/master/sockjs/tornado/transports/xhr.py)
 - [Existing image provenance and outbound limits](catalog/traps/archive-team-warrior.md)
+
+
+## Shared Stats SDK normalization, source and focused HTTP evidence
+
+The original branch history is preserved by forward merges of shared SDK
+`0bf67c3c64c229af25f19c1b93264f19cc57a910` and additive metadata SDK
+`d069339add5924f942ea6536f77d68e64b165df0`. No registry or common verification
+implementation is changed by this peer.
+
+The descriptor now uses a pure `statsSample` callback for `running`, `completed`, `failed`.
+One common catalog/snapshot/forced-refresh sequence supplies the same values
+validated by the leaf. Exact catalog units and value types are checked: counts.
+Missing/null fields, invalid counts/units and no-op refreshes fail; legitimate
+zeros remain valid. Common timestamp validation remains finite, positive and
+advancing; this peer adds no invented clock policy.
+
+Native protected login, actual receive-only worker events, configured identity/Manual readiness, recognized Homarr status, project shape, timestamp and item/count relationships remain unchanged. Stats values are validated without equating them to independently cached worker snapshots.
+
+Units and selected provider keys were checked in immutable Homarr OCI source
+`3d4150e59f600876b7e308f857b2f21572b75348`, using
+`packages/integrations/src/stats/existing.ts` and, for Frigate,
+`packages/integrations/src/stats/providers/frigate.ts`. This is source provenance,
+not new image attestation.
+
+Focused HTTP scenarios use the shared `statsFixture` through `verifyData`, with
+the native verifier explicitly isolated, and assert one forced refresh for the
+owned integration. They cover valid empty/populated samples, invalid selected
+values/units and refresh no-op rejection. App and Homarr affected-package tests,
+affected-package build/vet, changed-file gofmt and `git diff --check` passed.
+No Docker, browser, installer or broad suite was run. These fixtures verify the
+source interface; they do not claim real native/rendered acceptance.
+
+#323 remains draft and #267 remains open. No project is selected or transfer started. HQ/provider actions and native/rendered lifecycle acceptance remain separate prerequisites; idle synthetic HTTP scenarios do not establish actual archival progress.

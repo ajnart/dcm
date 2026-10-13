@@ -19,6 +19,7 @@ func archiveTeamWarriorTarget() target {
 		},
 		widgets: []widget{plain("archiveTeamWarrior"), statWidget("running", "completed", "failed")},
 		verify:  verifyArchiveTeamWarrior,
+		stats:   verifyArchiveTeamWarriorStats,
 	}
 }
 
@@ -77,6 +78,16 @@ func verifyArchiveTeamWarrior(ctx context.Context, from, to *helpers.H, integrat
 	}
 	if state == "No Project" && (total != 0 || len(items) != 0) {
 		return errors.New("Homarr idle Warrior snapshot still has worker items")
+	}
+	return nil
+}
+
+func verifyArchiveTeamWarriorStats(sample statsSample) error {
+	for _, key := range []string{"running", "completed", "failed"} {
+		count, ok := sample.values[key].(float64)
+		if sample.units[key] != "count" || !ok || count < 0 || math.IsNaN(count) || math.IsInf(count, 0) || math.Trunc(count) != count {
+			return errors.New("Homarr returned invalid Warrior worker Stats; retry self-host setup homarr")
+		}
 	}
 	return nil
 }
