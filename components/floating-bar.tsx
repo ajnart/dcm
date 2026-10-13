@@ -1,9 +1,6 @@
 "use client"
 
-import {
-  ServiceCircles,
-  type StackItem,
-} from "@/components/magicui/avatar-circles"
+import { ServiceCircles } from "@/components/magicui/avatar-circles"
 import { SearchCommand } from "@/components/search-command"
 import { Button } from "@/components/ui/button"
 import { useClipboard } from "@/hooks/use-clipboard"
@@ -52,14 +49,7 @@ export default function FloatingBar({
 
   const resolved = useMemo(() => resolveSelection(ids, catalog), [ids, catalog])
   const selfHostIds = useMemo(() => toSelfHostIds(ids, catalog), [ids, catalog])
-  const stack: StackItem[] = [
-    ...resolved.recipes.map((recipe) => ({
-      id: recipe.id,
-      name: recipe.name,
-    })),
-    ...resolved.entries,
-  ]
-  const selectedCount = stack.length
+  const selectedCount = resolved.entries.length
   const command = buildSelfHostCommand(selfHostIds)
 
   useEffect(() => {
@@ -179,7 +169,7 @@ export default function FloatingBar({
                 {selectedCount > 0 && (
                   <div className="flex max-w-full flex-wrap gap-1.5 sm:max-w-[600px]">
                     <ServiceCircles
-                      selectedServices={stack}
+                      selectedServices={resolved.entries}
                       spacing="-space-x-1 xs:-space-x-2 sm:-space-x-4"
                       onToggleServiceSelection={onToggle}
                       className="mt-1"
@@ -255,7 +245,7 @@ export default function FloatingBar({
             </div>
           </div>
 
-          {command && (
+          {selfHostIds.length > 0 && (
             <div className="mt-4 flex flex-col gap-2 border-t pt-3 text-muted-foreground text-sm sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"

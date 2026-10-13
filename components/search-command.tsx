@@ -45,29 +45,10 @@ export function SearchCommand({
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <DialogTitle className="sr-only">Search apps and recipes</DialogTitle>
-      <CommandInput placeholder="Search apps and recipes..." />
+      <DialogTitle className="sr-only">Search apps</DialogTitle>
+      <CommandInput placeholder="Search apps..." />
       <CommandList>
         <CommandEmpty>Nothing found.</CommandEmpty>
-
-        <CommandGroup heading="Recipes">
-          {catalog.recipes.map((recipe) => (
-            <CommandItem
-              key={recipe.id}
-              value={`recipe ${recipe.name} ${recipe.id}`}
-              onSelect={() => onToggle(recipe.id)}
-              className="flex items-center justify-between"
-            >
-              <span>{recipe.name}</span>
-              <span className="flex items-center gap-2 text-muted-foreground text-xs">
-                {recipe.apps.length} apps
-                {selected.includes(recipe.id) && (
-                  <Check className="h-4 w-4 text-primary" />
-                )}
-              </span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
 
         <CommandGroup heading="Apps">
           {catalog.entries.map((entry) => (

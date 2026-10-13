@@ -6,18 +6,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import type { DockerTool } from "@/lib/docker-tools"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 
-export interface StackItem {
-  id: string
-  name: string
-  icon?: string
-}
-
 interface ServiceCirclesProps {
   className?: string
-  selectedServices: StackItem[]
+  selectedServices: DockerTool[]
   onToggleServiceSelection?: (serviceId: string) => void
   /** Spacing between service icons, defaults to -space-x-4 */
   spacing?: string

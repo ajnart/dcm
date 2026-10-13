@@ -107,22 +107,6 @@ export default function DockerCard({
               self-host only
             </Badge>
           )}
-          {entry.selfhostId && !entry.selfhostOnly && (
-            <Badge
-              variant="secondary"
-              className="rounded-md px-1 font-normal text-xs"
-            >
-              self-host
-            </Badge>
-          )}
-          {entry.port !== undefined && (
-            <Badge
-              variant="outline"
-              className="rounded-md px-1 font-normal text-xs"
-            >
-              :{entry.port}
-            </Badge>
-          )}
           {entry.tags.map((tag) => (
             <Badge
               key={tag}

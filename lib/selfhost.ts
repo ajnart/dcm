@@ -9,21 +9,10 @@ export interface SelfHostApp {
   name: string
   d: string
   c: string
-  img: string
-  p: number
-  l: string[]
   i?: string
 }
 
-export interface SelfHostRecipe {
-  id: string
-  name: string
-  d: string
-  apps: string[]
-}
-
 export const selfHostApps: SelfHostApp[] = data.apps
-export const selfHostRecipes: SelfHostRecipe[] = data.recipes
 
 const appIds = new Set(selfHostApps.map((app) => app.id))
 
