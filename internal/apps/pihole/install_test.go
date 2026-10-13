@@ -20,6 +20,7 @@ import (
 
 type passwordFileTransport struct {
 	password string
+	appHash  string
 	logins   int
 }
 
@@ -27,6 +28,10 @@ func (f *passwordFileTransport) RoundTrip(req *http.Request) (*http.Response, er
 	status, body := http.StatusOK, `{}`
 	switch req.URL.Path {
 	case "/api/auth":
+		if req.Method == http.MethodDelete {
+			status = http.StatusNoContent
+			break
+		}
 		if req.Method == http.MethodGet {
 			if req.Header.Get("X-FTL-SID") != "fixture-session" {
 				status = http.StatusUnauthorized
@@ -45,16 +50,62 @@ func (f *passwordFileTransport) RoundTrip(req *http.Request) (*http.Response, er
 		if err := json.NewDecoder(req.Body).Decode(&login); err != nil {
 			return nil, err
 		}
-		if login.Password != f.password {
+		if login.Password == "fixture-app-password" && f.appHash == "fixture-app-hash" {
+			body = `{"session":{"valid":true,"sid":"fixture-app-session"}}`
+		} else if login.Password != f.password {
 			status = http.StatusUnauthorized
 		} else {
 			f.logins++
 			body = `{"session":{"valid":true,"sid":"fixture-session"}}`
 		}
+	case "/api/info/login":
+		body = `{"dns":true,"https_port":443}`
+	case "/api/config/webserver/api/app_sudo":
+		if req.Header.Get("X-FTL-SID") != "fixture-session" && req.Header.Get("X-FTL-SID") != "fixture-app-session" {
+			status = http.StatusUnauthorized
+		} else {
+			body = `{"config":{"webserver":{"api":{"app_sudo":false}}}}`
+		}
+	case "/api/config/webserver/api/app_pwhash":
+		if req.Header.Get("X-FTL-SID") != "fixture-session" && req.Header.Get("X-FTL-SID") != "fixture-app-session" {
+			status = http.StatusUnauthorized
+		} else {
+			raw, err := json.Marshal(map[string]any{"config": map[string]any{"webserver": map[string]any{"api": map[string]string{"app_pwhash": f.appHash}}}})
+			if err != nil {
+				return nil, err
+			}
+			body = string(raw)
+		}
+	case "/api/auth/app":
+		if req.Header.Get("X-FTL-SID") != "fixture-session" || f.appHash != "" {
+			status = http.StatusForbidden
+		} else {
+			body = `{"app":{"password":"fixture-app-password","hash":"fixture-app-hash"}}`
+		}
+	case "/api/config":
+		var config map[string]map[string]map[string]map[string]string
+		if req.Method != http.MethodPatch || req.Header.Get("X-FTL-SID") != "fixture-session" || json.NewDecoder(req.Body).Decode(&config) != nil || len(config) != 1 || len(config["config"]) != 1 || len(config["config"]["webserver"]) != 1 || len(config["config"]["webserver"]["api"]) != 1 || config["config"]["webserver"]["api"]["app_pwhash"] != "fixture-app-hash" || f.appHash != "" {
+			status = http.StatusForbidden
+		} else {
+			f.appHash = "fixture-app-hash"
+			body = `{"config":{"webserver":{"api":{"app_pwhash":"fixture-app-hash"}}}}`
+		}
+	case "/api/auth/sessions":
+		if req.Header.Get("X-FTL-SID") != "fixture-app-session" {
+			status = http.StatusUnauthorized
+		} else {
+			body = `{"sessions":[{"current_session":true,"valid":true,"app":true,"cli":false}]}`
+		}
+	case "/api/stats/summary":
+		if req.Header.Get("X-FTL-SID") != "fixture-app-session" {
+			status = http.StatusUnauthorized
+		} else {
+			body = `{"queries":{"total":0,"blocked":0,"percent_blocked":0},"gravity":{"domains_being_blocked":0}}`
+		}
 	case "/api/dns/blocking":
 		if req.Method != http.MethodGet {
 			status = http.StatusMethodNotAllowed
-		} else if req.Header.Get("X-FTL-SID") != "fixture-session" {
+		} else if req.Header.Get("X-FTL-SID") != "fixture-session" && req.Header.Get("X-FTL-SID") != "fixture-app-session" {
 			status = http.StatusUnauthorized
 		} else {
 			body = `{"blocking":"enabled","timer":null}`
