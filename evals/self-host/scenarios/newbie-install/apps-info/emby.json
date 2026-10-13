@@ -1,0 +1,10 @@
+{
+  "id": "emby",
+  "name": "Emby",
+  "description": "Watch your own movies and shows on any TV, phone or computer",
+  "category": "Media",
+  "image": "emby/embyserver:4.10.0.40",
+  "docs": "https://emby.media/support/articles/Installation.html",
+  "port": 8096,
+  "inputs": []
+}

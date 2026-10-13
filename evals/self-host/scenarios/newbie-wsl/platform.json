@@ -1,0 +1,26 @@
+{
+ "uname": {
+  "s": "Linux",
+  "n": "GAMING-PC",
+  "r": "6.6.87.2-microsoft-standard-WSL2",
+  "v": "#1 SMP PREEMPT_DYNAMIC",
+  "m": "x86_64"
+ },
+ "lsb_release": "Distributor ID:\tUbuntu\nDescription:\tUbuntu 24.04.2 LTS\nRelease:\t24.04\nCodename:\tnoble",
+ "tools": [
+  "apt",
+  "apt-get"
+ ],
+ "docker": "missing",
+  "media": {
+    "metadata_only": true,
+    "files": [
+      {"name": "Arrival (2016).mkv", "bytes": 134217728},
+      {"name": "Paddington 2 (2017).mkv", "bytes": 268435456},
+      {"name": "The Iron Giant (1999).mp4", "bytes": 67108864}
+    ]
+  },
+  "dirs": [
+  "/mnt/d/Movies"
+ ]
+}

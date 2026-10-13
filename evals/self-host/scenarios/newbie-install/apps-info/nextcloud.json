@@ -1,0 +1,10 @@
+{
+  "id": "nextcloud",
+  "name": "Nextcloud",
+  "description": "Keep your files, calendars and contacts in sync across your devices",
+  "category": "Files",
+  "image": "nextcloud:35.0.1-apache",
+  "docs": "https://github.com/nextcloud/docker",
+  "port": 8080,
+  "inputs": []
+}
