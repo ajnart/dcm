@@ -10,6 +10,15 @@ body:
 
         Before submitting, remove passwords, API keys, tokens, secret files, browser cookies, private hostnames, and private addresses from every answer and attachment.
   - type: dropdown
+    id: reporter
+    attributes:
+      label: Reported by
+      options:
+        - A person
+        - An agent
+    validations:
+      required: true
+  - type: dropdown
     id: failure-type
     attributes:
       label: What is broken?
