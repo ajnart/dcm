@@ -1,0 +1,35 @@
+internal/activity/glyphs.go
+  s_2ee16f89e90212::t_91b327b841e389 62
+internal/tui/glyphs_test.go
+  s_2ee16f89e90212::t_94e05ab69faa47 54-55,67,124
+internal/tui/onboarding_followup_test.go
+  s_2ee16f89e90212::t_56a3c5c6acf576 21-22
+internal/tui/testdata/glyphs-nerd-font-apps-narrow.golden
+  s_2ee16f89e90212::t_7cd93a7d67a0c6 1
+internal/tui/testdata/glyphs-nerd-font-apps.golden
+  s_2ee16f89e90212::t_2916db5d38592c 1
+internal/tui/testdata/glyphs-nerd-font-overview-narrow.golden
+  s_2ee16f89e90212::t_d9bb2f4e13fab2 1
+internal/tui/testdata/glyphs-nerd-font-overview.golden
+  s_2ee16f89e90212::t_cf1d535ba50f10 1
+internal/tui/testdata/onboarding-look-selected-narrow.golden
+  s_2ee16f89e90212::t_69d99923877d45 1,10
+internal/tui/testdata/onboarding-look-selected.golden
+  s_2ee16f89e90212::t_16d3e0acd75416 1,9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ea006a0ef28d19545e5bc4efcf2e1941453bf56b",
+  "prompts": {},
+  "sessions": {
+    "s_2ee16f89e90212": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "43462e39-ff1e-462e-a209-a2b4f1fd2107",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
