@@ -60,7 +60,25 @@ func (f *fakeFrigate) handler() http.Handler {
 			w.WriteHeader(f.profileStatus)
 			return
 		}
+		if f.token != "" && r.Header.Get("Authorization") == "Bearer "+f.token {
+			json.NewEncoder(w).Encode(map[string]any{"username": adminUser, "role": "admin", "allowed_cameras": []string{}})
+			return
+		}
 		w.WriteHeader(http.StatusUnauthorized)
+	})
+	mux.HandleFunc("GET /api/auth/first_time_login", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		json.NewEncoder(w).Encode(map[string]bool{"admin_first_time_login": f.password == tempPass})
+	})
+	mux.HandleFunc("GET /api/stats", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.token == "" || r.Header.Get("Authorization") != "Bearer "+f.token {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"cameras": map[string]any{}, "service": map[string]any{"uptime": 42, "version": "0.18.0"}})
 	})
 	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
@@ -75,7 +93,7 @@ func (f *fakeFrigate) handler() http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		token := "token-" + body.Password
+		token := "test.session.signature"
 		f.token = token
 		http.SetCookie(w, &http.Cookie{Name: "frigate_token", Value: token, Path: "/"})
 	})

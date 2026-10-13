@@ -1,0 +1,10 @@
+{
+  "id": "vector",
+  "name": "Vector",
+  "description": "Collect your apps' activity messages and send them where you choose",
+  "category": "Observability",
+  "image": "ghcr.io/vectordotdev/vector:0.58.0-debian",
+  "docs": "https://vector.dev/docs/setup/installation/platforms/docker/",
+  "port": 8686,
+  "inputs": []
+}

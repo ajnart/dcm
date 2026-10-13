@@ -536,6 +536,13 @@ interactive private fields are masked. Provider accounts, VPN credentials,
 existing tunnel enrollment and software licenses remain prerequisites. The CLI
 does not create provider accounts or establish those external approvals for you.
 
+Gluetun Setup verifies its saved read-only control key separately from VPN
+readiness. Missing provider credentials or a disconnected tunnel remain Manual
+steps; rejected control credentials and invalid API responses are failures.
+Its Homarr native Link remains blocked: the supported upstream adapter requires
+an endpoint that exposes provider credentials. Do not expand the control role
+to work around it. See [the Gluetun contract](docs/homarr-gluetun-contract.md).
+
 With `--json`, mutations and `doctor` produce newline-delimited events;
 `status`, `profile`, `apps list`, `apps info` and `credentials` produce JSON documents.
 Read each `step.fail` and its hint. Exit codes are `0` for success, `1` for an

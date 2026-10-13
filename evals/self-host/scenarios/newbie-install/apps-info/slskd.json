@@ -1,0 +1,10 @@
+{
+  "id": "slskd",
+  "name": "Slskd",
+  "description": "Share and find music with others on the Soulseek network, from a web page",
+  "category": "Downloads",
+  "image": "ghcr.io/slskd/slskd:0.26.0.65534-e3d377d4",
+  "docs": "https://github.com/slskd/slskd/tree/master/docs",
+  "port": 5030,
+  "inputs": []
+}

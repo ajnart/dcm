@@ -2,6 +2,7 @@ package gluetun_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -47,6 +48,14 @@ func handler() http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"running"}`))
 	})
+	mux.HandleFunc("/v1/publicip/ip", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-API-Key") != apiKey {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"public_ip":"203.0.113.9"}`))
+	})
 	return mux
 }
 
@@ -77,18 +86,18 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	}
 }
 
-func TestMissingCredentialsFailWithAHint(t *testing.T) {
+func TestMissingCredentialsRemainManualWithAHint(t *testing.T) {
 	srv := httptest.NewServer(handler())
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records, map[string]string{})
 
-	if err := (gluetun.App{}).Setup(context.Background(), h); err == nil {
-		t.Fatal("Setup should fail without provider credentials")
+	if err := (gluetun.App{}).Setup(context.Background(), h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatalf("Setup without provider credentials = %v, want Manual", err)
 	}
 	var hint string
 	for _, r := range records {
-		if r.Status == stepstatus.StepFail {
+		if r.Status == stepstatus.StepManual {
 			hint = r.Hint
 		}
 	}

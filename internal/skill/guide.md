@@ -421,6 +421,13 @@ read secrets or rotate someone else's key. Immich server statistics are wired;
 album slideshows are not. Native authenticated data and rendered widgets need
 their own verification; a tile or successful HTTP response is not that proof.
 
+Gluetun's control API key is not a VPN-provider credential. Missing privately
+supplied provider credentials or a disconnected tunnel remain retryable Manual
+steps. Rejected control keys, transport errors and invalid responses are failures.
+Homarr 2.4.1 needs a credential-bearing VPN settings endpoint for both its native
+VPN and Stats widgets. That Link is blocked; never expand the control role,
+request provider secrets, disable the firewall or claim a tile proves VPN data.
+
 The additive `names` section has `on`, `working` and, on failure, `problem`,
 `message`, `technical`. Give the plain `message` first and the numbered Address;
 do not change the router or disable its protection yourself. `blocked` compares
