@@ -63,7 +63,7 @@ func readStatsSample(ctx context.Context, h *helpers.H, integrationID string, se
 	}
 	for _, metric := range selected {
 		if _, present := units[metric]; !present {
-			return statsSample{}, fmt.Errorf("Homarr does not expose %s Stats; use Homarr 2.4.1 and retry Setup", metric)
+			return statsSample{}, fmt.Errorf("Homarr does not expose %s Stats; use Homarr %s and retry Setup", metric, supportedHomarrVersions)
 		}
 	}
 	sample, err := refreshStatsSample(ctx, h, integrationID)

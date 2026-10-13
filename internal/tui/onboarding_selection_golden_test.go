@@ -31,6 +31,7 @@ func TestGoldenOnboardingSelectionAndFocus(t *testing.T) {
 				for _, key := range stage.keys {
 					m = drive(t, m, press(key))
 				}
+				m = frames(t, m, reactionFrames)
 				golden(t, "onboarding-"+stage.name+size.suffix, trimLines(screen(m)))
 			})
 		}
