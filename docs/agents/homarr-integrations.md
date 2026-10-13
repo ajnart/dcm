@@ -35,8 +35,10 @@ those records predates that decision. Keep the existing self-host skill router.
    legacy data checks; removal/absence never calls preflight or refreshes Stats.
    Migrated Stats peers add `stats func(statsSample) error` for pure semantic
    validation. Keep native checks in `verify`, and move Stats acquisition out
-   of it. The callback receives `values`, catalog `units`, `startedAt`,
+   of it. The callback receives `values`, catalog `units`, raw `retryAt`, `startedAt`,
    `completedAt` and `updatedAt` (Unix milliseconds) from one central refresh.
+   `retryAt` preserves missing/null and malformed metadata without coercion;
+   each App owns its retry policy, without another Stats read.
    The start is read before the request and completion after the response;
    use completion when retaining an App's existing upper future-skew limit
    after a slow refresh. Apps own clock policy; common checks require finite,
