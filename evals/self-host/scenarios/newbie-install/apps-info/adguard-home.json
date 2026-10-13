@@ -1,0 +1,10 @@
+{
+  "id": "adguard-home",
+  "name": "AdGuard Home",
+  "description": "Block ads and trackers on every device at home, with a simple control page",
+  "category": "DNS",
+  "image": "adguard/adguardhome:v0.107.79",
+  "docs": "https://github.com/AdguardTeam/AdGuardHome/wiki/Docker",
+  "port": 3000,
+  "inputs": []
+}

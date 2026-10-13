@@ -1,0 +1,10 @@
+{
+  "id": "prometheus",
+  "name": "Prometheus",
+  "description": "Record numbers about how your computers and apps are doing over time",
+  "category": "Observability",
+  "image": "prom/prometheus:v3.15.0",
+  "docs": "https://prometheus.io/docs/prometheus/latest/installation/",
+  "port": 9090,
+  "inputs": []
+}

@@ -1,0 +1,10 @@
+{
+  "id": "netdata",
+  "name": "Netdata",
+  "description": "Watch your computer's performance live, second by second",
+  "category": "Monitoring",
+  "image": "netdata/netdata:v2.11.0",
+  "docs": "https://learn.netdata.cloud/docs/netdata-agent/installation/docker",
+  "port": 19999,
+  "inputs": []
+}
