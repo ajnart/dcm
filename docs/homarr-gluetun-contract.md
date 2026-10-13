@@ -44,7 +44,8 @@ public IP and **`GET /v1/vpn/settings`**. Gluetun's handler serializes a copy of
 the full VPN settings, including OpenVPN credentials, WireGuard private keys
 and port-forwarding credentials. It is not a redacted provider-summary API.
 The existing control role correctly denies it and DNS status. The descriptor's
-verification deliberately stops with an actionable failure without calling this
+preflight deliberately stops as a retryable Manual step before compatibility,
+Homarr mutation or Stats refresh, without calling this
 credential-bearing API directly or indirectly through Homarr. No widget or
 tile-only success is claimed.
 
@@ -81,3 +82,17 @@ is synthetic unit coverage, not an active VPN or functional Homarr proof.
 - [Unredacted settings copy](https://github.com/qdm12/gluetun/blob/v3.41.3/internal/vpn/state/vpn.go)
 - [Optional public-IP metadata](https://github.com/qdm12/gluetun/blob/v3.41.3/internal/models/publicip.go)
 - [Disconnected public-IP clearing](https://github.com/qdm12/gluetun/blob/v3.41.3/internal/publicip/data.go)
+
+## Original-branch normalization, 13 October 2026
+
+The original release branch forward-merges the SDK and additive Stats contracts
+without rewriting its history. The privacy hold for #332 runs before Check/apply
+can create any Homarr record, and verification retains the same hold as a second
+boundary. No credential-bearing native summary or Stats refresh is attempted.
+A local upstream patch is not an audited supported fixed image or permission to
+clear the hold. The selected native VPN/Stats keys remain unchanged; no runtime
+semantic callback is claimed while the supported adapter cannot be used safely.
+
+Focused descriptor HTTP checks exercise both Manual entry points and require zero
+Homarr or Gluetun requests. They prove hold ordering only, not VPN/native/rendered
+acceptance. The prepared descriptor remains unregistered in this lane.

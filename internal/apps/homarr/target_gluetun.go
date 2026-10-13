@@ -2,11 +2,11 @@ package homarr
 
 import (
 	"context"
-	"errors"
 
-	"github.com/ajnart/self-host/internal/apps/gluetun"
 	"github.com/ajnart/self-host/internal/helpers"
 )
+
+const gluetunPrivacyHint = "Homarr 2.4.1 VPN and Stats read provider credentials through GET /v1/vpn/settings and require DNS access outside the existing control grants. Keep this Link paused until an audited supported image provides a credential-safe summary and optional public-IP metadata. Do not broaden the control role or disable authentication; a local upstream patch does not clear this hold. Then retry self-host setup gluetun and self-host setup homarr."
 
 func gluetunTarget() target {
 	return target{
@@ -15,14 +15,15 @@ func gluetunTarget() target {
 			return []secret{{Kind: "apiKey", Value: to.Secret(to.Key("control_api_key"))}}
 		},
 		widgets: []widget{plain("vpn"), statWidget("status", "publicIp")},
-		verify:  verifyGluetun,
+		preflight: func(_ context.Context, from, _ *helpers.H) error {
+			from.Info(gluetunPrivacyHint)
+			return helpers.ErrManual
+		},
+		verify: verifyGluetun,
 	}
 }
 
-func verifyGluetun(ctx context.Context, _, to *helpers.H, _ string) error {
-	if err := (gluetun.App{}).Check(ctx, to); err != nil {
-		return err
-	}
-	return errors.New("Homarr 2.4.1 VPN and Stats require GET /v1/vpn/settings, which exposes provider credentials in Gluetun 3.41.3. " +
-		"This Link is blocked until an upstream credential-safe summary is supported; do not broaden the control role, disable authentication, or treat a navigation tile as success")
+func verifyGluetun(_ context.Context, from, _ *helpers.H, _ string) error {
+	from.Info(gluetunPrivacyHint)
+	return helpers.ErrManual
 }
