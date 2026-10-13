@@ -1,0 +1,256 @@
+# Paperless-ngx prerequisite and Homarr descriptor
+
+Source status, 13 October 2026 (before this docs update):
+`a463bd3dbed8856ccf990b94faaa6c9692e69615`.
+The descriptor is normalized to the Stats SDK and registered in `internal/apps/homarr/targets.go`. This establishes source
+wiring only; native/rendered data, both installation orders and lifecycle
+acceptance remain unproved. Earlier dated evidence retains its original scope.
+
+Peer slice for #289. The prerequisite runtime evidence below belongs to
+11 October 2026 and implementation commit `368cc026`; the source-only ownership
+and Manual recovery follow-up is dated 12 October 2026. Neither is complete
+Homarr widget acceptance. #262's shared contract is now frozen at
+`6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c`; central wiring is complete, while new bounded
+rendered/lifecycle acceptance remains held. The 13 October source-only SDK
+completion adds native and Stats verification; it does not add runtime evidence.
+
+## Implemented boundary
+
+- Paperless-ngx Setup verifies the configured Admin login, then creates a
+  dedicated, randomly named Homarr account only when no account checkpoint,
+  username, password or token is saved. A pending checkpoint precedes the
+  remote write; the verified create response supplies its canonical account ID.
+  A random ownership marker is recorded with that ID and in the dedicated
+  account's First name field. Neither the shared Admin login nor another
+  account's metadata is modified.
+- The account is active, not staff or a superuser, has no groups and has exactly
+  `view_global_statistics`, `view_tag`, `view_correspondent` and
+  `view_documenttype`. It cannot list document contents, upload, edit or delete
+  documents. Global statistics expose archive counts; taxonomy lists retain
+  Paperless's existing object-level visibility. Setup does not rewrite ownership
+  or object permissions.
+- Reruns resolve only `/api/users/<recorded-id>/`, require that returned ID and
+  ownership marker to agree, and authenticate the saved password using the
+  returned canonical username. The Basic-auth and token-auth profiles must
+  carry the same marker. A profile alone returns no ID: marker correlation
+  with the exact administrator-authenticated detail record is the identity
+  evidence, not arbitrary token success or a username lookup.
+- The current profile token is reused. `/api/token/` creates a reusable token
+  only when that verified profile has none. Production Setup never calls the
+  rotating `generate_auth_token` endpoint. The checkpoint, username, password
+  and verified `PAPERLESS_NGX_API_KEY` are stored through `helpers.H` and the
+  existing Project secret boundary, not in command arguments.
+- Every Check reads account policy, ownership and current token afresh, then
+  authenticates against `/api/statistics/`, `/api/tags/`,
+  `/api/correspondents/` and `/api/document_types/`. Missing fields are not
+  accepted as zero. A null inbox count is valid when no inbox tag exists.
+  Missing/stale tokens are rediscovered on `self-host setup paperless-ngx`.
+
+## Source-only ownership and Manual recovery follow-up
+
+The production follow-up at `2b9753441043e85c979e3edf6b104542e4dc7804`
+changed Paperless Setup/token code, its fixture and documentation. It also
+added agent-authored regression cases inside existing test bodies without an
+actual human request for new unit tests. The previous "no new cases" claim was
+incorrect. The coverage cleanup removes those cases and their fault-injection
+machinery; production code, dependencies, registry and shared verifiers remain
+unchanged.
+
+- A renamed selected account or lost saved username keeps the same recorded
+  ID, ownership marker, password and reusable token. The current canonical
+  username is saved only after authenticated ownership and data checks pass.
+- Legacy name-only metadata cannot establish canonical provenance. It remains
+  Manual without adopting an existing account, adding an ownership marker,
+  replacing a token or rewriting permissions. Malformed/missing/pending
+  checkpoints likewise fail closed. A failed final checkpoint write cannot
+  cause a second account/token on retry.
+- Verified credential denial, disabled status, MFA, identity disagreement and
+  policy drift are targeted retryable Manual steps. Setup never reactivates
+  users, disables MFA, resets passwords, changes existing permissions, rotates
+  tokens or deletes accounts. Infrastructure failures and malformed API/data
+  responses remain failed steps; they are not blanket-converted to Manual.
+- The supported person recovery seam is the official 3.2.1 Users & Groups →
+  Edit user dialog: it displays the ID and exposes Password, First name and
+  Active controls. After confirming the recorded ID/marker privately with
+  `self-host credentials`, the person may restore the corresponding saved
+  password or Active status if intended, then retry Setup. MFA remains a
+  separate person decision; Setup does not clear it. The restored known pair
+  reuses its existing token. No account UI action was performed for this fix.
+- Missing saved credentials or unverifiable old ownership require a verified
+  Project Backup or separately approved migration. This slice adds no private
+  Inputs, no `--set-file` ingestion and no credentials-only update command.
+  It does not claim an automatic old-format migration or a general replacement
+  credential recovery route.
+
+Git history and the owning agent's recorded patches confirm that the extra
+checkpoint/creation assertions, independent partial-write fixture, rename/key/
+ownership/authentication/recovery/failure scenarios and exclusive fault flags,
+counters and failing secret store were introduced by that agent, not by a
+person or unknown concurrent work. They were removed without replacement.
+
+The remaining test tree was compared with fixed implementation parent
+`5aafb4c1833fd4cd9caf0f7beaac31e625aafe22`, not merely the last commit or the
+list of function names. Every baseline test body/assertion, `newH` and the
+plain in-memory secret store are unchanged. The only remaining fixture delta
+supplies the actual account create/detail, reusable token, Basic/token profile
+and four data endpoint responses needed by those existing cases, including the
+returned ID, ownership marker and required profile fields.
+
+Retained assertions cover `TestSetupThenCheckPass` (normal Setup/Check and no
+failed steps), `TestRerunSkipsEveryStep` (all existing rerun steps skip), and
+`TestFailedLoginHintNamesTheApp` (rejected administrator login and App-page
+hint). The happy-path adapter includes the read-only credential responses;
+there are no separate account-ID/token-count or least-permission assertions.
+Rename/lost username or ID, stale/rejected credentials, uncertain provenance,
+MFA/disabled accounts, permission drift, partial checkpoint writes and malformed
+response guards now have source/schema/compile review only, not retained
+regression cases or current runtime acceptance.
+
+At `2b975344`, the source-only local gate passed on 12 October: focused
+`go test ./internal/apps/paperlessngx/`, empty `gofmt -l .`, `go build ./...`,
+`go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`,
+`go test -race ./internal/tui/ ./internal/activity/ ./internal/apps/paperlessngx/`,
+`bash -n install.sh` and `git diff --check`, with `GOFLAGS=-buildvcs=false`.
+That run included the now-removed cases and is not final-tree retained coverage.
+No Docker, browser, e2e runtime, installer, host probes or account actions ran.
+
+The remaining-tree gate passed after the coverage cleanup: focused
+`go test -count=1 ./internal/apps/paperlessngx/`, empty `gofmt -l .`,
+`go build ./...`, `go vet ./...`, `go vet -tags e2e ./e2e/`,
+`go test -count=1 ./...`,
+`go test -race -count=1 ./internal/tui/ ./internal/activity/ ./internal/apps/paperlessngx/`,
+`bash -n install.sh` and `git diff --check`, with `GOFLAGS=-buildvcs=false`.
+These runs validate the remaining baseline cases and compilation, not the
+removed regression scenarios or native/rendered/lifecycle acceptance.
+
+## Homarr wiring handoff
+
+`internal/apps/homarr/target_paperless_ngx.go` defines
+`paperlessTarget() target` through the current SDK descriptor:
+
+- Catalog ID `paperless-ngx`, upstream kind `paperlessNgx`.
+- Compose-side Address `http://paperless-ngx:8000`; browser Address stays separate.
+- Homarr credential `apiKey` from the peer's verified `api_key` secret.
+- Native `paperlessNgx` widget showing document and inbox totals, inbox ratio,
+  correspondents, tags and document types. Shared Stats selects `documentsTotal`,
+  `documentsInbox`, `tagsCount`, `correspondentsCount` and `documentTypesCount`.
+  No guessed document IDs or custom JSX.
+- Registry owner registered `paperlessTarget()` against the current SDK contract.
+  The Paperless completion makes no central registry, `links.go`, shared widget
+  or plugin/init changes beyond the forward SDK merge.
+- The supported upstream widget default is 2 by 2 cells. The central placement
+  helper on this branch defaults unknown widgets to 1 by 1; the registry owner
+  must preserve a useful size when wiring this descriptor.
+
+Source-only completion forward-merges SDK commit
+`ecc21d9f95664ef6245863ddfb05930bf4cde3a3` and ports only the repaired aggregate's
+Paperless descriptor/verifier, without importing its registry or other peers.
+Read-only preflight and native verification authenticate the saved peer token
+against statistics and taxonomy counts. Every source/native count must be an
+explicit finite nonnegative integer; inbox count cannot exceed document count.
+A null source inbox is valid only with explicit null `inbox_tag` and
+`inbox_tags` metadata. Homarr's actual native schema normalizes this to zero;
+an absent native field or native null remains invalid. The notice distinguishes
+an unconfigured inbox from a processed inbox.
+
+The native call is authenticated `widget.paperlessNgx.getStats` with the owned
+integration ID. Its cached counts are validated independently of the direct
+peer sample, so changing legitimate counts do not cause equality failures.
+The pure `stats` callback receives the SDK's one completed central sample and
+catalog, requires `count` for all five metrics, and validates integrality and
+the inbox bound on that sample. It performs no HTTP calls or refreshes.
+Freshness, advancing timestamps and selected-field presence stay SDK-owned.
+
+Requested focused regression coverage uses the descriptor's production
+`verifyData` seam without registry registration. It exercises authenticated
+native calls and owned integration selection, valid independent cached counts,
+missing/null fields, absent-inbox metadata, legitimate document zeros, native
+credential denial, unchanged refresh timestamps, invalid first refreshed data,
+and exactly one central catalog/refresh per successful invocation. Pure count
+checks cover all five metrics, wrong units, negative/fractional/nonfinite values.
+This extends the Homarr tests only; the peer App's retained baseline cases and
+credential recovery coverage boundary above stay unchanged.
+
+The final isolated Homarr run still needs to verify useful rendered data,
+stable owned IDs on rerun, token-change propagation, preservation of manual
+widgets/integrations and owned-only removal. Source declarations or a passing
+connection test do not satisfy that acceptance.
+
+## Isolated prerequisite evidence
+
+Historical validated implementation commit: `368cc026` on
+`feat/homarr-paperless-sol`. This run predates the canonical ID/marker and
+Manual recovery changes; it does not validate those changes at runtime.
+The only runtime fixture used Compose Project
+`self-host-paperless-sol-93543`, loopback port `53415`, and one new disposable
+Home under the approved OpenCode temporary directory. No existing Project,
+private documents, browser profiles or credential stores were inspected.
+Development Telemetry and update checks were disabled. The three containers
+were limited to 2304 MiB total and two CPUs each, with an eight-minute deadline.
+Only the existing production service/helper/Project boundaries performed
+installation, Setup, credential persistence and Compose commands; the fixture
+wrapper changed resource limits only.
+
+Observed results:
+
+- Fresh installation with Admin login `fixture-admin` passed Setup and Check,
+  including credential creation and fresh authenticated probes on an empty
+  archive. The prior hard-coded administrator lookup was corrected.
+- A single synthetic document model, owned by the fixture administrator, with
+  an unowned inbox tag, correspondent and document type returned
+  `documents_total=1`, `documents_inbox=1` using the read-only token. All three
+  taxonomy endpoints passed Check. This proves document-count access, not OCR,
+  ingestion, physical document downloads or Homarr rendering.
+- The same token received HTTP 403 for taxonomy writes and document-content
+  listing. Account policy checks confirmed the exact four permissions, no
+  groups and no staff/superuser status.
+- A valid Setup rerun kept the token unchanged. Replacing the saved key with
+  an invalid synthetic value made fresh Check fail; Setup rediscovered the same
+  upstream token without rotation.
+- A controlled upstream token rotation in the fixture made Check fail again;
+  Setup rediscovered that new token without rotating it a second time.
+- Exact App response: Paperless-ngx `3.2.1`, API version `10`.
+  Image: `ghcr.io/paperless-ngx/paperless-ngx@sha256:5fa76604a81df6945086e0837b14b56543d137e8ce4f311cc5d9ebe907e74e79`.
+  The fixture also used the Catalog's `postgres:18` and `valkey/valkey:9-alpine`.
+- Initial synthetic seeding needed the App key and database password passed
+  through the helper's environment because container exec bypasses entrypoint
+  `_FILE` resolution. The same fixture was resumed after that harness-only
+  correction; no second fixture was created. Its exact owned Compose Project
+  was taken down after each run, and a label-filtered check confirmed no owned
+  containers remained. Synthetic files were retained only in that disposable
+  Home; no broad prune or volume deletion occurred.
+
+Local gate passed: empty `gofmt -l .`, `go build ./...`, `go vet ./...`,
+`go vet -tags e2e ./e2e/`, `go test ./...`, race checks for
+`internal/tui`, `internal/activity`, `internal/apps/paperlessngx` and
+`internal/apps/homarr`, and `bash -n install.sh`. No e2e runtime suite or
+installer was run. The first combined gate command hit its shell deadline
+after the full test suite passed; the remaining race and shell checks passed
+in a separate bounded command.
+
+## Versions and sources
+
+Paperless-ngx is pinned by this Catalog App to `3.2.1`. Its permission and
+authentication contract is verified against these versioned sources:
+
+- [REST authorization and API versioning](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docs/api.md).
+- [User creation and profile/token serializers](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/paperless/serialisers.py).
+- [Reusable token endpoint and rotating profile endpoint](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/paperless/views.py).
+- [Basic authentication and MFA boundary](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/paperless/auth.py).
+- [Official Edit user ID/password/status controls](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src-ui/src/app/components/common/edit-dialog/user-edit-dialog/user-edit-dialog.component.html).
+- [Person-controlled MFA recovery](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/docs/usage.md#two-factor-authentication).
+- [Statistics visibility and read-only permissions](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/documents/permissions.py).
+- [Statistics response](https://github.com/paperless-ngx/paperless-ngx/blob/v3.2.1/src/documents/views.py).
+
+Homarr descriptor source contract: `2.4.1`, commit
+`ebbd4876d25a51151444a009ab596e1154d62880`:
+
+- [Authentication and all four requested data endpoints](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/integrations/src/paperless-ngx/paperless-ngx-integration.ts).
+- [Native widget options](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/widgets/src/paperless-ngx/index.ts).
+- [Native widget integration limit](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/widget-integration-map.ts).
+- [Native widget size](https://github.com/homarr-labs/homarr/blob/ebbd4876d25a51151444a009ab596e1154d62880/packages/definitions/src/widget.ts).
+
+Context7 was attempted but its monthly quota was exhausted; upstream source
+was used instead. No dependencies were added. The retained Paperless fixture
+only adapts the baseline cases to the new API prerequisite; the removed cases
+and reduced coverage boundary are recorded above.

@@ -1,0 +1,10 @@
+{
+  "id": "open-webui",
+  "name": "Open WebUI",
+  "description": "Chat with AI models running on your own computer, in your browser",
+  "category": "Local AI",
+  "image": "ghcr.io/open-webui/open-webui:v0.11.4",
+  "docs": "https://docs.openwebui.com/getting-started/quick-start/",
+  "port": 8080,
+  "inputs": []
+}

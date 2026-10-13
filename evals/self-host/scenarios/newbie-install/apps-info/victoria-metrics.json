@@ -1,0 +1,10 @@
+{
+  "id": "victoria-metrics",
+  "name": "VictoriaMetrics",
+  "description": "Keep long histories of numbers about your computers and apps, stored compactly",
+  "category": "Observability",
+  "image": "victoriametrics/victoria-metrics:v1.153.0",
+  "docs": "https://docs.victoriametrics.com/quick-start/",
+  "port": 8428,
+  "inputs": []
+}

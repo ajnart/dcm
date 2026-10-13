@@ -1,0 +1,10 @@
+{
+  "id": "node-red",
+  "name": "Node-RED",
+  "description": "Connect devices and services with simple drag-and-drop automations",
+  "category": "Home automation",
+  "image": "nodered/node-red:5.0.7",
+  "docs": "https://nodered.org/docs/getting-started/docker",
+  "port": 1880,
+  "inputs": []
+}
