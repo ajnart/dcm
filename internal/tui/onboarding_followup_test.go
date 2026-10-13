@@ -18,8 +18,8 @@ func TestLookPreviewsTheSelectedSymbolsImmediately(t *testing.T) {
 		for _, frame := range []struct{ key, want string }{
 			{"", "◆ self-host  ▣ Docker  ✱ key  ⇄ link  ♫ Media  ↓ Downloads  ♥ Monitoring"},
 			{"up", "◆ self-host  ▣ Docker  ✱ key  ⇄ link  ♫ Media  ↓ Downloads  ♥ Monitoring"},
-			{"space", "󰜋 self-host  󰡨 Docker  󰌆 key  󰌹 link  󰿎 Media  󰇚 Downloads  󰗶 Monitoring"},
-			{"down", "󰜋 self-host  󰡨 Docker  󰌆 key  󰌹 link  󰿎 Media  󰇚 Downloads  󰗶 Monitoring"},
+			{"space", "󰒋 self-host  󰡨 Docker  󰌆 key  󰌹 link  󰿎 Media  󰇚 Downloads  󰗶 Monitoring"},
+			{"down", "󰒋 self-host  󰡨 Docker  󰌆 key  󰌹 link  󰿎 Media  󰇚 Downloads  󰗶 Monitoring"},
 			{"space", "◆ self-host  ▣ Docker  ✱ key  ⇄ link  ♫ Media  ↓ Downloads  ♥ Monitoring"},
 		} {
 			if frame.key != "" {
