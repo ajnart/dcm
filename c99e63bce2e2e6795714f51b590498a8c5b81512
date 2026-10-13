@@ -1,0 +1,18 @@
+app/globals.css
+  h_d6e478ca18e517 334-366
+components/ui/alert-dialog.tsx
+  h_d6e478ca18e517 39
+components/ui/dialog.tsx
+  h_d6e478ca18e517 41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c99e63bce2e2e6795714f51b590498a8c5b81512",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

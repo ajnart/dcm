@@ -1,0 +1,22 @@
+components/DockerToolsClient.tsx
+  h_d6e478ca18e517 9,15,59,85-89
+components/floating-bar.tsx
+  h_d6e478ca18e517 3,52,172,248
+components/magicui/avatar-circles.tsx
+  h_d6e478ca18e517 9,15
+components/search-command.tsx
+  h_d6e478ca18e517 48-49
+lib/catalog.ts
+  h_d6e478ca18e517 2,19,22-23,26,32,45,63,66-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ab2c654c6436d196fafc9c5cbb872fc42d097f02",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

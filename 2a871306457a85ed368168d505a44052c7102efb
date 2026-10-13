@@ -1,0 +1,14 @@
+components/docker-card.tsx
+  h_d6e478ca18e517 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2a871306457a85ed368168d505a44052c7102efb",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

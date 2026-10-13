@@ -1,0 +1,100 @@
+app/globals.css
+  h_d6e478ca18e517 4,8-15,17,19-62,64,66,68-70,72-99,101,103,105,109,113,118-119,121,123,125,129,133-143,149,152,156-180,183-198,201-206,211-212,214-230,232-255,258-293,295,297,299,302,304-309,313-331,335-357,359-408,411-412,415-417,420-421,424-425
+app/layout.tsx
+  h_d6e478ca18e517 1-2,5,9,12-13,15-16,25,29-44
+app/page.tsx
+  h_d6e478ca18e517 16-22
+app/template/[id]/template-client.tsx
+  h_d6e478ca18e517 5-9,40,73,114-119,124-133,160-176,180-191,194-199,201-205,229,276,327,330,394,438,440,442-443,462,464,466-467
+app/templates/page.tsx
+  h_d6e478ca18e517 16-22
+bun.lock
+  h_d6e478ca18e517 30,572-573
+components/DockerToolsClient.tsx
+  h_d6e478ca18e517 3,7-8,14-15,69-100,111-112,123,126-130,132,134-153,158-160,166,174,176-177,181,187
+components/TemplateGalleryClient.tsx
+  h_d6e478ca18e517 46-47,56-58,74
+components/ToolGrid.tsx
+  h_d6e478ca18e517 16-27
+components/compose-modal/CopyComposeModal.tsx
+  h_d6e478ca18e517 5,28-32,65,74,77-80,101-116,159-164,169-174,177-182,253,257-258,272,276
+components/compose-modal/SelfHostCallout.tsx
+  h_d6e478ca18e517 30,32,45
+components/container-submission-form.tsx
+  h_d6e478ca18e517 49,55,160-163,165-167
+components/discovery-panel.tsx
+  h_d6e478ca18e517 50
+components/docker-card.tsx
+  h_d6e478ca18e517 3-4,28-36,40-53,55-60,62-80,84-85,88,91-94,98,103-106,108,111-114,116,119-122,124,127-131,133,136-137,140-163,165
+components/editors/MonacoEditor.tsx
+  h_d6e478ca18e517 3,6-9,12,14-35,40-46,50-108,110
+components/floating-bar.tsx
+  h_d6e478ca18e517 3-6,16,19,25-27,35,43,45-48,62-84,91,96-101,103-108,110-113,123-124,128-140,146-189,192-222,224-255,257-282
+components/layout/Footer.tsx
+  h_d6e478ca18e517 1-2,7-14,18,23,26,29
+components/layout/Header.tsx
+  h_d6e478ca18e517 3-7,9,12-24,27-32,34-38,40-42,44-60
+components/magicui/avatar-circles.tsx
+  h_d6e478ca18e517 1,10,18,20-23,26,28-35,38-42,44-78,80-82,86,88,92,94,96-98,100-128
+components/mcp-setup-dialog.tsx
+  h_d6e478ca18e517 115,140-158,207,261
+components/search-command.tsx
+  h_d6e478ca18e517 61-62,65,82,97,100,103
+components/settings-panel.tsx
+  h_d6e478ca18e517 59
+components/template-card.tsx
+  h_d6e478ca18e517 107,136
+components/template-viewer.tsx
+  h_d6e478ca18e517 3-6,9-11,28-59,80-85,87,112-118
+components/theme-provider.tsx
+  h_d6e478ca18e517 1-11
+components/theme-toggle.tsx
+  h_d6e478ca18e517 1-71
+components/ui/badge.tsx
+  h_d6e478ca18e517 7,12,14,16
+components/ui/button.tsx
+  h_d6e478ca18e517 8,13,15,17,19-21,25-26
+components/ui/card.tsx
+  h_d6e478ca18e517 12
+components/ui/command.tsx
+  h_d6e478ca18e517 47,118
+components/ui/dialog.tsx
+  h_d6e478ca18e517 47
+components/ui/dropdown-menu.tsx
+  h_d6e478ca18e517 30,50,69,87,103,127
+components/ui/github-link.tsx
+  h_d6e478ca18e517 18
+components/ui/gradient-button.tsx
+  h_d6e478ca18e517 1-56,59-61,63
+components/ui/hover-card.tsx
+  h_d6e478ca18e517 21
+components/ui/input.tsx
+  h_d6e478ca18e517 11
+components/ui/multi-select.tsx
+  h_d6e478ca18e517 296
+components/ui/popover.tsx
+  h_d6e478ca18e517 24
+components/ui/select.tsx
+  h_d6e478ca18e517 22,78,121
+components/ui/sonner.tsx
+  h_d6e478ca18e517 3,9-10,13
+components/ui/switch.tsx
+  h_d6e478ca18e517 14
+components/ui/tabs.tsx
+  h_d6e478ca18e517 32,47
+components/ui/textarea.tsx
+  h_d6e478ca18e517 12
+package.json
+  h_d6e478ca18e517 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ea122fa9b7b1b352b246167ca30f6c849abf3605",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

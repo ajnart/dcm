@@ -1,0 +1,20 @@
+components/compose-modal/SelfHostCallout.tsx
+  h_d6e478ca18e517 3,24
+components/floating-bar.tsx
+  h_d6e478ca18e517 5,9,250
+components/selfhost-command.tsx
+  h_d6e478ca18e517 1-113
+lib/selfhost.ts
+  h_d6e478ca18e517 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fcb7f2f8e70c53482bd9846c33fb5daaf5e576bd",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

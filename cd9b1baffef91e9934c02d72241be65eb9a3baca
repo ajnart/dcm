@@ -1,0 +1,26 @@
+README.md
+  h_d6e478ca18e517 207-210
+components/compose-modal/CopyComposeModal.tsx
+  h_d6e478ca18e517 43,215-216
+components/compose-modal/SelfHostCallout.tsx
+  h_d6e478ca18e517 1-82
+components/docker-card.tsx
+  h_d6e478ca18e517 16,110-117
+components/layout/Header.tsx
+  h_d6e478ca18e517 3,28-29
+components/layout/SelfHostButton.tsx
+  h_d6e478ca18e517 1-27
+lib/selfhost.ts
+  h_d6e478ca18e517 1-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cd9b1baffef91e9934c02d72241be65eb9a3baca",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
