@@ -1,0 +1,47 @@
+internal/tui/easy_names_test.go
+  s_8e166456c2ed73::t_85dfd88ddd8824 13,20,34
+internal/tui/error_copy_test.go
+  s_8e166456c2ed73::t_66581641e2bf77 37
+internal/tui/intro.go
+  s_8e166456c2ed73::t_c77db695d6fe27 40-42,46,61-64,68,71-72,78-81,86-88,102-104,107-108,130-138,141-143,145,147-148,154,156,158,161,171-172,174-176,178,183-185,191,193,197-205,207,213,216-222,224,227,230,235,239,241-242,245-246,248,250,253-255,257,259,261,267,272,277-279,282,286-290,313-314
+internal/tui/intro_test.go
+  s_8e166456c2ed73::t_c7c6b64c7921e8 349,397-399
+internal/tui/model.go
+  s_8e166456c2ed73::t_52efeccbbe23f2 265-267,370,439,450,463,470,552,566,576,580-582,590,645-646,796,803,977,982-1039
+internal/tui/onboarding.go
+  s_8e166456c2ed73::t_04d6cbc1a10814 93-97,100,102-106,122-124,126-127,129,132-136,140-142,146,148-150,152-157,160,205-209,212,216,219-225,229,234,237,239,241,243,246,249,257,263,271,277,285,288,292,296,300,304,308,312,315,317,335,343-345,359-360,363-364,368-369,376,378,380,382,384,388,392,400,404,406-407,424,427-428,432,435-437,442-453,456,459,464,467,469,498-501,504,510,512,514
+internal/tui/onboarding_flow_test.go
+  s_8e166456c2ed73::t_294d12c7bf236a 151,280,305,324-325
+internal/tui/onboarding_followup_test.go
+  s_8e166456c2ed73::t_c46e7829e630f5 62-63
+internal/tui/onboarding_selection_golden_test.go
+  s_8e166456c2ed73::t_4602caf7a5962b 29
+internal/tui/onboarding_telemetry_test.go
+  s_8e166456c2ed73::t_26d966ee3ab254 162
+internal/tui/preboot.go
+  s_8e166456c2ed73::t_97bbdb5f03a12a 51-53,62,66-72,110-112,114,117,120,122,124-131
+internal/tui/tailscale_test.go
+  s_8e166456c2ed73::t_d38d0f67085f8d 39
+internal/tui/view.go
+  s_8e166456c2ed73::t_459746ab76e8e8 112-115,627,631,725-734
+internal/tui/welcome.go
+  s_8e166456c2ed73::t_f30d6e86acb659 4-6,28,30,38,41-45,48,51-55,58,61-63,66,70-72,74,87-102,105-185
+internal/tui/what.go
+  s_8e166456c2ed73::t_310c32497752bb 24,28,49-50,55-56,58,69,71,74,87,89,97,112,116,121-122,125,128,130-131,135-136,141-145,150,161
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "89c1a0547f0a13dd60cc1dbbfa2389150be02f52",
+  "prompts": {},
+  "sessions": {
+    "s_8e166456c2ed73": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c54a2784-641d-452f-9f3f-bc4399a5fed7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
