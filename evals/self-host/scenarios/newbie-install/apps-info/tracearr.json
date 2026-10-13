@@ -1,0 +1,17 @@
+{
+  "id": "tracearr",
+  "name": "Tracearr",
+  "description": "See who watches what on your media server, and when",
+  "category": "Media",
+  "image": "ghcr.io/connorgallopo/tracearr:2.6.0",
+  "docs": "https://docs.tracearr.com/getting-started/installation",
+  "port": 3000,
+  "inputs": [
+    {
+      "key": "email",
+      "prompt": "First owner's email",
+      "default": "admin@selfhost.local",
+      "required": false
+    }
+  ]
+}

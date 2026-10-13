@@ -1,0 +1,53 @@
+{
+  "id": "passbolt",
+  "name": "Passbolt",
+  "description": "Share passwords safely with your team, with a browser add-on",
+  "category": "Passwords",
+  "image": "passbolt/passbolt:5.16.0-1-ce",
+  "docs": "https://www.passbolt.com/docs/hosting/install/ce/docker/",
+  "port": 18085,
+  "inputs": [
+    {
+      "key": "PASSBOLT_CANONICAL_ORIGIN",
+      "prompt": "Stable private HTTPS URL for Passbolt",
+      "help": "The exact https://host clients will use, e.g. https://passbolt.selfhost.local. See https://www.passbolt.com/docs/hosting/install/ce/docker/",
+      "required": true
+    },
+    {
+      "key": "PASSBOLT_SMTP_HOST",
+      "prompt": "No-auth STARTTLS SMTP relay hostname",
+      "help": "An owner-approved relay; authenticated SMTP needs separate credential transport",
+      "required": true
+    },
+    {
+      "key": "PASSBOLT_SMTP_PORT",
+      "prompt": "SMTP relay port",
+      "default": "587",
+      "required": false
+    },
+    {
+      "key": "PASSBOLT_FROM_EMAIL",
+      "prompt": "Notification sender email",
+      "default": "passbolt@selfhost.local",
+      "required": false
+    },
+    {
+      "key": "PASSBOLT_FROM_NAME",
+      "prompt": "Notification sender name",
+      "default": "Passbolt",
+      "required": false
+    },
+    {
+      "key": "PASSBOLT_SERVER_KEY_EMAIL",
+      "prompt": "Initial server OpenPGP key email",
+      "default": "passbolt@selfhost.local",
+      "required": false
+    },
+    {
+      "key": "PASSBOLT_SERVER_KEY_NAME",
+      "prompt": "Initial server OpenPGP key name",
+      "default": "Passbolt",
+      "required": false
+    }
+  ]
+}

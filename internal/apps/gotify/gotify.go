@@ -63,8 +63,9 @@ func ready(ctx context.Context, h *helpers.H) (bool, error) {
 }
 
 type account struct {
+	ID    uint64 `json:"id"`
 	Name  string `json:"name"`
-	Admin bool   `json:"admin"`
+	Admin *bool  `json:"admin"`
 }
 
 func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
@@ -79,7 +80,7 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if err := resp.Decode(&acc); err != nil {
 		return false, err
 	}
-	return acc.Name == h.AdminUser() && acc.Admin, nil
+	return acc.ID > 0 && acc.Name == h.AdminUser() && acc.Admin != nil && *acc.Admin, nil
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
@@ -94,13 +95,30 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin-access", "sign in as the administrator "+h.AdminUser(), helpers.StepSpec{
+	if err := h.Step(ctx, "admin-access", "sign in as the administrator "+h.AdminUser(), helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return adminWorks(ctx, h) },
 		Do: func(ctx context.Context) error {
 			return errors.New("the administrator is only seeded when Gotify first creates its database")
 		},
-		Hint: "The Gotify administrator is seeded from the Admin login on the first start. Recreate the container so it " +
-			"picks up the password (show it with: self-host credentials): self-host start gotify",
+		Hint: "Gotify seeds the Admin login only when its database is first created. A container restart does not reset it. " +
+			"Use self-host credentials privately to restore the existing administrator's login, then retry self-host setup gotify. Do not delete the database.",
+		Credential: "admin",
+	}); err != nil {
+		return err
+	}
+	return h.Step(ctx, "homarr-account", "prepare a private Gotify account for Homarr notifications", helpers.StepSpec{
+		Check: func(ctx context.Context) (bool, error) {
+			if h.Secret(h.Key("homarr_user_id")) == "" {
+				return false, nil
+			}
+			err := VerifyHomarr(ctx, h)
+			return err == nil, err
+		},
+		Do: func(ctx context.Context) error { return createHomarrAccount(ctx, h) },
+		Hint: "Homarr reads only applications and messages owned by self-host-homarr, not the administrator's messages. " +
+			"If that account already exists but its saved login is missing or rejected, restore GOTIFY_HOMARR_USERNAME, GOTIFY_HOMARR_PASSWORD and " +
+			"GOTIFY_HOMARR_USER_ID through the Project secret boundary after an explicit ownership decision, then retry self-host setup gotify. " +
+			"Do not delete the account or its messages. Application and client tokens are not this login.",
 		Credential: "admin",
 	})
 }
@@ -113,7 +131,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return errors.New("the administrator " + h.AdminUser() + " cannot sign in to Gotify")
 	}
-	return nil
+	return VerifyHomarr(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

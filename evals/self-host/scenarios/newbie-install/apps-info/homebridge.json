@@ -1,0 +1,10 @@
+{
+  "id": "homebridge",
+  "name": "Homebridge",
+  "description": "Make smart home gadgets work with Apple Home",
+  "category": "Home automation",
+  "image": "homebridge/homebridge:2026-09-25",
+  "docs": "https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker",
+  "port": 8581,
+  "inputs": []
+}

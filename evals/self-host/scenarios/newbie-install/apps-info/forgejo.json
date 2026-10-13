@@ -1,0 +1,10 @@
+{
+  "id": "forgejo",
+  "name": "Forgejo",
+  "description": "Store and track your software code privately, like a private GitHub",
+  "category": "Developer tools",
+  "image": "codeberg.org/forgejo/forgejo:16.0.5",
+  "docs": "https://forgejo.org/docs/latest/admin/installation-docker/",
+  "port": 3000,
+  "inputs": []
+}
