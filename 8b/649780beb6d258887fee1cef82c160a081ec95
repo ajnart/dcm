@@ -1,0 +1,21 @@
+internal/apps/lidarr/lidarr_test.go
+  s_378d5db6c5f6de::t_3dff5e4f80684d 145-163
+internal/apps/servarr/servarr.go
+  s_378d5db6c5f6de::t_1e5d208f086f3a 18-19,27,39,51,60-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8b649780beb6d258887fee1cef82c160a081ec95",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
