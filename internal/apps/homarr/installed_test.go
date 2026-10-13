@@ -35,19 +35,12 @@ func serveLinkedApps(t *testing.T, fake *fakeHomarr) *httptest.Server {
 		if r.Method == "DELETE" && strings.HasPrefix(r.URL.Path, "/api/apps/") {
 			id := strings.TrimPrefix(r.URL.Path, "/api/apps/")
 			fake.mu.Lock()
-			bound := false
 			for _, integration := range fake.integrations {
 				if integration["appId"] == id {
-					bound = true
-					break
+					integration["appId"] = nil
 				}
 			}
 			fake.mu.Unlock()
-			if bound {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"message":"FOREIGN KEY constraint failed"}`))
-				return
-			}
 			fallback.ServeHTTP(w, r)
 			return
 		}
@@ -62,7 +55,11 @@ func serveLinkedApps(t *testing.T, fake *fakeHomarr) *httptest.Server {
 			defer fake.mu.Unlock()
 			for _, integration := range fake.integrations {
 				if integration["id"] == input.JSON.ID {
-					trpc(w, map[string]any{"id": integration["id"], "kind": integration["kind"], "url": integration["url"], "secrets": []any{}, "app": map[string]any{"id": integration["appId"]}})
+					var app any
+					if integration["appId"] != nil {
+						app = map[string]any{"id": integration["appId"]}
+					}
+					trpc(w, map[string]any{"id": integration["id"], "kind": integration["kind"], "url": integration["url"], "secrets": []any{}, "app": app})
 					return
 				}
 			}
@@ -186,6 +183,42 @@ func TestSetupPreservesLinkedAppWhenBrowserAndNativePortsDiffer(t *testing.T) {
 	}
 }
 
+func TestSetupPreservesUserIntegrationOnUnmarkedDuplicate(t *testing.T) {
+	fake := newFake()
+	fake.apiKey, fake.adminExists, fake.adminName, fake.adminPassword, fake.step = "keyid.secret", true, "admin", "pw", "finish"
+	fake.apps = []map[string]any{
+		{"id": "marked-sonarr", "name": "My Sonarr", "description": "self-host tile:sonarr", "href": "http://host.example:8989", "pingUrl": "http://sonarr:8989", "iconUrl": "https://example.test/custom.svg"},
+		{"id": "user-sonarr", "name": "Sonarr", "description": "", "href": "http://user.example", "pingUrl": "http://sonarr:8989", "iconUrl": "https://example.test/user.svg"},
+	}
+	fake.integrations = []map[string]any{{"id": "user-integration", "name": "User Sonarr", "kind": "sonarr", "url": "http://sonarr:8989", "appId": "user-sonarr"}}
+	beforeIntegration, _ := json.Marshal(fake.integrations[0])
+	srv := serveLinkedApps(t, fake)
+	secrets := allSecrets()
+	h := homarrH(t, srv, secrets)
+	h.InstalledApps = func(context.Context) ([]helpers.InstalledApp, error) {
+		return []helpers.InstalledApp{{ID: "sonarr", Name: "Sonarr", URL: "http://host.example:8989", Service: "sonarr", ContainerPort: 8989}}, nil
+	}
+	for attempt := 0; attempt < 2; attempt++ {
+		if err := (homarr.App{}).Setup(context.Background(), h); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	afterIntegration, _ := json.Marshal(fake.integrations[0])
+	if len(fake.apps) != 2 || !bytes.Equal(beforeIntegration, afterIntegration) {
+		t.Fatal("Setup deleted the unmarked App or detached its user integration")
+	}
+	for _, record := range fake.apps {
+		if record["id"] == "user-sonarr" && (record["href"] != "http://user.example" || record["name"] != "Sonarr" || record["pingUrl"] != "http://sonarr:8989" || record["iconUrl"] != "https://example.test/user.svg") {
+			t.Fatal("Setup changed the referenced App's navigation fields")
+		}
+		if record["id"] == "marked-sonarr" && (record["description"] != "self-host tile:sonarr" || record["name"] != "My Sonarr") {
+			t.Fatal("Setup replaced the owned App or its customized name")
+		}
+	}
+}
+
 func TestLinkRetryPreservesOwnedAppWithCustomPing(t *testing.T) {
 	fake := newFake()
 	fake.apiKey, fake.adminExists, fake.adminName, fake.adminPassword, fake.step = "keyid.secret", true, "admin", "pw", "finish"
@@ -266,6 +299,23 @@ func TestLinkDoesNotReclaimRetainedAppFromStaleOwnership(t *testing.T) {
 	fake.mu.Unlock()
 	stale, _ := json.Marshal(map[string]string{"sonarr": retainedID})
 	secrets["HOMARR_APP_IDS"] = string(stale)
+	fake.mu.Lock()
+	beforeRemoval, _ := json.Marshal([]any{fake.apps, fake.integrations, fake.items})
+	fake.mu.Unlock()
+	if err := link.Remove(context.Background(), from, to); err != nil {
+		t.Fatal(err)
+	}
+	fake.mu.Lock()
+	afterRemoval, _ := json.Marshal([]any{fake.apps, fake.integrations, fake.items})
+	fake.mu.Unlock()
+	if !bytes.Equal(beforeRemoval, afterRemoval) {
+		t.Fatal("stale removal changed the retained App, integration, calendar or user tile")
+	}
+	var released map[string]string
+	json.Unmarshal([]byte(secrets["HOMARR_APP_IDS"]), &released)
+	if released["sonarr"] != "" {
+		t.Fatal("stale removal kept the retained App ownership pointer")
+	}
 	if err := link.Apply(context.Background(), from, to); err != nil {
 		t.Fatal(err)
 	}
