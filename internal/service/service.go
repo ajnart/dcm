@@ -263,7 +263,7 @@ func (s *Service) renderContext(ctx context.Context, a app.App, port int, inputs
 	if _, ok := a.(app.DockerSocketMounter); !ok {
 		return rc, nil
 	}
-	socket, err := host.DockerSocket(ctx, s.Deps)
+	socket, err := host.ActiveDockerSocket(ctx, s.Deps)
 	if err != nil {
 		return app.RenderContext{}, err
 	}
