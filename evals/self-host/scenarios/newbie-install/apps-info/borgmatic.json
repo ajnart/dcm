@@ -1,0 +1,17 @@
+{
+  "id": "borgmatic",
+  "name": "Borgmatic",
+  "description": "Back up your files on a schedule, safely encrypted",
+  "category": "Backups",
+  "image": "ghcr.io/borgmatic-collective/borgmatic:2.1.8",
+  "docs": "https://torsion.org/borgmatic/docs/",
+  "port": 0,
+  "inputs": [
+    {
+      "key": "repository",
+      "prompt": "Borg repository destination",
+      "help": "The repository Borgmatic backs up to, e.g. /mnt/borg-repository or user@host:/path",
+      "required": true
+    }
+  ]
+}

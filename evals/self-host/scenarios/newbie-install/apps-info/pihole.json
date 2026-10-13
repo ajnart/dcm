@@ -1,0 +1,18 @@
+{
+  "id": "pihole",
+  "name": "Pi-hole",
+  "description": "Stop ads and trackers on all your devices at home, with a simple admin page",
+  "category": "DNS",
+  "image": "pihole/pihole:2026.09.0",
+  "docs": "https://docs.pi-hole.net/docker/",
+  "port": 8080,
+  "inputs": [
+    {
+      "key": "dns-port",
+      "prompt": "Published DNS port",
+      "help": "TCP and UDP host port; LAN DNS clients normally require port 53",
+      "default": "53",
+      "required": false
+    }
+  ]
+}

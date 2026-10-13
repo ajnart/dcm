@@ -1,0 +1,10 @@
+{
+  "id": "stirling-pdf",
+  "name": "Stirling PDF",
+  "description": "Edit, merge, convert and sign PDF files without uploading them anywhere",
+  "category": "Documents",
+  "image": "ghcr.io/stirling-tools/stirling-pdf:3.0.0",
+  "docs": "https://docs.stirlingpdf.com/",
+  "port": 8080,
+  "inputs": []
+}
