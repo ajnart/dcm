@@ -10,7 +10,7 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
-const navidromePrivacyHoldHint = "Homarr Navidrome credential-safety hold #363: rejected native requests can log the password in a diagnostic Address. Keep this Link inactive and do not create a manual integration or bypass this hold. Verify the complete logging-chain fix from Homarr PR #7170 in the exact supported stable image, review its version/source contract and authorize activation before retrying self-host setup homarr. Standalone Navidrome Setup and owned Link removal remain separate."
+const navidromePrivacyHoldHint = "Homarr Navidrome credential-safety hold #363: this Link requires verified Homarr 2.5.1 or 2.5.2, which include the diagnostic Address fix from PR #7170. Back up Homarr before changing its version, then run self-host setup homarr. Older, unknown or unreadable versions stay inactive; do not create a manual integration or bypass this hold. Standalone Navidrome Setup and owned Link removal remain separate."
 
 func navidromeTarget() target {
 	return target{
@@ -23,9 +23,12 @@ func navidromeTarget() target {
 			{kind: "mediaServer", options: map[string]any{"showOnlyPlaying": false, "showBitrate": false, "showLocation": false}},
 			statWidget("artistCount", "albumCount", "songCount"),
 		},
-		preflight: func(_ context.Context, from, _ *helpers.H) error {
-			from.Info(navidromePrivacyHoldHint)
-			return helpers.ErrManual
+		preflight: func(ctx context.Context, from, to *helpers.H) error {
+			if err := requireCredentialSafeHomarr(ctx, from, navidromePrivacyHoldHint); err != nil {
+				return err
+			}
+			_, err := navidrome.ReadHomarrData(ctx, to)
+			return err
 		},
 		verify: verifyNavidrome,
 		stats:  verifyNavidromeStats,

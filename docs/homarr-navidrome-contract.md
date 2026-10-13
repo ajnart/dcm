@@ -5,8 +5,9 @@
 This slice implements #284 on the committed #262 reference contract.
 As of 13 October 2026, source `4bb1f98dd85f1d99513624b3a3c0795836134966`
 registers `navidromeTarget()` in `targets.go`. Shared registry and reconciliation
-remain custodian-owned; the credential-safety hold below still blocks activation.
-Prepared compatibility targets are `ghcr.io/homarr-labs/homarr:v2.4.1` and
+remain custodian-owned; the credential-safety gate below restricts activation.
+The sensitive Link accepts exact Homarr API versions `2.5.1` and `2.5.2`,
+with the catalog image resolved and verified by the reference owner, and
 `deluan/navidrome:0.64.0`. Source was checked against Homarr commit
 `ebbd4876d25a51151444a009ab596e1154d62880` and Navidrome tag commit
 `1072e9f7eb27faef740df5f0bd7fb18898aa650e`. Navidrome reports its release
@@ -18,39 +19,54 @@ Its integration router and credential definitions were compared with the
 tagged baseline and are byte-identical. This is scoped source equivalence,
 not Navidrome runtime acceptance or whole-image equivalence.
 
-## Native activation: credential-safety hold #363
+## Native activation: credential-safe version gate #363
 
 The shared [diagnostic Address privacy issue #363](https://github.com/ajnart/selfhost-skills/issues/363)
-blocks this Link. Check/apply return retryable Manual before any Homarr or
-Navidrome HTTP request, compatibility query, credential submission, mutation,
-native widget query or Stats refresh. Do not manually create an integration
-or bypass the hold. Standalone Navidrome regular-account Setup/Check and owned
-Link removal remain separate and operational.
+is enforced through `requireCredentialSafeHomarr(ctx, from, hint)`. Each Link
+Check/apply first reads authenticated `info.getInfo`; only exact versions
+`2.5.1` and `2.5.2` proceed. Older, unknown, malformed or unreadable versions
+return retryable Manual before any Navidrome request, compatibility-kind query,
+credential submission, tile/widget mutation, native query or Stats refresh.
+Back up Homarr before changing its version, then retry `self-host setup homarr`.
+Do not manually create an integration or bypass the hold. Standalone Navidrome
+regular-account Setup/Check and owned Link removal remain separate and operational.
 
-At recorded Homarr OCI-source revision
-`3d4150e59f600876b7e308f857b2f21572b75348`, native Navidrome requests put
-`u=username` and `p=password` in the query. A non-2xx response is retained in
-`ResponseError.url`. The integration decorator sanitizes its own diagnostic
-copy but rethrows an error containing the original cause. Media Server settling
-logs that cause, recursive error/metadata formatting retains the Address, and
-console logging is enabled. This inspected chain is unchanged at tag `v2.5.0`,
-commit `ed7b4bc00a77945f733a421efca2a58563d0d351`. A valid direct probe and
-regular credentials cannot prevent a later rejected native response.
-This is source-confirmed risk; no rejected request, runtime logs or
-built-image privacy attestation was run in this lane.
+Historical Homarr OCI-source revision
+`3d4150e59f600876b7e308f857b2f21572b75348` and tag `v2.5.0`, commit
+`ed7b4bc00a77945f733a421efca2a58563d0d351`, retain native Navidrome's
+`u=username` and `p=password` query values in `ResponseError.url` on a non-2xx
+response. The integration decorator sanitizes its own diagnostic copy but
+rethrows an error containing the original cause. Media Server settling logs
+that cause, recursive formatting retains the Address, and console logging is
+enabled. A valid direct probe and regular credentials cannot prevent a later
+rejected native response on those versions.
 
-The shared HTTP fix proposed by [Homarr PR #7170](https://github.com/homarr-labs/homarr/pull/7170)
-covers username/password query redaction. Activation still requires the complete
-downstream logging-chain fix verified in the exact supported stable image,
-image/version/source compatibility review and authorization. A local patch,
-mutable latest tag or valid credentials do not clear the hold. A later verified
-fixed version must own the activation gate; this leaf invents no version threshold.
+[Homarr PR #7170](https://github.com/homarr-labs/homarr/pull/7170) fixes the
+shared HTTP diagnostic boundary: `ResponseError.url` now passes through
+`redactCredentialUrl`, which removes both `u` and `p` before the downstream
+error/decorator/settling/formatter chain. Stable `2.5.1` source
+`c2e95f8d05b87dae42e9cd638dd7d4822b7cd608` and `2.5.2` source
+`7eb9a417a60d759adce5f7ac15ceb594aefad471` contain the fix; the relevant
+privacy and Navidrome sources are unchanged between those tags.
+The reference owner's [published-image and authenticated API observations](homarr-integration-contract.md#supported-upstream)
+confirm both releases. These source and narrow version observations authorize
+the finite gate; they are not a Navidrome native/privacy, browser or lifecycle
+acceptance claim. A mutable latest tag does not admit an unreviewed version.
 
-The HTTP regression failed before the hold: both actual `add` and `linked`
-paths made one provider request and did not return Manual. They now return
-Manual with zero Homarr and provider requests. Prepared native/Stats validators
-remain unchanged and their focused fixtures invoke them directly; those fixtures
-are not native activation acceptance.
+After the safe-version gate passes, the Link again runs `ReadHomarrData` as
+its preflight: it freshly verifies the exact regular account, native role,
+library access, administrative denial and complete Subsonic data before any
+Homarr mutation. The selected credential and native/Stats validators retain
+their existing ownership and semantic checks.
+
+The focused transport fixture covers actual `add` and `linked` paths for
+older, unfixed, future, missing and unreadable versions: one authenticated
+version request, zero provider requests and no other Homarr requests. Fixed
+`2.5.1`/`2.5.2` fixtures pass the gate and perform all nine native account/data
+requests; a rejected regular credential still requires Manual after login.
+The fixed-version regression failed against the obsolete unconditional hold
+and passes with the shared gate. Those synthetic fixtures do not establish
+native runtime acceptance.
 
 ## Credentials and minimum-role limitations
 
@@ -157,8 +173,8 @@ for this Homarr kind. Media Server shows all returned audio sessions,
 without bitrate/location toggles: the adapter supplies neither playback
 position nor a playing/paused state. No album/media selection is required.
 
-The active Link stops at its privacy hold before any request. Its prepared native
-verification retains saved regular Homarr identity/destination, freshly authenticated complete Subsonic
+The Link verifies the credential-safe Homarr version before provider requests,
+then preflights the direct API before any Homarr mutation. Native verification retains saved regular Homarr identity/destination, freshly authenticated complete Subsonic
 library/session readiness, `widget.audioStats.getStats` count semantics, and
 `widget.mediaServer.getCurrentStreams` integration/session identifiers and audio
 schema. Direct, native and Stats counts and session lengths are independently
@@ -272,3 +288,6 @@ No native runtime or rendered acceptance is claimed by this PR.
 - [Recursive error formatting](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/format/error.ts)
 - [String metadata formatting](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/format/metadata.ts)
 - [Console and conditional Redis transports](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/transports/index.ts)
+
+- [Fixed ResponseError diagnostic boundary](https://github.com/homarr-labs/homarr/blob/7eb9a417a60d759adce5f7ac15ceb594aefad471/packages/common/src/errors/http/response-error.ts)
+- [Fixed username/password query redaction](https://github.com/homarr-labs/homarr/blob/7eb9a417a60d759adce5f7ac15ceb594aefad471/packages/common/src/errors/http/credential-url.ts)

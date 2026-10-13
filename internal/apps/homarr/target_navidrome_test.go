@@ -221,43 +221,111 @@ func TestNavidromeHomarrSelectsRegularCredentials(t *testing.T) {
 	}
 }
 
-type navidromePrivacyTransport struct{ requests int }
-
-func (transport *navidromePrivacyTransport) RoundTrip(*http.Request) (*http.Response, error) {
-	transport.requests++
-	return nil, errors.New("unexpected HTTP before Navidrome privacy hold")
+type navidromePrivacyTransport struct {
+	requests      int
+	version       string
+	unreadable    bool
+	otherRequests int
 }
 
-func TestNavidromePrivacyHoldPrecedesAllRequests(t *testing.T) {
-	for _, path := range []string{"add", "linked"} {
-		t.Run(path, func(t *testing.T) {
-			var messages []string
-			log := events.New(events.SinkFunc(func(event events.Event) {
-				if event.Event == events.Info {
-					messages = append(messages, event.Msg)
+func (transport *navidromePrivacyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	transport.requests++
+	if req.URL.Path != "/api/trpc/info.getInfo" || req.Method != http.MethodGet || req.Header.Get("ApiKey") != "fixture-key" {
+		transport.otherRequests++
+		return nil, errors.New("unexpected request before credential-safe Homarr version")
+	}
+	if transport.unreadable {
+		return nil, errors.New("fixture version is unreadable")
+	}
+	body := fmt.Sprintf(`{"result":{"data":{"json":{"version":%q}}}}`, transport.version)
+	return &http.Response{StatusCode: http.StatusOK, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body)), Request: req}, nil
+}
+
+func TestNavidromePrivacyHoldPrecedesProviderRequests(t *testing.T) {
+	for _, scenario := range []struct {
+		name       string
+		version    string
+		unreadable bool
+	}{
+		{"older supported image", "2.4.1", false},
+		{"unfixed stable image", "2.5.0", false},
+		{"unknown future image", "2.5.3", false},
+		{"missing version", "", false},
+		{"unreadable version", "2.5.2", true},
+	} {
+		for _, path := range []string{"add", "linked"} {
+			t.Run(scenario.name+"/"+path, func(t *testing.T) {
+				var messages []string
+				log := events.New(events.SinkFunc(func(event events.Event) {
+					if event.Event == events.Info {
+						messages = append(messages, event.Msg)
+					}
+				}))
+				homarrHTTP := &navidromePrivacyTransport{version: scenario.version, unreadable: scenario.unreadable}
+				providerHTTP := &navidromePrivacyTransport{}
+				from := helpers.New(helpers.Config{App: "homarr", BaseURL: "http://homarr.invalid", HTTP: &http.Client{Transport: homarrHTTP}, Log: log, Secrets: statsSecrets{"HOMARR_API_KEY": "fixture-key", "HOMARR_LINKED_NAVIDROME": "nav-owned"}})
+				to := helpers.New(helpers.Config{App: "navidrome", BaseURL: "http://navidrome.invalid", HTTP: &http.Client{Transport: providerHTTP}, Log: log, Secrets: statsSecrets{"NAVIDROME_HOMARR_USERNAME": "self-host-homarr", "NAVIDROME_HOMARR_PASSWORD": "fixture-regular-password", "NAVIDROME_HOMARR_USER_ID": "regular-owned"}})
+				descriptor := navidromeTarget()
+				var err error
+				if path == "add" {
+					err = descriptor.add(t.Context(), from, to)
+				} else {
+					var linked bool
+					linked, err = descriptor.linked(t.Context(), from, to)
+					if linked {
+						t.Fatal("privacy hold claimed a completed Link")
+					}
 				}
-			}))
-			homarrHTTP, providerHTTP := &navidromePrivacyTransport{}, &navidromePrivacyTransport{}
-			from := helpers.New(helpers.Config{App: "homarr", BaseURL: "http://homarr.invalid", HTTP: &http.Client{Transport: homarrHTTP}, Log: log, Secrets: statsSecrets{"HOMARR_API_KEY": "fixture-key", "HOMARR_LINKED_NAVIDROME": "nav-owned"}})
-			to := helpers.New(helpers.Config{App: "navidrome", BaseURL: "http://navidrome.invalid", HTTP: &http.Client{Transport: providerHTTP}, Log: log, Secrets: statsSecrets{"NAVIDROME_HOMARR_USERNAME": "self-host-homarr", "NAVIDROME_HOMARR_PASSWORD": "fixture-regular-password", "NAVIDROME_HOMARR_USER_ID": "regular-owned"}})
-			descriptor := navidromeTarget()
-			var err error
-			if path == "add" {
-				err = descriptor.add(t.Context(), from, to)
-			} else {
-				var linked bool
-				linked, err = descriptor.linked(t.Context(), from, to)
-				if linked {
-					t.Fatal("privacy hold claimed a completed Link")
+				if !errors.Is(err, helpers.ErrManual) || homarrHTTP.requests != 1 || homarrHTTP.otherRequests != 0 || providerHTTP.requests != 0 {
+					t.Fatalf("privacy hold must precede provider/mutation requests: manual=%v versionQueries=%d otherHomarr=%d provider=%d", errors.Is(err, helpers.ErrManual), homarrHTTP.requests, homarrHTTP.otherRequests, providerHTTP.requests)
 				}
-			}
-			if !errors.Is(err, helpers.ErrManual) || homarrHTTP.requests != 0 || providerHTTP.requests != 0 {
-				t.Fatalf("privacy hold must precede all HTTP: manual=%v Homarr=%d provider=%d", errors.Is(err, helpers.ErrManual), homarrHTTP.requests, providerHTTP.requests)
-			}
-			message := strings.Join(messages, " ")
-			if !strings.Contains(message, "#363") || !strings.Contains(message, "#7170") || !strings.Contains(message, "do not create a manual integration or bypass this hold") || !strings.Contains(message, "exact supported stable image") {
-				t.Fatal("privacy hold lacks the upstream image prerequisite and no-bypass policy")
-			}
-		})
+				message := strings.Join(messages, " ")
+				if !strings.Contains(message, "#363") || !strings.Contains(message, "2.5.1") || !strings.Contains(message, "2.5.2") || !strings.Contains(message, "do not create a manual integration or bypass this hold") {
+					t.Fatal("privacy hold lacks the verified version requirement and no-bypass policy")
+				}
+			})
+		}
+	}
+}
+
+type navidromeRecordingTransport struct {
+	paths   []string
+	forward http.RoundTripper
+}
+
+func (transport *navidromeRecordingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	transport.paths = append(transport.paths, req.URL.Path)
+	forward := transport.forward
+	if forward == nil {
+		forward = http.DefaultTransport
+	}
+	return forward.RoundTrip(req)
+}
+
+func TestNavidromeFixedHomarrVersionChecksRegularAccount(t *testing.T) {
+	for _, version := range []string{"2.5.1", "2.5.2"} {
+		for _, rejected := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/rejected credential %v", version, rejected), func(t *testing.T) {
+				from, to := navidromeVerificationFixture(t, newStatsFixture(), nil, nil, nil)
+				homarrHTTP := &navidromePrivacyTransport{version: version}
+				from.Config.HTTP = &http.Client{Transport: homarrHTTP}
+				providerHTTP := &navidromeRecordingTransport{forward: to.Config.HTTP.Transport}
+				to.Config.HTTP = &http.Client{Transport: providerHTTP}
+				if rejected {
+					to.SetSecret(to.Key("homarr_password"), "rejected-fixture-password")
+				}
+				err := navidromeTarget().preflight(t.Context(), from, to)
+				if (err != nil) != rejected || errors.Is(err, helpers.ErrManual) != rejected {
+					t.Fatalf("fixed version regular-account preflight: %v, rejected=%v", err, rejected)
+				}
+				wantRequests := 9
+				if rejected {
+					wantRequests = 1
+				}
+				if homarrHTTP.requests != 1 || homarrHTTP.otherRequests != 0 || len(providerHTTP.paths) != wantRequests || providerHTTP.paths[0] != "/auth/login" {
+					t.Fatalf("fixed version did not reach exact native regular-account checks: Homarr=%d provider=%d", homarrHTTP.requests, len(providerHTTP.paths))
+				}
+			})
+		}
 	}
 }
