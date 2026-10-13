@@ -9,3 +9,5 @@
 ## Security
 
 - Require TLS, protected administration, and coordinated database/data backup.
+- Homarr uses the recorded `self-host Homarr` app password and token ID for the Project administrator. The app password retains administrator and file-write authority; it is not read-only. Unknown ownership remains Manual. If two-factor authentication prevents headless reissuance, restore only the known matching credential and ID; never disable two-factor authentication.
+- Homarr verifies the saved username and redacted password metadata, notifications, and calendar events before one central forced Stats refresh. `messages` counts retrieved notifications with `count` units and requires a nonnegative integer in the original int64-compatible range; explicit zero is valid. Its refresh timestamp must reach the request start. Independently cached native notifications may differ from the refreshed count. Registration and rendered/lifecycle acceptance remain parent-owned holds.

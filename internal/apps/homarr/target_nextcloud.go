@@ -3,6 +3,7 @@ package homarr
 import (
 	"context"
 	"errors"
+	"math"
 
 	"github.com/ajnart/self-host/internal/apps/nextcloud"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -26,6 +27,7 @@ func nextcloudTarget() target {
 			return err
 		},
 		verify: verifyNextcloud,
+		stats:  verifyNextcloudStats,
 	}
 }
 
@@ -107,38 +109,18 @@ func verifyNextcloud(ctx context.Context, from, to *helpers.H, integrationID str
 	if _, ok := result["events"].([]any); !ok {
 		return errors.New("Homarr returned an incomplete Nextcloud calendar event list")
 	}
-	value, err = apiKeyProcedure(ctx, from, "widget.stats.catalog", map[string]any{"integrationId": integrationID})
-	if err != nil {
-		return err
-	}
-	catalog, _ := value.(map[string]any)
-	metrics, _ := catalog["metrics"].([]any)
-	supported := false
-	for _, raw := range metrics {
-		metric, _ := raw.(map[string]any)
-		if stringField(metric, "key") == "messages" && stringField(metric, "unit") == "count" {
-			supported = true
-		}
-	}
-	if !supported {
+	return nil
+}
+
+func verifyNextcloudStats(sample statsSample) error {
+	if sample.units["messages"] != "count" {
 		return errors.New("Homarr does not expose Nextcloud's notification-count statistic; use supported Homarr 2.4.1 and retry Setup")
 	}
-	started := from.Now().UnixMilli()
-	value, err = apiKeyWrite(ctx, from, "widget.stats.refresh", map[string]any{"integrationId": integrationID, "force": true})
-	if err != nil {
-		return err
-	}
-	snapshot, ok := value.(map[string]any)
-	if !ok || snapshot["error"] != false || snapshot["stale"] != false {
-		return errors.New("Homarr could not refresh Nextcloud notification statistics; retry self-host setup homarr")
-	}
-	updated, ok := snapshot["updatedAt"].(float64)
-	if !ok || updated <= 0 || updated < float64(started) {
+	if sample.updatedAt < sample.startedAt {
 		return errors.New("Homarr did not return newly refreshed Nextcloud statistics; retry self-host setup homarr")
 	}
-	values, _ := snapshot["values"].(map[string]any)
-	count, ok := values["messages"].(float64)
-	if !ok || count < 0 || count != float64(int64(count)) {
+	count, ok := sample.values["messages"].(float64)
+	if !ok || math.IsNaN(count) || math.IsInf(count, 0) || count < 0 || count != float64(int64(count)) {
 		return errors.New("Homarr returned incomplete Nextcloud notification statistics")
 	}
 	return nil
