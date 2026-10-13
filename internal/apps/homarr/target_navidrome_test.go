@@ -220,3 +220,44 @@ func TestNavidromeHomarrSelectsRegularCredentials(t *testing.T) {
 		t.Fatal("Homarr receives the shared administrator login")
 	}
 }
+
+type navidromePrivacyTransport struct{ requests int }
+
+func (transport *navidromePrivacyTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	transport.requests++
+	return nil, errors.New("unexpected HTTP before Navidrome privacy hold")
+}
+
+func TestNavidromePrivacyHoldPrecedesAllRequests(t *testing.T) {
+	for _, path := range []string{"add", "linked"} {
+		t.Run(path, func(t *testing.T) {
+			var messages []string
+			log := events.New(events.SinkFunc(func(event events.Event) {
+				if event.Event == events.Info {
+					messages = append(messages, event.Msg)
+				}
+			}))
+			homarrHTTP, providerHTTP := &navidromePrivacyTransport{}, &navidromePrivacyTransport{}
+			from := helpers.New(helpers.Config{App: "homarr", BaseURL: "http://homarr.invalid", HTTP: &http.Client{Transport: homarrHTTP}, Log: log, Secrets: statsSecrets{"HOMARR_API_KEY": "fixture-key", "HOMARR_LINKED_NAVIDROME": "nav-owned"}})
+			to := helpers.New(helpers.Config{App: "navidrome", BaseURL: "http://navidrome.invalid", HTTP: &http.Client{Transport: providerHTTP}, Log: log, Secrets: statsSecrets{"NAVIDROME_HOMARR_USERNAME": "self-host-homarr", "NAVIDROME_HOMARR_PASSWORD": "fixture-regular-password", "NAVIDROME_HOMARR_USER_ID": "regular-owned"}})
+			descriptor := navidromeTarget()
+			var err error
+			if path == "add" {
+				err = descriptor.add(t.Context(), from, to)
+			} else {
+				var linked bool
+				linked, err = descriptor.linked(t.Context(), from, to)
+				if linked {
+					t.Fatal("privacy hold claimed a completed Link")
+				}
+			}
+			if !errors.Is(err, helpers.ErrManual) || homarrHTTP.requests != 0 || providerHTTP.requests != 0 {
+				t.Fatalf("privacy hold must precede all HTTP: manual=%v Homarr=%d provider=%d", errors.Is(err, helpers.ErrManual), homarrHTTP.requests, providerHTTP.requests)
+			}
+			message := strings.Join(messages, " ")
+			if !strings.Contains(message, "#363") || !strings.Contains(message, "#7170") || !strings.Contains(message, "do not create a manual integration or bypass this hold") || !strings.Contains(message, "exact supported stable image") {
+				t.Fatal("privacy hold lacks the upstream image prerequisite and no-bypass policy")
+			}
+		})
+	}
+}

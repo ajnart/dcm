@@ -5,7 +5,7 @@
 This slice implements #284 on the committed #262 reference contract.
 The reference owner must register `navidromeTarget()` in `targets.go`;
 this peer does not change the shared registry or reconciliation.
-Supported images are `ghcr.io/homarr-labs/homarr:v2.4.1` and
+Prepared compatibility targets are `ghcr.io/homarr-labs/homarr:v2.4.1` and
 `deluan/navidrome:0.64.0`. Source was checked against Homarr commit
 `ebbd4876d25a51151444a009ab596e1154d62880` and Navidrome tag commit
 `1072e9f7eb27faef740df5f0bd7fb18898aa650e`. Navidrome reports its release
@@ -16,6 +16,40 @@ The reference owner's cached image evidence identifies Homarr OCI revision
 Its integration router and credential definitions were compared with the
 tagged baseline and are byte-identical. This is scoped source equivalence,
 not Navidrome runtime acceptance or whole-image equivalence.
+
+## Native activation: credential-safety hold #363
+
+The shared [diagnostic Address privacy issue #363](https://github.com/ajnart/selfhost-skills/issues/363)
+blocks this Link. Check/apply return retryable Manual before any Homarr or
+Navidrome HTTP request, compatibility query, credential submission, mutation,
+native widget query or Stats refresh. Do not manually create an integration
+or bypass the hold. Standalone Navidrome regular-account Setup/Check and owned
+Link removal remain separate and operational.
+
+At recorded Homarr OCI-source revision
+`3d4150e59f600876b7e308f857b2f21572b75348`, native Navidrome requests put
+`u=username` and `p=password` in the query. A non-2xx response is retained in
+`ResponseError.url`. The integration decorator sanitizes its own diagnostic
+copy but rethrows an error containing the original cause. Media Server settling
+logs that cause, recursive error/metadata formatting retains the Address, and
+console logging is enabled. This inspected chain is unchanged at tag `v2.5.0`,
+commit `ed7b4bc00a77945f733a421efca2a58563d0d351`. A valid direct probe and
+regular credentials cannot prevent a later rejected native response.
+This is source-confirmed risk; no rejected request, runtime logs or
+built-image privacy attestation was run in this lane.
+
+The shared HTTP fix proposed by [Homarr PR #7170](https://github.com/homarr-labs/homarr/pull/7170)
+covers username/password query redaction. Activation still requires the complete
+downstream logging-chain fix verified in the exact supported stable image,
+image/version/source compatibility review and authorization. A local patch,
+mutable latest tag or valid credentials do not clear the hold. A later verified
+fixed version must own the activation gate; this leaf invents no version threshold.
+
+The HTTP regression failed before the hold: both actual `add` and `linked`
+paths made one provider request and did not return Manual. They now return
+Manual with zero Homarr and provider requests. Prepared native/Stats validators
+remain unchanged and their focused fixtures invoke them directly; those fixtures
+are not native activation acceptance.
 
 ## Credentials and minimum-role limitations
 
@@ -94,7 +128,7 @@ count is returned as Stats data, and readiness never pages through the full
 album library. The persisted `homarr-api` step ID remains compatible; its
 label names API readiness and its recovery hint names only Navidrome Setup.
 
-Homarr's preflight and verification still require complete counts through
+The prepared native verifier requires complete counts through
 `ReadHomarrData`: `alphabeticalByName`, 500 albums per page, at most 20
 pages, reconciled against a stable `X-Total-Count`. Missing `songCount`,
 missing payload objects, repeated albums, changing totals and truncated
@@ -122,8 +156,8 @@ for this Homarr kind. Media Server shows all returned audio sessions,
 without bitrate/location toggles: the adapter supplies neither playback
 position nor a playing/paused state. No album/media selection is required.
 
-The Link preflights the direct API before any Homarr mutation. Native verification
-retains saved regular Homarr identity/destination, freshly authenticated complete Subsonic
+The active Link stops at its privacy hold before any request. Its prepared native
+verification retains saved regular Homarr identity/destination, freshly authenticated complete Subsonic
 library/session readiness, `widget.audioStats.getStats` count semantics, and
 `widget.mediaServer.getCurrentStreams` integration/session identifiers and audio
 schema. Direct, native and Stats counts and session lengths are independently
@@ -228,3 +262,12 @@ No native runtime or rendered acceptance is claimed by this PR.
 - [Navidrome global scan counters](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/scanner/controller.go)
 - [Navidrome scan-status response](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/server/subsonic/library_scanning.go)
 - [Navidrome default-library selection](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/server/subsonic/helpers.go)
+
+- [Navidrome native query and rejected response](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/navidrome/navidrome-integration.ts)
+- [ResponseError retains the response Address](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/common/src/errors/http/response-error.ts)
+- [Decorator sanitizes one copy and retains the cause](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/integrations/src/base/errors/decorator.ts)
+- [Media Server integration settling](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/api/src/settle-integrations.ts)
+- [Media Server native query](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/api/src/router/widgets/media-server.ts)
+- [Recursive error formatting](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/format/error.ts)
+- [String metadata formatting](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/format/metadata.ts)
+- [Console and conditional Redis transports](https://github.com/homarr-labs/homarr/blob/3d4150e59f600876b7e308f857b2f21572b75348/packages/core/src/infrastructure/logs/transports/index.ts)
