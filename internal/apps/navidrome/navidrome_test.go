@@ -65,6 +65,8 @@ type fakeNavidrome struct {
 	now                 func() time.Time
 	subsonicCalls       int
 	albumCount          int
+	inaccessibleSongs   int
+	artistShape         string
 	albumPages          int
 	samplePages         int
 	malformedAlbum      bool
@@ -201,7 +203,7 @@ func (f *fakeNavidrome) handler() http.Handler {
 		case "getMusicFolders.view":
 			body["musicFolders"] = map[string]any{"musicFolder": []any{map[string]any{"id": 1, "name": "Music"}}}
 		case "getScanStatus.view":
-			body["scanStatus"] = map[string]any{"scanning": false, "count": f.albumCount, "lastScan": "2026-10-11T12:00:00Z"}
+			body["scanStatus"] = map[string]any{"scanning": false, "count": f.albumCount + f.inaccessibleSongs, "lastScan": "2026-10-11T12:00:00Z"}
 		case "getAlbumList2.view":
 			offset, err := strconv.Atoi(r.Form.Get("offset"))
 			size, sizeErr := strconv.Atoi(r.Form.Get("size"))
@@ -227,11 +229,24 @@ func (f *fakeNavidrome) handler() http.Handler {
 				body["albumList2"] = map[string]any{"album": albums}
 			}
 		case "getArtists.view":
-			if f.albumCount == 0 {
+			switch f.artistShape {
+			case "absent":
+			case "empty object":
+				body["artists"] = map[string]any{}
+			case "empty index":
+				body["artists"] = map[string]any{"index": []any{}}
+			case "malformed artist":
+				body["artists"] = map[string]any{"index": []any{map[string]any{"artist": []any{map[string]any{"name": "Missing ID"}}}}}
+			case "empty failure":
 				body["status"] = "failed"
 				body["error"] = map[string]any{"code": 70, "message": "Library not found or empty"}
-			} else {
-				body["artists"] = map[string]any{"index": []any{map[string]any{"artist": []any{map[string]any{"id": "artist-1", "name": "Fixture Artist"}}}}}
+			default:
+				if f.albumCount == 0 {
+					body["status"] = "failed"
+					body["error"] = map[string]any{"code": 70, "message": "Library not found or empty"}
+				} else {
+					body["artists"] = map[string]any{"index": []any{map[string]any{"artist": []any{map[string]any{"id": "artist-1", "name": "Fixture Artist"}}}}}
+				}
 			}
 		case "getNowPlaying.view":
 			body["nowPlaying"] = map[string]any{}
@@ -523,5 +538,50 @@ func TestHomarrRegularAccountPreservesConflictingUser(t *testing.T) {
 	}
 	if fake.homarrCreates != 0 || fake.creates != 0 || fake.homarrPassword != "fixture-existing-user-password" || fake.password != saved["ADMIN_PASSWORD"] || password == "" || saved[h.Key("homarr_password")] != password || saved[h.Key("homarr_user_id")] != "" {
 		t.Fatal("conflict recovery changed an existing user or rotated the pending credential")
+	}
+}
+
+func TestHomarrEmptyAccessibleLibraryIgnoresGlobalScanCount(t *testing.T) {
+	for _, scenario := range []struct {
+		name        string
+		artistShape string
+		albumCount  int
+		wantError   bool
+	}{
+		{"explicit empty library", "", 0, false},
+		{"absent artists object", "absent", 0, true},
+		{"empty artists object", "empty object", 0, true},
+		{"empty artist index", "empty index", 0, true},
+		{"malformed artist", "malformed artist", 0, true},
+		{"empty artists with accessible albums", "empty failure", 1, true},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			// The regular user sees only empty library 1; scanner count includes
+			// 37 tracks from inaccessible library 2 (scanner/controller.go).
+			fake := &fakeNavidrome{password: "fixture-admin-password", homarrPassword: "fixture-regular-password", inaccessibleSongs: 37, artistShape: scenario.artistShape, albumCount: scenario.albumCount}
+			server := httptest.NewServer(fake.handler())
+			t.Cleanup(server.Close)
+			saved := secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-admin-password", "NAVIDROME_HOMARR_USERNAME": "self-host-homarr", "NAVIDROME_HOMARR_PASSWORD": "fixture-regular-password", "NAVIDROME_HOMARR_USER_ID": "regular-owned"}
+			h := newH(t, server, saved, &recorder{})
+			data, err := navidrome.ReadHomarrData(t.Context(), h)
+			if (err != nil) != scenario.wantError {
+				t.Fatalf("ReadHomarrData: %v, wantError=%v", err, scenario.wantError)
+			}
+			if scenario.wantError {
+				return
+			}
+			if data != (navidrome.HomarrData{}) {
+				t.Fatal("inaccessible tracks became account-scoped Homarr data")
+			}
+			if err := (navidrome.App{}).Setup(t.Context(), h); err != nil {
+				t.Fatalf("Setup rejected the accessible empty library: %v", err)
+			}
+			if err := (navidrome.App{}).Check(t.Context(), h); err != nil {
+				t.Fatalf("Check rejected the accessible empty library: %v", err)
+			}
+			if fake.homarrCreates != 0 || fake.creates != 0 || fake.adminSubsonicCalls != 0 || fake.inaccessibleSongs != 37 {
+				t.Fatal("empty-library readiness changed accounts or used administrator access")
+			}
+		})
 	}
 }

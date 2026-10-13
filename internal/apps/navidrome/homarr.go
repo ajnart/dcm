@@ -131,14 +131,14 @@ func ReadHomarrData(ctx context.Context, h *helpers.H) (HomarrData, error) {
 	if err := VerifyHomarrUser(ctx, h); err != nil {
 		return data, err
 	}
-	scanCount, err := readMusicLibrary(ctx, h)
+	_, err := readMusicLibrary(ctx, h)
 	if err != nil {
 		return data, err
 	}
 	if err := readAlbums(ctx, h, &data); err != nil {
 		return data, err
 	}
-	data.ArtistCount, err = readMusicArtists(ctx, h, data.AlbumCount, scanCount)
+	data.ArtistCount, err = readMusicArtists(ctx, h, data.AlbumCount)
 	if err != nil {
 		return data, err
 	}
@@ -176,13 +176,14 @@ func readMusicLibrary(ctx context.Context, h *helpers.H) (int, error) {
 	return *scan.ScanStatus.Count, nil
 }
 
-func readMusicArtists(ctx context.Context, h *helpers.H, albumCount, scanCount int) (int, error) {
+func readMusicArtists(ctx context.Context, h *helpers.H, albumCount int) (int, error) {
 	artists, _, err := subsonicRequest(ctx, h, "getArtists", nil)
 	if err != nil {
 		return 0, err
 	}
 	if artists.Status == "failed" {
-		if albumCount != 0 || scanCount != 0 {
+		// Scan counts cover every library; only albums share this artist scope.
+		if albumCount != 0 {
 			return 0, errors.New("Navidrome artist data is unavailable for a nonempty library")
 		}
 		return 0, nil
@@ -260,7 +261,7 @@ func readAlbums(ctx context.Context, h *helpers.H, data *HomarrData) error {
 func verifyMusicAPI(ctx context.Context, h *helpers.H) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	scanCount, err := readMusicLibrary(ctx, h)
+	_, err := readMusicLibrary(ctx, h)
 	if err != nil {
 		return err
 	}
@@ -279,7 +280,7 @@ func verifyMusicAPI(ctx context.Context, h *helpers.H) error {
 			return errors.New("Navidrome returned incomplete representative album data")
 		}
 	}
-	if _, err := readMusicArtists(ctx, h, count, scanCount); err != nil {
+	if _, err := readMusicArtists(ctx, h, count); err != nil {
 		return err
 	}
 	_, err = readListeningSessions(ctx, h)

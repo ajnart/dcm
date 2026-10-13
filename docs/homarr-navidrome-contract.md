@@ -105,8 +105,14 @@ Artists are counted from the ID3 index; song counts are summed per album.
 These are library counts, not listening time or play counts.
 
 Navidrome's exact `getArtists` failure code 70 with message
-`Library not found or empty` is accepted only with explicit zero album
-and scan counts after authentication and library discovery succeed.
+`Library not found or empty` is accepted only with an explicit zero album
+count in the same accessible-library scope after authentication and library
+discovery succeed. The completed scanner's `getScanStatus.count` sums songs
+across every library, including libraries inaccessible to the regular user;
+it must not determine whether that user's accessible libraries are empty. Scan
+count/schema/completion checks remain, and missing or malformed successful
+artist objects still fail. Account-scoped album/artist counts and the native
+Homarr Stats provider keep their existing meanings.
 `nowPlaying: {}` means zero sessions in the pinned API; an absent
 `nowPlaying` object, failed request, or incomplete populated entry fails.
 
@@ -172,6 +178,13 @@ conflicting existing user preserve all users and passwords. The native
 user-create fixture denies an administrative mutation under the regular JWT.
 That fixture is source-contract evidence, not a real-server denial proof.
 
+The scoped-empty regression supplies global scan count 37 from an inaccessible
+library while the selected regular user's library has zero albums and the
+exact native empty-artist result. It fails before the scope correction and
+passes afterward through complete Homarr reads and standalone Setup/Check.
+Absent/malformed artists and empty artists alongside accessible albums remain
+rejected. This is a source fixture, not native multi-library runtime proof.
+
 After the parent accepts the bounded reference runtime, a separately
 approved disposable Project must record resolved image digests and prove:
 
@@ -211,3 +224,7 @@ No native runtime or rendered acceptance is claimed by this PR.
 - [Navidrome native login identity and JWT](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/server/auth.go)
 - [Navidrome user schema](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/model/user.go)
 - [Navidrome user creation, role policy and default library assignment](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/persistence/user_repository.go)
+
+- [Navidrome global scan counters](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/scanner/controller.go)
+- [Navidrome scan-status response](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/server/subsonic/library_scanning.go)
+- [Navidrome default-library selection](https://github.com/navidrome/navidrome/blob/1072e9f7eb27faef740df5f0bd7fb18898aa650e/server/subsonic/helpers.go)
