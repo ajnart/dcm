@@ -1,0 +1,25 @@
+video/reel/STORYBOARD.md
+  s_a58ef3d97f782e::t_b39873e8a37806 29-30,47,205-206,208,210-211,219
+video/reel/end.js
+  s_a58ef3d97f782e::t_575273187f528b 1,8-9,14-25,42,70-92,107-108
+video/reel/flurry.js
+  s_a58ef3d97f782e::t_8f7494ead431f6 11
+video/reel/styles.css
+  s_a58ef3d97f782e::t_8968e5d087613b 1529-1531,1534-1551
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "48396df10cc9fe45b7923ed518bcfb2ce5af1f50",
+  "prompts": {},
+  "sessions": {
+    "s_a58ef3d97f782e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "77983d98-2996-4705-ad20-7a17d90abb42",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
