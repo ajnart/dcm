@@ -1,0 +1,21 @@
+video/reel/STORYBOARD.md
+  s_3d986e33c6664a::t_d01563e2b4084a 165-179
+video/reel/audio/cues.json
+  s_3d986e33c6664a::t_4711c0e3d8e56d 980,985,990,995,1000,1005,1010,1015,1020,1025,1030,1035,1040,1045,1050,1055,1060,1065,1070,1075,1080,1085,1090,1095,1100,1105,1110,1115-1119,1124,1129,1134,1139,1144,1149,1154,1159,1164,1169,1174,1179,1184,1189,1194,1199,1204,1209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "452bfeda93e1ba6cdf8627c264b0b24e37d5b4fc",
+  "prompts": {},
+  "sessions": {
+    "s_3d986e33c6664a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "84e6d024-f9f4-409f-a2f1-2e98b8e123e7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
