@@ -14,10 +14,12 @@ those records predates that decision. Keep the existing self-host skill router.
    image's source revision. Record exact kind casing, credential alternatives,
    least permissions, internal endpoint and useful supported widgets/metrics.
    The [compatibility gate](../../internal/apps/homarr/compatibility.go) requires
-   authenticated API version **2.4.1** and the exact `integration.getKinds`
+   authenticated API version **2.4.1 or 2.5.1** and the exact `integration.getKinds`
    credential alternative; missing keys are not submitted. A nil resolver sends
    `[]` only when the upstream alternative permits it. Resolve actual selectors
    or omit the widget; no invented IDs, metrics, empty values or hardware readiness.
+   The `2.5.1` source candidate includes hotfix #7170; its fresh published-image
+   proof remains pending. The finite gate excludes `2.5.0` and other `2.5.x` versions.
    **Done:** sources and one meaningful native acceptance value are identified.
 
 2. **Use the peer seam.** Own one branch/worktree/PR and
@@ -35,8 +37,10 @@ those records predates that decision. Keep the existing self-host skill router.
    legacy data checks; removal/absence never calls preflight or refreshes Stats.
    Migrated Stats peers add `stats func(statsSample) error` for pure semantic
    validation. Keep native checks in `verify`, and move Stats acquisition out
-   of it. The callback receives `values`, catalog `units`, `startedAt`,
+   of it. The callback receives `values`, catalog `units`, raw `retryAt`, `startedAt`,
    `completedAt` and `updatedAt` (Unix milliseconds) from one central refresh.
+   `retryAt` preserves missing/null and malformed metadata without coercion;
+   each App owns its retry policy, without another Stats read.
    The start is read before the request and completion after the response;
    use completion when retaining an App's existing upper future-skew limit
    after a slow refresh. Apps own clock policy; common checks require finite,
