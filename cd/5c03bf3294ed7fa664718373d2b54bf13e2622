@@ -1,0 +1,75 @@
+site/astro.config.mjs
+  s_378d5db6c5f6de::t_09c6363eed454f 1,7,9-10
+site/src/scripts/links-view.js
+  s_378d5db6c5f6de::t_2d09e129690aa0 1,12,34
+site/src/components/AppIcon.astro
+  s_378d5db6c5f6de::t_5266a0326c8039 1-15
+site/src/lib/version.ts
+  s_378d5db6c5f6de::t_cf7270643f3a01 1-54
+site/src/scripts/shell.js
+  s_378d5db6c5f6de::t_6c3ee4e91145e3 1-2,131,135,152,155,159,162,166-170,211,215
+site/src/components/SiteHeader.astro
+  s_378d5db6c5f6de::t_533dc75ebacf1b 1-18
+site/src/pages/llms.txt.ts
+  s_378d5db6c5f6de::t_58cb64eeb96bd2 2-3,17-18,20-21,33-35
+site/src/pages/404.astro
+  s_378d5db6c5f6de::t_9e43043bd29dc2 4
+site/src/scripts/palette.js
+  s_378d5db6c5f6de::t_e6119e4fbc377a 1,24,66,69
+site/src/pages/apps/index.astro
+  s_378d5db6c5f6de::t_58e04894055404 1-44
+site/src/scripts/tui.js
+  s_378d5db6c5f6de::t_9689510b343346 1-2,25,54,57,59,101-102,124,127
+site/src/scripts/main.js
+  s_378d5db6c5f6de::t_680c92809b172f 5,109
+site/src/components/SectionHead.astro
+  s_378d5db6c5f6de::t_93cda0ac5a1e2d 1-14
+site/src/layouts/Base.astro
+  s_378d5db6c5f6de::t_44693d515550cf 3-5,10-11,14-15,17,25,39-48,57,59,62,64
+site/src/components/SiteFooter.astro
+  s_378d5db6c5f6de::t_57cb31aa79b7e5 1-10
+site/src/pages/robots.txt.ts
+  s_378d5db6c5f6de::t_1d91af8b6e319d 1-3
+site/src/scripts/project.js
+  s_378d5db6c5f6de::t_1772e83a7db183 1,23,61-62,74-75,87
+site/src/scripts/selection.js
+  s_378d5db6c5f6de::t_89b340ec96a8f5 1,33,44-45
+site/src/content.config.ts
+  s_378d5db6c5f6de::t_f2033c06cb13e7 1-21
+site/src/lib/catalog.ts
+  s_378d5db6c5f6de::t_776bdcdbd95d73 3-64
+site/src/lib/site.ts
+  s_378d5db6c5f6de::t_b9ac7e88c72602 1,4-14
+site/src/scripts/catalog-view.js
+  s_378d5db6c5f6de::t_c3c548c1f551cb 1,11-13,27-28,49-50,80
+site/package.json
+  s_378d5db6c5f6de::t_198a3fd441d0da 12,21-24
+site/src/pages/index.astro
+  s_378d5db6c5f6de::t_2cc2fc3bdc6058 4-6,12-38,41,46,66,107,124,128,133,144,152,154-155,159,161-165
+site/src/pages/apps/[id].astro
+  s_378d5db6c5f6de::t_27e84fc5e5a09d 1-75
+site/bun.lock
+  s_378d5db6c5f6de::t_34f874bf7aa5a2 8,57-58,293-294,329-330,599-600,741-742,759-760
+site/src/scripts/util.js
+  s_378d5db6c5f6de::t_dffa7901fd476f 21,26
+docs/releasing.md
+  s_378d5db6c5f6de::t_22495db717a50a 79-81,119-120,122-143
+site/src/styles/site.css
+  s_378d5db6c5f6de::t_f20cd2bb131b60 180,184-187,768-771,773-775,926-931,1183-1200,1366-1497
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cd5c03bf3294ed7fa664718373d2b54bf13e2622",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
