@@ -1,0 +1,22 @@
+internal/telemetry/telemetry.go
+  h_d6e478ca18e517 193-196
+internal/tui/backend.go
+  h_d6e478ca18e517 122-124,151-157
+internal/tui/harness_test.go
+  h_d6e478ca18e517 136-141
+internal/tui/intro.go
+  h_d6e478ca18e517 174,186-195,254-256
+internal/tui/intro_test.go
+  h_d6e478ca18e517 313-331
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "657d0409d4e86a1c146bda947048507c9489623d",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
