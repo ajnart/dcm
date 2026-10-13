@@ -35,10 +35,15 @@ func printHostReport(w io.Writer, report service.HostReport) {
 	fmt.Fprintf(w, "System  %s/%s\n", report.OS, report.Architecture)
 	docker := "not installed"
 	if report.Docker.Installed {
-		docker = "installed; socket unavailable"
+		docker = "installed; daemon unavailable"
+	}
+	if report.Docker.DaemonReachable {
+		docker = "engine " + report.Docker.Version + "; daemon reachable"
 	}
 	if report.Docker.SocketReachable {
 		docker = "engine " + report.Docker.Version + "; socket reachable"
+	} else if report.Docker.DaemonReachable && report.Docker.EndpointKind != "" {
+		docker += " (" + report.Docker.EndpointKind + ")"
 	}
 	fmt.Fprintf(w, "Docker  %s\n", docker)
 	ipv6 := formatProbeResult(host.PortResult(report.IPv6.Result), report.IPv6.ErrorClass)

@@ -17,6 +17,7 @@ func hostReportDeps(t *testing.T) *system.Deps {
 	deps.GOOS = "darwin"
 	deps.GOARCH = "arm64"
 	deps.Runner.(*systemtest.Runner).On("docker version", system.Result{Stdout: []byte("27.3.1\n")})
+	deps.Runner.(*systemtest.Runner).On("docker context inspect", system.Result{Stdout: []byte("unix:///var/run/docker.sock\n")})
 	deps.BindTCP = func(network, address string) error {
 		if address == "127.0.0.1:80" {
 			return syscall.EPERM
@@ -43,11 +44,43 @@ func TestHostReportJSONIsOneStableReadOnlyDocument(t *testing.T) {
 	if report.SchemaVersion != 1 || report.OS != "darwin" || report.Architecture != "arm64" {
 		t.Fatalf("machine identity = %+v", report)
 	}
-	if !report.Docker.Installed || !report.Docker.SocketReachable || report.Docker.Version != "27.3.1" {
+	if !report.Docker.Installed || !report.Docker.DaemonReachable || !report.Docker.SocketReachable || report.Docker.EndpointKind != "unix" || report.Docker.Version != "27.3.1" {
 		t.Fatalf("docker = %+v", report.Docker)
 	}
 	if len(report.Ports) != 2 || len(report.Ports[0].Probes) != 3 || report.Ports[0].Probes[1].ErrorClass != "EPERM" || report.Ports[1].Probes[2].Result != "in_use" {
 		t.Fatalf("ports = %+v", report.Ports)
+	}
+}
+
+func TestHostReportDoesNotCallARemoteDaemonALocalSocket(t *testing.T) {
+	deps := hostReportDeps(t)
+	systemtest.SetEnv(deps, map[string]string{"DOCKER_HOST": "ssh://builder.example"})
+
+	code, out := run(t, deps, "host", "report", "--json")
+	var report service.HostReport
+	if err := json.Unmarshal([]byte(out), &report); code != 0 || err != nil {
+		t.Fatalf("exit %d, JSON error %v:\n%s", code, err, out)
+	}
+	if !report.Docker.DaemonReachable || report.Docker.SocketReachable || report.Docker.EndpointKind != "ssh" {
+		t.Fatalf("remote daemon reported as a local socket: %+v", report.Docker)
+	}
+}
+
+func TestHostReportDockerContextOverridesDockerHost(t *testing.T) {
+	deps := hostReportDeps(t)
+	systemtest.SetEnv(deps, map[string]string{
+		"DOCKER_CONTEXT": "desktop-linux",
+		"DOCKER_HOST":    "tcp://builder.example:2376",
+	})
+	deps.Runner.(*systemtest.Runner).On("docker context inspect desktop-linux", system.Result{Stdout: []byte("unix:///Users/test/.docker/run/docker.sock\n")})
+
+	_, out := run(t, deps, "host", "report", "--json")
+	var report service.HostReport
+	if err := json.Unmarshal([]byte(out), &report); err != nil {
+		t.Fatal(err)
+	}
+	if !report.Docker.DaemonReachable || !report.Docker.SocketReachable || report.Docker.EndpointKind != "unix" {
+		t.Fatalf("DOCKER_CONTEXT did not override DOCKER_HOST: %+v", report.Docker)
 	}
 }
 

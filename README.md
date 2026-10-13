@@ -187,7 +187,10 @@ Prefix with `self-host`. `--verbose` (`-v`) adds detail. `--yes` authorizes an a
 `docker`, `ipv6` and `ports`. Each port contains probes for `0.0.0.0`,
 `127.0.0.1` and `::`; each result is `ok`, `permission`, `in_use` or
 `unsupported`, with `error_class` when the operating system returned one.
-Findings do not change its successful exit status.
+The Docker section distinguishes a reachable daemon from a reachable local
+Unix socket and names only the endpoint kind (`unix`, `tcp`, `ssh`, `npipe` or
+`unknown`), never its path or remote host. Findings do not change the command's
+successful exit status.
 
 Use named volumes or bind mounts for persistent data: anonymous volumes are not reattached after `down`/`up`. Duplicate Compose service names across App fragments are rejected before apply; if older fragments shared a cache service, reinstall both Apps. Old Redis containers and data are not retired automatically.
 

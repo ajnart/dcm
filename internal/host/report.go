@@ -12,7 +12,9 @@ const HostReportSchemaVersion = 1
 type DockerReport struct {
 	Runtime         string `json:"runtime"`
 	Installed       bool   `json:"installed"`
+	DaemonReachable bool   `json:"daemon_reachable"`
 	SocketReachable bool   `json:"socket_reachable"`
+	EndpointKind    string `json:"endpoint_kind,omitempty"`
 	Version         string `json:"version,omitempty"`
 }
 
@@ -65,7 +67,12 @@ func dockerReport(ctx context.Context, deps *system.Deps) DockerReport {
 	if err != nil || result.ExitCode != 0 {
 		return report
 	}
-	report.SocketReachable = true
+	report.DaemonReachable = true
 	report.Version = strings.TrimSpace(string(result.Stdout))
+	report.EndpointKind = "unknown"
+	if endpoint, err := ActiveDockerEndpoint(ctx, deps); err == nil {
+		report.EndpointKind = endpoint.Kind
+		report.SocketReachable = endpoint.Kind == "unix"
+	}
 	return report
 }
