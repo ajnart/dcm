@@ -1,0 +1,21 @@
+docs/releasing.md
+  s_7fa234028f3f9f::t_3fb7dc5bc6036e 75,81-83,90
+scripts/publish-aur.sh
+  s_7fa234028f3f9f::t_69a4c7abeb4cae 5-7,10,13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "298b9e5fa6f99a283b4cdc6263dd3a1ea526c9c8",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
