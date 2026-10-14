@@ -8,7 +8,7 @@ export const END_REPO = "github.com/ajnart/self-host";
 // still from SETTLED but for the caret and a slow push
 const T = { logo: b(60), cmd: b(61), type: [b(61) + 0.15, b(61) + 0.75], agents: b(62), stats: b(63) };
 export const SETTLED = T.stats + 0.6;
-const COUNTS = [93, 20, 1];
+const COUNTS = [89, 19, 1];
 
 export function build(tl) {
   scene("endsc", A, DUR + 1);
@@ -19,7 +19,7 @@ export function build(tl) {
     <div class="e-lock"><div class="e-dia"><svg viewBox="0 0 100 100"><path d="M50 2 98 50 50 98 2 50Z"/></svg></div><div class="e-wm" id="e-wm">self-host</div></div>
     <div class="e-cmd"><div class="e-cmdin" id="e-cmd"><span class="pr">$</span><span id="e-cmd-t"></span><span class="caret" id="e-caret"></span></div></div>
     <div class="e-ag" id="e-ag">Claude Code <i>·</i> Codex <i>·</i> OpenChamber <i>·</i> Hermes Agent <i>·</i> OpenCode <i>·</i> Pi</div>
-    <div class="e-stats" id="e-stats"><span><b id="e-n0">93</b> Apps</span><i>·</i><span><b id="e-n1">20</b> Recipes</span><i>·</i><span><b id="e-n2">1</b> binary</span></div>
+    <div class="e-stats" id="e-stats"><span><b id="e-n0">89</b> Apps</span><i>·</i><span><b id="e-n1">19</b> Recipes</span><i>·</i><span><b id="e-n2">1</b> binary</span></div>
     <div class="e-repo" id="e-repo">${END_REPO}</div>`;
   const letters = chars($("#e-wm"));
   tl.fromTo(".e-dia", { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.6, ease: "expo.out" }, T.logo);
