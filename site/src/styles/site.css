@@ -192,9 +192,10 @@ section,
   position: absolute;
   inset: 0 calc(50% - 50vw) 0;
   z-index: -1;
-  background: repeating-linear-gradient(-45deg, color-mix(in oklab, var(--accent) 9%, transparent) 0 14px, transparent 14px 28px);
+  background:
+    radial-gradient(ellipse 45% 70% at 78% 45%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%),
+    linear-gradient(var(--bg), color-mix(in oklab, var(--bg) 70%, transparent));
   border-bottom: 1px solid var(--line);
-  mask-image: linear-gradient(90deg, transparent, #000 35%, #000);
 }
 
 .eyebrow {
@@ -244,6 +245,18 @@ h1 {
   gap: 0.75rem;
   flex-wrap: wrap;
   margin-top: 1.5rem;
+}
+
+.btn.star span {
+  color: var(--warn);
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+.btn.star:hover,
+.btn.star:focus-visible {
+  border-color: var(--warn);
+  color: var(--warn);
 }
 
 .btn,
