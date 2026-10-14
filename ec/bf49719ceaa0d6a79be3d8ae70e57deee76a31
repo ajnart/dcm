@@ -1,0 +1,29 @@
+.gitignore
+  s_378d5db6c5f6de::t_ad19ef0431aab5 20-22
+AGENTS.md
+  s_378d5db6c5f6de::t_3798c9c63c89b8 12
+docs/releasing.md
+  s_378d5db6c5f6de::t_4183b9f0e591ce 151-153
+docs/spec.md
+  s_378d5db6c5f6de::t_3ab9cf5dcb2826 3
+video/AGENTS.md
+  s_378d5db6c5f6de::t_cdabe66d033793 38-39
+video/reel/.gitignore
+  s_378d5db6c5f6de::t_b1aca816929c1f 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ecbf49719ceaa0d6a79be3d8ae70e57deee76a31",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
