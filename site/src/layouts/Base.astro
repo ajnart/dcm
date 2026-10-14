@@ -17,7 +17,7 @@ interface Props {
 const { title, description, video = false, jsonld, noindex = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Astro.site);
 const image = new URL(og.src, Astro.site);
-const imageAlt = "self-host: Your Apps. Your home. One binary.";
+const imageAlt = "self-host: Stop renting your software. $92 a month becomes $0. Install any App with one command.";
 const reel = new URL("/reel.mp4", Astro.site);
 ---
 

@@ -1,0 +1,24 @@
+<!doctype html><meta charset=utf-8><title>Reel thumbnail variants</title>
+<style>
+body{margin:0;background:#2a2a2a;color:#eee;font:14px "JetBrains Mono",monospace;padding:16px 16px 90px}
+.pt{background:#ff5f5f;color:#000;font-weight:800;padding:4px 10px;display:inline-block;margin-bottom:12px}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+figure{margin:0}figcaption{margin-bottom:6px;color:#aaa}
+img{display:block;outline:1px solid #555}
+#bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#f5f5f5;color:#111;padding:8px 14px;border-radius:99px;box-shadow:0 4px 24px #000a;display:flex;gap:16px;align-items:center;font-weight:700}
+#bar button{border:0;background:#111;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer}
+</style>
+<div class=pt>Reel thumbnail variants · v13 is the shipped poster · ?v=N · ←/→</div>
+<div class=row id=r></div>
+<div id=bar><button id=p>←</button><span id=l></span><button id=n>→</button></div>
+<script>
+fetch("variants.json").then(r=>r.json()).then(V=>{
+let i=Math.max(0,Math.min(V.length-1,(+new URLSearchParams(location.search).get("v")||1)-1));
+const show=()=>{const v=V[i],b=`v${v.n}-${v.id}-`;
+r.innerHTML=`<figure><figcaption>1280x720 (poster / YouTube)</figcaption><img src="${b}1280x720.png" width=1280></figure>
+<figure><figcaption>1200x630 (OG / social)</figcaption><img src="${b}1200x630.png" width=1200></figure>
+<figure><figcaption>320x180 preview</figcaption><img src="${b}1280x720.png" width=320 height=180><figcaption style="margin-top:12px">200x105 (OG feed)</figcaption><img src="${b}1200x630.png" width=200 height=105></figure>`;
+l.textContent=`${v.n}/${V.length} ${v.name}`;history.replaceState(0,"","?v="+v.n)};
+p.onclick=()=>{i=(i+V.length-1)%V.length;show()};n.onclick=()=>{i=(i+1)%V.length;show()};
+addEventListener("keydown",e=>{if(e.key=="ArrowLeft")p.click();if(e.key=="ArrowRight")n.click()});show()})
+</script>
