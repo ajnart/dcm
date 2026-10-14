@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
@@ -240,5 +241,26 @@ func TestLogsStreamsTheAppsContainers(t *testing.T) {
 
 	if code != 0 || !strings.Contains(out, "listening on :80") || lastCompose(deps) != "logs --no-color --tail 50 one" {
 		t.Fatalf("logs: %d %q\n%s", code, lastCompose(deps), out)
+	}
+}
+
+func TestHiddenAppIsUnlistedAndRefusedForNewInstalls(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	cat := catalog.New([]app.App{&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "lldap", done: map[string]bool{}}}, nil)
+
+	_, out := runWith(t, deps, cat, "apps", "list", "--json")
+	if strings.Contains(out, "lldap") {
+		t.Fatalf("hidden App listed:\n%s", out)
+	}
+	_, out = runWith(t, deps, cat, "apps", "info", "lldap")
+	if !strings.Contains(out, "temporarily unavailable") || !strings.Contains(out, "issues/452") {
+		t.Fatalf("info: %s", out)
+	}
+	code, out := runWith(t, deps, cat, "install", "--yes", "lldap")
+	if code == 0 || !strings.Contains(out, "temporarily unavailable") {
+		t.Fatalf("install: %d\n%s", code, out)
+	}
+	if _, err := os.Stat(projectRoot(t, deps)); err == nil {
+		t.Fatal("refused install changed the Host")
 	}
 }

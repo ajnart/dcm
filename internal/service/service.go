@@ -414,7 +414,7 @@ func (ss *session) runSetup(ctx context.Context, a app.App) ([]string, error) {
 		incomplete = append(incomplete, id)
 	}
 	if ss.ready(id) {
-		for _, other := range ss.s.Catalog.Apps() {
+		for _, other := range ss.s.Catalog.AllApps() {
 			otherID := other.Info().ID
 			if otherID == id || !ss.ready(otherID) {
 				continue

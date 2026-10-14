@@ -57,6 +57,7 @@ func TestInstallPreservesConfiguredIdentityAndCredentials(t *testing.T) {
 			deps := systemtest.NewDeps(t)
 			deps.Runner.(*systemtest.Runner).On("docker info", system.Result{Stdout: []byte(tc.options)})
 			deps.HTTP = &http.Client{Transport: &readyTransport{}}
+			systemtest.SetEnv(deps, map[string]string{"SELF_HOST_ALLOW_UNAVAILABLE": "1"})
 			cat := catalog.New([]app.App{lldap.App{}}, nil)
 			args := []string{"install", "lldap", "--yes"}
 			if r := clitest.Run(t, deps, cat, args...); r.Code != 0 {

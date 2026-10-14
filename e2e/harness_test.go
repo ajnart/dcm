@@ -147,6 +147,7 @@ func newRunner(t *testing.T, guard *sweepGuard, logDirs ...string) *runner {
 	r.env = append(r.env,
 		"SELF_HOST_HOME="+r.project,
 		"SELF_HOST_COMPOSE_PROJECT="+name,
+		"SELF_HOST_ALLOW_UNAVAILABLE=1",
 	)
 	if r.logDir != "" {
 		os.MkdirAll(r.logDir, 0o700)

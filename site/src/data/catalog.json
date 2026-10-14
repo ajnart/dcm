@@ -100,17 +100,6 @@
    "i": "svg/beszel.svg"
   },
   {
-   "id": "bookstack",
-   "name": "BookStack",
-   "d": "Keep notes and how-to guides organized in books, chapters and pages",
-   "c": "Productivity",
-   "img": "lscr.io/linuxserver/bookstack:v26.05.3-ls277",
-   "p": 8080,
-   "l": [],
-   "lt": [],
-   "i": "svg/bookstack.svg"
-  },
-  {
    "id": "borgmatic",
    "name": "Borgmatic",
    "d": "Back up your files on a schedule, safely encrypted",
@@ -515,17 +504,6 @@
    "lt": []
   },
   {
-   "id": "lldap",
-   "name": "LLDAP",
-   "d": "Keep one list of users and passwords that your apps can share",
-   "c": "Identity",
-   "img": "lldap/lldap:2026-08-28",
-   "p": 17170,
-   "l": [],
-   "lt": [],
-   "i": "svg/lldap.svg"
-  },
-  {
    "id": "loki",
    "name": "Loki",
    "d": "Gather your apps' activity messages in one place to search through",
@@ -689,16 +667,6 @@
    "l": [],
    "lt": [],
    "i": "svg/paperless-ngx.svg"
-  },
-  {
-   "id": "passbolt",
-   "name": "Passbolt",
-   "d": "Share passwords safely with your team, with a browser add-on",
-   "c": "Passwords",
-   "img": "passbolt/passbolt:5.16.0-1-ce",
-   "p": 18085,
-   "l": [],
-   "lt": []
   },
   {
    "id": "patchmon",
@@ -928,16 +896,6 @@
     "download client: qBittorrent"
    ],
    "i": "svg/sonarr.svg"
-  },
-  {
-   "id": "speedtest-tracker",
-   "name": "Speedtest Tracker",
-   "d": "Check your internet speed on a schedule and keep the history",
-   "c": "Monitoring",
-   "img": "lscr.io/linuxserver/speedtest-tracker:v1.14.7-ls165",
-   "p": 8080,
-   "l": [],
-   "lt": []
   },
   {
    "id": "stalwart-mail",

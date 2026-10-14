@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -67,10 +68,42 @@ func (s *Service) Resolve(targets []string) ([]app.App, error) {
 			}
 		}
 	}
+	if err := s.refuseUnavailable(apps); err != nil {
+		return nil, err
+	}
 	if len(apps) == 0 {
 		return nil, errors.New("nothing to install; name at least one app or recipe")
 	}
 	return apps, nil
+}
+
+// refuseUnavailable fails when a hidden App is not already installed.
+// SELF_HOST_ALLOW_UNAVAILABLE=1 lifts it, so a hidden App can be proved on a VM.
+func (s *Service) refuseUnavailable(apps []app.App) error {
+	if s.Deps.Getenv("SELF_HOST_ALLOW_UNAVAILABLE") == "1" {
+		return nil
+	}
+	var installed map[string]*project.AppState
+	loaded := false
+	for _, a := range apps {
+		id := a.Info().ID
+		reason := catalog.Unavailable(id)
+		if reason == "" {
+			continue
+		}
+		if !loaded {
+			loaded = true
+			if p, err := s.Project(); err == nil && p.Exists() {
+				if state, err := p.LoadState(); err == nil {
+					installed = state.Apps
+				}
+			}
+		}
+		if installed[id] == nil {
+			return fmt.Errorf("%s is temporarily unavailable for new installs: %s", id, reason)
+		}
+	}
+	return nil
 }
 
 // recipeOf maps each App to the first Recipe named in targets that includes

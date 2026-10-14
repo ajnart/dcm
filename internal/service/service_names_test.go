@@ -41,6 +41,9 @@ func TestReinstallRetiresLegacyServicesWithinProject(t *testing.T) {
 				if key == "SELF_HOST_COMPOSE_PROJECT" {
 					return "upgrade-project"
 				}
+				if key == "SELF_HOST_ALLOW_UNAVAILABLE" {
+					return "1"
+				}
 				return ""
 			}
 			if err := h.install(tc.id, "other"); err != nil {

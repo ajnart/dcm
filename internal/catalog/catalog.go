@@ -2,6 +2,7 @@
 package catalog
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -36,7 +37,32 @@ func (c *Catalog) App(id string) (app.App, bool) {
 	return a, found
 }
 
+// unavailable holds the Apps hidden from new installs until each passes on a
+// VM, with the reason and the issue that tracks the way back (#493).
+var unavailable = map[string]string{
+	"bookstack":         "it failed on real hosts (https://github.com/ajnart/self-host/issues/416)",
+	"lldap":             "it failed on real hosts (https://github.com/ajnart/self-host/issues/452)",
+	"passbolt":          "it failed on real hosts (https://github.com/ajnart/self-host/issues/456)",
+	"speedtest-tracker": "it failed on real hosts (https://github.com/ajnart/self-host/issues/66)",
+}
+
+// Unavailable returns why an App is hidden from new installs, or "" when it
+// is offered. Existing installs of a hidden App keep working.
+func Unavailable(id string) string { return unavailable[id] }
+
+// Apps returns the Apps offered for new installs, sorted by ID.
 func (c *Catalog) Apps() []app.App {
+	var apps []app.App
+	for _, id := range c.order {
+		if unavailable[id] == "" {
+			apps = append(apps, c.apps[id])
+		}
+	}
+	return apps
+}
+
+// AllApps also returns the hidden Apps, for operating existing installs.
+func (c *Catalog) AllApps() []app.App {
 	apps := make([]app.App, len(c.order))
 	for i, id := range c.order {
 		apps[i] = c.apps[id]
@@ -47,7 +73,11 @@ func (c *Catalog) Apps() []app.App {
 func (c *Catalog) Recipes() []Recipe {
 	var recipes []Recipe
 	for _, r := range c.recipes {
-		if r.ID != "homarr-control-plane" {
+		if r.ID == "homarr-control-plane" {
+			continue
+		}
+		r.Apps = slices.DeleteFunc(slices.Clone(r.Apps), func(id string) bool { return unavailable[id] != "" })
+		if len(r.Apps) > 0 {
 			recipes = append(recipes, r)
 		}
 	}

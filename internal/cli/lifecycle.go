@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/service"
 )
 
@@ -174,12 +175,13 @@ type appJSON struct {
 	Port        int         `json:"port"`
 	Inputs      []inputJSON `json:"inputs"`
 	Links       []string    `json:"links,omitempty"`
+	Unavailable string      `json:"unavailable,omitempty"`
 }
 
 func describe(a app.App) appJSON {
 	info := a.Info()
 	out := appJSON{ID: info.ID, Name: info.Name, Description: info.Description, Category: info.Category,
-		Image: info.Image, Docs: info.Docs, Port: info.Port, Inputs: []inputJSON{}}
+		Image: info.Image, Docs: info.Docs, Port: info.Port, Inputs: []inputJSON{}, Unavailable: catalog.Unavailable(info.ID)}
 	for _, in := range a.Inputs() {
 		input := inputJSON{Key: in.Key, Prompt: in.Prompt, Help: in.Help, Default: in.Default, Required: in.Required, Private: in.Private}
 		if in.Private {
@@ -242,6 +244,9 @@ func (a *program) appsCmd() *cobra.Command {
 			info := describe(ap)
 			if a.json {
 				return writeJSON(a.deps.Out, info)
+			}
+			if info.Unavailable != "" {
+				fmt.Fprintf(a.deps.Out, "%s is temporarily unavailable for new installs: %s\n", info.Name, info.Unavailable)
 			}
 			fmt.Fprintf(a.deps.Out, "%s — %s\nimage  %s\nport   %d\ndocs   %s\n", info.Name, info.Description, info.Image, info.Port, info.Docs)
 			for _, in := range info.Inputs {

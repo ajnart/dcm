@@ -26,7 +26,7 @@ type targetSpec struct {
 
 func acceptanceInventory(c *catalog.Catalog) []targetSpec {
 	var out []targetSpec
-	for _, a := range c.Apps() {
+	for _, a := range c.AllApps() {
 		id := a.Info().ID
 		out = append(out, targetSpec{Kind: "app", ID: id, Apps: []string{id}})
 	}
@@ -324,7 +324,7 @@ func isolatedEnvironment(env []string) []string {
 	// credentials cannot redirect the owned Project or override loopback binds.
 	blocked := map[string]bool{"TZ": true, "PUID": true, "PGID": true, "UMASK": true, "LAN_IP": true, "EXPOSURE": true, "BIND_IP": true, "MEDIA_ROOT": true, "DOWNLOADS_ROOT": true, "ADMIN_USER": true, "ADMIN_PASSWORD": true}
 	prefixes := []string{"SELF_HOST_", "COMPOSE_"}
-	for _, a := range catalog.Default().Apps() {
+	for _, a := range catalog.Default().AllApps() {
 		prefixes = append(prefixes, strings.ToUpper(strings.ReplaceAll(a.Info().ID, "-", "_"))+"_")
 	}
 	var out []string
