@@ -114,6 +114,27 @@ func TestHostReportSucceedsWhenDockerCannotBeReached(t *testing.T) {
 	if strings.Contains(out, "private socket path") {
 		t.Fatalf("raw Docker error leaked into report: %s", out)
 	}
+	if !report.Docker.SocketDenied || report.Docker.DaemonReachable || !strings.Contains(report.Docker.Hint, "sudo usermod -aG docker $USER") {
+		t.Fatalf("docker = %+v", report.Docker)
+	}
+	_, text := run(t, deps, "host", "report")
+	if !strings.Contains(text, "permission denied on the Docker socket") || !strings.Contains(text, "sudo usermod -aG docker $USER") {
+		t.Fatalf("text report:\n%s", text)
+	}
+}
+
+func TestHostReportStoppedDaemonIsNotPermissionDenied(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	deps.Runner.(*systemtest.Runner).On("docker version", system.Result{ExitCode: 1, Stderr: []byte("Is the docker daemon running?")})
+
+	_, out := run(t, deps, "host", "report", "--json")
+	if strings.Contains(out, "socket_denied") || strings.Contains(out, `"hint"`) {
+		t.Fatalf("stopped daemon reported as denied:\n%s", out)
+	}
+	_, text := run(t, deps, "host", "report")
+	if !strings.Contains(text, "installed; daemon unavailable") {
+		t.Fatalf("text report:\n%s", text)
+	}
 }
 
 func TestHostReportExtraIsOptInAndAdditive(t *testing.T) {

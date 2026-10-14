@@ -58,16 +58,13 @@ func Docker(ctx context.Context, deps *system.Deps) []Check {
 	}
 	checks := []Check{{ID: "docker", Title: "Docker", Level: OK, Detail: "docker command found"}}
 
-	version, err := deps.Runner.Run(ctx, system.Cmd{Name: "docker", Args: []string{"version", "--format", "{{.Server.Version}}"}})
-	stderr := strings.ToLower(string(version.Stderr))
+	probe := ProbeDocker(ctx, deps)
+	version, err := probe.Result, probe.Err
 	switch {
+	case probe.SocketDenied():
+		return append(checks, socketDeniedCheck())
 	case err != nil:
 		return append(checks, Check{ID: "docker-socket", Title: "Docker daemon", Level: Fail, Detail: err.Error(), Docs: daemonDocs})
-	case version.ExitCode != 0 && strings.Contains(stderr, "permission denied"):
-		return append(checks, Check{ID: "docker-socket", Title: "Docker daemon", Level: Fail,
-			Detail: "permission denied on the Docker socket",
-			Hint:   "Add your user to the docker group, use rootless Docker, or rerun with sudo.",
-			Docs:   postInstall})
 	case version.ExitCode != 0:
 		docs, hint := daemonDocs, "Start the Docker daemon, then run self-host again."
 		if deps.GOOS == "darwin" {

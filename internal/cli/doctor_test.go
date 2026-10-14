@@ -94,6 +94,9 @@ func TestDoctorReportsSocketPermissionDenied(t *testing.T) {
 	if check["docs"] != "https://docs.docker.com/engine/install/linux-postinstall/" {
 		t.Fatalf("docs = %v", check["docs"])
 	}
+	if hint, _ := check["hint"].(string); !strings.Contains(hint, "sudo usermod -aG docker $USER") || !strings.Contains(hint, "sudo self-host") {
+		t.Fatalf("hint = %v", check["hint"])
+	}
 }
 
 func TestDoctorRequiresComposeV2(t *testing.T) {

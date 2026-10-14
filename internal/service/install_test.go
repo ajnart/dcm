@@ -12,6 +12,7 @@ import (
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
@@ -97,5 +98,25 @@ func TestInstallRefusesRemoteDockerContextForSocketMount(t *testing.T) {
 	}
 	if _, statErr := os.Stat(filepath.Join(h.root(), "apps", "beszel", "compose.yml")); !os.IsNotExist(statErr) {
 		t.Fatalf("fragment was written before refusal: %v", statErr)
+	}
+}
+
+func TestInstallStopsBeforeAnyChangeWhenDockerSocketIsDenied(t *testing.T) {
+	h := newHarness(t, &testApp{id: "one", done: map[string]bool{}})
+	h.runner.On("docker version", system.Result{ExitCode: 1, Stderr: []byte("permission denied while trying to connect to the Docker daemon socket")})
+
+	err := h.install("one")
+	if err == nil || !strings.Contains(err.Error(), "sudo usermod -aG docker $USER") {
+		t.Fatalf("Install error = %v, want the socket hint", err)
+	}
+	e := h.rec.find("", "docker-socket")
+	if e == nil || e.Event != events.StepFail || e.Hint != host.SocketDeniedHint {
+		t.Fatalf("docker-socket event = %+v", e)
+	}
+	if _, statErr := os.Stat(h.root()); !os.IsNotExist(statErr) {
+		t.Fatalf("Project written before refusal: %v", statErr)
+	}
+	if calls := h.composeCalls(); len(calls) != 0 {
+		t.Fatalf("compose ran: %v", calls)
 	}
 }

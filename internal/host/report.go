@@ -13,6 +13,8 @@ type DockerReport struct {
 	DaemonReachable bool   `json:"daemon_reachable"`
 	EndpointKind    string `json:"endpoint_kind,omitempty"`
 	Version         string `json:"version,omitempty"`
+	SocketDenied    bool   `json:"socket_denied,omitempty"`
+	Hint            string `json:"hint,omitempty"`
 }
 
 type IPv6Report struct {
@@ -56,12 +58,17 @@ func dockerReport(ctx context.Context, deps *system.Deps) DockerReport {
 		return report
 	}
 	report.Installed = true
-	result, err := deps.Runner.Run(ctx, system.Cmd{Name: "docker", Args: []string{"version", "--format", "{{.Server.Version}}"}})
-	if err != nil || result.ExitCode != 0 {
+	probe := ProbeDocker(ctx, deps)
+	if probe.SocketDenied() {
+		report.SocketDenied = true
+		report.Hint = SocketDeniedHint
+		return report
+	}
+	if !probe.Reachable() {
 		return report
 	}
 	report.DaemonReachable = true
-	report.Version = strings.TrimSpace(string(result.Stdout))
+	report.Version = strings.TrimSpace(string(probe.Result.Stdout))
 	report.EndpointKind = "unknown"
 	if endpoint, err := ActiveDockerEndpoint(ctx, deps); err == nil {
 		report.EndpointKind = endpoint.Kind

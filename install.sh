@@ -326,6 +326,20 @@ offer_skill() {
   skill_hint
 }
 
+# docker_socket_warning only reads: it never runs sudo or changes groups, and
+# a failing probe never fails the install.
+docker_socket_warning() {
+  local out
+  out="$(docker info 2>&1 </dev/null)" || true
+  case "$out" in
+    *[Pp]ermission\ denied*)
+      say "Warning: Docker is installed but your user may not use its socket (permission denied)."
+      say "  Run: sudo usermod -aG docker \$USER   then log out and in (or: newgrp docker) and recheck."
+      say "  Or use rootless Docker. Last resort: sudo self-host (the Project stays yours)."
+      ;;
+  esac
+}
+
 main() {
   command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1 || die "curl or wget is required but neither was found"
   need tar
@@ -405,8 +419,11 @@ main() {
     *":${dir}:"*) ;;
     *) path_help "$dir" ;;
   esac
-  command -v docker >/dev/null 2>&1 ||
+  if command -v docker >/dev/null 2>&1; then
+    docker_socket_warning
+  else
     say "Warning: Docker was not found. Install Docker with the Compose v2 plugin before deploying; self-host doctor checks it."
+  fi
   say
   say "Next: run  self-host  for the dashboard, or  self-host install media --yes  for the media server."
   say

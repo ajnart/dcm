@@ -690,3 +690,44 @@ func TestInstallScriptExplainsHowToAddTheInstallDirToPATH(t *testing.T) {
 		})
 	}
 }
+
+func fakeDockerPath(t *testing.T, script string) string {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "docker"), []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return "PATH=" + dir + string(os.PathListSeparator) + os.Getenv("PATH")
+}
+
+func TestInstallScriptWarnsWhenTheDockerSocketIsDenied(t *testing.T) {
+	denied := "#!/bin/sh\necho 'permission denied while trying to connect to the Docker daemon socket' >&2\nexit 1\n"
+	for _, tc := range []struct {
+		name, docker string
+		warn         bool
+	}{
+		{"denied", denied, true},
+		{"reachable", "#!/bin/sh\nexit 0\n", false},
+		{"stopped", "#!/bin/sh\necho 'Is the docker daemon running?' >&2\nexit 1\n", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := (&installFake{tag: "v1.3.0", binary: "x"}).server(t)
+
+			out, err := runInstaller(t, server, "HOME="+t.TempDir(), fakeDockerPath(t, tc.docker))
+
+			if err != nil {
+				t.Fatalf("install failed: %v\n%s", err, out)
+			}
+			warned := strings.Contains(out, "permission denied") && strings.Contains(out, "sudo usermod -aG docker $USER") && strings.Contains(out, "sudo self-host")
+			if warned != tc.warn {
+				t.Fatalf("warned = %v, want %v:\n%s", warned, tc.warn, out)
+			}
+			if strings.Contains(out, "Docker was not found") {
+				t.Fatalf("docker is on PATH:\n%s", out)
+			}
+			if !strings.Contains(out, "self-host install media --yes") {
+				t.Fatalf("summary missing:\n%s", out)
+			}
+		})
+	}
+}

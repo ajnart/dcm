@@ -164,6 +164,10 @@ func (s *Service) requireDocker(ctx context.Context) error {
 				Hint: check.Hint, Docs: check.Docs})
 		}
 		if check.Level == host.Fail {
+			if check.Hint == host.SocketDeniedHint {
+				s.Log.Emit(events.Event{Event: events.StepFail, Step: check.ID, Msg: check.Title + ": " + check.Detail,
+					Hint: check.Hint, Docs: check.Docs})
+			}
 			msg := check.Title + ": " + check.Detail
 			if check.Hint != "" {
 				msg += ". " + check.Hint

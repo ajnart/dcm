@@ -40,6 +40,9 @@ func printHostReport(w io.Writer, report service.HostReport) {
 	if report.Docker.Installed {
 		docker = "installed; daemon unavailable"
 	}
+	if report.Docker.SocketDenied {
+		docker = "installed; permission denied on the Docker socket"
+	}
 	if report.Docker.DaemonReachable {
 		docker = "engine " + report.Docker.Version + "; daemon reachable"
 	}
@@ -49,6 +52,9 @@ func printHostReport(w io.Writer, report service.HostReport) {
 		docker += " (" + report.Docker.EndpointKind + ")"
 	}
 	fmt.Fprintf(w, "Docker  %s\n", docker)
+	if report.Docker.SocketDenied {
+		fmt.Fprintf(w, "        %s\n", report.Docker.Hint)
+	}
 	ipv6 := formatProbeResult(host.PortResult(report.IPv6.Result), report.IPv6.ErrorClass)
 	fmt.Fprintf(w, "IPv6    %s\n", ipv6)
 	for _, port := range report.Ports {
