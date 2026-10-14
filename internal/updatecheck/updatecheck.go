@@ -35,7 +35,10 @@ type State struct {
 }
 
 // Cache is the file under the user cache directory.
-type Cache struct{ path string }
+type Cache struct {
+	path  string
+	chown func(path string) error
+}
 
 // Open finds the cache file's place; false when the host has no cache directory.
 func Open(deps *system.Deps) (Cache, bool) {
@@ -46,7 +49,7 @@ func Open(deps *system.Deps) (Cache, bool) {
 	if err != nil || dir == "" {
 		return Cache{}, false
 	}
-	return Cache{path: filepath.Join(dir, "self-host", "update.json")}, true
+	return Cache{path: filepath.Join(dir, "self-host", "update.json"), chown: deps.ChownOwned}, true
 }
 
 // Load returns the saved state, empty when the file is missing or unreadable.
@@ -69,6 +72,11 @@ func (c Cache) Save(s State) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
+	if c.chown != nil {
+		if err := c.chown(dir); err != nil {
+			return err
+		}
+	}
 	tmp, err := os.CreateTemp(dir, ".update-*")
 	if err != nil {
 		return err
@@ -84,7 +92,13 @@ func (c Cache) Save(s State) error {
 	if err := os.Chmod(tmp.Name(), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(tmp.Name(), c.path)
+	if err := os.Rename(tmp.Name(), c.path); err != nil {
+		return err
+	}
+	if c.chown != nil {
+		return c.chown(c.path)
+	}
+	return nil
 }
 
 // Disabled is true where no one should be asked or told about an update: a

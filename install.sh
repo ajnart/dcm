@@ -334,8 +334,9 @@ docker_socket_warning() {
   case "$out" in
     *[Pp]ermission\ denied*)
       say "Warning: Docker is installed but your user may not use its socket (permission denied)."
-      say "  Run: sudo usermod -aG docker \$USER   then log out and in (or: newgrp docker) and recheck."
-      say "  Or use rootless Docker. Last resort: sudo self-host (the Project stays yours)."
+      say "  Run: sudo \"\$(command -v self-host)\"   (the Project stays yours; ~/.local/bin is not on sudo's PATH)."
+      say "  Or use rootless Docker (no root; some Apps lose low ports, host networking or devices)."
+      say "  The docker group works but gives root-equivalent access without a password: sudo usermod -aG docker \$USER"
       ;;
   esac
 }

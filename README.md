@@ -215,7 +215,7 @@ Motion: `SELF_HOST_REDUCED_MOTION=1 self-host` skips decorative transitions. Pla
 
 ## Requirements and platforms
 
-Docker engine, the `docker compose` v2 plugin with `include` support, write access to the Project and data folders, free published ports, and enough storage and RAM for the Apps. Start with one App; photos, AI and multi-App Recipes need more. Run `self-host doctor` first. With rootless Docker, compatible images may need `PUID=0 PGID=0`; host file ownership stays with the invoking user.
+Docker engine, the `docker compose` v2 plugin with `include` support, write access to the Project and data folders, free published ports, and enough storage and RAM for the Apps. Start with one App; photos, AI and multi-App Recipes need more. Run `self-host doctor` first. If the Docker socket is denied, run `sudo "$(command -v self-host)"` (the Project, config and cache stay yours; the full path is needed because sudo drops `~/.local/bin`), or use rootless Docker; adding yourself to the `docker` group also works but gives root-equivalent access without a password. With rootless Docker, compatible images may need `PUID=0 PGID=0`; host file ownership stays with the invoking user.
 
 | Platform       | Binary       | Validation                                                             |
 | -------------- | ------------ | ---------------------------------------------------------------------- |

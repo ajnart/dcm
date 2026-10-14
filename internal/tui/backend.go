@@ -218,7 +218,7 @@ func (b ServiceBackend) ListFolders(dir string) ([]string, error) {
 }
 
 func (b ServiceBackend) UserHome() string {
-	user, err := b.Deps.CurrentUser()
+	user, err := b.Deps.Owner()
 	if err != nil {
 		return ""
 	}

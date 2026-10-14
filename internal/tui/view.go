@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -455,8 +454,8 @@ func fitContext(pieces []headerPiece, width int) (string, []headerPiece) {
 }
 
 // projectLabel names the Project in the header: its folder, short.
-func projectLabel(path string) string {
-	if home, err := os.UserHomeDir(); err == nil && home != "" && strings.HasPrefix(path, home+"/") {
+func projectLabel(home, path string) string {
+	if home != "" && strings.HasPrefix(path, home+"/") {
 		return "~/" + strings.TrimPrefix(path, home+"/")
 	}
 	return filepath.Base(path)
@@ -494,7 +493,7 @@ func (m Model) headerContext() (essential, extra []headerPiece) {
 		essential = append(essential, piece(release, t.fg(t.info).Render(release)))
 	}
 	if m.loaded && m.statusErr == "" && m.status.Project != "" {
-		project := projectLabel(m.status.Project)
+		project := projectLabel(m.backend.UserHome(), m.status.Project)
 		essential = append(essential, piece(project, t.dim().Render(project)))
 	}
 	if !m.refreshed.IsZero() {

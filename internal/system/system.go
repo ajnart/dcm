@@ -90,8 +90,11 @@ type Deps struct {
 	// failure; tests replace it so nothing is exec'd.
 	Exec func(path string, argv []string) error
 	// CacheDir is the per-user cache directory (os.UserCacheDir).
-	CacheDir    func() (string, error)
-	ConfigDir   func() (string, error)
+	CacheDir  func() (string, error)
+	ConfigDir func() (string, error)
+	// ChownOwned hands a path created under the config or cache directory to
+	// the invoking user when running under sudo; nil or a no-op otherwise.
+	ChownOwned  func(path string) error
 	ConfigFiles ConfigFiles
 	Getenv      func(key string) string
 	CurrentUser func() (User, error)

@@ -55,10 +55,13 @@ the first Action directly in Activity. Plain commands and `--json` never animate
    the engine may be stopped or socket permission may be denied. Say Docker is
    "the engine that runs your apps", ask, then follow the failing check's
    guidance. Rerun `self-host doctor --json` until it passes.
-   When the socket is permission denied, offer in this order: add the user to
-   the `docker` group (`sudo usermod -aG docker $USER`, then log out and in or
-   `newgrp docker`, then recheck); rootless Docker; as a last resort
-   `sudo self-host`, which works and keeps the Project owned by the person.
+   When the socket is permission denied, offer in this order: run with sudo,
+   `sudo "$(command -v self-host)"` (the installer puts the binary in
+   `~/.local/bin`, which sudo's `secure_path` drops; the Project, config and
+   cache stay owned by the person); rootless Docker (no root at all; some Apps
+   lose low ports, host networking or device access); the `docker` group
+   (`sudo usermod -aG docker $USER`, then log out and in), labelled as
+   root-equivalent access without a password.
    Never run `sudo` or change groups without the person's explicit approval.
 5. **agent-browser**: offer once, as a yes or no, to install it
    (`npm i -g agent-browser && agent-browser install`) so you can look at an

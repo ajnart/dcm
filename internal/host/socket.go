@@ -8,8 +8,8 @@ import (
 )
 
 // SocketDeniedHint is the one piece of advice for a Docker socket the user may not use.
-const SocketDeniedHint = "Run `sudo usermod -aG docker $USER`, then log out and in (or `newgrp docker`) and recheck. " +
-	"Or use rootless Docker. Last resort: `sudo self-host` (the Project stays yours)."
+const SocketDeniedHint = "Run `sudo \"$(command -v self-host)\"` (the Project stays yours), or use rootless Docker. " +
+	"The `docker` group works but gives root-equivalent access without a password: `sudo usermod -aG docker $USER`, then log out and in."
 
 // DockerProbe is the outcome of asking the Docker daemon for its version.
 type DockerProbe struct {

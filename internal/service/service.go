@@ -50,25 +50,7 @@ func New(deps *system.Deps, log *events.Logger, cat *catalog.Catalog) *Service {
 
 // Owner is the user who owns the Project: the invoking user under sudo.
 func (s *Service) Owner() (system.User, error) {
-	current, err := s.Deps.CurrentUser()
-	if err != nil {
-		return system.User{}, err
-	}
-	name := s.Deps.Getenv("SUDO_USER")
-	if current.UID != 0 || name == "" || name == "root" {
-		return current, nil
-	}
-	owner, err := s.Deps.LookupUser(name)
-	if err != nil {
-		return system.User{}, fmt.Errorf("sudo user %s: %w", name, err)
-	}
-	if uid, err := strconv.Atoi(s.Deps.Getenv("SUDO_UID")); err == nil {
-		owner.UID = uid
-	}
-	if gid, err := strconv.Atoi(s.Deps.Getenv("SUDO_GID")); err == nil {
-		owner.GID = gid
-	}
-	return owner, nil
+	return s.Deps.Owner()
 }
 
 func (s *Service) Project() (*project.Project, error) {

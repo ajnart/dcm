@@ -15,7 +15,10 @@ type ConfigFiles interface {
 	LoadOrCreateConfigFile(name string, create func() ([]byte, error)) ([]byte, error)
 }
 
-type configFiles struct{ directory func() (string, error) }
+type configFiles struct {
+	directory func() (string, error)
+	chown     func(path string) error
+}
 
 func ConfigFilesAt(directory string) ConfigFiles {
 	return configFiles{directory: func() (string, error) { return directory, nil }}
@@ -31,6 +34,11 @@ func (c configFiles) LoadOrCreateConfigFile(name string, create func() ([]byte, 
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
+	}
+	if c.chown != nil {
+		if err := c.chown(dir); err != nil {
+			return nil, err
+		}
 	}
 	fd, err := unix.Open(dir, unix.O_RDONLY|unix.O_DIRECTORY|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
 	if err != nil {
@@ -87,6 +95,11 @@ func (c configFiles) LoadOrCreateConfigFile(name string, create func() ([]byte, 
 	}
 	if err := unix.Unlinkat(fd, temp, 0); err != nil {
 		return nil, err
+	}
+	if c.chown != nil {
+		if err := c.chown(filepath.Join(dir, name)); err != nil {
+			return nil, err
+		}
 	}
 	if err := directory.Sync(); err != nil {
 		return nil, err

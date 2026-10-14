@@ -63,11 +63,11 @@ func TestDockerSocketClassification(t *testing.T) {
 }
 
 func TestSocketDeniedHintOrder(t *testing.T) {
-	group := strings.Index(host.SocketDeniedHint, "sudo usermod -aG docker $USER")
-	login := strings.Index(host.SocketDeniedHint, "newgrp docker")
+	sudo := strings.Index(host.SocketDeniedHint, `sudo "$(command -v self-host)"`)
 	rootless := strings.Index(host.SocketDeniedHint, "rootless Docker")
-	sudo := strings.Index(host.SocketDeniedHint, "sudo self-host")
-	if group < 0 || !(group < login && login < rootless && rootless < sudo) {
+	root := strings.Index(host.SocketDeniedHint, "root-equivalent")
+	group := strings.Index(host.SocketDeniedHint, "sudo usermod -aG docker $USER")
+	if sudo < 0 || !(sudo < rootless && rootless < root && root < group) {
 		t.Fatalf("hint order wrong: %s", host.SocketDeniedHint)
 	}
 }

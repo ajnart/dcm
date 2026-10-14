@@ -718,7 +718,7 @@ func TestInstallScriptWarnsWhenTheDockerSocketIsDenied(t *testing.T) {
 			if err != nil {
 				t.Fatalf("install failed: %v\n%s", err, out)
 			}
-			warned := strings.Contains(out, "permission denied") && strings.Contains(out, "sudo usermod -aG docker $USER") && strings.Contains(out, "sudo self-host")
+			warned := strings.Contains(out, "permission denied") && strings.Contains(out, "sudo usermod -aG docker $USER") && strings.Contains(out, `sudo "$(command -v self-host)"`)
 			if warned != tc.warn {
 				t.Fatalf("warned = %v, want %v:\n%s", warned, tc.warn, out)
 			}
