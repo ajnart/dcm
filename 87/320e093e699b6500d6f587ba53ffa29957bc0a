@@ -1,0 +1,16 @@
+e2e/passbolt_fixture_runtime_test.go
+  h_d6e478ca18e517 176
+internal/apps/beszel/beszel.go
+  h_d6e478ca18e517 38-40,43,45,47,49,51,55,112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87320e093e699b6500d6f587ba53ffa29957bc0a",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
