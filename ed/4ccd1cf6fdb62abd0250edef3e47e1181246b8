@@ -1,0 +1,23 @@
+README.md
+  s_378d5db6c5f6de::t_c71406231e830b 13,21,35,114,163,186-187,304,308,318
+site/src/components/SiteFooter.astro
+  s_378d5db6c5f6de::t_85b41b8b1a0e57 8
+site/src/lib/site.ts
+  s_378d5db6c5f6de::t_56f83e1b3f8939 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed4ccd1cf6fdb62abd0250edef3e47e1181246b8",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
