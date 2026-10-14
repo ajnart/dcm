@@ -1,0 +1,41 @@
+video/AGENTS.md
+  s_7fa234028f3f9f::t_9b8b4d49ae8f4c 39-41
+video/reel/HANDOFF.md
+  s_7fa234028f3f9f::t_3e712cdbe1c315 65,100-106
+video/reel/STORYBOARD.md
+  s_7fa234028f3f9f::t_4d23b7ff48f976 196-293
+video/reel/audio/cues-saas.json
+  s_7fa234028f3f9f::t_a6039e8e46e70e 1-816
+video/reel/audio/seams.mjs
+  s_7fa234028f3f9f::t_5a8f53572700a8 1-32
+video/reel/index.html
+  s_7fa234028f3f9f::t_22e7bc91017161 9,74-90
+video/reel/package.json
+  s_7fa234028f3f9f::t_7cfde21803de7f 11-13
+video/reel/render.mjs
+  s_7fa234028f3f9f::t_c1a9292986658c 2-3,32-35,99,245,301,357-359,379-380,387-388,403,405-406,412-413,417-418,425
+video/reel/saas/ask.js
+  s_7fa234028f3f9f::t_d796d4997c5eb8 1-94
+video/reel/saas/saas.css
+  s_7fa234028f3f9f::t_00d11525ff558a 1-270
+video/reel/saas/swaps.js
+  s_7fa234028f3f9f::t_3e8aa475a8bfed 1-124
+video/reel/thumbs/build.mjs
+  s_7fa234028f3f9f::t_1eb5a8766feb6c 152-172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "442121cb39ae38302064326e8c6decd45ea08d42",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
