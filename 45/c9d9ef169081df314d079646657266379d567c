@@ -1,0 +1,45 @@
+AGENTS.md
+  s_378d5db6c5f6de::t_5d5e8dbf7d3107 12
+docs/releasing.md
+  s_378d5db6c5f6de::t_e34ade566babcf 128-130
+internal/tui/theme.go
+  s_378d5db6c5f6de::t_58203288c76020 28-44,47-48,51-63
+site/src/layouts/Base.astro
+  s_378d5db6c5f6de::t_fff93bd1fe7731 2
+site/src/pages/404.astro
+  s_378d5db6c5f6de::t_ae3a76ab5153d2 9
+site/src/pages/apps/[id].astro
+  s_378d5db6c5f6de::t_d038bf4e609332 55,58
+site/src/pages/index.astro
+  s_378d5db6c5f6de::t_b8cc0e85692cbf 48,173
+site/src/scripts/intro.js
+  s_378d5db6c5f6de::t_21d7df0fe239db 3-5,111
+site/src/scripts/main.js
+  s_378d5db6c5f6de::t_588e1514219439 111
+site/src/scripts/shell.js
+  s_378d5db6c5f6de::t_d045005362ee6f 69,99,152,170,423
+site/src/scripts/tui.js
+  s_378d5db6c5f6de::t_b1b48bb17e7a02 86,90,116,118,129,131,179
+site/src/styles/site.css
+  s_378d5db6c5f6de::t_cf31e6febb0847 43,50,57,66-67,70,73,76,79,120-121,143,157-158,197,236,268-269,273-275,281,305,338,385,418-419,424,507,516-517,537,596,624,650-651,655-656,687,692,697,706,741,745-746,750,773,857,867-868,919,947-948,978,983,1010-1012,1041,1082,1113-1114,1129,1138,1187,1214,1317,1385,1396
+site/src/styles/theme.css
+  s_378d5db6c5f6de::t_cb449ca0367cec 1-11
+tools/sitetheme/main.go
+  s_378d5db6c5f6de::t_bb0892f09069ff 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "45c9d9ef169081df314d079646657266379d567c",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
