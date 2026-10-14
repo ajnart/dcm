@@ -1,0 +1,22 @@
+internal/cli/cli.go
+  h_d6e478ca18e517 245
+internal/cli/share.go
+  h_d6e478ca18e517 1-41
+internal/cli/share_test.go
+  h_d6e478ca18e517 1-61
+internal/service/share.go
+  h_d6e478ca18e517 1-27
+internal/skill/guide.md
+  h_d6e478ca18e517 78-79,136,221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "accf5ce29c0c9cd7d24df8813d428c748fc62647",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
