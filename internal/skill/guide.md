@@ -75,6 +75,8 @@ the first Action directly in Activity. Plain commands and `--json` never animate
    - then 2 to 4 opening questions picked from what is installed and what Access
      could add: "Want your own web address?", "Want to open these from your
      phone anywhere?", "Want to know what Jellyfin does?".
+   - offer `self-host share`: it prints a postable install line and site link
+     for the Catalog Apps only, and shares nothing else.
 7. **Advanced**: be terse and use the exact flags in "Setting up". Their request
    ("install jellyfin on port 8097, local only") is the plan: show the one
    `self-host install` line you will run and wait for a yes, unless they already
@@ -131,6 +133,7 @@ Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
 | `self-host install <app\|recipe>...`                             | Install Apps or Recipes and run Setup                                                                          |
 | `self-host setup [app...]`                                       | Rerun Setup; finished steps are skipped                                                                        |
 | `self-host status`                                               | A plain summary, then Access, Host settings, every App's URL, state, Setup                                     |
+| `self-host share`                                                | Two lines to post: `self-host install <ids>` and its self-host.fyi link, Catalog Apps only                     |
 | `self-host profile set experience <new\|advanced>`               | Save the Experience level. `self-host profile` shows the Profile and works before any Project exists           |
 | `self-host debug <app>`                                          | Debug report: Status, failed steps with hints, recent logs (secrets masked), health check                      |
 | `self-host credentials`                                          | Admin login and per-App API keys                                                                               |
@@ -215,7 +218,7 @@ Fields (all but `event` are omitted when empty):
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
 
-Document commands (`status`, `profile`, `debug`, `credentials`, `apps list`, `apps info`, `logs`)
+Document commands (`status`, `share`, `profile`, `debug`, `credentials`, `apps list`, `apps info`, `logs`)
 print one result on stdout and only errors on stderr with `--json`.
 
 ## Exit codes
