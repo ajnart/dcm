@@ -1,0 +1,16 @@
+internal/project/files.go
+  h_d6e478ca18e517 63
+internal/project/project.go
+  h_d6e478ca18e517 55-65,69-74,85,582
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7a4aa3608b1ea88204087ea6b0fd6a8e322a1807",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
