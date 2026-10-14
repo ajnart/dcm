@@ -1,0 +1,31 @@
+internal/cli/host.go
+  s_378d5db6c5f6de::t_a3eb43ee153eaf 46,67
+internal/cli/host_report_test.go
+  s_378d5db6c5f6de::t_a9c68819537d62 5,45,48,65,83,111,121-123,144,149,157-160
+internal/host/docker_socket_test.go
+  s_378d5db6c5f6de::t_d6eebd5da93262 13,16,20,25,30,34,39,50,54-55,62,70-72
+internal/host/extra.go
+  s_378d5db6c5f6de::t_a27d0b8315b16d 31-36,38,42,46-54,59,62,65,68-72,74,77,79-87,89,92,95,98-107,109-111,113-115,117-118,120-128,138,141-142,147,153,156,159,161,164,167,171,174,177,196,224,230,232,238,246,250,252,255-256
+internal/service/host_report.go
+  s_378d5db6c5f6de::t_f3cf8bc49ef3fc 12,14,17-18,20,23,26,29
+internal/service/service.go
+  s_378d5db6c5f6de::t_26cb09e00efad1 12,267,271-275
+internal/systemtest/systemtest.go
+  s_378d5db6c5f6de::t_9137e95d8fe1fd 244,246,249
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eaa503114cf5fcd43813864a7b0399959251a32d",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
