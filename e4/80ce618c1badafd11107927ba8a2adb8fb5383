@@ -1,0 +1,31 @@
+internal/cli/feedback.go
+  s_00d9eee545672e::t_24dcb6d4d14f46 93
+internal/cli/feedback_test.go
+  s_00d9eee545672e::t_2293ab455fc37e 58,81-82,163
+internal/service/telemetry.go
+  s_00d9eee545672e::t_b5513e978df4a1 6
+internal/system/real.go
+  s_00d9eee545672e::t_0fde02df80902e 76-85
+internal/systemtest/systemtest.go
+  s_00d9eee545672e::t_077bfb52f70d30 223-234
+internal/telemetry/apprequest.go
+  s_00d9eee545672e::t_0b82fd94d6ec08 1,4-8,11-14,17,19-22,24-30,32-44
+internal/telemetry/telemetry.go
+  s_00d9eee545672e::t_1a8154eee80ef7 1-6,69,87,114-116,210-212,231-233,239-241,243,247-248,254-261,263-267,273-291,312,315-316,448-455,457-461,472-475
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e480ce618c1badafd11107927ba8a2adb8fb5383",
+  "prompts": {},
+  "sessions": {
+    "s_00d9eee545672e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12fc3-6532-7483-af9d-07e71149ec51",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
