@@ -71,19 +71,31 @@ func TestWhenNobodyCanSayWhoHoldsPort80TheMessageStillSaysSo(t *testing.T) {
 func TestRootlessDockerKeepsHomeNetworkAndPutsTheFixUnderTechnicalDetails(t *testing.T) {
 	h := newHarness(t)
 	h.runner.On("docker info", system.Result{Stdout: []byte(`["name=seccomp,profile=builtin","name=rootless"]`)})
+	h.deps.BindTCP = func(string, string) error { return syscall.EACCES }
 
 	check := h.svc.CheckEasyNames(context.Background())
 
 	if check.Available || check.Problem != "rootless" {
 		t.Fatalf("check %+v, want rootless", check)
 	}
-	if strings.Contains(check.Message, "setcap") || strings.Contains(check.Message, "sysctl") {
+	if strings.Contains(check.Message, "sysctl") {
 		t.Fatalf("the plain message must not hold the fix: %q", check.Message)
 	}
-	for _, want := range []string{"setcap cap_net_bind_service=ep $(which rootlesskit)", "net.ipv4.ip_unprivileged_port_start=80"} {
+	for _, want := range []string{"net.ipv4.ip_unprivileged_port_start=80", "systemctl --user restart docker"} {
 		if !strings.Contains(check.Technical, want) {
 			t.Errorf("technical details lack %q: %q", want, check.Technical)
 		}
+	}
+}
+
+func TestRootlessDockerAllowsEasyNamesOnceThePortCanBeBound(t *testing.T) {
+	h := newHarness(t)
+	h.runner.On("docker info", system.Result{Stdout: []byte(`["name=rootless"]`)})
+
+	check := h.svc.CheckEasyNames(context.Background())
+
+	if !check.Available {
+		t.Fatalf("check %+v, want available", check)
 	}
 }
 
@@ -211,6 +223,7 @@ func TestEasyNamesBlockedByRootlessDockerShowTheFixOnlyAfterTechnicalDetails(t *
 		t.Fatal(err)
 	}
 	h.runner.On("docker info", system.Result{Stdout: []byte(`["name=rootless"]`)})
+	h.deps.BindTCP = func(string, string) error { return syscall.EACCES }
 
 	err := h.svc.ConfigSet(context.Background(), []string{"EASY_NAMES=on"})
 
@@ -218,7 +231,7 @@ func TestEasyNamesBlockedByRootlessDockerShowTheFixOnlyAfterTechnicalDetails(t *
 		t.Fatal("rootless Docker must refuse")
 	}
 	plain, technical, found := strings.Cut(err.Error(), "\n\nTechnical details:\n")
-	if !found || strings.Contains(plain, "setcap") || !strings.Contains(technical, "setcap") {
+	if !found || strings.Contains(plain, "sysctl") || !strings.Contains(technical, "sysctl") {
 		t.Fatalf("error %q: the fix belongs under Technical details only", err)
 	}
 }

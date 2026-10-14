@@ -48,10 +48,9 @@ const (
 	problemNetwork  = "network"
 )
 
-const rootlessFix = "Rootless Docker cannot publish port 80. Either let it bind low ports, as root: " +
-	"sudo setcap cap_net_bind_service=ep $(which rootlesskit), then restart the Docker user service " +
-	"(systemctl --user restart docker); or lower the limit for every program: " +
-	"echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/99-unprivileged-port-80.conf && sudo sysctl --system"
+const rootlessFix = "Rootless Docker cannot publish port 80. Let programs without administrator rights use it, as root: " +
+	"echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/99-unprivileged-port-80.conf && sudo sysctl --system, " +
+	"then restart the Docker user service (systemctl --user restart docker)"
 
 const keepsWorking = " The addresses with numbers keep working."
 
@@ -122,7 +121,7 @@ func (s *Service) checkEasyNames(ctx context.Context, lan string) NamesCheck {
 	if err != nil {
 		return NamesCheck{Problem: "inspection", Message: "Docker could not be checked, so nothing was changed.", Technical: err.Error()}
 	}
-	if rootless {
+	if rootless && portPermissionDenied(host.ProbePort(s.Deps, 80)) {
 		return NamesCheck{Problem: problemRootless, Technical: rootlessFix,
 			Message: "Docker on this computer runs without administrator rights, so it can't use port 80 and nothing was changed." + keepsWorking}
 	}
@@ -136,6 +135,15 @@ func (s *Service) checkEasyNames(ctx context.Context, lan string) NamesCheck {
 			Message: message + keepsWorking}
 	}
 	return NamesCheck{Available: true}
+}
+
+func portPermissionDenied(probes []host.PortProbe) bool {
+	for _, probe := range probes {
+		if probe.Result == host.PortPermission {
+			return true
+		}
+	}
+	return false
 }
 
 // ownCaddyRuns reports whether this Project's Caddy is up and so holds port 80.
