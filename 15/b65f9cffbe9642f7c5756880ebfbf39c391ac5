@@ -1,0 +1,25 @@
+docs/telemetry.md
+  s_378d5db6c5f6de::t_740a664b37b23a 45-50
+site/astro.config.mjs
+  s_378d5db6c5f6de::t_db038cfb67bdfe 11,17,24
+site/src/layouts/Base.astro
+  s_378d5db6c5f6de::t_e4b431e0b4c284 67
+site/src/styles/site.css
+  s_378d5db6c5f6de::t_43ea618218dfc7 1596-1602
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "15b65f9cffbe9642f7c5756880ebfbf39c391ac5",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
