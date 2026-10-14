@@ -294,7 +294,7 @@ self-host restore /absolute/private/ntfy.tar.zst.age ntfy
 
 ## Telemetry
 
-Anonymous install, Onboarding and error data, used only by the maintainers and never sold or shared; on by default in releases, never in CI or development builds. Opt out with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. What is sent: [telemetry page](https://self-host.fyi/telemetry).
+Anonymous Onboarding, error and agent App-request data, with no stored ID, used only by the maintainers and never sold or shared; on by default in releases, never in CI or development builds. Opt out with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. What is sent: [telemetry page](https://self-host.fyi/telemetry).
 
 ## What is supported
 

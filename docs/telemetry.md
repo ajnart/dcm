@@ -14,32 +14,30 @@ never used for advertising.
 
 ## What is sent
 
-Not every command is sent. Running `status`, `logs`, `doctor`, `apps` or
-`credentials` successfully sends nothing. Only these are sent:
+Only these four things. A command that succeeds sends nothing.
 
-- A random install ID; self-host version, OS and architecture, with each event.
-- A command event when `install`, `setup`, `remove`, `restore` or `self-update`
-  runs, even on success: command name, outcome, duration, Catalog App and
-  Recipe IDs, and the Access choice, using the same `home`/`local` IDs as
-  `status --json`.
-- A command event for any command that fails or ends incomplete, with its step
-  IDs, outcomes and durations.
-- Errors as PostHog `$exception` events: error type, fixed description, stable
-  fingerprint, and in-app function names, module-relative files and line numbers.
-  Panics are unhandled exceptions, flushed before the original panic continues.
-- When you approve Onboarding's plan, one `onboarding` event: your Experience
+- **An onboarding summary**, when you approve Onboarding's plan: your Experience
   level (`new` or `advanced`), the glyph set (`nerd-font` or `simple`), whether
-  you skipped the intro, whether the machine check warned (`ok` or `warn`) and
-  how long Onboarding took. Nothing is sent if you quit before approving.
-- Warning and error steps of any command, as fixed-text OTLP log records with
-  the step and command IDs. These are not App logs, raw error messages, or
+  you skipped the intro, whether the machine check warned (`ok` or `warn`), how
+  long Onboarding took, and the Catalog App and Recipe IDs and Access choice
+  (`home` or `local`) you picked. Nothing is sent if you quit before approving.
+- **Errors**, when a command fails or ends incomplete: the command name,
+  duration, Catalog App and Recipe IDs, step IDs, outcomes and durations, and a
+  PostHog `$exception` with the error type, a fixed description, a stable
+  fingerprint, and in-app function names, module-relative files and line
+  numbers. Panics are unhandled exceptions, flushed before the original panic
+  continues. Warning and error steps also send fixed-text OTLP log records
+  with the step and command IDs. These are not App logs, raw error messages or
   distributed traces.
-- Feedback, only after you see the text and agree (see below).
+- **Agent App requests.** When an agent is asked for an App that is not in the
+  Catalog, it runs `self-host apps request "<name>"`, which sends the App's name
+  (lowercase, at most 64 characters) and the host of its homepage, never a path
+  or query. A person asks for an App by opening a
+  [GitHub issue](https://github.com/ajnart/self-host/issues) instead.
+- **Feedback**, only after you see the text and agree (see below).
 
-PostHog person profiles group events by the random ID to count usage and return
-visits. No names or emails are set. The one person property is `experience`
-(`new` or `advanced`), set by the `onboarding` event and by
-`self-host profile set experience`. GeoIP is
+Each event also carries the self-host version, OS and architecture. Events are
+anonymous: PostHog keeps no person profile and no person properties. GeoIP is
 disabled; payloads contain no IP addresses or locations. Receiving network
 infrastructure still sees the source IP. Server-side "Discard client IP data"
 is a maintainer-controlled setting, not something the CLI verifies.
@@ -50,15 +48,12 @@ Host names, absolute file paths, typed inputs, secrets, App data, raw error or
 panic text, IP addresses or locations. Stack files are relative to the Go
 module, never to the machine where the binary was built or installed.
 
-## The install ID
+## There is no stored ID
 
-The ID is a randomly generated UUID, never derived from hardware or a host name.
-It lives at `os.UserConfigDir()/self-host/telemetry-id`: normally
-`~/.config/self-host/telemetry-id` on Linux and
-`~/Library/Application Support/self-host/telemetry-id` on macOS. An older ID in
-the Home folder (`~/.self-host/telemetry-id`, or the `SELF_HOST_HOME` override)
-migrates automatically. The user-config copy takes precedence. Deleting or
-reinstalling the Project or Home folder does not create another ID.
+Nothing identifies you or your machine, and nothing is saved. Each run uses a
+random value held in memory and thrown away when the command ends, so one run
+cannot be linked to another. Older versions that saved a `telemetry-id` file no
+longer read it; you can delete it.
 
 ## Notice and controls
 
@@ -85,7 +80,7 @@ the agent must remove personal details and the CLI masks known secrets again.
 `--app <id>` adds a short Debug report summary, never App logs.
 
 Messages from `--message` or stdin are limited to 4096 bytes. Approved Feedback
-uses the same endpoint, random ID and off switches, but waits up to five seconds
+uses the same endpoint, anonymity and off switches, but waits up to five seconds
 for delivery and reports failure. It does not require the usage notice because
 you explicitly approved it. With Telemetry off it sends nothing, exits 1, and
 points to [GitHub Issues](https://github.com/ajnart/self-host/issues).

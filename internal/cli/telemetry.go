@@ -48,7 +48,6 @@ func (a *program) startTelemetry(root *cobra.Command, args []string) func(err er
 			Steps:       a.steps.Report.Steps,
 			Stack:       a.steps.Report.Stack,
 			Panic:       a.panicked,
-			Experience:  a.experience,
 		}
 		if report.Outcome != telemetry.OutcomeOK && report.Outcome != telemetry.OutcomeManual {
 			report.Failure = a.failure

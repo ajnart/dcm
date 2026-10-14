@@ -95,7 +95,6 @@ type Deps struct {
 	// ChownOwned hands a path created under the config or cache directory to
 	// the invoking user when running under sudo; nil or a no-op otherwise.
 	ChownOwned  func(path string) error
-	ConfigFiles ConfigFiles
 	Getenv      func(key string) string
 	CurrentUser func() (User, error)
 	LookupUser  func(name string) (User, error)

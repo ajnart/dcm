@@ -126,7 +126,6 @@ connect.
 **Home folder**:
 `~/.self-host`, the one folder holding everything self-host knows on a host:
 the Project, its Apps' files, Unmanaged apps under `extra/`, and the Profile.
-The Telemetry install ID lives separately in the user config folder.
 `SELF_HOST_HOME` moves it for advanced users, who then pass it themselves.
 _Avoid_: install dir, config dir
 
@@ -168,25 +167,23 @@ connectivity, filesystem and temporary Docker resource checks; the temporary
 network and volume have unique names and are removed before the report ends.
 
 **Telemetry**:
-Anonymous usage and error data sent to the project's PostHog (through
-`hog.ajnart.dev`), on by default in releases and announced on first run with a
-link to the telemetry page, not an off-switch prompt. It carries a random install ID
-(kept in the user config folder, migrated from the Home folder and never
-derived from the machine), version, OS and architecture, the names of
-commands that install, set up, remove, restore or self-update or that fail (not
-every command, ADR 0010), App and Recipe IDs, the Access choice, step IDs, outcomes and durations,
-and errors as PostHog exceptions with module-relative in-app stack frames.
-Approving Onboarding's Review sends one `onboarding` event (Experience level,
-glyph set, whether the Intro was skipped, Doctor's outcome, duration) and sets
-the person property `experience`, as `self-host profile set experience` does
-(ADR 0009). Warning and error steps also send fixed-text OTLP log records. Never IPs,
-locations, host names, absolute paths, inputs, secrets, raw errors or App
-data. Person profiles group events by the random ID; `experience` is the only
-person property; GeoIP is disabled. Server-side IP discard is a maintainer setting,
-not verified by the CLI. Used only by the maintainers to see how self-host is
-used and to debug it; never sold or shared. A public dashboard may come later. Off with
-`SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, and always off in CI and
-development builds.
+Anonymous data sent to the project's PostHog (through `hog.ajnart.dev`), on by
+default in releases and announced on first run with a link to the telemetry
+page, not an off-switch prompt. It stores no ID: each run uses a random value
+kept only in memory, and events are anonymous, with no person profiles or
+person properties (ADR 0011). Only four things are sent: one `onboarding`
+event when Onboarding's plan is approved (Experience level, glyph set, whether
+the Intro was skipped, Doctor's outcome, duration, App and Recipe IDs, Access
+choice), errors from failed or incomplete commands as PostHog exceptions with
+module-relative in-app stack frames (and fixed-text OTLP logs for warning and
+error steps), an `app_requested` event from an agent that asks for an App the
+Catalog lacks (`self-host apps request`), and approved Feedback. A successful
+command sends nothing. Every event carries version, OS and architecture. Never
+IPs, locations, host names, absolute paths, inputs, secrets, raw errors or App
+data; GeoIP is disabled. Server-side IP discard is a maintainer setting, not
+verified by the CLI. Used only to see how self-host is used and to debug it;
+never sold or shared. Off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`,
+and always off in CI and development builds.
 _Avoid_: analytics, tracking
 
 **Feedback**:

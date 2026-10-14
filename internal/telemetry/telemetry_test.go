@@ -11,26 +11,23 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/telemetry"
 	"github.com/ajnart/self-host/internal/telemetry/telemetrytest"
 )
 
 type setup struct {
-	net    *telemetrytest.Transport
-	store  *telemetrytest.Store
-	config *telemetrytest.Config
-	env    map[string]string
-	opts   telemetry.Options
+	net   *telemetrytest.Transport
+	store *telemetrytest.Store
+	env   map[string]string
+	opts  telemetry.Options
 }
 
 func enabled(t *testing.T) *setup {
 	t.Helper()
-	s := &setup{net: &telemetrytest.Transport{}, store: &telemetrytest.Store{}, config: &telemetrytest.Config{}, env: map[string]string{}}
+	s := &setup{net: &telemetrytest.Transport{}, store: &telemetrytest.Store{}, env: map[string]string{}}
 	s.opts = telemetry.Options{
 		Key:       "phc_test",
 		Version:   "1.2.3",
@@ -38,7 +35,6 @@ func enabled(t *testing.T) *setup {
 		Arch:      "amd64",
 		Getenv:    func(key string) string { return s.env[key] },
 		Store:     s.store,
-		Config:    s.config,
 		Transport: s.net,
 		Deadline:  2 * time.Second,
 	}
@@ -54,7 +50,7 @@ func (s *setup) send(r telemetry.Report) {
 	telemetry.New(s.opts).Send(r)
 }
 
-var install = telemetry.Report{Command: "install", Duration: 1500 * time.Millisecond, Outcome: telemetry.OutcomeOK}
+var install = telemetry.Report{Command: "install", Duration: 1500 * time.Millisecond, Outcome: telemetry.OutcomeFailed, Failure: errors.New("boom")}
 
 func TestNothingIsSentWhenTelemetryIsOff(t *testing.T) {
 	cases := []struct {
@@ -89,26 +85,22 @@ func TestADefaultClientSendsNothing(t *testing.T) {
 	}
 }
 
-func TestACommandIsOneEvent(t *testing.T) {
+func TestAFailedCommandIsOneExceptionEvent(t *testing.T) {
 	s := enabled(t)
 	s.send(install)
 	events := s.net.Events()
-	if len(events) != 1 {
-		t.Fatalf("got %d events, want 1: %v", len(events), events)
+	if len(events) != 1 || events[0]["event"] != "$exception" {
+		t.Fatalf("events = %v, want one $exception", events)
 	}
-	e := events[0]
-	props := e["properties"].(map[string]any)
+	props := events[0]["properties"].(map[string]any)
 	want := map[string]any{
 		"command":        "install",
 		"duration_ms":    float64(1500),
-		"outcome":        "ok",
+		"outcome":        "failed",
 		"version":        "1.2.3",
 		"os":             "linux",
 		"arch":           "amd64",
 		"$geoip_disable": true,
-	}
-	if e["event"] != "command" {
-		t.Errorf("event = %v, want command", e["event"])
 	}
 	for key, value := range want {
 		if props[key] != value {
@@ -117,171 +109,72 @@ func TestACommandIsOneEvent(t *testing.T) {
 	}
 }
 
-func distinctIDs(s *setup) []string {
-	var ids []string
-	for _, e := range s.net.Events() {
-		ids = append(ids, e["distinct_id"].(string))
-	}
-	return ids
-}
-
-func TestTheInstallIDIsARandomUUIDKeptInTheUserConfigFolder(t *testing.T) {
-	s := enabled(t)
-	s.send(install)
-	s.send(install)
-	ids := distinctIDs(s)
-	if len(ids) != 2 || ids[0] != ids[1] {
-		t.Fatalf("ids across two runs = %v, want one stable ID", ids)
-	}
-	uuid := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
-	if !uuid.MatchString(ids[0]) {
-		t.Fatalf("install ID %q is not a v4 UUID", ids[0])
-	}
-	saved, err := s.config.ReadConfigFile("telemetry-id")
-	if err != nil || strings.TrimSpace(string(saved)) != ids[0] {
-		t.Fatalf("telemetry-id = %q, %v; want %q", saved, err, ids[0])
-	}
-	if _, err := s.store.ReadHomeFile("telemetry-id"); err == nil {
-		t.Fatal("a new install ID was also written to the Home folder")
-	}
-}
-
-func TestTheInstallIDSurvivesDeletingTheHomeFolder(t *testing.T) {
-	s := enabled(t)
-	s.send(install)
-	s.store.Remove("telemetry-notice")
-	s.store.Remove("telemetry-id")
-	s.announce()
-	s.send(install)
-	ids := distinctIDs(s)
-	if len(ids) != 2 || ids[0] != ids[1] {
-		t.Fatalf("ids across a deleted Home folder = %v, want one stable ID", ids)
-	}
-}
-
-func TestAnIDInTheHomeFolderIsMigratedToTheUserConfigFolder(t *testing.T) {
-	const legacy = "6f1c2b6e-9d3a-4c1e-8a57-0b9d2f4e7a10"
-	s := enabled(t)
-	s.store.WriteHomeFile("telemetry-id", []byte(legacy+"\n"), 0o644)
-	s.send(install)
-	s.store.Remove("telemetry-id")
-	s.send(install)
-	if ids := distinctIDs(s); len(ids) != 2 || ids[0] != legacy || ids[1] != legacy {
-		t.Fatalf("ids = %v, want the Home folder's ID %s twice", ids, legacy)
-	}
-	saved, _ := s.config.ReadConfigFile("telemetry-id")
-	if strings.TrimSpace(string(saved)) != legacy {
-		t.Fatalf("config telemetry-id = %q, want %s", saved, legacy)
-	}
-}
-
-func TestTheConfigFolderIDWinsOverTheHomeFolderID(t *testing.T) {
-	s := enabled(t)
-	s.send(install)
-	s.store.WriteHomeFile("telemetry-id", []byte("6f1c2b6e-9d3a-4c1e-8a57-0b9d2f4e7a10\n"), 0o644)
-	s.send(install)
-	if ids := distinctIDs(s); ids[0] != ids[1] {
-		t.Fatalf("ids = %v, want the config folder's ID twice", ids)
-	}
-}
-
-func TestWithoutAConfigFolderNothingIsSent(t *testing.T) {
-	s := enabled(t)
-	s.opts.Config = nil
-	s.send(install)
-	if len(s.net.Bodies()) != 0 {
-		t.Fatal("sent with no persistent user-config identity")
-	}
-	if _, err := s.store.ReadHomeFile("telemetry-id"); err == nil {
-		t.Fatal("an ID was written to the Home folder")
-	}
-}
-
-type unwritableConfig struct{}
-
-func (unwritableConfig) LoadOrCreateConfigFile(string, func() ([]byte, error)) ([]byte, error) {
-	return nil, os.ErrPermission
-}
-
-func TestMigrationSendsNothingUntilTheIDIsSaved(t *testing.T) {
-	s := enabled(t)
-	s.store.WriteHomeFile("telemetry-id", []byte("6f1c2b6e-9d3a-4c1e-8a57-0b9d2f4e7a10\n"), 0o644)
-	s.opts.Config = unwritableConfig{}
-	s.send(install)
-	if len(s.net.Bodies()) != 0 {
-		t.Fatal("sent before the migrated ID was persisted")
-	}
-}
-
-func TestDeletingTheIDFileStartsANewInstall(t *testing.T) {
-	s := enabled(t)
-	s.send(install)
-	s.config.Remove("telemetry-id")
-	s.send(install)
-	ids := distinctIDs(s)
-	if len(ids) != 2 || ids[0] == ids[1] {
-		t.Fatalf("ids = %v, want two different IDs", ids)
-	}
-}
-
-func TestInstallIDsDifferBetweenInstalls(t *testing.T) {
-	a, b := enabled(t), enabled(t)
-	a.send(install)
-	b.send(install)
-	if distinctIDs(a)[0] == distinctIDs(b)[0] {
-		t.Fatal("two installs share an ID")
-	}
-}
-
-func TestUnexpectedIdentityStorageFailsClosedWithoutReplacement(t *testing.T) {
-	for _, existing := range []string{"", "partial", "alice-laptop\n"} {
-		s := enabled(t)
-		s.config.WriteConfigFile("telemetry-id", []byte(existing), 0o600)
-		s.send(install)
-		data, err := s.config.ReadConfigFile("telemetry-id")
-		if len(s.net.Bodies()) != 0 || err != nil || string(data) != existing {
-			t.Fatalf("unexpected identity %q was sent or replaced: %q, %v", existing, data, err)
-		}
-	}
-}
-
-func TestConcurrentInitializationAndMigrationUseOnePublishedUUID(t *testing.T) {
-	const legacy = "6f1c2b6e-9d3a-4c1e-8a57-0b9d2f4e7a10"
-	for _, migrate := range []bool{false, true} {
-		s := enabled(t)
-		if migrate {
-			s.store.WriteHomeFile("telemetry-id", []byte(legacy+"\n"), 0o644)
-		}
-		dir := filepath.Join(t.TempDir(), "self-host")
-		s.opts.Config = system.ConfigFilesAt(dir)
-		var workers sync.WaitGroup
-		for range 16 {
-			workers.Go(func() { s.send(install) })
-		}
-		workers.Wait()
-		ids := distinctIDs(s)
-		if len(ids) != 16 {
-			t.Fatalf("migration %v: got %d events", migrate, len(ids))
-		}
-		for _, id := range ids {
-			if id != ids[0] || (migrate && id != legacy) {
-				t.Fatalf("migration %v: unstable identities %v", migrate, ids)
+func TestASuccessfulCommandSendsNothing(t *testing.T) {
+	for _, command := range []string{"install", "setup", "remove", "restore", "self-update", "status", "doctor", "profile set experience"} {
+		for _, outcome := range []telemetry.Outcome{telemetry.OutcomeOK, telemetry.OutcomeManual} {
+			s := enabled(t)
+			s.send(telemetry.Report{Command: command, Outcome: outcome, Steps: []telemetry.Step{{ID: "pull", Outcome: telemetry.StepWarned}}})
+			if got := len(s.net.Bodies()); got != 0 {
+				t.Errorf("%s %s sent %d requests, want 0", command, outcome, got)
 			}
 		}
 	}
 }
 
-func TestEventsCountPersonsButCarryNoIPOrLocation(t *testing.T) {
+func TestAFailedOrIncompleteCommandSendsAnException(t *testing.T) {
+	for _, outcome := range []telemetry.Outcome{telemetry.OutcomeFailed, telemetry.OutcomeIncomplete} {
+		s := enabled(t)
+		s.send(telemetry.Report{Command: "status", Outcome: outcome, Failure: errors.New("x")})
+		events := s.net.Events()
+		if len(events) != 1 || events[0]["event"] != "$exception" {
+			t.Errorf("%s: events = %v, want one $exception", outcome, events)
+		}
+	}
+}
+
+func distinctIDs(s *setup) []string {
+	var ids []string
+	for _, e := range s.net.Events() {
+		id, ok := e["distinct_id"].(string)
+		if !ok {
+			id, _ = e["properties"].(map[string]any)["distinct_id"].(string)
+		}
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+func TestARunUsesOneRandomUUIDThatIsNeverSaved(t *testing.T) {
 	s := enabled(t)
-	s.send(telemetry.Report{Command: "install", Outcome: telemetry.OutcomeFailed, Failure: errors.New("boom")})
+	s.send(install)
+	s.send(install)
+	ids := distinctIDs(s)
+	if len(ids) != 2 || ids[0] != ids[1] {
+		t.Fatalf("ids within one run = %v, want one value", ids)
+	}
+	uuid := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	if !uuid.MatchString(ids[0]) {
+		t.Fatalf("ID %q is not a v4 UUID", ids[0])
+	}
+	if _, err := s.store.ReadHomeFile("telemetry-id"); err == nil {
+		t.Fatal("the ID was written to the Home folder")
+	}
+}
+
+func TestEventsAreAnonymousWithNoPersonProfileIPOrLocation(t *testing.T) {
+	s := enabled(t)
+	s.send(install)
+	telemetry.New(s.opts).SendOnboarding(approvedOnboarding)
+	telemetry.New(s.opts).SendAppRequest(telemetry.AppRequest{Name: "immich"})
+	telemetry.New(s.opts).SendFeedback(telemetry.Feedback{Message: "x"})
 	events := s.net.Events()
-	if len(events) != 2 {
-		t.Fatalf("got %d events, want 2", len(events))
+	if len(events) != 4 {
+		t.Fatalf("got %d events, want 4", len(events))
 	}
 	for _, e := range events {
 		props := e["properties"].(map[string]any)
-		if _, found := props["$process_person_profile"]; found {
-			t.Errorf("%v: $process_person_profile = %v, want it absent so a person profile is kept", e["event"], props["$process_person_profile"])
+		if props["$process_person_profile"] != false {
+			t.Errorf("%v: $process_person_profile = %v, want false", e["event"], props["$process_person_profile"])
 		}
 		if keys := personKeys(props); len(keys) > 0 {
 			t.Errorf("%v sets person properties %v", e["event"], keys)
@@ -334,10 +227,10 @@ func TestAFailureIsAnExceptionWithAFingerprintAndNoErrorText(t *testing.T) {
 	failure := fmt.Errorf("open /home/alice/.self-host/secrets.env: %w", &fs.PathError{Op: "open", Path: "/home/alice/.self-host/secrets.env", Err: errors.New("permission denied")})
 	s.send(telemetry.Report{Command: "setup", Outcome: telemetry.OutcomeFailed, Failure: failure})
 	events := s.net.Events()
-	if len(events) != 2 || events[1]["event"] != "$exception" {
-		t.Fatalf("events = %v, want command then $exception", events)
+	if len(events) != 1 || events[0]["event"] != "$exception" {
+		t.Fatalf("events = %v, want one $exception", events)
 	}
-	props := events[1]["properties"].(map[string]any)
+	props := events[0]["properties"].(map[string]any)
 	if got := props["$exception_fingerprint"]; got != "setup|*errors.errorString|" {
 		t.Errorf("fingerprint = %v, want setup|*errors.errorString|", got)
 	}
@@ -359,23 +252,13 @@ func TestAFailureIsAnExceptionWithAFingerprintAndNoErrorText(t *testing.T) {
 func TestAFailedStepNamesTheException(t *testing.T) {
 	s := enabled(t)
 	s.send(telemetry.Report{Command: "install", Outcome: telemetry.OutcomeIncomplete, FailedSteps: []string{"sonarr/api-key", "jellyfin/wizard"}, Failure: errors.New("x")})
-	props := s.net.Events()[1]["properties"].(map[string]any)
+	props := s.net.Events()[0]["properties"].(map[string]any)
 	if got := props["$exception_fingerprint"]; got != "install|StepFailed|jellyfin/wizard,sonarr/api-key" {
 		t.Errorf("fingerprint = %v", got)
 	}
 	item := props["$exception_list"].([]any)[0].(map[string]any)
 	if item["type"] != "StepFailed" || item["value"] != "failed at jellyfin/wizard, sonarr/api-key" {
 		t.Errorf("exception = %v", item)
-	}
-}
-
-func TestSuccessAndManualStepsAreNotExceptions(t *testing.T) {
-	for _, outcome := range []telemetry.Outcome{telemetry.OutcomeOK, telemetry.OutcomeManual} {
-		s := enabled(t)
-		s.send(telemetry.Report{Command: "install", Outcome: outcome})
-		if n := len(s.net.Events()); n != 1 {
-			t.Errorf("%s: %d events, want 1", outcome, n)
-		}
 	}
 }
 
@@ -552,10 +435,10 @@ func TestAPanicIsAnUnhandledExceptionWithTheTypeAndNoValue(t *testing.T) {
 		Panic: "disk /home/alice is full: hunter2-s3cret", Stack: telemetry.CaptureStack(0),
 	})
 	events := s.net.Events()
-	if len(events) != 2 || events[1]["event"] != "$exception" {
-		t.Fatalf("events = %v, want command then $exception", events)
+	if len(events) != 1 || events[0]["event"] != "$exception" {
+		t.Fatalf("events = %v, want one $exception", events)
 	}
-	props := events[1]["properties"].(map[string]any)
+	props := events[0]["properties"].(map[string]any)
 	item := props["$exception_list"].([]any)[0].(map[string]any)
 	if item["type"] != "string" || item["value"] != "panic" {
 		t.Errorf("exception = %v, want type string and value panic", item)
@@ -570,16 +453,16 @@ func TestAPanicIsAnUnhandledExceptionWithTheTypeAndNoValue(t *testing.T) {
 	if strings.Contains(strings.Join(s.net.Bodies(), "\n"), "hunter2-s3cret") {
 		t.Error("the panic value was sent")
 	}
-	payload, err := json.Marshal(events[1])
+	payload, err := json.Marshal(events[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log(string(payload))
 }
 
-func TestACommandEventCarriesItsStepsWithIDOutcomeAndDuration(t *testing.T) {
+func TestAnExceptionCarriesItsStepsWithIDOutcomeAndDuration(t *testing.T) {
 	s := enabled(t)
-	s.send(telemetry.Report{Command: "install", Outcome: telemetry.OutcomeOK, Steps: []telemetry.Step{
+	s.send(telemetry.Report{Command: "install", Outcome: telemetry.OutcomeFailed, Failure: errors.New("x"), Steps: []telemetry.Step{
 		{ID: "jellyfin/pull", Outcome: telemetry.StepOK, Duration: 12500 * time.Millisecond},
 		{ID: "sonarr/api-key", Outcome: telemetry.StepFailed, Duration: 340 * time.Millisecond},
 		{ID: "pull", Outcome: telemetry.StepSkipped},
@@ -597,7 +480,7 @@ func TestACommandEventCarriesItsStepsWithIDOutcomeAndDuration(t *testing.T) {
 	}
 }
 
-func TestACommandWithoutStepsCarriesNoStepsKey(t *testing.T) {
+func TestAnExceptionWithoutStepsCarriesNoStepsKey(t *testing.T) {
 	s := enabled(t)
 	s.send(install)
 	if _, found := s.net.Events()[0]["properties"].(map[string]any)["steps"]; found {
@@ -627,8 +510,7 @@ func TestWarningAndErrorStepsAreSentAsOTLPLogsThroughTheProxy(t *testing.T) {
 	if got := r.Header.Get("Content-Type"); got != "application/json" {
 		t.Errorf("Content-Type = %q", got)
 	}
-	saved, _ := s.config.ReadConfigFile("telemetry-id")
-	id := strings.TrimSpace(string(saved))
+	id := distinctIDs(s)[0]
 	want := []map[string]any{
 		{"severityText": "ERROR", "body": "step failed", "step": "sonarr/api-key", "posthogDistinctId": id, "command": "install", "version": "1.2.3", "os": "linux", "arch": "amd64"},
 		{"severityText": "WARN", "body": "step warned", "step": "unencrypted", "posthogDistinctId": id, "command": "install", "version": "1.2.3", "os": "linux", "arch": "amd64"},
@@ -640,7 +522,7 @@ func TestWarningAndErrorStepsAreSentAsOTLPLogsThroughTheProxy(t *testing.T) {
 
 func TestNoLogsAreSentWithoutAWarningOrAnError(t *testing.T) {
 	s := enabled(t)
-	s.send(telemetry.Report{Command: "install", Outcome: telemetry.OutcomeOK, Steps: []telemetry.Step{{ID: "pull", Outcome: telemetry.StepOK}}})
+	s.send(telemetry.Report{Command: "install", Outcome: telemetry.OutcomeFailed, Failure: errors.New("x"), Steps: []telemetry.Step{{ID: "pull", Outcome: telemetry.StepOK}}})
 	if got := len(s.net.LogRequests()); got != 0 {
 		t.Fatalf("got %d log requests, want 0", got)
 	}
@@ -718,13 +600,14 @@ func TestFeedbackIsOneAnonymousFeedbackEventAndNothingElse(t *testing.T) {
 	}
 	props := events[0]["properties"].(map[string]any)
 	want := map[string]any{
-		"$geoip_disable": true,
-		"message":        "Pull failed.",
-		"app":            "one",
-		"summary":        "State: missing",
-		"version":        "1.2.3",
-		"os":             "linux",
-		"arch":           "amd64",
+		"$geoip_disable":          true,
+		"$process_person_profile": false,
+		"message":                 "Pull failed.",
+		"app":                     "one",
+		"summary":                 "State: missing",
+		"version":                 "1.2.3",
+		"os":                      "linux",
+		"arch":                    "amd64",
 	}
 	for key, value := range want {
 		if props[key] != value {
@@ -787,9 +670,12 @@ func TestApprovedFeedbackWaitsLongerThanTheUsageDeadline(t *testing.T) {
 	}
 }
 
-var approvedOnboarding = telemetry.Onboarding{Experience: "advanced", Glyphs: "nerd-font", Doctor: "warn", IntroSkipped: true, Duration: 93500 * time.Millisecond}
+var approvedOnboarding = telemetry.Onboarding{
+	Experience: "advanced", Glyphs: "nerd-font", Doctor: "warn", IntroSkipped: true, Duration: 93500 * time.Millisecond,
+	Apps: []string{"jellyfin", "/srv/media"}, Recipes: []string{"media"}, Access: "home",
+}
 
-func TestOnboardingIsOneEventWithTheExperiencePersonProperty(t *testing.T) {
+func TestOnboardingIsOneAnonymousEventWithExperienceAsAPlainProperty(t *testing.T) {
 	s := enabled(t)
 	telemetry.New(s.opts).SendOnboarding(approvedOnboarding)
 	events := s.net.Events()
@@ -806,16 +692,21 @@ func TestOnboardingIsOneEventWithTheExperiencePersonProperty(t *testing.T) {
 		"version":        "1.2.3",
 		"os":             "linux",
 		"arch":           "amd64",
+		"access":         "home",
 		"$geoip_disable": true,
+
+		"$process_person_profile": false,
 	}
 	for key, value := range want {
 		if props[key] != value {
 			t.Errorf("properties[%q] = %v, want %v", key, props[key], value)
 		}
 	}
-	set, _ := props["$set"].(map[string]any)
-	if len(set) != 1 || set["experience"] != "advanced" {
-		t.Errorf("$set = %v, want only experience=advanced", props["$set"])
+	if !reflect.DeepEqual(props["apps"], []any{"jellyfin"}) || !reflect.DeepEqual(props["recipes"], []any{"media"}) {
+		t.Errorf("apps = %v, recipes = %v, want only the clean IDs", props["apps"], props["recipes"])
+	}
+	if keys := personKeys(props); len(keys) > 0 {
+		t.Errorf("person properties %v are set", keys)
 	}
 }
 
@@ -823,14 +714,8 @@ func TestOnboardingValuesOutsideTheFixedSetsAreNotSent(t *testing.T) {
 	s := enabled(t)
 	telemetry.New(s.opts).SendOnboarding(telemetry.Onboarding{Experience: "/home/alice", Glyphs: "alice-laptop", Doctor: "fail"})
 	props := s.net.Events()[0]["properties"].(map[string]any)
-	if _, found := props["experience"]; found {
-		t.Errorf("experience = %v, want it dropped", props["experience"])
-	}
-	if _, found := props["$set"]; found {
-		t.Errorf("$set = %v, want it dropped", props["$set"])
-	}
-	if props["glyphs"] != "unknown" || props["doctor"] != "unknown" {
-		t.Errorf("glyphs = %v, doctor = %v, want unknown", props["glyphs"], props["doctor"])
+	if props["experience"] != "unknown" || props["glyphs"] != "unknown" || props["doctor"] != "unknown" {
+		t.Errorf("experience = %v, glyphs = %v, doctor = %v, want unknown", props["experience"], props["glyphs"], props["doctor"])
 	}
 }
 
@@ -853,52 +738,78 @@ func TestOnboardingObeysTheOffSwitchesAndWaitsForTheNotice(t *testing.T) {
 	}
 }
 
-func TestACommandThatSetsTheExperienceSetsThePersonProperty(t *testing.T) {
+func TestAnAppRequestIsOneAnonymousEventWithANameAndAHost(t *testing.T) {
 	s := enabled(t)
-	s.send(telemetry.Report{Command: "profile set experience", Outcome: telemetry.OutcomeOK, Experience: "new"})
-	props := s.net.Events()[0]["properties"].(map[string]any)
-	set, _ := props["$set"].(map[string]any)
-	if len(set) != 1 || set["experience"] != "new" {
-		t.Fatalf("$set = %v, want only experience=new", props["$set"])
+	request, err := telemetry.NewAppRequest("  Immich ", "https://Immich.App/docs?q=alice#x")
+	if err != nil {
+		t.Fatal(err)
 	}
-	s.send(install)
-	if _, found := s.net.Events()[1]["properties"].(map[string]any)["$set"]; found {
-		t.Fatal("a command that sets no Experience level carries $set")
+	if !telemetry.New(s.opts).SendAppRequest(request) {
+		t.Fatal("the request was not delivered")
+	}
+	events := s.net.Events()
+	if len(events) != 1 || events[0]["event"] != "app_requested" {
+		t.Fatalf("events = %v, want one app_requested event", events)
+	}
+	props := events[0]["properties"].(map[string]any)
+	for key, want := range map[string]any{"name": "immich", "url_host": "immich.app", "version": "1.2.3", "os": "linux", "arch": "amd64", "$process_person_profile": false} {
+		if props[key] != want {
+			t.Errorf("properties[%q] = %v, want %v", key, props[key], want)
+		}
+	}
+	if body := strings.Join(s.net.Bodies(), "\n"); strings.Contains(body, "alice") || strings.Contains(body, "/docs") {
+		t.Errorf("the URL's path or query was sent: %s", body)
 	}
 }
 
-func TestOnlyProblemsAndInstallsSendACommandEvent(t *testing.T) {
-	cases := []struct {
-		command string
-		outcome telemetry.Outcome
-		events  int
-	}{
-		{"status", telemetry.OutcomeOK, 0},
-		{"doctor", telemetry.OutcomeManual, 0},
-		{"status", telemetry.OutcomeFailed, 2},
-		{"logs", telemetry.OutcomeIncomplete, 2},
-		{"install", telemetry.OutcomeOK, 1},
-		{"setup", telemetry.OutcomeOK, 1},
-		{"remove", telemetry.OutcomeOK, 1},
-		{"restore", telemetry.OutcomeOK, 1},
-		{"self-update", telemetry.OutcomeOK, 1},
+func TestAnAppRequestObeysTheOffSwitchesAndWaitsForTheNotice(t *testing.T) {
+	for name, tweak := range map[string]func(s *setup){
+		"SELF_HOST_NO_TELEMETRY": func(s *setup) { s.env["SELF_HOST_NO_TELEMETRY"] = "1" },
+		"DO_NOT_TRACK":           func(s *setup) { s.env["DO_NOT_TRACK"] = "1" },
+		"CI":                     func(s *setup) { s.env["CI"] = "true" },
+		"development build":      func(s *setup) { s.opts.Version = "dev" },
+		"no notice yet":          func(s *setup) { s.store.Remove("telemetry-notice") },
+	} {
+		t.Run(name, func(t *testing.T) {
+			s := enabled(t)
+			tweak(s)
+			if telemetry.New(s.opts).SendAppRequest(telemetry.AppRequest{Name: "immich"}) || len(s.net.Bodies()) != 0 {
+				t.Fatal("an App request was sent")
+			}
+		})
 	}
-	for _, c := range cases {
-		s := enabled(t)
-		s.send(telemetry.Report{Command: c.command, Outcome: c.outcome, Failure: errors.New("x")})
-		if got := len(s.net.Events()); got != c.events {
-			t.Errorf("%s %s: %d events, want %d", c.command, c.outcome, got, c.events)
+}
+
+func TestAnAppRequestNameIsNormalisedOrRejected(t *testing.T) {
+	good := map[string]string{"Immich": "immich", "  Home Assistant ": "home assistant", "a.b_c+d-e": "a.b_c+d-e", strings.Repeat("a", 64): strings.Repeat("a", 64)}
+	for in, want := range good {
+		got, err := telemetry.NewAppRequest(in, "")
+		if err != nil || got.Name != want || got.URLHost != "" {
+			t.Errorf("NewAppRequest(%q) = %+v, %v; want name %q", in, got, err, want)
+		}
+	}
+	for _, in := range []string{"", "   ", strings.Repeat("a", 65), "/home/alice", "my@mail.com", "né", "a\nb", "-x", "a;b", "a/b"} {
+		if got, err := telemetry.NewAppRequest(in, ""); err == nil {
+			t.Errorf("NewAppRequest(%q) = %+v, want an error", in, got)
 		}
 	}
 }
 
-func TestAWarnedStepOfAQuietCommandStillSendsALog(t *testing.T) {
-	s := enabled(t)
-	s.send(telemetry.Report{Command: "status", Outcome: telemetry.OutcomeOK, Steps: []telemetry.Step{{ID: "pull", Outcome: telemetry.StepWarned}}})
-	if got := len(s.net.Events()); got != 0 {
-		t.Errorf("%d events, want 0", got)
+func TestAnAppRequestKeepsOnlyThePublicHostOfAnHTTPURL(t *testing.T) {
+	good := map[string]string{
+		"https://immich.app":                "immich.app",
+		"http://Docs.Immich.App:8080/x?y=1": "docs.immich.app",
+		"https://user:pw@example.org/a/b#c": "example.org",
 	}
-	if got := len(s.net.LogRecords()); got != 1 {
-		t.Errorf("%d log records, want 1", got)
+	for in, want := range good {
+		got, err := telemetry.NewAppRequest("immich", in)
+		if err != nil || got.URLHost != want {
+			t.Errorf("NewAppRequest(url %q) = %+v, %v; want host %q", in, got, err, want)
+		}
+	}
+	for _, in := range []string{"ftp://immich.app", "immich.app", "file:///etc/passwd", "https://localhost", "https://192.168.1.20/x", "https://[::1]/", "https://", "https://exa mple.com", "javascript:alert(1)"} {
+		if got, err := telemetry.NewAppRequest("immich", in); err == nil {
+			t.Errorf("NewAppRequest(url %q) = %+v, want an error", in, got)
+		}
 	}
 }

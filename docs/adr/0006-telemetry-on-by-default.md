@@ -54,3 +54,9 @@ make that acceptable; widening either needs a new ADR.
 
 Which commands send an event is narrowed by
 [ADR 0010](0010-telemetry-only-problems-and-installs.md).
+
+## Amendment: no stored ID
+
+[ADR 0011](0011-minimal-anonymous-telemetry.md) removes the persisted install
+ID and person profiles, and narrows what is sent to Onboarding, errors, agent
+App requests and approved Feedback.

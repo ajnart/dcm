@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -116,22 +117,23 @@ func TestUpdateWorkerPanicChild(t *testing.T) {
 }
 
 func commandEvents(net *telemetrytest.Transport) []map[string]any {
-	var out []map[string]any
-	for _, e := range net.Events() {
-		if e["event"] == "command" {
-			out = append(out, e["properties"].(map[string]any))
-		}
-	}
-	return out
+	return exceptionProps(net)
 }
 
-func TestTheFirstPlainCommandAnnouncesTelemetryOnceAndReportsAnInstall(t *testing.T) {
+func failPull(deps *system.Deps) {
+	deps.Runner.(*systemtest.Runner).OnStreamError("--progress json pull", "", errors.New("exit status 125"))
+}
+
+func TestTheFirstPlainCommandAnnouncesTelemetryOnceAndASuccessfulInstallSendsNothing(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}})
 
 	first := clitest.Run(t, deps, cat, "install", "one", "--yes")
 	second := clitest.Run(t, deps, cat, "install", "one", "--yes")
 
+	if first.Code != 0 || second.Code != 0 {
+		t.Fatalf("install exited %d and %d\n%s", first.Code, second.Code, first.Out)
+	}
 	if got := strings.Count(first.Out, noticeSentence); got != 1 {
 		t.Errorf("first run printed the notice %d times, want once:\n%s", got, first.Out)
 	}
@@ -141,30 +143,25 @@ func TestTheFirstPlainCommandAnnouncesTelemetryOnceAndReportsAnInstall(t *testin
 	if _, err := os.Stat(filepath.Join(clitest.Root(t, deps), "telemetry-notice")); err != nil {
 		t.Errorf("no notice marker in the Home folder: %v", err)
 	}
-	events := commandEvents(net)
-	if len(events) != 2 {
-		t.Fatalf("got %d command events, want 2", len(events))
-	}
-	for key, want := range map[string]any{"command": "install", "outcome": "ok", "version": "1.2.3", "os": "linux", "arch": "amd64"} {
-		if events[0][key] != want {
-			t.Errorf("properties[%q] = %v, want %v", key, events[0][key], want)
-		}
+	if got := len(net.Bodies()); got != 0 {
+		t.Fatalf("successful installs sent %d requests, want 0: %v", got, net.Bodies())
 	}
 }
 
 func TestNothingIsSentUntilAPlainCommandHasShownTheNotice(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
+	failPull(deps)
 
-	json := clitest.Run(t, deps, cat, "apps", "list", "--json")
-	if strings.Contains(json.Out, noticeSentence) || len(net.Bodies()) != 0 {
-		t.Fatalf("a --json command announced or sent before the notice:\n%s\n%v", json.Out, net.Bodies())
+	first := clitest.Run(t, deps, cat, "install", "one", "--yes", "--json")
+	if first.Code == 0 || strings.Contains(first.Out, noticeSentence) || len(net.Bodies()) != 0 {
+		t.Fatalf("a --json command announced or sent before the notice (exit %d):\n%s\n%v", first.Code, first.Out, net.Bodies())
 	}
-	clitest.Run(t, deps, cat, "install", "one", "--yes")
+	clitest.Run(t, deps, cat, "apps", "list")
 	clitest.Run(t, deps, cat, "install", "one", "--yes", "--json")
 
-	if got := len(commandEvents(net)); got != 2 {
-		t.Fatalf("got %d command events after the notice, want 2", got)
+	if got := len(exceptionProps(net)); got != 1 {
+		t.Fatalf("got %d exceptions after the notice, want 1", got)
 	}
 }
 
@@ -183,8 +180,8 @@ func TestTelemetryIsOffWhereTheOffSwitchesSay(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			deps, net := telemetryDeps(t)
 			c.tweak(deps)
-			r := clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "apps", "list")
-			if strings.Contains(r.Out, noticeSentence) || len(net.Bodies()) != 0 {
+			r := clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "status")
+			if r.Code == 0 || strings.Contains(r.Out, noticeSentence) || len(net.Bodies()) != 0 {
 				t.Fatalf("announced or sent while off:\n%s\n%v", r.Out, net.Bodies())
 			}
 		})
@@ -195,8 +192,8 @@ func TestTelemetryIsOffInTestsByDefault(t *testing.T) {
 	deps := systemtest.NewDeps(t)
 	net := &telemetrytest.Transport{}
 	deps.HTTP = &http.Client{Transport: net}
-	r := clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "apps", "list")
-	if strings.Contains(r.Out, noticeSentence) || len(net.Bodies()) != 0 {
+	r := clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "status")
+	if r.Code == 0 || strings.Contains(r.Out, noticeSentence) || len(net.Bodies()) != 0 {
 		t.Fatalf("a default test announced or sent:\n%s\n%v", r.Out, net.Bodies())
 	}
 }
@@ -244,9 +241,10 @@ func TestAnInstallReportsItsIDsAccessAndFailedSteps(t *testing.T) {
 func TestTelemetryUsesTheHomeAccessIDForLAN(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
+	failPull(deps)
 	r := clitest.Run(t, deps, cat, "install", "one", "--yes", "--exposure", "lan")
-	if r.Code != 0 {
-		t.Fatalf("install: %d\n%s", r.Code, r.Out)
+	if r.Code == 0 {
+		t.Fatalf("install succeeded despite the failed pull:\n%s", r.Out)
 	}
 	events := commandEvents(net)
 	if got := events[len(events)-1]["access"]; got != "home" {
@@ -257,9 +255,10 @@ func TestTelemetryUsesTheHomeAccessIDForLAN(t *testing.T) {
 func TestTelemetryResolvesAnOverlappingNameAsARecipeBeforeAnApp(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := catalog.New([]app.App{&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}}}, []catalog.Recipe{{ID: "one", Apps: []string{"two"}}})
+	failPull(deps)
 	r := clitest.Run(t, deps, cat, "install", "one", "--yes")
-	if r.Code != 0 {
-		t.Fatalf("install: %d\n%s", r.Code, r.Out)
+	if r.Code == 0 {
+		t.Fatalf("install succeeded despite the failed pull:\n%s", r.Out)
 	}
 	events := commandEvents(net)
 	props := events[len(events)-1]
@@ -298,16 +297,20 @@ func TestNoPathHostNameInputOrSecretIsSentByAnyCommand(t *testing.T) {
 func TestASlowTelemetryEndpointNeverDelaysACommand(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
-	clitest.Run(t, deps, cat, "apps", "list")
+	clitest.Run(t, deps, cat, "status")
 	hold := make(chan struct{})
 	t.Cleanup(func() { close(hold) })
 	net.Hold = hold
+	before := len(net.Bodies())
 
 	start := time.Now()
-	r := clitest.Run(t, deps, cat, "apps", "list")
+	r := clitest.Run(t, deps, cat, "status")
 
-	if took := time.Since(start); took > 3*time.Second || r.Code != 0 {
+	if took := time.Since(start); took > 3*time.Second || r.Code == 0 {
 		t.Fatalf("command took %v and exited %d with Telemetry's endpoint never answering", took, r.Code)
+	}
+	if len(net.Bodies()) == before {
+		t.Fatal("the request never started, so the test proves nothing")
 	}
 }
 
@@ -334,57 +337,33 @@ func TestThePlainNoticeLinksTheWikiAndNamesNoOffSwitch(t *testing.T) {
 	}
 }
 
-func TestTheInstallIDSurvivesDeletingTheHomeFolder(t *testing.T) {
+func TestNoIDFileIsEverSaved(t *testing.T) {
 	deps, net := telemetryDeps(t)
+	config := filepath.Join(t.TempDir(), "config")
+	deps.ConfigDir = func() (string, error) { return config, nil }
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
+	failPull(deps)
 	clitest.Run(t, deps, cat, "install", "one", "--yes")
 	clitest.Run(t, deps, cat, "install", "one", "--yes")
-
-	if err := os.RemoveAll(clitest.Root(t, deps)); err != nil {
-		t.Fatal(err)
+	if len(exceptionProps(net)) != 2 {
+		t.Fatalf("got %d exceptions, want 2", len(exceptionProps(net)))
 	}
-	clitest.Run(t, deps, cat, "install", "one", "--yes")
-	clitest.Run(t, deps, cat, "install", "one", "--yes")
-
-	if _, err := deps.ConfigFiles.(*systemtest.ConfigFiles).ReadConfigFile("telemetry-id"); err != nil {
-		t.Fatalf("no install ID in the user config folder: %v", err)
+	for _, root := range []string{clitest.Root(t, deps), config, filepath.Dir(config)} {
+		filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			if err == nil && !d.IsDir() && (strings.Contains(d.Name(), "telemetry-id") || strings.Contains(d.Name(), "install-id")) {
+				t.Errorf("an ID file was saved: %s", path)
+			}
+			return nil
+		})
 	}
-	if _, err := os.Stat(filepath.Join(clitest.Root(t, deps), "telemetry-id")); err == nil {
-		t.Error("a new install ID was written to the Home folder")
-	}
-	ids := map[any]bool{}
-	for _, e := range net.Events() {
-		ids[e["distinct_id"]] = true
-	}
-	if len(ids) != 1 || len(net.Events()) != 4 {
-		t.Fatalf("distinct IDs = %v over %d events, want one ID over 4 events", ids, len(net.Events()))
+	if _, err := os.Stat(config); err == nil {
+		t.Error("the user config folder was created")
 	}
 }
 
-func TestAnInstallIDInTheHomeFolderIsMigrated(t *testing.T) {
-	const legacy = "6f1c2b6e-9d3a-4c1e-8a57-0b9d2f4e7a10"
+func TestEventsAreAnonymousAndSendNoIP(t *testing.T) {
 	deps, net := telemetryDeps(t)
-	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
-	if err := os.MkdirAll(clitest.Root(t, deps), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(clitest.Root(t, deps), "telemetry-id"), []byte(legacy+"\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	clitest.Run(t, deps, cat, "install", "one", "--yes")
-
-	if got := net.Events()[0]["distinct_id"]; got != legacy {
-		t.Fatalf("distinct_id = %v, want the Home folder's %s", got, legacy)
-	}
-	data, err := deps.ConfigFiles.(*systemtest.ConfigFiles).ReadConfigFile("telemetry-id")
-	if err != nil || strings.TrimSpace(string(data)) != legacy {
-		t.Fatalf("config telemetry-id = %q, %v, want %s", data, err, legacy)
-	}
-}
-
-func TestEventsKeepPersonProfilesAndSendNoIP(t *testing.T) {
-	deps, net := telemetryDeps(t)
+	failPull(deps)
 	clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "install", "one", "--yes")
 	events := net.Events()
 	if len(events) == 0 {
@@ -392,11 +371,14 @@ func TestEventsKeepPersonProfilesAndSendNoIP(t *testing.T) {
 	}
 	for _, e := range events {
 		props := e["properties"].(map[string]any)
-		if _, found := props["$process_person_profile"]; found {
-			t.Errorf("%v disables person profiles", e["event"])
+		if props["$process_person_profile"] != false {
+			t.Errorf("%v: $process_person_profile = %v, want false", e["event"], props["$process_person_profile"])
 		}
 		if _, found := props["$ip"]; found {
 			t.Errorf("%v carries $ip", e["event"])
+		}
+		if _, found := props["$set"]; found {
+			t.Errorf("%v sets person properties", e["event"])
 		}
 		if props["$geoip_disable"] != true {
 			t.Errorf("%v: $geoip_disable = %v, want true", e["event"], props["$geoip_disable"])
@@ -404,11 +386,11 @@ func TestEventsKeepPersonProfilesAndSendNoIP(t *testing.T) {
 	}
 }
 
-func TestACommandEventCarriesItsStepsWithIDOutcomeAndDuration(t *testing.T) {
+func TestAnExceptionCarriesItsStepsWithIDOutcomeAndDuration(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	slow := &echoApp{id: "one", done: map[string]bool{}}
 	slow.slow = func(ctx context.Context) { deps.Sleep(ctx, 2500*time.Millisecond) }
-	cat := testCatalog(slow, &echoApp{id: "two", done: map[string]bool{}})
+	cat := testCatalog(slow, &echoApp{id: "two", done: map[string]bool{}, fail: errors.New("boom")})
 	clitest.Run(t, deps, cat, "apps", "list")
 
 	clitest.Run(t, deps, cat, "install", "pair", "--yes", "--json")
@@ -484,9 +466,8 @@ func TestAPanicIsSentAsAnUnhandledExceptionBeforeTheProcessCrashesAsBefore(t *te
 	if last["function"] != "internal/cli_test.(*echoApp).Setup.func2" {
 		t.Errorf("innermost frame = %v, want the panicking step in the test App", last)
 	}
-	command := commandEvents(net)
-	if got := command[len(command)-1]; got["command"] != "install" || got["outcome"] != "failed" {
-		t.Errorf("command event = %v, want a failed install", got)
+	if got := exceptions[0]; got["command"] != "install" || got["outcome"] != "failed" {
+		t.Errorf("exception = %v, want a failed install", got)
 	}
 	if strings.Contains(strings.Join(net.Bodies(), "\n"), "hunter2-s3cret") {
 		t.Error("the panic value was sent")
@@ -519,6 +500,7 @@ func TestTelemetryDoesNotTouchConfigPathsWithFakeDependencies(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	unused := filepath.Join(t.TempDir(), "must-not-be-created")
 	deps.ConfigDir = func() (string, error) { return unused, nil }
+	failPull(deps)
 	clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "install", "one", "--yes")
 	if len(net.Events()) != 1 {
 		t.Fatal("fake persistence did not allow reporting")
@@ -528,24 +510,15 @@ func TestTelemetryDoesNotTouchConfigPathsWithFakeDependencies(t *testing.T) {
 	}
 }
 
-func TestProfileSetExperienceSetsThePersonProperty(t *testing.T) {
+func TestProfileSetExperienceSendsNothing(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
 	clitest.Run(t, deps, cat, "apps", "list")
 
-	clitest.Run(t, deps, cat, "profile", "set", "experience", "advanced")
-	clitest.Run(t, deps, cat, "profile", "set", "experience", "expert")
+	r := clitest.Run(t, deps, cat, "profile", "set", "experience", "advanced")
 
-	events := commandEvents(net)
-	if len(events) != 2 {
-		t.Fatalf("got %d command events, want 2", len(events))
-	}
-	set, _ := events[0]["$set"].(map[string]any)
-	if events[0]["command"] != "profile set experience" || len(set) != 1 || set["experience"] != "advanced" {
-		t.Errorf("event = %v, want profile set experience with $set experience=advanced", events[0])
-	}
-	if _, found := events[1]["$set"]; found {
-		t.Errorf("a rejected level set the person property: %v", events[1])
+	if r.Code != 0 || len(net.Bodies()) != 0 {
+		t.Fatalf("profile set exited %d and sent %v, want success and nothing", r.Code, net.Bodies())
 	}
 }
 
@@ -566,7 +539,7 @@ func TestASuccessfulStatusSendsNothing(t *testing.T) {
 	}
 }
 
-func TestAFailedStatusSendsCommandAndException(t *testing.T) {
+func TestAFailedStatusSendsOneException(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
 	clitest.Run(t, deps, cat, "apps", "list")
@@ -580,23 +553,7 @@ func TestAFailedStatusSendsCommandAndException(t *testing.T) {
 	for _, e := range net.Events() {
 		names = append(names, e["event"])
 	}
-	if !reflect.DeepEqual(names, []any{"command", "$exception"}) {
-		t.Fatalf("events = %v, want command and $exception", names)
-	}
-}
-
-func TestASuccessfulInstallSendsACommandEvent(t *testing.T) {
-	deps, net := telemetryDeps(t)
-	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
-	clitest.Run(t, deps, cat, "apps", "list")
-
-	r := clitest.Run(t, deps, cat, "install", "one", "--yes")
-
-	if r.Code != 0 {
-		t.Fatalf("install: %d\n%s", r.Code, r.Out)
-	}
-	events := commandEvents(net)
-	if len(events) != 1 || events[0]["command"] != "install" || events[0]["outcome"] != "ok" {
-		t.Fatalf("command events = %v, want one ok install", events)
+	if !reflect.DeepEqual(names, []any{"$exception"}) {
+		t.Fatalf("events = %v, want one $exception", names)
 	}
 }

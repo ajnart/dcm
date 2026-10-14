@@ -258,5 +258,6 @@ func (a *program) appsCmd() *cobra.Command {
 			return nil
 		},
 	})
+	apps.AddCommand(a.appRequestCmd())
 	return apps
 }

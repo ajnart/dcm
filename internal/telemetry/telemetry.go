@@ -1,8 +1,9 @@
-// Package telemetry sends the anonymous usage and error data of ADR 0006 to
-// the project's PostHog. It is on by default and silent: it never delays or
-// fails a command, never sends an absolute path, host name, input, secret, App
-// data or error text, and is off with SELF_HOST_NO_TELEMETRY=1, DO_NOT_TRACK=1,
-// in CI and on development builds.
+// Package telemetry sends the anonymous data of ADR 0011 to the project's
+// PostHog: Onboarding's summary, errors and an agent's App requests. It is on
+// by default and silent: it never delays or fails a command, never stores an
+// ID, never sends an absolute path, host name, input, secret, App data or
+// error text, and is off with SELF_HOST_NO_TELEMETRY=1, DO_NOT_TRACK=1, in CI
+// and on development builds.
 // Feedback is the one event carrying person-approved free text, masked by the CLI.
 package telemetry
 
@@ -45,7 +46,6 @@ const (
 	Notice      = "Anonymous usage data helps improve self-host: no IP, no personal data. Details: " + DocsURL
 	NoticeShort = "Anonymous usage data helps improve self-host: no IP, no personal data.\nDetails: " + DocsURL
 
-	idFile     = "telemetry-id"
 	noticeFile = "telemetry-notice"
 
 	defaultDeadline  = 500 * time.Millisecond
@@ -66,15 +66,10 @@ const (
 	OutcomeManual     Outcome = "manual"
 )
 
-// Store is the Home folder: where the notice marker lives, and where an older
-// install ID may still sit.
+// Store is the Home folder, where the notice marker lives.
 type Store interface {
 	ReadHomeFile(name string) ([]byte, error)
 	WriteHomeFile(name string, data []byte, mode os.FileMode) error
-}
-
-type ConfigStore interface {
-	LoadOrCreateConfigFile(name string, create func() ([]byte, error)) ([]byte, error)
 }
 
 // Options say where and how a Client sends. The zero value sends nothing.
@@ -84,13 +79,12 @@ type Options struct {
 	Version, OS, Arch string
 	Getenv            func(key string) string
 	Store             Store
-	Config            ConfigStore
 	Transport         http.RoundTripper
 	// Deadline is all the time a command waits for the send; the rest is dropped.
 	Deadline time.Duration
 }
 
-// Report is one finished command.
+// Report is one finished command; only a failed or incomplete one is sent.
 type Report struct {
 	// Command is the subcommand path, such as "install" or "backup create".
 	Command  string
@@ -106,9 +100,6 @@ type Report struct {
 	Failure error
 	Panic   any
 	Stack   Stack
-	// Experience is the Experience level a command set; it becomes the person
-	// property of the same name.
-	Experience string
 }
 
 // Onboarding is an approved Review: what the person answered and how the first
@@ -120,6 +111,9 @@ type Onboarding struct {
 	IntroSkipped               bool
 	// Duration is Onboarding open to approval.
 	Duration time.Duration
+	// Apps and Recipes are the catalog IDs chosen, Access the choice made.
+	Apps, Recipes []string
+	Access        string
 }
 
 type StepOutcome string
@@ -206,7 +200,6 @@ const (
 )
 
 var (
-	uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 	idPattern   = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}$`)
 	typePattern = regexp.MustCompile(`^\*?[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)?$`)
 )
@@ -214,32 +207,9 @@ var (
 // accessChoices are the Access values that may be sent.
 var accessChoices = []string{"home", "local"}
 
-// installID is the random ID in the user config folder, made on first use.
-// An ID that older versions kept in the Home folder moves there.
-func (c *Client) installID() (string, bool) {
-	if c.o.Config == nil {
-		return "", false
-	}
-	return validID(c.o.Config.LoadOrCreateConfigFile(idFile, func() ([]byte, error) {
-		data, err := c.o.Store.ReadHomeFile(idFile)
-		if err == nil {
-			if id, ok := validID(data, nil); ok {
-				return []byte(id + "\n"), nil
-			}
-			return nil, errors.New("unexpected legacy telemetry identity")
-		}
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-		id, err := newUUID()
-		return []byte(id + "\n"), err
-	}))
-}
-
-func validID(data []byte, err error) (string, bool) {
-	id := strings.TrimSpace(string(data))
-	return id, err == nil && uuidPattern.MatchString(id)
-}
+// runID is this process's random PostHog distinct ID. It lives only in memory
+// and is never saved, so one run cannot be linked to another.
+var runID = sync.OnceValues(newUUID)
 
 func newUUID() (string, error) {
 	var b [16]byte
@@ -258,60 +228,67 @@ func (silent) Logf(string, ...any)   {}
 func (silent) Warnf(string, ...any)  {}
 func (silent) Errorf(string, ...any) {}
 
-// Send reports one finished command. It returns within the deadline whatever
+// Send reports one finished command. Only a failed or incomplete command is
+// sent, as an exception and its warning and error step logs; a command that
+// succeeded sends nothing (ADR 0011). It returns within the deadline whatever
 // the network does; what is not sent by then is dropped.
 func (c *Client) Send(r Report) {
 	if !c.Enabled() || !c.announced() {
 		return
 	}
-	problem := r.Outcome == OutcomeFailed || r.Outcome == OutcomeIncomplete
+	if r.Outcome != OutcomeFailed && r.Outcome != OutcomeIncomplete {
+		return
+	}
 	c.deliver(func(id string) []posthog.Message {
-		if !problem && !reportedOnSuccess[r.Command] && r.Experience == "" {
-			return nil
-		}
-		props := c.properties(r)
-		messages := []posthog.Message{posthog.Capture{DistinctId: id, Event: "command", Properties: props}}
-		if problem {
-			messages = append(messages, c.exception(id, r, props))
-		}
-		return messages
+		return []posthog.Message{c.exception(id, r, c.properties(r))}
 	}, func(id string) []logRecord { return c.logRecords(id, r) }, defaultDeadline)
 }
 
-// reportedOnSuccess names the commands that change the Project and show what
-// people install; every other command is reported only when it fails or is
-// incomplete (ADR 0010). Warning and error step logs go out for any command.
-var reportedOnSuccess = map[string]bool{
-	"install": true, "setup": true, "remove": true, "restore": true, "self-update": true,
-}
-
-// SendOnboarding sends the "onboarding" event of an approved Review and sets
-// the person property experience. Like Send it waits for the notice and every
-// off switch applies.
+// SendOnboarding sends the "onboarding" event of an approved Review. Like Send
+// it waits for the notice and every off switch applies.
 func (c *Client) SendOnboarding(o Onboarding) {
 	if !c.Enabled() || !c.announced() {
 		return
 	}
 	c.deliver(func(id string) []posthog.Message {
-		props := posthog.Properties{
-			"glyphs":        clean(o.Glyphs, glyphSets),
-			"intro_skipped": o.IntroSkipped,
-			"doctor":        clean(o.Doctor, doctorOutcomes),
-			"duration_ms":   o.Duration.Milliseconds(),
-			"version":       c.o.Version,
-			"os":            c.o.OS,
-			"arch":          c.o.Arch,
+		props := c.base()
+		props["experience"] = clean(o.Experience, experienceLevels)
+		props["glyphs"] = clean(o.Glyphs, glyphSets)
+		props["intro_skipped"] = o.IntroSkipped
+		props["doctor"] = clean(o.Doctor, doctorOutcomes)
+		props["duration_ms"] = o.Duration.Milliseconds()
+		if apps := cleanIDs(o.Apps, idPattern); len(apps) > 0 {
+			props["apps"] = apps
 		}
-		if level := clean(o.Experience, experienceLevels); level != "unknown" {
-			props["experience"] = level
-			props["$set"] = map[string]any{"experience": level}
+		if recipes := cleanIDs(o.Recipes, idPattern); len(recipes) > 0 {
+			props["recipes"] = recipes
+		}
+		if slices.Contains(accessChoices, o.Access) {
+			props["access"] = o.Access
 		}
 		return []posthog.Message{posthog.Capture{DistinctId: id, Event: "onboarding", Properties: props}}
 	}, nil, defaultDeadline)
 }
 
-// SendFeedback sends one Feedback as a "feedback" event, with the same install
-// ID, anonymity and endpoint as every other event, and reports whether
+// SendAppRequest sends the "app_requested" event of an agent and reports
+// whether PostHog took it. Like Send it waits for the notice and every off
+// switch applies.
+func (c *Client) SendAppRequest(r AppRequest) bool {
+	if !c.Enabled() || !c.announced() {
+		return false
+	}
+	return c.deliver(func(id string) []posthog.Message {
+		props := c.base()
+		props["name"] = r.Name
+		if r.URLHost != "" {
+			props["url_host"] = r.URLHost
+		}
+		return []posthog.Message{posthog.Capture{DistinctId: id, Event: "app_requested", Properties: props}}
+	}, nil, defaultDeadline)
+}
+
+// SendFeedback sends one Feedback as a "feedback" event, with the same
+// anonymity and endpoint as every other event, and reports whether
 // PostHog took it before the deadline. The person has just seen and agreed to
 // exactly this text, so it does not wait for the notice; every off switch
 // still applies.
@@ -332,11 +309,11 @@ type delivery struct {
 func (d *delivery) Success(posthog.APIMessage)        { d.mu.Lock(); d.sent++; d.mu.Unlock() }
 func (d *delivery) Failure(posthog.APIMessage, error) {}
 
-// deliver sends what build makes of the install ID, and the log records,
+// deliver sends what build makes of the run's ID, and the log records,
 // and waits up to the deadline for PostHog to answer.
 func (c *Client) deliver(build func(id string) []posthog.Message, logs func(id string) []logRecord, fallback time.Duration) bool {
-	id, ok := c.installID()
-	if !ok {
+	id, err := runID()
+	if err != nil {
 		return false
 	}
 	deadline := c.o.Deadline
@@ -468,13 +445,20 @@ func (c *Client) postLogs(ctx context.Context, records []logRecord) {
 	resp.Body.Close()
 }
 
-func (c *Client) feedbackProperties(f Feedback) posthog.Properties {
-	props := posthog.Properties{
-		"message": f.Message,
-		"version": c.o.Version,
-		"os":      c.o.OS,
-		"arch":    c.o.Arch,
+// base is what every event carries: version, OS and architecture, and the flag
+// that makes it anonymous, so PostHog keeps no person profile.
+func (c *Client) base() posthog.Properties {
+	return posthog.Properties{
+		"$process_person_profile": false,
+		"version":                 c.o.Version,
+		"os":                      c.o.OS,
+		"arch":                    c.o.Arch,
 	}
+}
+
+func (c *Client) feedbackProperties(f Feedback) posthog.Properties {
+	props := c.base()
+	props["message"] = f.Message
 	if idPattern.MatchString(f.App) {
 		props["app"] = f.App
 	}
@@ -485,14 +469,10 @@ func (c *Client) feedbackProperties(f Feedback) posthog.Properties {
 }
 
 func (c *Client) properties(r Report) posthog.Properties {
-	props := posthog.Properties{
-		"command":     clean(r.Command, commandWords),
-		"duration_ms": r.Duration.Milliseconds(),
-		"outcome":     string(r.Outcome),
-		"version":     c.o.Version,
-		"os":          c.o.OS,
-		"arch":        c.o.Arch,
-	}
+	props := c.base()
+	props["command"] = clean(r.Command, commandWords)
+	props["duration_ms"] = r.Duration.Milliseconds()
+	props["outcome"] = string(r.Outcome)
 	if apps := cleanIDs(r.Apps, idPattern); len(apps) > 0 {
 		props["apps"] = apps
 	}
@@ -501,9 +481,6 @@ func (c *Client) properties(r Report) posthog.Properties {
 	}
 	if slices.Contains(accessChoices, r.Access) {
 		props["access"] = r.Access
-	}
-	if level := clean(r.Experience, experienceLevels); level != "unknown" {
-		props["$set"] = map[string]any{"experience": level}
 	}
 	if steps := cleanIDs(r.FailedSteps, stepPattern); len(steps) > 0 {
 		props["failed_steps"] = steps

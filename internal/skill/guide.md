@@ -153,6 +153,7 @@ Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
 | `self-host backup [app...]`                                      | Write one compressed archive, optionally encrypted                                                             |
 | `self-host restore <file> [app...]`                              | Restore every App in a Backup, or only those named                                                             |
 | `self-host self-update`                                          | Replace the binary with the latest verified release                                                            |
+| `self-host apps request "<name>" [--url <homepage>]`             | Tell the maintainers an App is wanted that the Catalog lacks (see "Apps the Catalog lacks")                     |
 | `self-host feedback --message <text> [--app <app>] [--yes]`      | Send the maintainers a report of what broke, after the person agrees (see "Feedback")                          |
 | `self-host skill`                                                | Print this guide                                                                                               |
 
@@ -632,20 +633,32 @@ inputs are masked. Provider accounts and approvals remain prerequisites.
 
 ## Telemetry
 
-`self-host` sends anonymous usage and error data to the project's PostHog (ADR
-0006): a random install ID, version, OS and architecture, installs, setups, removals,
-restores, self-updates and failed commands (not every command), App and Recipe IDs, the Access choice, step IDs, outcomes and durations,
-and error types with module-relative in-app stack frames. Warning and error
-steps send fixed-text logs, never App logs. Never absolute paths, host names,
-inputs, secrets, App data or raw error text. It is on by default in releases,
-announced once, only for the maintainers and never sold or shared, and usage sending waits at most 500 ms without failing a command.
-The random ID lives in the user config folder and survives Home-folder deletion.
+`self-host` sends a little anonymous data to the project's PostHog (ADR 0011):
+one `onboarding` summary when Onboarding's plan is approved, errors from failed
+or incomplete commands (error types with module-relative in-app stack frames,
+and fixed-text logs for warning and error steps, never App logs), App requests
+from agents, and Feedback the person approved. A successful command sends
+nothing. No ID is stored: each run uses a random value that is never saved.
+Never absolute paths, host names, inputs, secrets, App data or raw error text.
+It is on by default in releases, announced once, only for the maintainers and
+never sold or shared, and sending waits at most 500 ms without failing a command.
 Details: https://self-host.fyi/telemetry.
 
 Only when the person asks how to turn Telemetry off, explain
 `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. It is always off when `CI` is set
 and on development builds. Set a switch only when asked; never on your own or
 as part of Onboarding.
+
+## Apps the Catalog lacks
+
+When the person wants an App that `self-host apps list` does not have, say so
+plainly and offer the closest Catalog Apps as alternatives. Then run
+`self-host apps request "<name>" --url <homepage>` once, so the maintainers
+learn it is wanted. Send only the App's name and public homepage, nothing
+personal. It sends nothing when Telemetry is off and still exits 0. If the
+person is asking for themselves rather than through you, point them to GitHub
+Issues: https://github.com/ajnart/self-host/issues. For software they can run
+anyway, see "Unmanaged apps".
 
 ## Feedback
 

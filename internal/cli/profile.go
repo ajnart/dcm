@@ -38,7 +38,6 @@ func (a *program) profileCmd() *cobra.Command {
 			if err := a.service().SetExperience(args[0]); err != nil {
 				return a.fail(err)
 			}
-			a.experience = args[0]
 			fmt.Fprintf(a.deps.Out, "Experience level is now %s.\n", args[0])
 			return nil
 		},

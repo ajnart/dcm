@@ -163,7 +163,7 @@ func TestTheTUIInstallReportsTheChosenAccess(t *testing.T) {
 			backend.Run(context.Background(), Request{Action: ActionInstall, Install: &p.opts}, events.Discard())
 			var command map[string]any
 			for _, e := range net.Events() {
-				if e["event"] == "command" {
+				if e["event"] == "$exception" {
 					command = e["properties"].(map[string]any)
 				}
 			}
@@ -309,6 +309,9 @@ func TestApprovingReviewSendsTheOnboardingEvent(t *testing.T) {
 	if r.Experience != "advanced" || r.Glyphs != "nerd-font" || r.Doctor != "warn" || r.IntroSkipped || r.Duration != 93500*time.Millisecond {
 		t.Fatalf("onboarding event = %+v", r)
 	}
+	if len(r.Apps) == 0 || (r.Access != "home" && r.Access != "local") {
+		t.Fatalf("onboarding event = %+v, want the chosen Apps and an Access choice", r)
+	}
 }
 
 func TestTheOnboardingEventUsesTheSavedExperienceAndPlainDefaults(t *testing.T) {
@@ -336,7 +339,7 @@ func TestQuittingOnboardingBeforeApprovalSendsNothing(t *testing.T) {
 	}
 }
 
-func TestTheServiceBackendSendsTheOnboardingEventAndTheExperienceProperty(t *testing.T) {
+func TestTheServiceBackendSendsTheAnonymousOnboardingEvent(t *testing.T) {
 	key := telemetry.ProjectKey
 	telemetry.ProjectKey = "phc_test"
 	t.Cleanup(func() { telemetry.ProjectKey = key })
@@ -354,8 +357,10 @@ func TestTheServiceBackendSendsTheOnboardingEventAndTheExperienceProperty(t *tes
 		t.Fatalf("events = %v, want one onboarding event", events)
 	}
 	props := events[0]["properties"].(map[string]any)
-	set, _ := props["$set"].(map[string]any)
-	if props["experience"] != "new" || props["duration_ms"] != float64(2000) || props["intro_skipped"] != false || set["experience"] != "new" {
+	if props["experience"] != "new" || props["duration_ms"] != float64(2000) || props["intro_skipped"] != false || props["$process_person_profile"] != false {
 		t.Fatalf("properties = %v", props)
+	}
+	if _, found := props["$set"]; found {
+		t.Fatalf("onboarding sets person properties: %v", props)
 	}
 }

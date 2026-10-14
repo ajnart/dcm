@@ -74,21 +74,17 @@ func command(ctx context.Context, cmd Cmd) *exec.Cmd {
 func Real(version string) *Deps {
 	dirs := userDirs{goos: runtime.GOOS, getenv: os.Getenv, current: currentUser, lookup: lookupUser}
 	return &Deps{
-		Version:    version,
-		GOOS:       runtime.GOOS,
-		GOARCH:     runtime.GOARCH,
-		Runner:     execRunner{},
-		HTTP:       &http.Client{Timeout: 30 * time.Second},
-		LookPath:   exec.LookPath,
-		Executable: os.Executable,
-		Exec:       func(path string, argv []string) error { return syscall.Exec(path, argv, os.Environ()) },
-		CacheDir:   dirs.cache,
-		ConfigDir:  dirs.config,
-		ChownOwned: dirs.chown,
-		ConfigFiles: configFiles{chown: dirs.chown, directory: func() (string, error) {
-			dir, err := dirs.config()
-			return filepath.Join(dir, "self-host"), err
-		}},
+		Version:          version,
+		GOOS:             runtime.GOOS,
+		GOARCH:           runtime.GOARCH,
+		Runner:           execRunner{},
+		HTTP:             &http.Client{Timeout: 30 * time.Second},
+		LookPath:         exec.LookPath,
+		Executable:       os.Executable,
+		Exec:             func(path string, argv []string) error { return syscall.Exec(path, argv, os.Environ()) },
+		CacheDir:         dirs.cache,
+		ConfigDir:        dirs.config,
+		ChownOwned:       dirs.chown,
 		Getenv:           os.Getenv,
 		CurrentUser:      currentUser,
 		LookupUser:       lookupUser,

@@ -21,3 +21,5 @@ event and approved Feedback are unchanged. The command set lives in one place,
 The telemetry page now states the purpose: understanding how self-host is used
 and debugging it, for the maintainers only, never sold or shared with anyone
 else. Fields, off switches and the first-run notice are unchanged.
+
+Superseded by [ADR 0011](0011-minimal-anonymous-telemetry.md): successful commands send nothing.

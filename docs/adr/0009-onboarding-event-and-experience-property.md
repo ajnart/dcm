@@ -29,3 +29,9 @@ page lists the event and the person property.
 
 Abandoned Onboarding and drop-off funnels stay out of scope: they would need
 events before approval, which the notice promise forbids.
+
+## Amendment
+
+[ADR 0011](0011-minimal-anonymous-telemetry.md): `experience` is a plain
+property of the `onboarding` event, not a person property, and
+`self-host profile set experience` sends nothing.

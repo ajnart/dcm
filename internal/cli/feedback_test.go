@@ -55,7 +55,7 @@ func asTerminal(deps *system.Deps, answer string) {
 	deps.In = strings.NewReader(answer)
 }
 
-func TestFeedbackSendsOneFeedbackEventWithTheInstallsOwnIDAndEndpoint(t *testing.T) {
+func TestFeedbackSendsOneAnonymousFeedbackEventToTheEndpoint(t *testing.T) {
 	deps, net, run := feedbackSetup(t)
 	seedSecret(t, deps, "Open the echo settings page and enable greetings.")
 
@@ -78,8 +78,8 @@ func TestFeedbackSendsOneFeedbackEventWithTheInstallsOwnIDAndEndpoint(t *testing
 		"arch":           "amd64",
 	}
 	props := events[0]["properties"].(map[string]any)
-	if _, found := props["$process_person_profile"]; found {
-		t.Error("feedback disables person profiles")
+	if props["$process_person_profile"] != false {
+		t.Error("feedback is not an anonymous event")
 	}
 	for key := range props {
 		if strings.HasPrefix(key, "$") {
@@ -93,15 +93,6 @@ func TestFeedbackSendsOneFeedbackEventWithTheInstallsOwnIDAndEndpoint(t *testing
 		if props[key] != value {
 			t.Errorf("properties[%q] = %q, want %q", key, props[key], value)
 		}
-	}
-	var commandID any
-	for _, e := range net.Events() {
-		if e["event"] == "command" {
-			commandID = e["distinct_id"]
-		}
-	}
-	if events[0]["distinct_id"] != commandID || commandID == nil {
-		t.Errorf("feedback ID %v differs from the command events' ID %v", events[0]["distinct_id"], commandID)
 	}
 	if got := strings.Join(net.URLs(), ","); !strings.HasPrefix(got, "https://hog.ajnart.dev/") {
 		t.Errorf("sent to %s, want https://hog.ajnart.dev/", got)
@@ -169,7 +160,7 @@ func TestFeedbackOnATerminalAsksAndSendsOnYes(t *testing.T) {
 Message
   Pull failed twice.
 
-It also carries the anonymous install ID, the version, the operating system and the architecture.
+It also carries a random one-time ID that is never saved, the version, the operating system and the architecture.
 
 Send this to the self-host maintainers? y/n Sent. Thank you.
 `

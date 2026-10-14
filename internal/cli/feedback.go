@@ -90,7 +90,7 @@ func printFeedback(w io.Writer, f service.FeedbackText) {
 		fmt.Fprintf(w, "\nSummary of %s\n", f.App)
 		indent(w, f.Summary)
 	}
-	fmt.Fprintln(w, "\nIt also carries the anonymous install ID, the version, the operating system and the architecture.")
+	fmt.Fprintln(w, "\nIt also carries a random one-time ID that is never saved, the version, the operating system and the architecture.")
 	fmt.Fprintln(w)
 }
 

@@ -480,6 +480,13 @@ func (o *onboarding) report(ctx *viewContext) tea.Cmd {
 		Doctor:       doctor,
 		Duration:     ctx.opts.Now().Sub(o.opened),
 	}
+	if o.plan != nil {
+		report.Apps = o.plan.opts.Targets
+		report.Access = o.plan.opts.Exposure
+		if report.Access == service.ExposureLAN {
+			report.Access = "home"
+		}
+	}
 	backend := ctx.backend
 	return func() tea.Msg {
 		backend.ReportOnboarding(report)

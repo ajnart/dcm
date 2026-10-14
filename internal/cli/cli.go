@@ -55,8 +55,6 @@ type program struct {
 	steps    telemetry.Progress
 	failure  error
 	panicked any
-	// experience is the Experience level a command saved, for Telemetry's person property.
-	experience string
 }
 
 func (a *program) service() *service.Service {

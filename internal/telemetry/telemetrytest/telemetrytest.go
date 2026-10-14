@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-
-	"github.com/ajnart/self-host/internal/systemtest"
 )
 
 // Transport is an http.RoundTripper that records request bodies.
@@ -170,5 +168,3 @@ func (s *Store) Remove(name string) {
 	defer s.mu.Unlock()
 	delete(s.files, name)
 }
-
-type Config = systemtest.ConfigFiles
