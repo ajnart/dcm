@@ -146,8 +146,8 @@ func (f *fakeNavidrome) handler() http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]any{"id": "regular-owned", "userName": body.Username, "isAdmin": false})
+		// Navidrome 0.64.0's native REST contract returns only the new ID.
+		json.NewEncoder(w).Encode(map[string]any{"id": "regular-owned"})
 	})
 	mux.HandleFunc("GET /api/user/regular-owned", func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
@@ -520,6 +520,24 @@ func TestHomarrRegularAccountRetryAndRecovery(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestFreshSetupConfirmsNavidromeNativeUserCreateResponse(t *testing.T) {
+	fake := &fakeNavidrome{}
+	server := httptest.NewServer(fake.handler())
+	t.Cleanup(server.Close)
+	saved := secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-admin-password"}
+	h := newH(t, server, saved, &recorder{})
+
+	if err := (navidrome.App{}).Setup(t.Context(), h); err != nil {
+		t.Fatalf("fresh Setup rejected Navidrome's ID-only create response: %v", err)
+	}
+	if err := (navidrome.App{}).Check(t.Context(), h); err != nil {
+		t.Fatalf("Check did not confirm the created regular account: %v", err)
+	}
+	if fake.homarrCreates != 1 || saved[h.Key("homarr_user_id")] != "regular-owned" {
+		t.Fatal("fresh Setup did not preserve the confirmed regular account identity")
 	}
 }
 
