@@ -1,0 +1,16 @@
+internal/service/names.go
+  h_d6e478ca18e517 125,141-149
+internal/service/names_test.go
+  h_d6e478ca18e517 74,91-101,226
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5e4cb6ef6b64dc941bf967431d53e419e8796266",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
