@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -141,6 +142,19 @@ func TestInstallCreatesAdminAndDeniesAnonymousReads(t *testing.T) {
 	}
 	if r.StepEvent("ntfy", "admin-user") != "step.ok" || r.StepEvent("ntfy", "topic-token") != "step.ok" || r.StepEvent("ntfy", "check") != "step.ok" {
 		t.Fatalf("steps not ok:\n%s", r.Out)
+	}
+}
+
+func TestInstallPreparesTheDataBindBeforeRootfulDocker(t *testing.T) {
+	deps, _, server, cat := setup(t)
+
+	r := clitest.Run(t, deps, cat, "install", "ntfy", "--yes", "--set", "ntfy.port="+clitest.Port(server))
+	if r.Code != 0 {
+		t.Fatalf("exit %d\n%s", r.Code, r.Out)
+	}
+	info, err := os.Stat(filepath.Join(clitest.Root(t, deps), "apps", "ntfy", "data"))
+	if err != nil || !info.IsDir() {
+		t.Fatalf("ntfy data bind was not prepared before Docker: %v", err)
 	}
 }
 

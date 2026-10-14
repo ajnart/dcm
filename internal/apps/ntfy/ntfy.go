@@ -30,6 +30,13 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input { return nil }
 
+// Files prepares the bind source before rootful Docker starts the non-root
+// container. Otherwise the daemon creates ./data as root and ntfy cannot create
+// its cache and authentication databases.
+func (App) Files(app.RenderContext, func(string) string) []app.File {
+	return []app.File{{Path: "data/.keep", Mode: 0o644}}
+}
+
 // Secrets declares the topic Homarr publishes to and subscribes from. The name
 // is generated because deny-all only protects a topic whose name is unguessable.
 func (App) Secrets() []app.SecretSpec {
