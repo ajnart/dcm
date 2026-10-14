@@ -142,8 +142,8 @@ func TestFilesWritesBcryptHashOfTheAdminLogin(t *testing.T) {
 		return map[string]string{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": password}[name]
 	}
 	files := (nodered.App{}).Files(app.RenderContext{}, secret)
-	if len(files) != 1 || files[0].Mode != 0o600 {
-		t.Fatalf("Files = %+v, want one mode-0600 settings file", files)
+	if len(files) != 2 || files[0].Mode != 0o600 {
+		t.Fatalf("Files = %+v, want a mode-0600 settings file and the data folder", files)
 	}
 	if strings.Contains(files[0].Content, password) {
 		t.Fatal("settings.js must not contain the plaintext password")

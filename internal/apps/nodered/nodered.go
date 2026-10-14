@@ -65,7 +65,10 @@ func (App) Files(_ app.RenderContext, secret func(name string) string) []app.Fil
 		"    users: [{ username: '" + secret("ADMIN_USER") + "', password: '" + hash + "', permissions: '*' }]\n" +
 		"  }\n" +
 		"};\n"
-	return []app.File{{Path: "settings", Content: content, Mode: 0o600}}
+	return []app.File{
+		{Path: "settings", Content: content, Mode: 0o600},
+		{Path: "data/.keep", Mode: 0o644},
+	}
 }
 
 // adminWorks proves editor authentication is enabled, anonymous flow access is

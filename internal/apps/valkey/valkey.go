@@ -35,7 +35,10 @@ func (App) Secrets() []app.SecretSpec { return []app.SecretSpec{{Name: "password
 
 // Files keeps the password out of the command line.
 func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
-	return []app.File{{Path: "valkey.conf", Content: "protected-mode no\nrequirepass " + secret("password") + "\n", Mode: 0o600}}
+	return []app.File{
+		{Path: "valkey.conf", Content: "protected-mode no\nrequirepass " + secret("password") + "\n", Mode: 0o600},
+		{Path: "data/.keep", Mode: 0o644},
+	}
 }
 
 // Run the server directly: the image's root entrypoint switches to UID 999,

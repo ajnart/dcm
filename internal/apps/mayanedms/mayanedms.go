@@ -44,6 +44,7 @@ func (App) Secrets() []app.SecretSpec {
 
 func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
 	return []app.File{
+		{Path: "redis/.keep", Mode: 0o644},
 		{Path: "redis-config", Content: "requirepass " + secret("redis_password") + "\n", Mode: 0o600},
 	}
 }

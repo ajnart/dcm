@@ -33,6 +33,10 @@ func (App) Inputs() []app.Input { return nil }
 
 // Compose runs Grafana as the configured owner of its persisted data directory.
 // The Admin login is seeded through environment references on first start.
+func (App) Files(app.RenderContext, func(string) string) []app.File {
+	return []app.File{{Path: "data/.keep", Mode: 0o644}}
+}
+
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:

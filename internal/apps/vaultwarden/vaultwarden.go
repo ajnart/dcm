@@ -39,6 +39,10 @@ func (App) Secrets() []app.SecretSpec {
 	return []app.SecretSpec{{Name: "admin_token", Length: 48}}
 }
 
+func (App) Files(app.RenderContext, func(string) string) []app.File {
+	return []app.File{{Path: "data/.keep", Mode: 0o644}}
+}
+
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	address := "http://${LAN_IP}:" + port

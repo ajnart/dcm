@@ -48,6 +48,10 @@ func (App) Secrets() []app.SecretSpec { return []app.SecretSpec{{Name: "api_key"
 
 // The image defaults to node (1000:1000); configured IDs keep its config
 // writable when rootless Docker maps host-owned folders to container 0:0.
+func (App) Files(app.RenderContext, func(string) string) []app.File {
+	return []app.File{{Path: "config/.keep", Mode: 0o644}}
+}
+
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   seerr:

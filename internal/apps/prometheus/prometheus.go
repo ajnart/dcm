@@ -33,6 +33,10 @@ func (App) Inputs() []app.Input {
 	}
 }
 
+func (App) Files(app.RenderContext, func(string) string) []app.File {
+	return []app.File{{Path: "data/.keep", Mode: 0o644}}
+}
+
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
