@@ -1,0 +1,23 @@
+.goreleaser.yaml
+  s_7fa234028f3f9f::t_9f91af4e4c228d 40-41,52
+docs/releasing.md
+  s_7fa234028f3f9f::t_0219a226acb46a 47,50,73-84,88-92
+scripts/publish-aur.sh
+  s_7fa234028f3f9f::t_e27a303a53baa1 1-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "23995088b4889bf1a140ad9598dd0ce13ce0da6c",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
