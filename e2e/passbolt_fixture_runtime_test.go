@@ -173,7 +173,7 @@ func (f *passboltRuntimeFixture) install(r *runner, args []string) result {
 	installed := r.runWithTimeout(installCommandLimit(r.spec), args...)
 	if installed.code != 0 && !(installed.code == exitManual && allManual(installed)) {
 		if installed.termination == nil {
-			installed.events = append(installed.events, f.startupDiagnostic(r), f.metadataDiagnostic(r), f.applicationMetadataDiagnostic(r), f.effectiveMetadataDiagnostic(r), f.fpmMetadataDiagnostic(r))
+			installed.events = append(installed.events, f.startupDiagnostic(r), f.metadataDiagnostic(r), f.applicationMetadataDiagnostic(r), f.effectiveMetadataDiagnostic(r))
 		}
 		return installed
 	}
@@ -353,36 +353,4 @@ func (f *passboltRuntimeFixture) effectiveMetadataDiagnostic(r *runner) event {
 	command.Env = r.env
 	observation := executeOwnedCommand(ctx, command)
 	return event{Event: "step.fail", App: "passbolt", Step: "startup-effective-metadata", Error: passboltEffectiveMetadataReason(observation.code, []byte(observation.stdout)), Hint: "normal CLI application bootstrap/configuration booleans only; does not establish FPM configuration or key import"}
-}
-
-func (f *passboltRuntimeFixture) fpmMetadataDiagnostic(r *runner) event {
-	reason := "owned Passbolt FPM metadata unobserved: request failed"
-	parent := r.commandCtx
-	if parent == nil {
-		parent = context.Background()
-	}
-	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
-	defer cancel()
-	trust, err := os.ReadFile(f.files.caFile)
-	roots := x509.NewCertPool()
-	if err == nil && len(trust) <= 16384 && roots.AppendCertsFromPEM(trust) {
-		proxy, err := url.Parse(f.connect.proxyURL)
-		if err == nil {
-			transport := &http.Transport{Proxy: http.ProxyURL(proxy), TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots}}
-			defer transport.CloseIdleConnections()
-			client := &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-			request, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, f.files.origin+"/selfhost-fpm-metadata.php", nil)
-			if requestErr == nil {
-				response, requestErr := client.Do(request)
-				if requestErr == nil {
-					body, readErr := io.ReadAll(io.LimitReader(response.Body, 2049))
-					response.Body.Close()
-					if readErr == nil {
-						reason = passboltFPMMetadataReason(response.StatusCode, body)
-					}
-				}
-			}
-		}
-	}
-	return event{Event: "step.fail", App: "passbolt", Step: "startup-fpm-metadata", Error: reason, Hint: "actual PHP-FPM fixed public bootstrap projection; no logs, key payloads, environment values or exception text"}
 }

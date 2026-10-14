@@ -32,27 +32,27 @@ const (
 
 	AgentService       = "beszel-agent"
 	SocketProxyService = "beszel-socket-proxy"
-	DockerSocketTarget = "/var/run/docker.sock"
 	// SystemName is how this machine appears in the Hub.
 	SystemName = "This machine"
 
-	agentPort = "45876"
-	proxyPort = "45877"
+	dockerSocketTarget = "/var/run/docker.sock"
+	agentPort          = "45876"
+	proxyPort          = "45877"
 )
 
-func (App) DockerSocketTarget() string { return DockerSocketTarget }
+func (App) DockerSocketTarget() string { return dockerSocketTarget }
 
-// DockerSocketMount is the only Docker socket mount any App may declare, and
+// dockerSocketMount is the only Docker socket mount any App may declare, and
 // only on SocketProxyService: the proxy denies every write.
-func DockerSocketMount(source string) string {
+func dockerSocketMount(source string) string {
 	if source == "" {
-		source = DockerSocketTarget
+		source = dockerSocketTarget
 	}
-	return source + ":" + DockerSocketTarget + ":ro"
+	return source + ":" + dockerSocketTarget + ":ro"
 }
 
 func IsDockerSocketMount(mount string) bool {
-	suffix := ":" + DockerSocketTarget + ":ro"
+	suffix := ":" + dockerSocketTarget + ":ro"
 	source := strings.TrimSuffix(mount, suffix)
 	return source != mount && filepath.IsAbs(source) && filepath.Base(source) == "docker.sock" && !strings.Contains(source, ":")
 }
@@ -109,7 +109,7 @@ func (App) Compose(rc app.RenderContext) string {
       CONTAINERS: "1"
       POST: "0"
     volumes:
-      - ` + DockerSocketMount(rc.DockerSocket) + `
+      - ` + dockerSocketMount(rc.DockerSocket) + `
     ports:
       - 127.0.0.1:` + proxyPort + `:2375
 `

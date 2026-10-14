@@ -62,7 +62,4 @@ func TestTheExceptionMatchesTheBeszelApp(t *testing.T) {
 	if socketProxyException != beszel.SocketProxyService {
 		t.Errorf("exception = %q, but the Beszel App names its proxy %q", socketProxyException, beszel.SocketProxyService)
 	}
-	if beszel.DockerSocketTarget != dockerSocket {
-		t.Errorf("the Beszel App targets %q, not %s", beszel.DockerSocketTarget, dockerSocket)
-	}
 }

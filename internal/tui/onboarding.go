@@ -443,10 +443,6 @@ func (o *onboarding) openStep(ctx *viewContext, s step) tea.Cmd {
 }
 
 func (o *onboarding) checkPlan(ctx *viewContext) {
-	if o.plan == nil {
-		o.hostChecks = nil
-		return
-	}
 	o.hostChecks = ctx.backend.OnboardingChecks(context.Background(), o.plan.opts)
 }
 
