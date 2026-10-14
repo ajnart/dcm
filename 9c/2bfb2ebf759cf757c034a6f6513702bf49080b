@@ -1,0 +1,43 @@
+internal/telemetry/telemetry.go
+  s_00d9eee545672e::t_0ec435bc5f58de 267,269-271,274,281-287
+CONTEXT.md
+  s_378d5db6c5f6de::t_b25c2b49134113 175-177,186-187
+README.md
+  s_378d5db6c5f6de::t_cfaa9ebdc7f5ce 297
+docs/adr/0006-telemetry-on-by-default.md
+  s_378d5db6c5f6de::t_7d31fddb815d2d 54-56
+docs/adr/0010-telemetry-only-problems-and-installs.md
+  s_378d5db6c5f6de::t_5e3c21f7271668 1-23
+docs/telemetry.md
+  s_378d5db6c5f6de::t_3ba7deb0ac4c69 8-14,17-26,34-37
+internal/cli/telemetry_test.go
+  s_378d5db6c5f6de::t_f91e4052809895 128,132-133,148,163-164,340-341,346-347,375,388,522,540-548,550-562,564-600
+internal/skill/guide.md
+  s_378d5db6c5f6de::t_83c24c3b664fc5 628-629,633
+internal/telemetry/telemetry_test.go
+  s_378d5db6c5f6de::t_40f9ab0a807410 869-904
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9c2bfb2ebf759cf757c034a6f6513702bf49080b",
+  "prompts": {},
+  "sessions": {
+    "s_00d9eee545672e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12fc3-6532-7483-af9d-07e71149ec51",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
