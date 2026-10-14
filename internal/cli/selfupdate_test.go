@@ -71,7 +71,7 @@ func (f *fakeRelease) server(t *testing.T, goos, goarch string) *httptest.Server
 				w.WriteHeader(f.apiError)
 				return
 			}
-			fmt.Fprintf(w, `[{"tag_name":"v99.0.0","assets":[{"name":"CLI-SHA256SUMS"},{"name":"selfhost-skills-99.0.0.zip"}]},{"tag_name":%q,"assets":[{"id":1,"name":"checksums.txt"},{"id":2,"name":%q}]}]`, f.tag, name)
+			fmt.Fprintf(w, `[{"tag_name":"v99.0.0","assets":[{"name":"CLI-SHA256SUMS"},{"name":"self-host-99.0.0.zip"}]},{"tag_name":%q,"assets":[{"id":1,"name":"checksums.txt"},{"id":2,"name":%q}]}]`, f.tag, name)
 		case "/web/releases/latest":
 			if f.noRedirect {
 				w.WriteHeader(http.StatusNotFound)

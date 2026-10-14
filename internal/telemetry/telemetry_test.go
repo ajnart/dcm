@@ -426,7 +426,7 @@ func TestNoNoticeWhenTelemetryIsOff(t *testing.T) {
 }
 
 func TestTheNoticeLinksTheWikiAndNamesNoOffSwitch(t *testing.T) {
-	const wiki = "https://github.com/ajnart/selfhost-skills/wiki/Telemetry"
+	const wiki = "https://github.com/ajnart/self-host/wiki/Telemetry"
 	for name, notice := range map[string]string{"Notice": telemetry.Notice, "NoticeShort": telemetry.NoticeShort} {
 		if !strings.Contains(notice, wiki) {
 			t.Errorf("%s = %q, want it to link %s", name, notice, wiki)

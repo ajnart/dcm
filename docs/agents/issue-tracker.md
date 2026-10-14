@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and specs live in GitHub Issues for `ajnart/selfhost-skills`.
+Issues and specs live in GitHub Issues for `ajnart/self-host`.
 Use the `gh` CLI from this checkout.
 
 ## Operations
@@ -34,9 +34,9 @@ GitHub shares issue and PR numbers; resolve ambiguous references with
   If sub-issues are unavailable, use a task list in the map and
   `Part of #<map>` in each child.
 - Blocking: use native issue dependencies. Retrieve the blocker's
-  database ID with `gh api repos/ajnart/selfhost-skills/issues/<n> --jq .id`,
+  database ID with `gh api repos/ajnart/self-host/issues/<n> --jq .id`,
   then POST it as `issue_id` to
-  `repos/ajnart/selfhost-skills/issues/<child>/dependencies/blocked_by`.
+  `repos/ajnart/self-host/issues/<child>/dependencies/blocked_by`.
   If unavailable, use `Blocked by: #<n>` in the child body.
 - Frontier: the first open child in map order with no open blockers
   and no assignee.

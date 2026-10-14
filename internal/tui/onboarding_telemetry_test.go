@@ -25,7 +25,7 @@ import (
 )
 
 const noticeLines = "Anonymous usage data helps improve self-host: no IP, no personal data.\n" +
-	"Details: https://github.com/ajnart/selfhost-skills/wiki/Telemetry"
+	"Details: https://github.com/ajnart/self-host/wiki/Telemetry"
 
 func welcomeWithNotice(t *testing.T, width, height int) Model {
 	t.Helper()
@@ -215,7 +215,7 @@ func TestOtherStepsDoNotRepeatTheTelemetryNotice(t *testing.T) {
 		t.Fatalf("the What step should not carry the notice\n%s", screen(m))
 	}
 	m = drive(t, m, press("esc"))
-	if !strings.Contains(screen(m), "https://github.com/ajnart/selfhost-skills/wiki/Telemetry") {
+	if !strings.Contains(screen(m), "https://github.com/ajnart/self-host/wiki/Telemetry") {
 		t.Fatalf("coming back to Welcome should show the same notice\n%s", screen(m))
 	}
 }

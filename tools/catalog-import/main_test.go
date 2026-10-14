@@ -11,7 +11,7 @@ import (
 
 var update = flag.Bool("update", false, "rewrite testdata/facts.golden.json")
 
-const realCatalog = "/Users/ajnart/Documents/GitHub/selfhost-skills/.agents/skills/self-host/workflows/selfhost/references/catalog"
+const realCatalog = "/Users/ajnart/Documents/GitHub/self-host/.agents/skills/self-host/workflows/selfhost/references/catalog"
 
 func marshalFacts(t *testing.T, facts []appFact) []byte {
 	t.Helper()

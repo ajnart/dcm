@@ -5,7 +5,7 @@
 {"event":"step.ok","step":"project-lock","msg":"Project lock: free"}
 {"event":"step.ok","step":"project","msg":"Project: /home/you/.self-host"}
 {"event":"step.ok","step":"exposure","msg":"Access: home network"}
-{"event":"step.warn","step":"lan-ip","msg":"LAN IP: stored 192.168.1.50 but this machine is now 192.168.0.31","hint":"Run self-host config set LAN_IP=auto","docs":"https://github.com/ajnart/selfhost-skills/wiki/Access"}
+{"event":"step.warn","step":"lan-ip","msg":"LAN IP: stored 192.168.1.50 but this machine is now 192.168.0.31","hint":"Run self-host config set LAN_IP=auto","docs":"https://github.com/ajnart/self-host/wiki/Access"}
 {"event":"step.ok","app":"jellyfin","step":"running","msg":"jellyfin: running"}
 {"event":"step.ok","app":"jellyfin","step":"binding","msg":"jellyfin: port 8096 published"}
 {"event":"step.ok","app":"jellyfin","step":"reachable","msg":"jellyfin: health check ok"}

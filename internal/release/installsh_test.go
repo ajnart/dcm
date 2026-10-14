@@ -102,13 +102,13 @@ func (f *installFake) server(t *testing.T) *httptest.Server {
 				fmt.Fprint(w, f.releaseList)
 				return
 			}
-			fmt.Fprintf(w, `[{"tag_name":"v99.0.0","assets":[{"name":"CLI-SHA256SUMS"},{"name":"selfhost-skills-99.0.0.zip"},{"name":"SHA256SUMS"}]},{"tag_name":"new-cli-v99.0.0","draft":true,"assets":%[2]s},{"tag_name":"new-cli-v98.0.0","prerelease":true,"assets":%[2]s},{"tag_name":"new-cli-v01.2.0","assets":%[2]s},{"tag_name":%[1]q,"assets":%[2]s}]`, f.tag, assets)
+			fmt.Fprintf(w, `[{"tag_name":"v99.0.0","assets":[{"name":"CLI-SHA256SUMS"},{"name":"self-host-99.0.0.zip"},{"name":"SHA256SUMS"}]},{"tag_name":"new-cli-v99.0.0","draft":true,"assets":%[2]s},{"tag_name":"new-cli-v98.0.0","prerelease":true,"assets":%[2]s},{"tag_name":"new-cli-v01.2.0","assets":%[2]s},{"tag_name":%[1]q,"assets":%[2]s}]`, f.tag, assets)
 		case "/api/releases/tags/" + f.legacyTag:
 			if f.legacyTag == "" {
 				http.NotFound(w, r)
 				return
 			}
-			fmt.Fprintf(w, `{"tag_name":%q,"assets":[{"id":21,"name":"CLI-SHA256SUMS"},{"id":22,"name":"selfhost-skills-1.1.2.zip"},{"id":23,"name":"SHA256SUMS"}]}`, f.legacyTag)
+			fmt.Fprintf(w, `{"tag_name":%q,"assets":[{"id":21,"name":"CLI-SHA256SUMS"},{"id":22,"name":"self-host-1.1.2.zip"},{"id":23,"name":"SHA256SUMS"}]}`, f.legacyTag)
 		case "/api/releases/tags/" + f.tag:
 			if f.metadata != "" {
 				fmt.Fprint(w, f.metadata)
@@ -212,7 +212,7 @@ func TestInstallScriptWithUnicodeReleaseMetadata(t *testing.T) {
 						{name: "invalid_escape", list: list, metadata: strings.Replace(metadata, `\u00e9`, `\u00xz`, 1), failure: "does not match requested stable CLI tag"},
 						{name: "wrong_tag", list: list, metadata: strings.Replace(metadata, `"tag_name":"v1.3.0"`, `"tag_name":"v9.0.0"`, 1), failure: "does not match requested stable CLI tag"},
 						{name: "wrong_asset", list: list, metadata: strings.Replace(metadata, hostAsset("1.3.0"), "説明.tar.gz", 1), failure: "not a CLI release"},
-						{name: "legacy_only", list: `[{"tag_name":"v99.0.0","name":"旧版 🚀","assets":[{"name":"selfhost-skills-99.0.0.zip"},{"name":"checksums.txt"}]}]`, metadata: metadata, failure: "no CLI release is published"},
+						{name: "legacy_only", list: `[{"tag_name":"v99.0.0","name":"旧版 🚀","assets":[{"name":"self-host-99.0.0.zip"},{"name":"checksums.txt"}]}]`, metadata: metadata, failure: "no CLI release is published"},
 					} {
 						t.Run(tc.name, func(t *testing.T) {
 							dir := filepath.Join(t.TempDir(), "bin")
@@ -512,7 +512,7 @@ func TestInstallScriptSelectsAPlainVersionTagAndTheHighestOfBothForms(t *testing
 	dir := filepath.Join(t.TempDir(), "bin")
 	name := hostAsset("1.3.0")
 	older := hostAsset("1.2.0")
-	list := fmt.Sprintf(`[{"tag_name":"new-cli-v1.2.0","assets":[{"id":1,"name":"checksums.txt"},{"id":2,"name":%q}]},{"tag_name":"v1.3.0","assets":[{"id":11,"name":"checksums.txt"},{"id":12,"name":%q}]},{"tag_name":"v1.1.2","assets":[{"name":"CLI-SHA256SUMS"},{"name":"selfhost-skills-1.1.2.zip"}]}]`, older, name)
+	list := fmt.Sprintf(`[{"tag_name":"new-cli-v1.2.0","assets":[{"id":1,"name":"checksums.txt"},{"id":2,"name":%q}]},{"tag_name":"v1.3.0","assets":[{"id":11,"name":"checksums.txt"},{"id":12,"name":%q}]},{"tag_name":"v1.1.2","assets":[{"name":"CLI-SHA256SUMS"},{"name":"self-host-1.1.2.zip"}]}]`, older, name)
 	fake := &installFake{tag: "v1.3.0", binary: "plain-tag", releaseList: list}
 
 	out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir)
@@ -524,7 +524,7 @@ func TestInstallScriptSelectsAPlainVersionTagAndTheHighestOfBothForms(t *testing
 
 func TestInstallScriptNeverInstallsALegacySkillPackRelease(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "bin")
-	list := `[{"tag_name":"v1.1.2","assets":[{"name":"ajnart-selfhost-1.1.2.tgz"},{"name":"CLI-SHA256SUMS"},{"name":"RELEASE-MANIFEST.json"},{"name":"selfhost-skills-1.1.2.zip"},{"name":"SHA256SUMS"}]},{"tag_name":"v1.0.0","assets":[{"name":"RELEASE-MANIFEST.json"},{"name":"selfhost-skills-1.0.0.zip"},{"name":"SHA256SUMS"}]}]`
+	list := `[{"tag_name":"v1.1.2","assets":[{"name":"ajnart-selfhost-1.1.2.tgz"},{"name":"CLI-SHA256SUMS"},{"name":"RELEASE-MANIFEST.json"},{"name":"self-host-1.1.2.zip"},{"name":"SHA256SUMS"}]},{"tag_name":"v1.0.0","assets":[{"name":"RELEASE-MANIFEST.json"},{"name":"self-host-1.0.0.zip"},{"name":"SHA256SUMS"}]}]`
 	fake := &installFake{tag: "new-cli-v0.2.0", binary: "x", releaseList: list}
 
 	out, err := runInstaller(t, fake.server(t), "HOME="+t.TempDir(), "SELF_HOST_INSTALL_DIR="+dir)

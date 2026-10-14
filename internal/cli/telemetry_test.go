@@ -23,7 +23,7 @@ import (
 	"github.com/ajnart/self-host/internal/telemetry/telemetrytest"
 )
 
-const noticeSentence = "Anonymous usage data helps improve self-host: no IP, no personal data. Details: https://github.com/ajnart/selfhost-skills/wiki/Telemetry"
+const noticeSentence = "Anonymous usage data helps improve self-host: no IP, no personal data. Details: https://github.com/ajnart/self-host/wiki/Telemetry"
 
 // telemetryDeps is a release build with a project key and a fake PostHog, so
 // Telemetry is on; every other test leaves both off.
@@ -324,7 +324,7 @@ func exceptionProps(net *telemetrytest.Transport) []map[string]any {
 func TestThePlainNoticeLinksTheWikiAndNamesNoOffSwitch(t *testing.T) {
 	deps, _ := telemetryDeps(t)
 	r := clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "apps", "list")
-	if !strings.Contains(r.Out, "https://github.com/ajnart/selfhost-skills/wiki/Telemetry") {
+	if !strings.Contains(r.Out, "https://github.com/ajnart/self-host/wiki/Telemetry") {
 		t.Fatalf("the notice does not link the wiki:\n%s", r.Out)
 	}
 	for _, banned := range []string{"SELF_HOST_NO_TELEMETRY", "DO_NOT_TRACK", "turn it off", "Turn off"} {

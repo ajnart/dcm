@@ -26,7 +26,7 @@ drift, while checking opacity, overlap, text size, layout stability and bounds.
 | 19.5–22 s   | CLI question | “Don’t want to learn the CLI?” lands over moving command lines.                                                                                                                                                                                         |
 | 22–28 s     | Agents       | A request types into the chat. Six agent headers switch while the plan, approval, install and result unfold. “One skill. Every agent.” uses the same sans-serif family as other prose.                                                                  |
 | 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “No rent.” enters from the opposite side; “Your data.” expands into place. Each keeps moving gently through its reading hold. No progress bar.           |
-| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://self-host.fyi/install \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/selfhost-skills`. A slow push and caret keep the card alive.                         |
+| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://self-host.fyi/install \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/self-host`. A slow push and caret keep the card alive.                         |
 
 ## Music and UI sound
 
@@ -62,15 +62,15 @@ integrated and a true peak below −1 dBTP.
   concerns software subscriptions, not hardware, electricity or hosting costs.
 - The maintainer's 2026-10-11 request changes the end card to the canonical installer Address,
   **`https://self-host.fyi/install`**. The repository line now names the existing
-  **`ajnart/selfhost-skills`** repository. This supersedes the
+  **`ajnart/self-host`** repository. This supersedes the
   approved v5 npm preview, without changing the 34-second timeline or creative direction. The longer
   command uses 40 px type; the repository line uses 36 px and shares the counts' entrance.
 - **Publication is held pending anonymous installer and release-binary verification.** As of the
-  current-release reconciliation on 2026-10-13, the website is live and `ajnart/selfhost-skills` remains
+  current-release reconciliation on 2026-10-13, the website is live and `ajnart/self-host` remains
   private. This source correction does not rename or publish it.
-  [Issue #295](https://github.com/ajnart/selfhost-skills/issues/295) tracks installer/site acceptance,
-  [issue #193](https://github.com/ajnart/selfhost-skills/issues/193) tracks distribution decisions, and
-  [issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks reel publication acceptance.
+  [Issue #295](https://github.com/ajnart/self-host/issues/295) tracks installer/site acceptance,
+  [issue #193](https://github.com/ajnart/self-host/issues/193) tracks distribution decisions, and
+  [issue #268](https://github.com/ajnart/self-host/issues/268) tracks reel publication acceptance.
   A successful mock render does not establish a working anonymous installer or public binaries.
 - Agent logo provenance is in `assets/agents/SOURCES.md`.
 
@@ -136,7 +136,7 @@ acceptance. Publication remains gated by #268.
 ### Verified repository correction, 2026-10-13
 
 - Merged current `main` (`6c0482ea`) and corrected only the end-card repository to
-  `github.com/ajnart/selfhost-skills`. The existing GSAP/Playwright renderer, frozen dependency
+  `github.com/ajnart/self-host`. The existing GSAP/Playwright renderer, frozen dependency
   versions, fonts, 34-second timeline, motion and track provenance are retained.
 - Regenerated the 218-cue sheet, byte-identical to the preceding candidate. The original raw track
   cache was unavailable. To preserve the approved sound without downloading media, the preceding

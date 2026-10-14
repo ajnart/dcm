@@ -29,7 +29,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          [[ "$GITHUB_REPOSITORY" == ajnart/selfhost-skills || "$GITHUB_REPOSITORY" == ajnart/selfhost ]]
+          [[ "$GITHUB_REPOSITORY" == ajnart/self-host ]]
           [[ "$RELEASE_TAG" =~ ^(new-cli-)?v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           version=${RELEASE_TAG#new-cli-}
           printf 'SELF_HOST_RELEASE_VERSION=%s\n' "${version#v}" >> "$GITHUB_ENV"

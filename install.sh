@@ -20,7 +20,7 @@ set -euo pipefail
 
 # The one place the repository name is written. After a GitHub rename the old
 # name keeps redirecting, so changing it is cosmetic.
-DEFAULT_REPO="ajnart/selfhost-skills"
+DEFAULT_REPO="ajnart/self-host"
 
 REPO=""
 TOKEN=""

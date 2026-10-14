@@ -3,18 +3,7 @@ set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd -P)"
 output="${1:?Provide a new output directory outside the checkout}"
-repo="${SITE_RELEASE_REPO:-ajnart/selfhost-skills}"
-case "$repo" in
-  ajnart/selfhost | ajnart/selfhost-skills) ;;
-  *) printf 'Unsupported release repository: %s\n' "$repo" >&2; exit 1 ;;
-esac
-if [ "$repo" = ajnart/selfhost ]; then
-  canonical="$(gh repo view "$repo" --json nameWithOwner --jq .nameWithOwner)" || {
-    printf 'The canonical repository is unavailable; keep the rename release gate closed.\n' >&2
-    exit 1
-  }
-  [ "$canonical" = "$repo" ] || exit 1
-fi
+repo="${SITE_RELEASE_REPO:-ajnart/self-host}"
 parent="$(cd "$(dirname "$output")" && pwd -P)"
 leaf="$(basename "$output")"
 case "$leaf" in . | .. | /) exit 1 ;; esac

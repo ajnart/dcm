@@ -85,8 +85,8 @@ func TestLatestFollowsARepositoryRenameRedirectKeepingTheToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/repos/ajnart/selfhost-skills/releases":
-			http.Redirect(w, r, "/repos/ajnart/selfhost/releases?"+r.URL.RawQuery, http.StatusMovedPermanently)
-		case "/repos/ajnart/selfhost/releases":
+			http.Redirect(w, r, "/repos/ajnart/self-host/releases?"+r.URL.RawQuery, http.StatusMovedPermanently)
+		case "/repos/ajnart/self-host/releases":
 			final = r.Header.Get("Authorization")
 			fmt.Fprintf(w, `[{"tag_name":"v0.3.0","assets":%s}]`, cliAssets("0.3.0"))
 		default:
@@ -211,12 +211,12 @@ func TestInstallFollowsARepositoryRenameRedirectOnPublicDownloads(t *testing.T) 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/ajnart/selfhost-skills/releases/download/v1.2.0/checksums.txt":
-			http.Redirect(w, r, "/ajnart/selfhost/releases/download/v1.2.0/checksums.txt", http.StatusMovedPermanently)
+			http.Redirect(w, r, "/ajnart/self-host/releases/download/v1.2.0/checksums.txt", http.StatusMovedPermanently)
 		case "/ajnart/selfhost-skills/releases/download/v1.2.0/self-host_1.2.0_linux_amd64.tar.gz":
-			http.Redirect(w, r, "/ajnart/selfhost/releases/download/v1.2.0/self-host_1.2.0_linux_amd64.tar.gz", http.StatusMovedPermanently)
-		case "/ajnart/selfhost/releases/download/v1.2.0/checksums.txt":
+			http.Redirect(w, r, "/ajnart/self-host/releases/download/v1.2.0/self-host_1.2.0_linux_amd64.tar.gz", http.StatusMovedPermanently)
+		case "/ajnart/self-host/releases/download/v1.2.0/checksums.txt":
 			fmt.Fprintf(w, "%x  self-host_1.2.0_linux_amd64.tar.gz\n", sha256.Sum256(archive.Bytes()))
-		case "/ajnart/selfhost/releases/download/v1.2.0/self-host_1.2.0_linux_amd64.tar.gz":
+		case "/ajnart/self-host/releases/download/v1.2.0/self-host_1.2.0_linux_amd64.tar.gz":
 			w.Write(archive.Bytes())
 		default:
 			http.NotFound(w, r)

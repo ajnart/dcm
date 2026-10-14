@@ -88,18 +88,10 @@ always a CLI release at that version from the tagged commit.
 
 ## Repository rename
 
-The repository remains private at `ajnart/selfhost-skills`. The installer,
-self-update, skill and site builder keep that current default. The proposed
-`ajnart/selfhost` target did not resolve in the October 11, 2026 evidence below.
-Merge the useful site source independently of the rename; change defaults only
-after the maintainer confirms the new repository exists. A visibility change
-remains the maintainer's separate decision, not a prerequisite for hosting this
-site.
-
-After the rename, check the old repository's API redirect with an old release
-binary. Its fake 301 test is not a live redirect check. Issue #194 additionally
-requires a successful token-free `scripts/verify-install.sh`; do not close it
-on the strength of the site's HTTP status.
+The repository is `ajnart/self-host`; it was `ajnart/selfhost-skills` until
+October 13, 2026. GitHub redirects the old name, so binaries and installers
+built before the rename still find releases. The installer, self-update, the
+agent guide and the site builder all default to `ajnart/self-host`.
 
 ## Installer site
 
@@ -168,7 +160,7 @@ bash scripts/build-installer-site.sh "$stage/deploy"
 python3 -m http.server 8000 --directory "$stage/deploy/public"
 ```
 
-After a confirmed rename, `SITE_RELEASE_REPO=ajnart/selfhost` explicitly selects
+After a confirmed rename, `SITE_RELEASE_REPO=ajnart/self-host` explicitly selects
 the new repository; that option requires `gh` to confirm the name exists.
 The installer is served twice, as `/install` (the address the product prints)
 and `/install.sh`, byte-identical, both covered by `install.sh.sha256`.
@@ -187,9 +179,9 @@ GitHub defaults merely by serving the installer. Publish neither authenticated
 GitHub responses nor credentials to work around that boundary.
 
 Source merge does not close the remaining release acceptance in
-[#193](https://github.com/ajnart/selfhost-skills/issues/193),
-[#194](https://github.com/ajnart/selfhost-skills/issues/194) or
-[#295](https://github.com/ajnart/selfhost-skills/issues/295). Anonymous archive
+[#193](https://github.com/ajnart/self-host/issues/193),
+[#194](https://github.com/ajnart/self-host/issues/194) or
+[#295](https://github.com/ajnart/self-host/issues/295). Anonymous archive
 installation, self-update and any required live rename redirect remain external
 verification gates. The evidence below describes the earlier deployed version;
 this source update does not redeploy it or publish a new CLI release.
@@ -217,7 +209,7 @@ References: [Direct Upload](https://developers.cloudflare.com/pages/get-started/
   of the expected version. Latest and pinned installation failed and no binary
   was installed. A locally built versioned binary's isolated `self-update` also
   returned the private release API's 404; this is not a published-artifact test.
-- [Artifact distribution blocker #295](https://github.com/ajnart/selfhost-skills/issues/295)
+- [Artifact distribution blocker #295](https://github.com/ajnart/self-host/issues/295)
   tracks that failure separately. No archives or release metadata were published.
   Issue #194's token-free acceptance and live old-name redirect remain unmet.
 
@@ -239,9 +231,9 @@ The served installer SHA256 matched the served checksum:
 This resolves only the initial normal-client DNS observation; the earlier
 negative lookup and `--resolve` evidence above remain historical facts.
 
-Both `https://api.github.com/repos/ajnart/selfhost-skills/releases/latest` and
-`https://api.github.com/repos/ajnart/selfhost/releases/latest` returned anonymous 404. Authenticated metadata still identified `ajnart/selfhost-skills` as private
-with default branch `main`; the intended `ajnart/selfhost` returned 404. The
+Both `https://api.github.com/repos/ajnart/self-host/releases/latest` and
+`https://api.github.com/repos/ajnart/self-host/releases/latest` returned anonymous 404. Authenticated metadata still identified `ajnart/self-host` as private
+with default branch `main`; the intended `ajnart/self-host` returned 404. The
 parent recorded this follow-up on #295.
 
 These were transport and script-checksum reads, not installer execution or

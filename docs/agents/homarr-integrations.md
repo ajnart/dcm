@@ -146,4 +146,4 @@ Account/provider, hardware, physical LAN, populated media, Manual key recovery,
 migration/restore, real refresh contention and non-nil prerequisite behavior
 remain outside that reference proof. Reuse its seam and containment, not its result.
 
-[reference]: https://github.com/ajnart/selfhost-skills/pull/309
+[reference]: https://github.com/ajnart/self-host/pull/309

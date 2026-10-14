@@ -6,7 +6,7 @@ hotspots. One ticket per branch, per worktree, per pull request.
 
 ## Read first
 
-1. The spec and your ticket: `gh issue view <n> --repo ajnart/selfhost-skills`,
+1. The spec and your ticket: `gh issue view <n> --repo ajnart/self-host`,
    plus every ticket it is blocked by.
 2. `CONTEXT.md`: the glossary. Use its words exactly (App, Recipe,
    Project, Access, Address, Home folder, Profile, Experience level, Recap,

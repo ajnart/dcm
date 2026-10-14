@@ -2,13 +2,13 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-repo="https://github.com/ajnart/selfhost-skills.wiki.git"
+repo="https://github.com/ajnart/self-host.wiki.git"
 work="$(mktemp -d "${TMPDIR:-/tmp}/self-host-wiki.XXXXXX")"
 trap 'command rm -rf "$work"' EXIT
 
 if ! git clone "$repo" "$work/wiki"; then
   echo "Could not clone the GitHub wiki. If it is uninitialized, create its first page in the GitHub UI:" >&2
-  echo "https://github.com/ajnart/selfhost-skills/wiki" >&2
+  echo "https://github.com/ajnart/self-host/wiki" >&2
   echo "Then rerun this script. If already initialized, check repository access. Nothing was published." >&2
   exit 1
 fi

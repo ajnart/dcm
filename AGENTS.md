@@ -54,7 +54,7 @@ Preserve concurrent work: check `git status` before and after edits and stage on
 ## Agent skills
 
 - Homarr integrations: before adding, repairing or verifying native wiring, read `docs/agents/homarr-integrations.md`.
-- Issue tracker: GitHub Issues for `ajnart/selfhost-skills`. Read `docs/agents/issue-tracker.md` before tracker operations.
+- Issue tracker: GitHub Issues for `ajnart/self-host`. Read `docs/agents/issue-tracker.md` before tracker operations.
 - Triage labels: the five defaults. Read `docs/agents/triage-labels.md` before triaging.
 - Domain docs: one context, `CONTEXT.md`, with ADRs in `docs/adr/`. Read `docs/agents/domain.md` before exploring the code or changing the domain.
 - Filing an issue or opening a PR: read `docs/agents/filing-issues.md` first.
