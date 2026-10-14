@@ -1,0 +1,21 @@
+internal/service/names.go
+  s_378d5db6c5f6de::t_256f6ba0a29b6c 51-53
+internal/service/names_test.go
+  s_378d5db6c5f6de::t_463725b9bfee83 81,84,234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ddefac314a7693f5a202dd9ccf72a405e5b0d408",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
