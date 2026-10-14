@@ -65,7 +65,7 @@ hotspots. One ticket per branch, per worktree, per pull request.
 1. From the repository root with `GOFLAGS=-buildvcs=false`: `gofmt -l .` empty,
    `go vet ./...`, `go vet -tags e2e ./e2e/`, `go test ./...`, and
    `go test -race` on every package with goroutines you touched.
-   CI cannot run (account billing), so these local runs are the gate.
+   These local runs are the gate.
 2. Update `CONTEXT.md` when a term changes, `README.md` and
    `internal/skill/guide.md` when behaviour a person or agent sees changes.
 3. One pull request into `main`, body ending `Closes #<n>`, merged with a

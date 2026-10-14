@@ -1,6 +1,6 @@
 # Contributing
 
-`self-host` is a Go CLI. Read `CONTEXT.md` for the vocabulary, `docs/adr/` for settled decisions, and `AGENTS.md` for the map and the gate.
+`self-host` is a Go CLI. Read `CONTEXT.md` for the vocabulary, `docs/adr/` for settled decisions, and `AGENTS.md` for the map and the gate. Participation is covered by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Change
 
@@ -11,7 +11,7 @@
 
 ## Gate
 
-CI cannot run for now, so run this from the repository root and paste the result in the pull request:
+Run this from the repository root and paste the result in the pull request:
 
 ```bash
 export GOFLAGS=-buildvcs=false

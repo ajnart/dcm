@@ -34,7 +34,7 @@ One package owns one boundary. Do not reach around it.
 
 ## Local gate
 
-CI cannot run (account billing), so these runs from the repository root are the gate:
+These runs from the repository root are the gate:
 
 ```bash
 export GOFLAGS=-buildvcs=false
