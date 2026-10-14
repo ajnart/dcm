@@ -1,7 +1,6 @@
 import { $, $$, proc, prog, lerp, scene, read, cue, on, cut, eOut } from "./lib.js";
 import { SC, BEAT } from "./timeline.js";
 
-const [A, B] = SC.flurry;
 // one phrase per beat over the track's biggest riser, each a hard cut into its own composition: a slam
 // from scale, a whip from either side, a flood of violet; then a slow push until the next cut
 export const PHRASES = [
@@ -12,7 +11,7 @@ export const PHRASES = [
 ];
 const IN = 0.08;
 
-export function build() {
+export function build(_tl, [A, B] = SC.flurry) {
   scene("flurry", A, B);
   const bg = $("#fl-bg");
   $("#fl-words").innerHTML = PHRASES.map((p, i) => `<div class="fp ${p.align === "l" ? "" : p.align}" id="fp${i}" style="font-size:${p.size}px;color:${p.ink}"><span class="w">${p.a} <b${p.accent ? ` style="color:${p.accent}"` : ""}>${p.z}</b></span></div>`).join("");

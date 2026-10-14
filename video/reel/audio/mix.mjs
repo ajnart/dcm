@@ -3,6 +3,8 @@
 // -14 LUFS integrated under -1 dBTP. Deterministic: the same track and cues.json always give the same WAV.
 //   node render.mjs cues      (writes audio/cues.json from the scenes' own timeline)
 //   node audio/mix.mjs        (downloads and verifies the track if needed, writes audio/out/soundtrack.wav)
+// Both take --cut <name> (default media): saas mixes the "Replace the SaaS you pay for" cut from saas/timeline.js and
+// audio/cues-saas.json into audio/out/soundtrack-saas.wav, on the same track and grid.
 // The licence lets the track be used in a video but not redistributed on its own, so the MP3 is not
 // committed: it is fetched from Mixkit's CDN into audio/track/ (git-ignored) and checked against its SHA-1.
 import { readFile, writeFile, mkdir, access } from "node:fs/promises";
@@ -11,10 +13,13 @@ import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyze } from "./analyze.mjs";
-import { EDIT, DUR, BAR } from "../timeline.js";
 import { render as renderSfx } from "./sfx.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+const cutAt = process.argv.indexOf("--cut");
+const CUT = cutAt < 0 ? "media" : process.argv[cutAt + 1];
+const SFX = CUT === "media" ? "" : `-${CUT}`;
+const { EDIT, DUR, BAR } = await import(CUT === "media" ? "../timeline.js" : `../${CUT}/timeline.js`);
 export const TRACK = {
   file: join(HERE, "track", "lets-move.mp3"),
   url: "https://assets.mixkit.co/music/836/836.mp3",
@@ -80,7 +85,7 @@ for (let i = 0; i < at(0.002); i++) { const g = i / at(0.002); L[i] *= g; R[i] *
 for (let i = N - at(0.05); i < N; i++) { const g = (N - i) / at(0.05); L[i] *= g; R[i] *= g; }
 
 // ---------- UI sounds: typing, ticks, whooshes and hits from the scenes' own cues (audio/sfx.mjs) ----------
-const SHEET = JSON.parse(await readFile(join(HERE, "cues.json"), "utf8"));
+const SHEET = JSON.parse(await readFile(join(HERE, `cues${SFX}.json`), "utf8"));
 const fx = renderSfx(SHEET.cues, N, SR);
 const FX_DB = +(process.env.FX_DB ?? -4), VERB_DB = FX_DB - 2;
 const music = { L: L.slice(), R: R.slice() };
@@ -152,7 +157,7 @@ export function loudness(file) {
 
 const OUTDIR = join(HERE, "out");
 await mkdir(OUTDIR, { recursive: true });
-const file = join(OUTDIR, "soundtrack.wav");
+const file = join(OUTDIR, `soundtrack${SFX}.wav`);
 let gainDb = 0, ceilDb = -1.5, m;
 for (let pass = 1; pass <= 8; pass++) {
   const [oL, oR] = limit(L, R, dbg(gainDb), ceilDb);

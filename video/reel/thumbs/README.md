@@ -1,11 +1,13 @@
 # Reel thumbnails
 
-Poster and social-card candidates for the showreel, made from the reel's own frames, fonts, colours and logo. 17 variants, each in two sizes:
+Poster and social-card candidates for the showreel, made from the reel's own frames, fonts, colours and logo. 18 variants, each in two sizes:
 
 - `1280x720`: video poster / YouTube.
 - `1200x630`: OG / social card.
 
-**Shipped:** `v13-herolockup` is both the site's video poster (`site/public/reel.jpg`, used as `poster=` and the `VideoObject` thumbnail in `site/src/pages/index.astro`) and its share card (`site/src/assets/og.png`, used for `og:image` and `twitter:image` in `site/src/layouts/Base.astro`).
+**Shipped:** `v13-herolockup` is both the media reel's poster (`site/public/reel.jpg`, the `poster=` of the media reel under Links in `site/src/pages/index.astro`) and its share card (`site/src/assets/og.png`, used for `og:image` and `twitter:image` in `site/src/layouts/Base.astro`).
+
+**Shipped for the SaaS cut:** `v18-saasswaps` is the hero reel's poster and `VideoObject` thumbnail (`site/public/reel-saas.jpg`, for `site/public/reel-saas.mp4`), made the same way as `reel.jpg`; see "Ship one" below.
 
 The variant sources are in `build.mjs`. The rendered `v*.html`, `v*.png` and `variants.json` are generated and git-ignored; run `npm run thumbs` to get them.
 
@@ -68,6 +70,12 @@ Poster (JPEG at the same path, no code change):
 ffmpeg -y -i video/reel/thumbs/v13-herolockup-1280x720.png -q:v 3 site/public/reel.jpg
 ```
 
+The SaaS cut's poster, from the same build:
+
+```bash
+ffmpeg -y -i video/reel/thumbs/v18-saasswaps-1280x720.png -q:v 3 site/public/reel-saas.jpg
+```
+
 Share card (`og:image`, `twitter:image`): `site/src/assets/og.png` is a 1200x630 PNG. Copy the `-1200x630.png` of the chosen variant over it, and keep `imageAlt` in `Base.astro` describing it.
 
 ## Variants
@@ -91,5 +99,6 @@ Share card (`og:image`, `twitter:image`): `site/src/assets/og.png` is a 1200x630
 | 15  | purplecard  | purple card, logo tile, "Install any App. One command.", $92 to $0        |
 | 16  | terminal    | terminal running `self-host install media homarr` and a big $0            |
 | 17  | dashprice   | blurred dashboard, $92 to $0, hook line, curl                             |
+| 18  | saasswaps   | **shipped for the SaaS cut.** "Replace the SaaS you pay for.", five swaps, curl |
 
 The $92 is the reel's illustrative subscription total (see `../STORYBOARD.md`), not a measured price.

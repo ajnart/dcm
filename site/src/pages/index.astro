@@ -28,12 +28,12 @@ const jsonld = {
     },
     {
       "@type": "VideoObject",
-      name: "self-host in 34 seconds",
+      name: "Replace the SaaS you pay for, in 30 seconds",
       description,
-      thumbnailUrl: "https://self-host.fyi/reel.jpg",
-      contentUrl: "https://self-host.fyi/reel.mp4",
+      thumbnailUrl: "https://self-host.fyi/reel-saas.jpg",
+      contentUrl: "https://self-host.fyi/reel-saas.mp4",
       uploadDate: "2026-10-14",
-      duration: "PT34S",
+      duration: "PT30S",
     },
   ],
 };
@@ -49,7 +49,7 @@ const jsonld = {
             <p class="lede">Installs self-hosted Apps, signs them in, and wires them to each other. A terminal Dashboard for you, <code>--json</code> for your agent.</p>
             <div class="cta">
               <a class="btn primary" href="#play">▶ try it</a>
-              <a class="btn" href="#reel">watch · 34 s</a>
+              <a class="btn" href="#reel">watch · 30 s</a>
               <a class="btn" href="#apps">apps</a>
               <a class="btn star" href={LINKS.github} target="_blank" rel="noopener"><span aria-hidden="true">★</span> star on GitHub</a>
             </div>
@@ -61,9 +61,9 @@ const jsonld = {
         </section>
 
         <section id="reel" class="reel" aria-label="Showreel">
-          <video controls preload="none" playsinline poster="/reel.jpg" width="1920" height="1080">
-            <source src="/reel.mp4" type="video/mp4">
-            <a href="/reel.mp4">Watch the 34-second showreel</a>
+          <video controls preload="none" playsinline poster="/reel-saas.jpg" width="1920" height="1080">
+            <source src="/reel-saas.mp4" type="video/mp4">
+            <a href="/reel-saas.mp4">Watch the 30-second showreel</a>
           </video>
         </section>
 
@@ -132,6 +132,12 @@ const jsonld = {
         <section id="links" aria-labelledby="links-title">
           <SectionHead id="links" num="03" title="Links">Install two Apps that know each other and they get connected: download clients, indexers, requests, dashboard tiles. {linkCount} Links across {linkingApps} Apps.</SectionHead>
           <div class="linkcards" id="linkcards"></div>
+          <div class="reel" aria-label="Media server showreel">
+            <video controls preload="none" playsinline poster="/reel.jpg" width="1920" height="1080">
+              <source src="/reel.mp4" type="video/mp4">
+              <a href="/reel.mp4">Watch the 34-second media server showreel</a>
+            </video>
+          </div>
         </section>
 
         <section id="how" aria-labelledby="how-title">

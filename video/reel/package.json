@@ -8,6 +8,9 @@
     "cues": "node render.mjs cues",
     "audio": "node render.mjs cues && node audio/mix.mjs",
     "video": "node render.mjs video",
+    "lint:saas": "node render.mjs lint --cut saas",
+    "audio:saas": "node render.mjs cues --cut saas && node audio/mix.mjs --cut saas",
+    "video:saas": "node render.mjs video --cut saas",
     "thumbs": "node thumbs/build.mjs"
   },
   "dependencies": {

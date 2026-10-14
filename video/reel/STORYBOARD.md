@@ -193,3 +193,101 @@ publication remain separate gates under #295, #193 and #268.
 - Inspected the end-card stills at 31, 32, 33 and 33.95 seconds and the 34-frame contact sheet; the
   command fits its card with no clipping.
 - MP4 SHA-256: `e2b9ec389c0d567ca6f870ce6c3c5dd188eecbf7cfa316ad706c92737ee0bd1c`.
+
+# Cut 2: Replace the SaaS you pay for
+
+[Issue #523](https://github.com/ajnart/self-host/issues/523). A 30-second cut beside the media cut above: 15 bars at the same 120 BPM, on
+the same engine, styles, track and sound pipeline. It is a separate timeline and set of scenes in `saas/`; the media cut renders unchanged.
+Select it with `--cut saas` on every `render.mjs` mode and on `audio/mix.mjs`; it writes `out/selfhost-reel-saas.mp4`,
+`audio/cues-saas.json` and `audio/out/soundtrack-saas.wav` beside the media files. Delivered as `site/public/reel-saas.mp4` and its
+poster `site/public/reel-saas.jpg` (thumbnail variant 18, `thumbs/`, made the way `reel.jpg` is).
+
+## Direction
+
+The same technical product demo as the media cut: Inter Tight for headlines, JetBrains Mono for code and the Dashboard, sharp corners,
+cuts on the beat. The story is one sentence to an agent (or `self-host install`), then five quick swaps. Each swap flips a rented tile
+into the Catalog App that replaces it, says what Setup did, and brings that App's row up in the Dashboard with its Address and Status.
+
+## Timeline
+
+| Time        | Scene   | Motion and content                                                                                                                                                                                                                                       |
+| ----------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0–3 s       | Hook    | “Replace the SaaS / you pay for.” lands in two gestures. Five rented tiles (Photos, Drive, Dropbox, a smart-home glyph, UptimeRobot) fly in dim behind it and lock one after another.                                                                    |
+| 3–8 s       | Ask     | The six agents drop in. The chat types “Swap my subscriptions for apps I own.”; the plan lists the five Apps by Catalog category; the cursor clicks Approve & install; the `self-host install` command appears and the five Apps check.                   |
+| 8–24 s      | Swaps   | The drop (beat 16): a diamond with a violet edge opens onto the Dashboard Overview, five Apps spinning. Five swaps of 3, 3, 3, 3 and 4 s: a rented tile lands, “Replaces …”, it flips to the App, its name and Setup result land, its row comes up. |
+| 24–26 s     | Flurry  | The media cut's four phrases (“Your hardware.” … “Your data.”), one per beat, on the track's riser.                                                                                                                                                     |
+| 26–30 s     | End     | The wordmark lands on the final hit, `curl -fsSL https://self-host.fyi/install \| bash` types, then **self-host.fyi** and “Or ask your agent.” A slow push and caret keep the card alive.                                                                |
+
+The five swaps, in order, with what each row shows (`saas/data.js`):
+
+| Rented                 | App            | Address               | Setup result shown | Status    |
+| ---------------------- | -------------- | --------------------- | ------------------ | --------- |
+| Google Photos          | Immich         | `192.168.1.20:2283`   | Admin created      | ok        |
+| Dropbox                | Syncthing      | `192.168.1.20:8384`   | Web login set      | ok        |
+| Google Drive           | Nextcloud      | `192.168.1.20:8080`   | Admin login ready  | ok        |
+| cloud smart-home apps  | Home Assistant | `192.168.1.20:8123`   | Owner created      | attention |
+| UptimeRobot            | Uptime Kuma    | `192.168.1.20:3001`   | none               | attention |
+
+## Music and UI sound
+
+The same track, “Let's Move” (see `audio/SOURCES.md`), re-cut for 15 bars in `saas/timeline.js`:
+
+| Reel bars      | Source bars | Purpose                                                                        |
+| -------------- | ----------- | ------------------------------------------------------------------------------ |
+| 0–11 (0–24 s)  | 4–15        | Quiet intro lifted 8 dB under the hook and the ask; the drop at reel bar 4 (8 s) opens the swaps. |
+| 12 (24–26 s)   | 35          | The track's biggest riser, under the flurry.                                   |
+| 13–14 (26–30 s) | 48–49      | The final hit and ring-out, under the end card.                                |
+
+139 cues come from the same `audio/sfx.mjs` kinds (typing, lock thocks, flips, pops, checks, whooshes, slams, impacts, success).
+
+## Facts
+
+Checked against the Catalog on 2026-10-14 (`self-host apps list --json` from a fresh build of `main`, `4a7d120c`: 89 Apps, 19 Recipes).
+
+- Names, categories and default ports are the Catalog's: Immich (Photos, 2283), Syncthing (Files, 8384), Nextcloud (Files, 8080),
+  Home Assistant (Home automation, 8123), Uptime Kuma (Monitoring, 3001). Addresses are the Home network ones at the reel's mock LAN address.
+  The install command, `self-host install immich syncthing nextcloud home-assistant uptime-kuma`, uses the real App IDs.
+- Setup follows `internal/apps`. Immich creates its first administrator through the API; Syncthing sets the web login through its REST
+  API; Nextcloud verifies the administrator's sign-in and trusts the Project's Addresses.
+- **Status is not ok for two of the five, and the cut says so.** `service.Level` gives a Manual step the Status *attention*. Uptime Kuma has
+  no HTTP setup API, so its first administrator is a Manual step (`internal/apps/uptimekuma`). Home Assistant's Setup creates the owner, but
+  the core-config, analytics and integration choices stay a Manual step (`internal/apps/homeassistant`). Their rows show yellow
+  *attention* and “Finish in browser”, never ok. The runtime matrix (`docs/runtime-matrix.md`, an older head) records Uptime Kuma as manual.
+- The agent flow follows `internal/skill/guide.md`: the plan names the Apps, the person approves, then the agent installs. The Approve click
+  comes before the command (ADR 0005: loading the skill is never approval).
+- Nextcloud is shown replacing Google Drive only. The Catalog's `files` Recipe says “replacing Google Drive, OneDrive and Dropbox”; it does not
+  describe a Notion-style docs workspace (Docmost is the Catalog's notes App), so no docs claim is made. Smart-home is the generic “cloud
+  smart-home apps”, not a named speaker: Home Assistant's trap notes say a smart-speaker experience needs separate hardware.
+- No prices. The media cut's illustrative subscription totals are not reused.
+- The end card repeats the media cut's installer line (`END_INSTALL`); the publication gate in the release notes above applies to this
+  cut as well. UptimeRobot's icon is `assets/icons/uptimerobot.svg`, from the same dashboard-icons CDN as the other icons.
+
+## Validation and reproduction
+
+```sh
+node render.mjs lint --cut saas
+node render.mjs cues --cut saas
+node audio/mix.mjs --cut saas
+node render.mjs video --cut saas --workers 8 --sub 8
+node render.mjs verify --cut saas
+node audio/seams.mjs --cut saas
+node render.mjs contact --cut saas
+ffmpeg -y -i thumbs/v18-saasswaps-1280x720.png -q:v 3 ../../site/public/reel-saas.jpg   # after node thumbs/build.mjs
+```
+
+The lint contract is the media cut's, unchanged. `verify` reads a short edit's beat phase half a beat off (every cut reads exactly
+-250 ms with the tempo right at 119.99 BPM), so the music's seams are measured directly by `audio/seams.mjs`.
+
+### Verified render, 2026-10-14
+
+- 1,800 frames at 60 fps, 1920×1080, H.264 High `yuv420p`, faststart; AAC 48 kHz stereo. Video, audio and container all measure 30.000
+  seconds; 4.14 MB (4,136,368 bytes). Rendered in 57 s with eight workers and eight sub-frames.
+- Integrated loudness −14.0 LUFS, true peak −1.6 dBTP, loudness range 6.6 LU. No flashes by the limited luminance scan (the drop opens as
+  a violet-edged diamond, not a full-frame flood, for this reason).
+- All 84 reading holds pass at 30 Hz, with no overlap, bounds, undeclared-text or terminology failures; the tightest are the flurry
+  phrases at 0.41 s against 0.4 s. All 60 out-of-order and fresh-page seek samples pass (worst raster noise 79.6 dB PSNR).
+- The music's three seams (the drop at 8 s, the riser at 24 s, the final hit at 26 s) land within 1.0 ms of the grid. Picture cuts sit on the
+  0.5 s grid (lint). `verify`'s detected-phase beat offsets are not a valid measure for this edit, see above.
+- The media cut renders byte-identical stills at 20 sampled times, its cue sheet is unchanged, and its full lint still passes (103 holds, 68 samples).
+- Inspected stills at every scene boundary (hook→ask, ask→drop, each swap change, swaps→flurry→end), the drop's opening frames, and the 30-frame contact sheet.
+- MP4 SHA-256: `cb323b328a45840810d52e2153e82dbb3491aaf25559d8d8e66b3540ce694b2c`; poster SHA-256: `bde9573f37ef0df8be22404d19af6d5be9e6c5e10a90288c374f994f90bd7fdf`.

@@ -149,6 +149,27 @@ body{background:radial-gradient(120% 90% at 0% 0%,#241a48,#09080f 70%)}
 .cmd{align-self:flex-start;background:#14121ecc;border:calc(var(--u)*.3) solid #3a3358;padding:calc(var(--u)*1.8) calc(var(--u)*2.8);font:700 calc(var(--u)*3.6) var(--mono);white-space:nowrap}.cmd i{font-style:normal;color:var(--ok)}
 .bar{position:absolute;left:0;right:0;bottom:0;height:calc(var(--u)*1.6);background:var(--a)}`,
     html: `<div class="frame"></div><div class="wrap"><div class="lg">${logo}<b>self-host</b></div><div class="p"><s>$92</s><i>→</i><b>$0</b></div><div class="h">Your <span>Apps.</span> Your home. One binary.</div><div class="cmd"><i>$</i> curl -fsSL self-host.fyi/install | bash</div></div><div class="bar"></div>` },
+  { id: "saasswaps", name: "SaaS cut: Replace the SaaS you pay for + five swaps + curl", css: `
+body{background:radial-gradient(110% 90% at 85% 40%,#2d1f5e,#09080f 70%)}
+.col{position:absolute;left:calc(var(--u)*8);top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:calc(var(--u)*4)}
+.lg{display:flex;align-items:center;gap:calc(var(--u)*2.2)}.lg img{height:54px}.lg b{font:800 calc(var(--u)*5.2) var(--mono);letter-spacing:-.03em}
+h1{font-weight:800;font-size:calc(var(--u)*11.5);line-height:.92;letter-spacing:-.045em}h1 span{color:var(--at)}
+.cmd{align-self:flex-start;background:#14121e;border:calc(var(--u)*.3) solid #3a3358;padding:calc(var(--u)*1.8) calc(var(--u)*2.6);font:700 calc(var(--u)*3.2) var(--mono);white-space:nowrap}.cmd i{font-style:normal;color:var(--ok)}
+.sw{position:absolute;right:calc(var(--u)*7);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:calc(var(--u)*1.8)}
+.r{display:flex;align-items:center;gap:calc(var(--u)*1.8);background:#14121ecc;border:calc(var(--u)*.25) solid #2b2740;padding:calc(var(--u)*1.2) calc(var(--u)*2.6) calc(var(--u)*1.2) calc(var(--u)*2.2)}
+.r img,.r svg{width:calc(var(--u)*6.2);height:calc(var(--u)*6.2);object-fit:contain;flex:none}
+.r .was{display:flex;filter:grayscale(1) brightness(1.5);opacity:.55}.r svg{color:var(--at)}
+.r i{font:700 calc(var(--u)*3.4) var(--mono);color:#777;font-style:normal}
+.r b{font:800 calc(var(--u)*3.3) var(--mono);letter-spacing:-.03em;margin-left:calc(var(--u)*.4)}
+.r.o b{color:var(--ok)}`,
+    html: `<div class="col"><div class="lg">${logo}<b>self-host</b></div><h1>Replace<br>the SaaS you<br><span>pay for.</span></h1><div class="cmd"><i>$</i> curl -fsSL self-host.fyi/install | bash</div></div>
+<div class="sw">
+<div class="r o"><span class="was">${ic("google-photos")}</span><i>→</i>${ic("immich")}<b>Immich</b></div>
+<div class="r o"><span class="was">${ic("dropbox")}</span><i>→</i>${ic("syncthing")}<b>Syncthing</b></div>
+<div class="r o"><span class="was">${ic("google-drive")}</span><i>→</i>${ic("nextcloud")}<b>Nextcloud</b></div>
+<div class="r o"><span class="was"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg></span><i>→</i>${ic("home-assistant")}<b>Home Assistant</b></div>
+<div class="r o"><span class="was">${ic("uptimerobot")}</span><i>→</i>${ic("uptime-kuma")}<b>Uptime Kuma</b></div>
+</div>` },
 ];
 for (const [i, v] of V.entries()) {
   writeFileSync(join(dir, `v${i + 1}-${v.id}.html`), `<!doctype html><meta charset=utf-8><style>${base}${v.css}</style>${v.html}`);

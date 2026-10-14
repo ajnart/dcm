@@ -1,0 +1,270 @@
+/* The "Replace the SaaS you pay for" cut. It reuses the tile, Dashboard, chat, flurry and end-card styles of ../styles.css. */
+
+/* bars 0-1 · hook */
+#sh-t {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 330px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 190px;
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+  word-spacing: 0.16em;
+}
+#sh-t b {
+  color: var(--accentText);
+}
+#sh-tiles {
+  position: absolute;
+  inset: 0;
+  perspective: 1800px;
+}
+.gi {
+  color: var(--accentText);
+}
+.face > .gi {
+  width: 100px;
+  height: 100px;
+}
+.was .gi {
+  width: 36px;
+  height: 36px;
+}
+
+/* bars 1-3 · ask */
+#sk-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 48px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+.chatw {
+  --ag: #a88df2;
+  position: absolute;
+  left: 410px;
+  top: 164px;
+  width: 1100px;
+  height: 800px;
+  background: #0e0c16;
+  border: 1.5px solid color-mix(in srgb, var(--ag) 50%, transparent);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.chatw .hm {
+  font-size: 30px;
+  color: var(--accent);
+}
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 26px;
+}
+.chatw .plan .pl-r .k {
+  width: 300px;
+}
+#sk-ok {
+  width: 330px;
+}
+#sk-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 46px;
+  height: 46px;
+  transform-origin: 4px 3px;
+}
+#sk-cursor svg {
+  width: 100%;
+  height: 100%;
+  fill: #fff;
+  stroke: #09080f;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+/* bars 4-11 · the swaps */
+#sw-wipe {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+}
+#sw-clip {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+}
+#sw-blocks {
+  position: absolute;
+  inset: 0;
+}
+.sb {
+  position: absolute;
+  inset: 0;
+  perspective: 1800px;
+}
+.sb-txt {
+  position: absolute;
+  left: 440px;
+  top: 100px;
+}
+.sb-was {
+  font-weight: 600;
+  font-size: 48px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sb-was b {
+  font-weight: 700;
+  color: var(--bright);
+}
+.sb-name {
+  margin-top: 8px;
+  font-weight: 800;
+  font-size: 132px;
+  line-height: 1;
+  letter-spacing: -0.055em;
+  color: var(--bright);
+  white-space: nowrap;
+}
+.sb-pills {
+  display: flex;
+  gap: 14px;
+  margin-top: 22px;
+}
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.2;
+  padding: 5px 18px 7px;
+  border-radius: 3px;
+  border: 1.5px solid;
+  white-space: nowrap;
+}
+.pill i {
+  font-style: normal;
+}
+.pill.ok {
+  background: #062a1f;
+  color: var(--ok);
+  border-color: rgba(0, 215, 135, 0.6);
+}
+.pill.warn {
+  background: #2a2108;
+  color: #ffaf00;
+  border-color: rgba(255, 175, 0, 0.6);
+}
+#dash {
+  position: absolute;
+  left: 112px;
+  top: 452px;
+  width: 1696px;
+  height: 568px;
+  background: #0d0b14;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 19px;
+  color: var(--text);
+  overflow: hidden;
+  line-height: 1.3;
+}
+.dbox {
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  top: 170px;
+  height: 372px;
+  border: 1.5px solid rgba(168, 141, 242, 0.38);
+  border-radius: 3px;
+}
+.dsel {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 22px;
+  height: 66px;
+  background: rgba(122, 87, 211, 0.22);
+  border-left: 3px solid var(--accent);
+  opacity: 0;
+}
+.drows {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22px;
+}
+.dr {
+  position: relative;
+  height: 66px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 26px;
+  font-size: 32px;
+  white-space: nowrap;
+}
+.dm {
+  display: inline-block;
+  width: 36px;
+  text-align: center;
+  font-size: 30px;
+}
+.di {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+.dn {
+  width: 340px;
+  font-weight: 700;
+  color: var(--bright);
+}
+.dc {
+  width: 330px;
+  color: var(--muted);
+}
+.da {
+  width: 400px;
+  color: var(--accentText);
+}
+.ds {
+  font-weight: 700;
+}
+
+/* bars 13-14 · end card */
+.e-url {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 668px;
+  text-align: center;
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 120px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--accentText);
+}
+.e-or {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 860px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 54px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
