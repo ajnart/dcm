@@ -1,0 +1,53 @@
+README.md
+  s_378d5db6c5f6de::t_4b144cb70bc9e9 218
+install.sh
+  s_378d5db6c5f6de::t_c57fec98f0fd56 337-339
+internal/cli/doctor_test.go
+  s_378d5db6c5f6de::t_4f591957391c55 97
+internal/host/socket.go
+  s_378d5db6c5f6de::t_72a3dc5810b387 11-12
+internal/host/socket_test.go
+  s_378d5db6c5f6de::t_fb18d21abccd6e 66,68-70
+internal/release/installsh_test.go
+  s_378d5db6c5f6de::t_310924588b8a4e 721
+internal/service/service.go
+  s_378d5db6c5f6de::t_2ada119fe56897 53
+internal/skill/guide.md
+  s_378d5db6c5f6de::t_b81175d582ccc7 58-64
+internal/system/owner.go
+  s_378d5db6c5f6de::t_d8a936f8e4eb46 1-98
+internal/system/owner_test.go
+  s_378d5db6c5f6de::t_2dd41a2e417d58 1-58
+internal/system/real.go
+  s_378d5db6c5f6de::t_a62cd0564a6f80 75,85-87
+internal/system/system.go
+  s_378d5db6c5f6de::t_66c0dd9be10555 93-97
+internal/tui/backend.go
+  s_378d5db6c5f6de::t_df313c1eb8d693 221
+internal/tui/view.go
+  s_378d5db6c5f6de::t_af576d00e9e343 457-458,496
+internal/updatecheck/updatecheck.go
+  s_378d5db6c5f6de::t_6935b243c5b282 38-41,52,75-79,95-101
+site/src/components/CodeBlock.astro
+  s_378d5db6c5f6de::t_5aeb6da15649c3 5,17-21,24,43-46
+site/src/lib/site.ts
+  s_378d5db6c5f6de::t_cf5b72ecb24645 7-8,11
+site/src/pages/llms.txt.ts
+  s_378d5db6c5f6de::t_40db6c85eff851 3,13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2bc5ca3e317409e4f8f0f1aaa253d7243c51d1b9",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
