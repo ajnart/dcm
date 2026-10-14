@@ -159,6 +159,12 @@ Addresses, failed steps with their hints, recent logs with secrets masked, and
 what a working page should show. The agent reads it before opening the App in
 a browser (agent-browser, when installed).
 
+**Host report**:
+What `self-host host report` prints about this machine without changing it:
+OS and architecture, Docker and socket reachability, IPv6, and bind results
+for ports 80 and 443. Its port probes are the same checks used before an App
+or Easy names claims a port.
+
 **Telemetry**:
 Anonymous usage and error data sent to the project's PostHog (through
 `hog.ajnart.dev`), on by default in releases and announced on first run with a

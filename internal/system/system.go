@@ -90,6 +90,9 @@ type Deps struct {
 	// PortFree reports whether a TCP port can be bound on the host, tested with
 	// a real bind.
 	PortFree func(port int) bool
+	// BindTCP tries one TCP bind and closes it immediately. Callers classify the
+	// returned operating-system error without keeping the port reserved.
+	BindTCP  func(network, address string) error
 	Resolver Resolver
 	// ListFolders returns the names of the folders inside dir.
 	ListFolders func(dir string) ([]string, error)

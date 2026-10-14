@@ -489,7 +489,7 @@ func (ss *session) allocatePort(info app.Info, requested string, current int) (i
 		}
 	}
 	for port := info.Port; port <= 65535; port++ {
-		if !used[port] && !(port == 80 && ss.namesOn()) && ss.s.Deps.PortFree(port) {
+		if !used[port] && !(port == 80 && ss.namesOn()) && host.PortAvailable(host.ProbePort(ss.s.Deps, port)) {
 			if port != info.Port {
 				ss.s.Log.Emit(events.Event{Event: events.StepWarn, App: info.ID, Step: "port",
 					Msg: fmt.Sprintf("port %d is taken, using %d", info.Port, port)})

@@ -126,7 +126,7 @@ func (s *Service) checkEasyNames(ctx context.Context, lan string) NamesCheck {
 		return NamesCheck{Problem: problemRootless, Technical: rootlessFix,
 			Message: "Docker on this computer runs without administrator rights, so it can't use port 80 and nothing was changed." + keepsWorking}
 	}
-	if !ownCaddy && !s.Deps.PortFree(80) {
+	if !ownCaddy && !host.PortAvailable(host.ProbePort(s.Deps, 80)) {
 		holder := host.PortHolder(ctx, s.Deps, 80)
 		message := "Port 80 is already in use or cannot be checked by binding, so nothing was changed."
 		if holder != "" {

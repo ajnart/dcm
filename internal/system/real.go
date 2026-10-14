@@ -97,6 +97,7 @@ func Real(version string) *Deps {
 		HomeNetwork:  homeNetwork,
 		TimeZone:     timeZone,
 		PortFree:     portFree,
+		BindTCP:      bindTCP,
 		Resolver:     newResolver(),
 		ListFolders:  ListFolders,
 		ProcessAlive: processAlive,
@@ -231,6 +232,14 @@ func portFree(port int) bool {
 		listener.Close()
 	}
 	return true
+}
+
+func bindTCP(network, address string) error {
+	listener, err := net.Listen(network, address)
+	if err != nil {
+		return err
+	}
+	return listener.Close()
 }
 
 // bindMeansBusy reports whether a failed bind says another program holds the

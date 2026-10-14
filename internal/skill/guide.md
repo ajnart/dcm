@@ -118,6 +118,7 @@ Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
 | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `self-host`                                                      | On a terminal: Onboarding until a Project exists, then the Dashboard. Without a terminal: prints help          |
 | `self-host doctor`                                               | Host, Docker and per-App checks (see "Doctor checks")                                                          |
+| `self-host host report`                                          | Read-only OS, Docker, IPv6 and port 80/443 bind report                                                          |
 | `self-host install <app\|recipe>...`                             | Install Apps or Recipes and run Setup                                                                          |
 | `self-host setup [app...]`                                       | Rerun Setup; finished steps are skipped                                                                        |
 | `self-host status`                                               | A plain summary, then Access, Host settings, every App's URL, state, Setup                                     |

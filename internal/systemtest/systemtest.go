@@ -6,10 +6,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -241,6 +244,20 @@ func NewDeps(t *testing.T, opts ...Option) *system.Deps {
 		WithEnvironment(f.env).
 		WithAccounts(f.accounts).
 		WithResolver(f.resolver)
+	deps.BindTCP = func(_ string, address string) error {
+		_, portText, err := net.SplitHostPort(address)
+		if err != nil {
+			return err
+		}
+		port, err := strconv.Atoi(portText)
+		if err != nil {
+			return err
+		}
+		if !deps.PortFree(port) {
+			return syscall.EADDRINUSE
+		}
+		return nil
+	}
 	if network, ok := f.network.(*Network); ok {
 		network.follow(deps.Network())
 	}
