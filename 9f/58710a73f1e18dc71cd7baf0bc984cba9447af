@@ -1,0 +1,21 @@
+internal/project/files.go
+  s_378d5db6c5f6de::t_5cd772628b1b3d 63-69
+internal/project/project.go
+  s_378d5db6c5f6de::t_a99487cc8536a2 55-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f58710a73f1e18dc71cd7baf0bc984cba9447af",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
