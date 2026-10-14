@@ -258,6 +258,7 @@ func NewDeps(t *testing.T, opts ...Option) *system.Deps {
 		}
 		return nil
 	}
+	deps.BindUDP = deps.BindTCP
 	if network, ok := f.network.(*Network); ok {
 		network.follow(deps.Network())
 	}

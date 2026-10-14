@@ -98,6 +98,7 @@ func Real(version string) *Deps {
 		TimeZone:         timeZone,
 		PortFree:         portFree,
 		BindTCP:          bindTCP,
+		BindUDP:          bindUDP,
 		DiskUsage:        diskUsage,
 		PathExists:       pathExists,
 		MachineResources: machineResources,
@@ -241,6 +242,14 @@ func portFree(port int) bool {
 
 func bindTCP(network, address string) error {
 	listener, err := net.Listen(network, address)
+	if err != nil {
+		return err
+	}
+	return listener.Close()
+}
+
+func bindUDP(network, address string) error {
+	listener, err := net.ListenPacket(network, address)
 	if err != nil {
 		return err
 	}

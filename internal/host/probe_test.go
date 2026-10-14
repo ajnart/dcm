@@ -50,3 +50,21 @@ func TestPortProbeTreatsPermissionAndUnsupportedAsInconclusive(t *testing.T) {
 		t.Fatal("permission or unsupported binds do not prove that a port is held")
 	}
 }
+
+func TestUDPPortProbeReportsAnOccupiedAddress(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	deps.BindUDP = func(_ string, address string) error {
+		if address == "127.0.0.1:53" {
+			return syscall.EADDRINUSE
+		}
+		return nil
+	}
+
+	got := host.ProbeUDPPort(deps, 53)
+	if len(got) != 3 || got[1].Network != "udp4" || got[1].Result != host.PortInUse {
+		t.Fatalf("UDP probes = %+v", got)
+	}
+	if host.PortAvailable(got) {
+		t.Fatal("UDP port reported available despite an occupied loopback address")
+	}
+}

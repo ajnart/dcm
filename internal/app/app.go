@@ -40,6 +40,10 @@ type Input struct {
 	Required bool
 	// Private inputs are stored in secrets.env, never in Project state.
 	Private bool
+	// HostPortProtocols declares a non-secret host port published by the App.
+	// Install keeps an existing or explicitly selected value and otherwise
+	// allocates the first available port from Default for every protocol.
+	HostPortProtocols []string
 	// Validate rejects an invalid public input before any apply operation.
 	Validate func(string) error `json:"-"`
 }
