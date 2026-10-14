@@ -110,6 +110,7 @@ kbd {
 .bar nav a {
   color: var(--muted);
   text-decoration: none;
+  transition: background 0.2s, color 0.2s;
 }
 
 .bar nav a:hover {
@@ -121,10 +122,6 @@ kbd {
   background: var(--accent);
   padding: 0 0.4em;
   margin: 0 -0.4em;
-}
-
-.bar nav a {
-  transition: background 0.2s, color 0.2s;
 }
 
 .ext {
@@ -145,6 +142,7 @@ kbd {
 
 .ver {
   color: var(--dim);
+  text-decoration: none;
 }
 
 .links {
@@ -418,13 +416,6 @@ h2 {
   background: var(--accent);
   color: var(--on-accent);
   font-weight: 700;
-}
-
-.tui .badge {
-  background: var(--warn);
-  color: #1e1d2a;
-  font-weight: 700;
-  padding: 0 0.5ch;
 }
 
 .tui .body {
@@ -717,9 +708,6 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-}
-
-.card {
   position: relative;
   transition: transform 0.15s, border-color 0.15s, background 0.15s;
 }
@@ -750,10 +738,6 @@ h2 {
   background: var(--accent);
 }
 
-.card .t {
-  align-items: center;
-}
-
 .card .who {
   display: flex;
   align-items: center;
@@ -771,9 +755,6 @@ h2 {
   border: 1px solid var(--line);
   font-weight: 800;
   color: var(--accent-text);
-}
-
-.ico {
   position: relative;
 }
 
@@ -794,6 +775,7 @@ h2 {
 }
 
 .card .t {
+  align-items: center;
   display: flex;
   justify-content: space-between;
   gap: 1ch;
@@ -813,6 +795,10 @@ h2 {
   color: var(--muted);
   font-size: 0.8rem;
   line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card .meta {
@@ -1013,13 +999,6 @@ h2 {
   font-weight: 700;
 }
 
-.card small {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .sel-cmd {
   grid-column: 1 / -1;
   font-size: 0.85rem;
@@ -1208,10 +1187,6 @@ h2 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
   gap: 0.5rem;
-}
-
-.notice b {
-  color: var(--warn);
 }
 
 .foot {
@@ -1526,10 +1501,6 @@ h2 {
   padding: 0;
   display: grid;
   gap: 0.4rem;
-}
-
-.ver {
-  text-decoration: none;
 }
 
 @view-transition {

@@ -118,18 +118,18 @@ bash scripts/build-installer-site.sh "$stage/deploy"
 
 `site/` is a static Astro project, built with bun (`bun install`, `bun run dev`,
 `bun run check`). Its definitions come from the Go code:
-`go run ./tools/sitecatalog` writes `site/src/data/catalog.json` from the
-Catalog. `src/lib/catalog.ts` is the one typed model of it, shared by the
+`go run ./tools/sitegen` writes `site/src/data/catalog.json` from the
+Catalog and `site/src/styles/theme.css` from the Dashboard's dark palette.
+`src/lib/catalog.ts` is the one typed model of the catalog, shared by the
 build and the browser playground; the `apps` content collection validates it
 with a schema, so a generator change that breaks the shape fails the build.
 From it Astro renders the landing page, one page per App under `/apps`,
 `/catalog.json` (read by DCM), `/llms.txt`, the sitemap and `robots.txt`.
 `go run ./tools/introframes` writes `site/public/intro.json`, the onboarding
-Intro recorded from `internal/intro`. `go run ./tools/sitetheme` writes
-`site/src/styles/theme.css`, the Dashboard's dark palette, so the site's
-accent and state colours are the CLI's. `GITHUB_TOKEN=$(gh auth token) go run
-./tools/sitestars` writes `site/src/data/stars.json`, the GitHub stars that
-order Apps by popularity; give a new App its repository in that tool, or it
+Intro recorded from `internal/intro`. The theme makes the site's
+accent and state colours the CLI's. `GITHUB_TOKEN=$(gh auth token) go run
+./tools/sitegen -stars` also writes `site/src/data/stars.json`, the GitHub stars that
+order Apps by popularity; give a new App its repository in `tools/sitegen/stars.go`, or it
 sorts last.
 
 The version the site shows is looked up at build time the way the installer

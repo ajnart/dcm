@@ -1,9 +1,9 @@
 import data from "../data/catalog.json";
 import starCounts from "../data/stars.json";
 
-export type Link = { from: string; to: string; title: string };
+type Link = { from: string; to: string; title: string };
 
-export type App = {
+type App = {
   id: string;
   name: string;
   description: string;
@@ -16,7 +16,7 @@ export type App = {
   links: Link[];
 };
 
-export type Recipe = { id: string; name: string; description: string; apps: string[] };
+type Recipe = { id: string; name: string; description: string; apps: string[] };
 
 const ICONS = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/";
 

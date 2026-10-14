@@ -54,7 +54,7 @@ type recipeJSON struct {
 	Apps        []string `json:"apps"`
 }
 
-func run() error {
+func writeCatalog() error {
 	cat := catalog.Default()
 	apps := []appJSON{}
 	for _, ap := range cat.Apps() {
@@ -83,11 +83,4 @@ func run() error {
 	}
 	fmt.Println(path)
 	return nil
-}
-
-func main() {
-	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
 }

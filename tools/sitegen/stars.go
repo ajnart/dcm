@@ -117,7 +117,7 @@ func query(ids []string) string {
 	return b.String()
 }
 
-func run() error {
+func writeStars() error {
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
 		return fmt.Errorf("set GITHUB_TOKEN to read star counts")
@@ -172,11 +172,4 @@ func run() error {
 	}
 	fmt.Println(path)
 	return nil
-}
-
-func main() {
-	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
 }
