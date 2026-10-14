@@ -25,7 +25,7 @@ import (
 )
 
 const noticeLines = "Anonymous usage data helps improve self-host: no IP, no personal data.\n" +
-	"Details: https://github.com/ajnart/self-host/wiki/Telemetry"
+	"Details: https://self-host.fyi/telemetry"
 
 func welcomeWithNotice(t *testing.T, width, height int) Model {
 	t.Helper()
@@ -211,18 +211,18 @@ func TestWelcomeAnnouncesTelemetryAndLinksTheWiki(t *testing.T) {
 func TestOtherStepsDoNotRepeatTheTelemetryNotice(t *testing.T) {
 	m := welcomeWithNotice(t, 120, 30)
 	m = drive(t, m, press("enter"))
-	if !strings.Contains(indicator(t, m), "● What") || strings.Contains(screen(m), "wiki/Telemetry") {
+	if !strings.Contains(indicator(t, m), "● What") || strings.Contains(screen(m), "self-host.fyi/telemetry") {
 		t.Fatalf("the What step should not carry the notice\n%s", screen(m))
 	}
 	m = drive(t, m, press("esc"))
-	if !strings.Contains(screen(m), "https://github.com/ajnart/self-host/wiki/Telemetry") {
+	if !strings.Contains(screen(m), "https://self-host.fyi/telemetry") {
 		t.Fatalf("coming back to Welcome should show the same notice\n%s", screen(m))
 	}
 }
 
 func TestWelcomeHasNoNoticeOnceItWasShown(t *testing.T) {
 	m, _ := freshHost(t)
-	if strings.Contains(screen(m), "wiki/Telemetry") {
+	if strings.Contains(screen(m), "self-host.fyi/telemetry") {
 		t.Fatalf("Welcome carries a notice the backend did not announce\n%s", screen(m))
 	}
 }

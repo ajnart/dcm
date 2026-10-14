@@ -24,8 +24,8 @@ Every value comes from a fixed set or is a flag or a duration; no free text
 travels. Nothing is sent if Onboarding is quit before approval, and nothing
 is sent before the first-run notice. Every off switch of ADR 0006 applies:
 `SELF_HOST_NO_TELEMETRY=1`, `DO_NOT_TRACK=1`, CI and development builds.
-Everything else in ADR 0006 stands, including its never-sent list. The wiki's
-Telemetry page lists the event and the person property.
+Everything else in ADR 0006 stands, including its never-sent list. The telemetry
+page lists the event and the person property.
 
 Abandoned Onboarding and drop-off funnels stay out of scope: they would need
 events before approval, which the notice promise forbids.

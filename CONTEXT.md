@@ -170,7 +170,7 @@ network and volume have unique names and are removed before the report ends.
 **Telemetry**:
 Anonymous usage and error data sent to the project's PostHog (through
 `hog.ajnart.dev`), on by default in releases and announced on first run with a
-link to the wiki, not an off-switch prompt. It carries a random install ID
+link to the telemetry page, not an off-switch prompt. It carries a random install ID
 (kept in the user config folder, migrated from the Home folder and never
 derived from the machine), version, OS and architecture, command names,
 App and Recipe IDs, the Access choice, step IDs, outcomes and durations,

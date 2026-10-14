@@ -301,11 +301,11 @@ func TestTheNoticeIsAnnouncedOnlyWhenWelcomeShows(t *testing.T) {
 	backend.telemetryNotice = noticeLines
 	m = update(t, m, doctorMsg{checks: readyChecks})
 	m = frames(t, m, 60)
-	if backend.telemetryNotice == "" || strings.Contains(screen(m), "wiki/Telemetry") {
+	if backend.telemetryNotice == "" || strings.Contains(screen(m), "self-host.fyi/telemetry") {
 		t.Fatal("the Intro must not announce Telemetry")
 	}
 	m = frames(t, m, introFrames)
-	if backend.telemetryNotice != "" || !strings.Contains(screen(m), "wiki/Telemetry") {
+	if backend.telemetryNotice != "" || !strings.Contains(screen(m), "self-host.fyi/telemetry") {
 		t.Fatalf("Welcome announces Telemetry\n%s", screen(m))
 	}
 }

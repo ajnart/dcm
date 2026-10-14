@@ -38,12 +38,12 @@ const (
 	NoKey = "development"
 	// EnvOptOut turns Telemetry off when it is 1, like DO_NOT_TRACK.
 	EnvOptOut = "SELF_HOST_NO_TELEMETRY"
-	WikiURL   = "https://github.com/ajnart/self-host/wiki/Telemetry"
+	DocsURL   = "https://self-host.fyi/telemetry"
 
 	// Notice is the sentence a plain command prints once; NoticeShort is the
 	// two lines Onboarding's Welcome step shows. Neither names an off switch.
-	Notice      = "Anonymous usage data helps improve self-host: no IP, no personal data. Details: " + WikiURL
-	NoticeShort = "Anonymous usage data helps improve self-host: no IP, no personal data.\nDetails: " + WikiURL
+	Notice      = "Anonymous usage data helps improve self-host: no IP, no personal data. Details: " + DocsURL
+	NoticeShort = "Anonymous usage data helps improve self-host: no IP, no personal data.\nDetails: " + DocsURL
 
 	idFile     = "telemetry-id"
 	noticeFile = "telemetry-notice"

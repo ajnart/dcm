@@ -426,10 +426,10 @@ func TestNoNoticeWhenTelemetryIsOff(t *testing.T) {
 }
 
 func TestTheNoticeLinksTheWikiAndNamesNoOffSwitch(t *testing.T) {
-	const wiki = "https://github.com/ajnart/self-host/wiki/Telemetry"
+	const page = "https://self-host.fyi/telemetry"
 	for name, notice := range map[string]string{"Notice": telemetry.Notice, "NoticeShort": telemetry.NoticeShort} {
-		if !strings.Contains(notice, wiki) {
-			t.Errorf("%s = %q, want it to link %s", name, notice, wiki)
+		if !strings.Contains(notice, page) {
+			t.Errorf("%s = %q, want it to link %s", name, notice, page)
 		}
 		for _, banned := range []string{"SELF_HOST_NO_TELEMETRY", "DO_NOT_TRACK", "Turn off", "turn it off", "opt out"} {
 			if strings.Contains(notice, banned) {

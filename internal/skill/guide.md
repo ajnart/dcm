@@ -632,7 +632,7 @@ steps send fixed-text logs, never App logs. Never absolute paths, host names,
 inputs, secrets, App data or raw error text. It is on by default in releases,
 announced once, and usage sending waits at most 500 ms without failing a command.
 The random ID lives in the user config folder and survives Home-folder deletion.
-Details: https://github.com/ajnart/self-host/wiki/Telemetry.
+Details: https://self-host.fyi/telemetry.
 
 Only when the person asks how to turn Telemetry off, explain
 `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. It is always off when `CI` is set

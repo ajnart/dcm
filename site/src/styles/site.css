@@ -1557,3 +1557,26 @@ h2 {
     transform: translateY(8px);
   }
 }
+
+.prose {
+  max-width: 76ch;
+}
+
+.prose h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  margin: 1rem 0 1.5rem;
+}
+
+.prose h2 {
+  margin: 2.2rem 0 0.6rem;
+  font-size: 1.15rem;
+  color: var(--accent-text);
+}
+
+.prose ul {
+  padding-left: 2ch;
+}
+
+.prose li {
+  margin: 0.25rem 0;
+}
