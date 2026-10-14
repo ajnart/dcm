@@ -101,23 +101,65 @@ kbd {
   backdrop-filter: blur(6px);
 }
 
-.bar nav {
+.bar .pages {
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
 }
 
-.bar nav a {
+.bar .pages a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.bar .pages a:hover,
+.bar .pages a[aria-current] {
+  color: var(--accent-text);
+}
+
+.landing {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: 2rem;
+  max-width: 86rem;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3rem);
+}
+
+.landing > main {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc {
+  position: sticky;
+  top: 3.5rem;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 4.5rem;
+  font-size: 0.85rem;
+}
+
+.toc-title {
+  color: var(--dim);
+  font-size: 0.75rem;
+  margin-bottom: 0.3rem;
+}
+
+.toc a {
   color: var(--muted);
   text-decoration: none;
   transition: background 0.2s, color 0.2s;
+  width: fit-content;
 }
 
-.bar nav a:hover {
+.toc a:hover {
   color: var(--ink);
 }
 
-.bar nav a.on {
+.toc a.on {
   color: var(--on-accent);
   background: var(--accent);
   padding: 0 0.4em;
@@ -1233,11 +1275,46 @@ h2 {
   padding-block: 1rem;
 }
 
+@media (max-width: 1100px) {
+  .landing {
+    display: block;
+    padding: 0;
+  }
+  .landing > main {
+    padding: 0 clamp(1rem, 4vw, 3rem);
+  }
+  .toc {
+    top: calc(2.6rem + 1px);
+    z-index: 4;
+    flex-direction: row;
+    gap: 1rem;
+    padding: 0.4rem clamp(1rem, 4vw, 3rem);
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: color-mix(in oklab, var(--bg) 92%, transparent);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(6px);
+  }
+  .toc a {
+    flex: none;
+  }
+  .toc-title {
+    display: none;
+  }
+  .ext a:not(.ver) {
+    display: none;
+  }
+  section,
+  .term {
+    scroll-margin-top: 5.5rem;
+  }
+}
+
 @media (max-width: 860px) {
   .hero,
   .section-head,
   .split {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .hero {
     padding-top: 2.5rem;
@@ -1269,17 +1346,6 @@ h2 {
   .bar:not(.foot) {
     flex-wrap: wrap;
     row-gap: 0.35rem;
-  }
-  .bar nav {
-    order: 3;
-    flex: 1 0 100%;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 0.15rem;
-  }
-  .bar nav a {
-    flex: none;
   }
   .ext {
     gap: 0.6rem;

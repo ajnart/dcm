@@ -37,10 +37,25 @@ const jsonld = {
     },
   ],
 };
+const toc = [
+  ["reel", "watch"],
+  ["play", "play"],
+  ["apps", "apps"],
+  ["links", "links"],
+  ["how", "how"],
+  ["agents", "agents"],
+  ["install", "install"],
+  ["support", "support"],
+];
 ---
 
 <Base title="self-host · run your own Apps" description={description} video jsonld={jsonld}>
 
+      <div class="landing">
+      <nav class="toc" id="toc" aria-label="On this page">
+        <span class="toc-title">on this page</span>
+        {toc.map(([id, label]) => <a href={`#${id}`}>{label}</a>)}
+      </nav>
       <main>
         <section class="hero">
           <div>
@@ -49,8 +64,8 @@ const jsonld = {
             <p class="lede">Installs self-hosted Apps, signs them in, and wires them to each other. A terminal Dashboard for you, <code>--json</code> for your agent.</p>
             <div class="cta">
               <a class="btn primary" href="#play">▶ try it</a>
+              <a class="btn" href="/docs">read the docs →</a>
               <a class="btn" href="#reel">watch · 30 s</a>
-              <a class="btn" href="#apps">apps</a>
               <a class="btn star" href={LINKS.github} target="_blank" rel="noopener"><span aria-hidden="true">★</span> star on GitHub</a>
             </div>
             <div class="hero-install">
@@ -177,6 +192,7 @@ const jsonld = {
           </div>
         </section>
       </main>
+      </div>
 
       <dialog class="palette" id="palette" aria-label="Search Apps and actions">
         <div class="phead">

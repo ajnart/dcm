@@ -80,7 +80,7 @@ async function autoplay() {
 $("#demo").addEventListener("click", autoplay);
 
 function scrollSpy() {
-  const links = [...document.querySelectorAll("#nav a")];
+  const links = [...document.querySelectorAll("#toc a")];
   const sections = links.map((a) => document.getElementById(a.hash.slice(1)));
   let pinned = -1;
   const mark = (current) => links.forEach((a, i) => a.classList.toggle("on", i === current));

@@ -19,14 +19,15 @@
 
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root) {
-    animation: 160ms ease-in both vt-out;
+    animation: 200ms cubic-bezier(0.4, 0, 1, 1) both vt-out;
   }
   ::view-transition-new(root) {
-    animation: 220ms ease-out both vt-in;
+    animation: 340ms cubic-bezier(0.2, 0.8, 0.2, 1) 60ms both vt-in;
   }
   ::view-transition-group(site-header),
   ::view-transition-group(site-logo) {
-    animation-duration: 220ms;
+    animation-duration: 340ms;
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 }
 
@@ -39,13 +40,15 @@
 @keyframes vt-out {
   to {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(-16px) scale(0.99);
+    filter: blur(2px);
   }
 }
 
 @keyframes vt-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(24px);
+    filter: blur(2px);
   }
 }
