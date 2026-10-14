@@ -11,6 +11,9 @@ import (
 )
 
 func TestPassboltApplicationMetadataExecutablePrivacy(t *testing.T) {
+	if !strings.Contains(passboltApplicationMetadataPHP, `mysql:host=passbolt-db;`) || strings.Contains(passboltApplicationMetadataPHP, `mysql:host=db;`) {
+		t.Fatal("datasource probe must connect to the validated Passbolt Compose service")
+	}
 	php, err := exec.LookPath("php")
 	if err != nil {
 		t.Skip("PHP executable unavailable for syntax/privacy fixture")
@@ -66,7 +69,7 @@ func TestPassboltApplicationMetadataWrapperRejectsExpandedAccess(t *testing.T) {
 	if exec.CommandContext(ctx, wrapper, append(append([]string{}, prefix...), passboltApplicationMetadataPHP)...).Run() != nil {
 		t.Fatal("exact fixed application metadata denied")
 	}
-	for _, code := range []string{`echo getenv("DATASOURCES_DEFAULT_PASSWORD");`, passboltApplicationMetadataPHP + `echo file_get_contents("/etc/passbolt/gpg/serverkey_private.asc");`, strings.ReplaceAll(passboltApplicationMetadataPHP, "mysql:host=db;", "mysql:host=unowned.invalid;"), strings.ReplaceAll(passboltApplicationMetadataPHP, "SELECT 1", "DELETE FROM users")} {
+	for _, code := range []string{`echo getenv("DATASOURCES_DEFAULT_PASSWORD");`, passboltApplicationMetadataPHP + `echo file_get_contents("/etc/passbolt/gpg/serverkey_private.asc");`, strings.ReplaceAll(passboltApplicationMetadataPHP, "mysql:host=passbolt-db;", "mysql:host=unowned.invalid;"), strings.ReplaceAll(passboltApplicationMetadataPHP, "SELECT 1", "DELETE FROM users")} {
 		if exec.CommandContext(ctx, wrapper, append(append([]string{}, prefix...), code)...).Run() == nil {
 			t.Fatal("expanded key/env/network/write access allowed")
 		}

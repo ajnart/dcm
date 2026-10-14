@@ -59,6 +59,9 @@ func writePassboltFixture(root, binary string, port int) (*passboltFixtureFiles,
 			return nil, err
 		}
 	}
+	if err := os.WriteFile(filepath.Join(dir, "fpm-metadata.php"), []byte(passboltFPMMetadataPHP), 0644); err != nil {
+		return nil, err
+	}
 	source, err := os.Open(binary)
 	if err != nil {
 		return nil, err
@@ -99,7 +102,10 @@ func (f *passboltFixtureFiles) compose() (string, error) {
 				"PASSBOLT_PLUGINS_SMTP_SETTINGS_SECURITY_SSL_VERIFY_PEER_NAME":  "true",
 				"PASSBOLT_PLUGINS_SMTP_SETTINGS_SECURITY_SSL_ALLOW_SELF_SIGNED": "false",
 			},
-			"volumes": []any{map[string]any{"type": "bind", "source": f.caFile, "target": "/fixture-ca.pem", "read_only": true}},
+			"volumes": []any{
+				map[string]any{"type": "bind", "source": f.caFile, "target": "/fixture-ca.pem", "read_only": true},
+				map[string]any{"type": "bind", "source": filepath.Join(f.dir, "fpm-metadata.php"), "target": "/usr/share/php/passbolt/webroot/selfhost-fpm-metadata.php", "read_only": true},
+			},
 		},
 	}}
 	data, err := yaml.Marshal(document)
