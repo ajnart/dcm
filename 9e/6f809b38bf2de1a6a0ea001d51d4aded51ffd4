@@ -1,0 +1,21 @@
+site/src/lib/site.ts
+  s_378d5db6c5f6de::t_8799bc3ef07eaa 7
+site/src/pages/llms.txt.ts
+  s_378d5db6c5f6de::t_448040bdcb84d5 3,13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9e6f809b38bf2de1a6a0ea001d51d4aded51ffd4",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
