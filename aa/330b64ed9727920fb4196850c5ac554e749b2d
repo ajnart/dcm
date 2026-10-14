@@ -1,0 +1,23 @@
+site/src/components/CodeBlock.astro
+  s_00d9eee545672e::t_cb8cee9d0a15a9 5,17-21,24,43-46
+site/src/lib/site.ts
+  s_00d9eee545672e::t_436f300e01ae96 7-8,11
+site/src/pages/llms.txt.ts
+  s_00d9eee545672e::t_49e03366d205ff 3,13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aa330b64ed9727920fb4196850c5ac554e749b2d",
+  "prompts": {},
+  "sessions": {
+    "s_00d9eee545672e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12fc3-6532-7483-af9d-07e71149ec51",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
