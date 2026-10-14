@@ -40,5 +40,6 @@ export const LINKS = {
   discord: "https://discord.gg/aCsmEV5RgA",
   sponsor: "https://github.com/sponsors/ajnart",
   kofi: "https://ko-fi.com/ajnart",
+  awesome: "https://github.com/awesome-selfhosted/awesome-selfhosted",
   dcm: "https://compose.ajnart.dev/?ref=selfhost",
 };

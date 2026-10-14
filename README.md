@@ -10,7 +10,7 @@
 
 [Website](https://self-host.fyi) · [Try it in the browser](https://self-host.fyi/#play) · [Discord](https://discord.gg/aCsmEV5RgA) · [Agent docs](https://self-host.fyi/llms.txt)
 
-[![Watch the showreel](docs/assets/reel-poster.jpg)](https://self-host.fyi/#reel)
+[![self-host: Your Apps. Your home. One binary. Watch the showreel.](docs/assets/social-card.png)](https://self-host.fyi/#reel)
 
 ## 30 seconds setup
 
@@ -18,6 +18,7 @@ Needs Docker with the Compose v2 plugin. Linux, macOS, or Windows through WSL.
 
 ```bash
 curl -fsSL https://self-host.fyi/install | bash
+# or: wget -qO- https://self-host.fyi/install | bash
 export PATH="$HOME/.local/bin:$PATH"
 self-host doctor
 ```
@@ -31,7 +32,7 @@ self-host
 
 On a machine with no Project, bare `self-host` opens Onboarding: it checks Docker, then checks Home-folder disk space and the selected Apps' ports at Review. It asks one thing at a time and writes nothing until you approve the plan. The Dashboard has five tabs: Overview, Apps, Activity, Catalog, Settings. `?` lists the keys. No single key changes an App; the Action menu (`a`) shows what each Action will do and runs it on `enter`.
 
-The Catalog ships inside the binary: **93 Apps, 20 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
+The Catalog ships inside the binary: **93 Apps, 19 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
 
 ![Actual self-host Dashboard showing Homarr, Jellyfin and ntfy with Setup details](docs/images/dashboard.png)
 
@@ -110,7 +111,7 @@ less install.sh && bash install.sh
 Pick the archive for your system from [GitHub Releases](https://github.com/ajnart/self-host/releases): `self-host_<version>_<os>_<arch>.tar.gz` for `linux` or `darwin`, `amd64` or `arm64`.
 
 ```bash
-VERSION=0.3.1   # no leading v; see the latest release
+VERSION=X.Y.Z   # set to the latest release (no leading v): https://github.com/ajnart/self-host/releases/latest
 OS=linux        # or darwin
 ARCH=amd64      # or arm64
 BASE=https://github.com/ajnart/self-host/releases/download/v$VERSION
@@ -159,7 +160,7 @@ Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link
 | Seerr          | Jellyfin, Sonarr, Radarr                          |
 | Homarr         | native tiles and widgets for the Apps it supports |
 
-A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links target Homarr **2.4.1**; other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
+A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links need Homarr **2.4.1** or newer; NZBGet and SABnzbd Links need **2.5.1** or **2.5.2**. Other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
 
 ## Commands
 
@@ -182,6 +183,8 @@ Prefix with `self-host`. `--verbose` (`-v`) adds detail. `--yes` authorizes an a
 | `config review [--yes]`                              | Review Host drift; `--yes` applies detected LAN address and time zone fixes.                             |
 | `access export --format caddy\|nginx\|traefik\|json` | Print each App's upstream for your own reverse proxy. Changes nothing.                                   |
 | `backup`, `restore`                                  | See [Backup and Restore](#backup-and-restore).                                                           |
+| `apps request <name> [--url URL]`                    | For agents: report an App the Catalog lacks (one anonymous Telemetry event; people open an issue).       |
+| `feedback [-m text] [--app app]`                     | Send a report to the maintainers; shows the masked text and asks y/n first.                              |
 | `self-update`                                        | Replace the binary with the latest checksummed release.                                                  |
 
 `host report --json` has schema version `1`. It returns `os`, `architecture`,
@@ -298,11 +301,11 @@ self-host installs and connects software; what you do with it is your choice and
 
 ## Telemetry
 
-Anonymous Onboarding, error and agent App-request data, with no stored ID, used only by the maintainers and never sold or shared; on by default in releases, never in CI or development builds. Opt out with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. What is sent: [telemetry page](https://self-host.fyi/telemetry).
+Anonymous Onboarding, error, agent App-request and approved feedback data, with no stored ID, used only by the maintainers and never sold or shared; on by default in releases, never in CI or development builds. Opt out with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. What is sent: [telemetry page](https://self-host.fyi/telemetry).
 
 ## What is supported
 
-[Runtime matrix](docs/runtime-matrix.md) ([JSON](docs/runtime-matrix.json)) over all 113 targets: **97 pass, 3 fail, 8 await external credentials, 5 manual.** Each result belongs to its recorded head, binary, image IDs and platform; mixed-head passes do not verify every App on the current binary.
+[Runtime matrix](docs/runtime-matrix.md) ([JSON](docs/runtime-matrix.json)) over all 113 targets (a 2026-10-07 snapshot, pending the launch runs in the "Public launch" milestone): **97 pass, 3 fail, 8 await external credentials, 5 manual.** Each result belongs to its recorded head, binary, image IDs and platform; mixed-head passes do not verify every App on the current binary.
 
 - **Failed on the test host:** BookStack, Speedtest Tracker, Passbolt ([PHP-FPM evidence](docs/php-fpm-host-limit.md)). Have the host administrator review PHP-FPM bootstrap access before retrying Setup.
 - **Manual setup:** Dockge, Emby, Stalwart, Uptime Kuma and the monitoring Recipe. Provider accounts, VPN credentials, tunnel enrollment and licenses stay owner-supplied.
@@ -312,5 +315,6 @@ Anonymous Onboarding, error and agent App-request data, with no stored ID, used 
 ## Community
 
 - [Discord](https://discord.gg/aCsmEV5RgA): questions, show and tell.
+- [awesome-selfhosted](https://github.com/awesome-selfhosted/awesome-selfhosted): learn more about self-hosting.
 - [Issues](https://github.com/ajnart/self-host/issues): bugs and App requests.
 - Support the work: [GitHub Sponsors](https://github.com/sponsors/ajnart) · [Ko-fi](https://ko-fi.com/ajnart).
