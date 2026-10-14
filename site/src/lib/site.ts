@@ -24,6 +24,7 @@ curl -fsSLO $BASE/self-host_\${VERSION}_\${OS}_\${ARCH}.tar.gz -O $BASE/checksum
 sha256sum -c --ignore-missing checksums.txt   # macOS: shasum -a 256 -c --ignore-missing checksums.txt
 tar -xzf self-host_\${VERSION}_\${OS}_\${ARCH}.tar.gz self-host && mkdir -p ~/.local/bin && mv self-host ~/.local/bin/`,
   },
+  { label: "AUR", code: "yay -S self-host-bin   # Arch Linux; or: paru -S self-host-bin" },
   {
     label: "from source",
     code: `git clone https://github.com/ajnart/self-host && cd self-host

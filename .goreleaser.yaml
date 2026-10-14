@@ -36,3 +36,26 @@ checksum:
 
 changelog:
   disable: true
+
+# goreleaser only writes the AUR PKGBUILD into dist/aur/; scripts/publish-aur.sh
+# pushes it once the vX.Y.Z release is public.
+aurs:
+  - name: self-host-bin
+    ids: [self-host]
+    homepage: https://self-host.fyi
+    description: Install and operate self-hosted apps with Docker Compose from one Go binary
+    license: Apache-2.0
+    maintainers:
+      - "Thomas <thomas at ajnart dot fr>"
+    git_url: ssh://aur@aur.archlinux.org/self-host-bin.git
+    url_template: "https://github.com/ajnart/self-host/releases/download/v{{ .Version }}/{{ .ArtifactName }}"
+    skip_upload: true
+    provides: [self-host]
+    conflicts: [self-host]
+    depends: []
+    optdepends:
+      - "docker: runs the Apps"
+      - "docker-compose: Compose v2 plugin the Apps run on"
+    package: |-
+      install -Dm755 "./self-host" "${pkgdir}/usr/bin/self-host"
+      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/self-host-bin/LICENSE"

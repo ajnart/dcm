@@ -47,7 +47,7 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 Build the same archives with the same pinned goreleaser:
 
 ```bash
-SELF_HOST_RELEASE_VERSION=X.Y.Z go run github.com/goreleaser/goreleaser/v2@v2.12.7 release --snapshot --clean
+SELF_HOST_RELEASE_VERSION=X.Y.Z go run github.com/goreleaser/goreleaser/v2@v2.18.3 release --snapshot --clean
 ```
 
 Then follow what the workflow does: draft, download, compare, publish.
@@ -65,6 +65,32 @@ gh release edit vX.Y.Z --draft=false --latest
 
 `gh release create` of a draft with `--target main` makes the tag when the
 release is published; no separate `git tag` is needed.
+
+## AUR package
+
+`self-host-bin` on the [AUR](https://aur.archlinux.org/packages/self-host-bin)
+installs the `vX.Y.Z` Linux archives (`x86_64`, `aarch64`) with
+`yay -S self-host-bin`. Every goreleaser run writes its `PKGBUILD` and `.SRCINFO`,
+pinned to that run's archive hashes, into `dist/aur/`; goreleaser never pushes
+them. Once the `vX.Y.Z` release is published, push the ones built with it:
+
+```bash
+scripts/publish-aur.sh X.Y.Z
+```
+
+The script works from any directory. It refuses a `dist/aur/` built for another
+version, a release that is still a draft, and a `dist/checksums.txt` that differs
+from the published one. The `new-cli-vX.Y.Z` twin is never published to the AUR. The
+package only installs once the release assets are anonymously downloadable
+([#295](https://github.com/ajnart/self-host/issues/295)).
+
+### One-time maintainer setup
+
+1. Create an account at <https://aur.archlinux.org/register>.
+2. Add an SSH public key under _My Account → SSH Public Key_, and point
+   `aur.archlinux.org` at its private half in `~/.ssh/config`
+   (`Host aur.archlinux.org`, `User aur`, `IdentityFile ~/.ssh/aur`).
+3. The first `scripts/publish-aur.sh` run claims the empty `self-host-bin` repo.
 
 ## Verify
 

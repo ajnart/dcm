@@ -106,7 +106,15 @@ curl -fsSL https://self-host.fyi/install.sh.sha256   # compare with: shasum -a 2
 less install.sh && bash install.sh
 ```
 
-### 2. Manual download
+### 2. Arch Linux (AUR)
+
+```bash
+yay -S self-host-bin   # or: paru -S self-host-bin
+```
+
+Installs the release binary to `/usr/bin/self-host`; update it with your AUR helper (`self-host self-update` is for the script and manual installs). Needs Docker and the Compose v2 plugin (`docker`, `docker-compose`).
+
+### 3. Manual download
 
 Pick the archive for your system from [GitHub Releases](https://github.com/ajnart/self-host/releases): `self-host_<version>_<os>_<arch>.tar.gz` for `linux` or `darwin`, `amd64` or `arm64`.
 
@@ -128,7 +136,7 @@ mkdir -p ~/.local/bin && mv self-host ~/.local/bin/
 
 Do not run the binary if the checksum check fails.
 
-### 3. Build from source
+### 4. Build from source
 
 Needs Go 1.26.0+.
 
