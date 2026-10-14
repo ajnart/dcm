@@ -1,0 +1,21 @@
+README.md
+  s_378d5db6c5f6de::t_16ee9cee9df83d 34,295-298
+internal/skill/guide.md
+  s_378d5db6c5f6de::t_b3e9946ecfda27 663-671
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f9b34dbd4843aac7c59a946cf4beb518db0019c2",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
