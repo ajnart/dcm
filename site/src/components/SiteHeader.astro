@@ -1,21 +1,10 @@
 ---
-import { LINKS, VERSION } from "../lib/site";
-
-const pages = [
-  { href: "/docs", label: "docs" },
-  { href: "/apps", label: "apps" },
-];
-const here = Astro.url.pathname;
+import ExtLinks from "./ExtLinks.astro";
+import PageLinks from "./PageLinks.astro";
 ---
 
 <header class="bar">
   <a class="tag" href="/" aria-label="self-host home">◆ self-host</a>
-  <nav aria-label="Pages" class="pages">
-    {pages.map((p) => <a href={p.href} aria-current={here.startsWith(p.href) ? "page" : undefined}>{p.label}</a>)}
-  </nav>
-  <span class="ext">
-    <a href={LINKS.github}>github ↗</a>
-    <a href={LINKS.discord}>discord ↗</a>
-    <a href={LINKS.releases} class="ver" title="Latest CLI release">v{VERSION}</a>
-  </span>
+  <PageLinks />
+  <ExtLinks />
 </header>

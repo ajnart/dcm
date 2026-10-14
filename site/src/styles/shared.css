@@ -1,0 +1,148 @@
+.codeblock select.variant {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--ink);
+  background: var(--deep);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+}
+
+.codeblock select.variant:focus-visible {
+  outline: 1px solid var(--accent);
+}
+
+.codeblock {
+  margin: 0;
+  border: 1px solid var(--line);
+  background: var(--deep);
+  max-width: 48rem;
+  min-width: 0;
+}
+
+.codeblock figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0.3rem 0.3rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.copybtn {
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 0.15rem 0.7rem;
+  cursor: pointer;
+}
+
+.copybtn:hover,
+.copybtn:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.copybtn.done {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.codeblock pre {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.codeblock pre.language-text {
+  white-space: pre-wrap;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.codeblock code {
+  color: var(--ink);
+}
+
+.codeblock .line {
+  display: block;
+}
+
+.codeblock pre.language-bash .line:not(.nop)::before {
+  content: "$ ";
+  color: var(--dim);
+}
+
+.codeblock .token.function {
+  color: var(--info);
+}
+
+.codeblock .token.parameter,
+.codeblock .token.operator {
+  color: var(--accent-text);
+}
+
+.codeblock .token.string,
+.codeblock .token.url {
+  color: var(--ok);
+}
+
+.codeblock .token.comment {
+  color: var(--dim);
+}
+
+.codeblock .token.keyword,
+.codeblock .token.builtin {
+  color: var(--accent-text);
+}
+
+.pages {
+  display: flex;
+  gap: 1rem;
+}
+
+.pages a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.pages a:hover,
+.pages a[aria-current] {
+  color: var(--accent-text);
+}
+
+.ext {
+  margin-left: auto;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.ext a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.ext a:hover {
+  color: var(--accent-text);
+}
+
+.ver {
+  color: var(--dim);
+  text-decoration: none;
+}
+
+.tag {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 800;
+  padding: 0 0.5em;
+  text-decoration: none;
+}

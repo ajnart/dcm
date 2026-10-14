@@ -18,16 +18,14 @@ export default defineConfig({
       favicon: "/logo.svg",
       disable404Route: true,
       expressiveCode: false,
-      social: [
-        { icon: "github", label: "GitHub", href: "https://github.com/ajnart/self-host" },
-        { icon: "discord", label: "Discord", href: "https://discord.gg/aCsmEV5RgA" },
-      ],
-      customCss: ["./src/styles/theme.css", "./src/styles/transitions.css", "./src/styles/docs.css"],
+      customCss: ["./src/styles/theme.css", "./src/styles/shared.css", "./src/styles/transitions.css", "./src/styles/docs.css"],
       components: {
         SiteTitle: "./src/components/docs/SiteTitle.astro",
         ThemeProvider: "./src/components/docs/Empty.astro",
         ThemeSelect: "./src/components/docs/Empty.astro",
         Footer: "./src/components/docs/Footer.astro",
+        SocialIcons: "./src/components/docs/SocialIcons.astro",
+        MarkdownContent: "./src/components/docs/MarkdownContent.astro",
       },
       routeMiddleware: "./src/lib/docs-route.ts",
       head: [

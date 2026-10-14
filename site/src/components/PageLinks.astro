@@ -1,0 +1,11 @@
+---
+const pages = [
+  { href: "/docs", label: "docs" },
+  { href: "/apps", label: "apps" },
+];
+const here = Astro.url.pathname;
+---
+
+<nav aria-label="Pages" class="pages">
+  {pages.map((p) => <a href={p.href} aria-current={here.startsWith(p.href) ? "page" : undefined}>{p.label}</a>)}
+</nav>

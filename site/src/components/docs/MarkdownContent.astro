@@ -1,0 +1,8 @@
+---
+import Default from "@astrojs/starlight/components/MarkdownContent.astro";
+import { codeblocks } from "../../lib/codeblock.mjs";
+
+const html = codeblocks(await Astro.slots.render("default"));
+---
+
+<Default><Fragment set:html={html} /></Default>

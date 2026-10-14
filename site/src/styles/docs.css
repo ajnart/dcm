@@ -69,22 +69,8 @@ body {
   font-size: 1rem;
 }
 
-.site-title .tag {
-  background: var(--accent);
-  color: var(--on-accent);
-  font-weight: 800;
-  padding: 0 0.5em;
-  text-decoration: none;
-}
-
-.site-title .docs-home {
-  color: var(--muted);
+.site-title .pages {
   font-weight: 400;
-  text-decoration: none;
-}
-
-.site-title .docs-home:hover {
-  color: var(--ink);
 }
 
 .sl-markdown-content h2 {
@@ -96,12 +82,13 @@ body {
   padding: 0 0.25em;
 }
 
-.sl-markdown-content pre {
-  border: 1px solid var(--line);
-  background: var(--deep);
-  padding: 0.9rem 1rem;
-  overflow-x: auto;
-  color: var(--ink);
+.sl-markdown-content .codeblock {
+  max-width: none;
+}
+
+.sl-markdown-content .codeblock pre {
+  border: 0;
+  margin: 0;
 }
 
 .sl-markdown-content table {

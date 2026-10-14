@@ -1,6 +1,5 @@
 ---
-import Prism from "prismjs";
-import "prismjs/components/prism-bash.js";
+import { highlightLines } from "../lib/codeblock.mjs";
 
 type Variant = { label: string; code: string; lang?: string };
 
@@ -14,15 +13,6 @@ interface Props {
 
 const { code = "", lang = "bash", label, id } = Astro.props;
 const variants = Astro.props.variants ?? [{ label: label ?? lang, code }];
-const highlight = (line: string, l: string) => {
-  const grammar = Prism.languages[l];
-  return grammar ? Prism.highlight(line, grammar, l) : Prism.util.encode(line).toString();
-};
-const html = (text: string, l: string) =>
-  text
-    .split("\n")
-    .map((line) => `<span class="line">${highlight(line, l)}</span>`)
-    .join("");
 ---
 
 <figure class="codeblock" id={id}>
@@ -42,37 +32,10 @@ const html = (text: string, l: string) =>
   </figcaption>
   {variants.map((v, i) => {
     const l = v.lang ?? lang;
-    return <pre class={`language-${l}`} data-code={v.code} hidden={i > 0}><code class={`language-${l}`} set:html={html(v.code, l)} /></pre>;
+    return <pre class={`language-${l}`} data-code={v.code} hidden={i > 0}><code class={`language-${l}`} set:html={highlightLines(v.code, l)} /></pre>;
   })}
 </figure>
 
 <script>
-  import { copy } from "../scripts/util.js";
-
-  for (const select of document.querySelectorAll<HTMLSelectElement>(".codeblock select.variant")) {
-    select.addEventListener("change", () => {
-      const block = select.closest(".codeblock");
-      const pres = block?.querySelectorAll<HTMLPreElement>("pre[data-code]") ?? [];
-      pres.forEach((pre, i) => (pre.hidden = i !== select.selectedIndex));
-      const button = block?.querySelector<HTMLButtonElement>("[data-copy]");
-      if (button) button.dataset.copy = pres[select.selectedIndex]?.dataset.code ?? "";
-    });
-  }
-
-  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
-    button.addEventListener("click", async () => {
-      const code = button.closest(".codeblock")?.querySelector("pre:not([hidden]) code");
-      let ok = await copy(button.dataset.copy ?? "");
-      if (!ok && code) {
-        getSelection()?.selectAllChildren(code);
-        ok = document.execCommand("copy");
-      }
-      button.textContent = ok ? "copied" : "select it";
-      button.classList.toggle("done", ok);
-      setTimeout(() => {
-        button.textContent = "copy";
-        button.classList.remove("done");
-      }, 1500);
-    });
-  }
+  import "../scripts/codeblock.js";
 </script>
