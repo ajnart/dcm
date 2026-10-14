@@ -125,7 +125,9 @@ with a schema, so a generator change that breaks the shape fails the build.
 From it Astro renders the landing page, one page per App under `/apps`,
 `/catalog.json` (read by DCM), `/llms.txt`, the sitemap and `robots.txt`.
 `go run ./tools/introframes` writes `site/public/intro.json`, the onboarding
-Intro recorded from `internal/intro`. `GITHUB_TOKEN=$(gh auth token) go run
+Intro recorded from `internal/intro`. `go run ./tools/sitetheme` writes
+`site/src/styles/theme.css`, the Dashboard's dark palette, so the site's
+accent and state colours are the CLI's. `GITHUB_TOKEN=$(gh auth token) go run
 ./tools/sitestars` writes `site/src/data/stars.json`, the GitHub stars that
 order Apps by popularity; give a new App its repository in that tool, or it
 sorts last.

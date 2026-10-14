@@ -1,7 +1,8 @@
 import { $, reduced, sleep } from "./util.js";
 
-const HOLD = 1600;
-const FADE = 450;
+const SPEED = 1.6;
+const HOLD = 600;
+const FADE = 300;
 
 const shapes = {
   "█": [[0, 0, 1, 1]],
@@ -107,7 +108,7 @@ async function play() {
     const start = performance.now();
     for (let n = 0; n < film.frames && !skipped; ) {
       film.draw(n++);
-      const next = start + (n * 1000) / film.fps;
+      const next = start + (n * 1000) / (film.fps * SPEED);
       await new Promise((r) => setTimeout(r, Math.max(0, next - performance.now())));
     }
     for (let t = 0; t < HOLD && !skipped; t += 100) await sleep(100);

@@ -25,23 +25,42 @@ type theme struct {
 	dark bool
 }
 
+// Colors is the theme's colours as hex, one per role, so the site can
+// share them.
+type Colors struct {
+	Accent, AccentText, OK, Warn, Fail, Info, Bright, Text, Muted, Faint, Ink, Selected, Surface string
+}
+
+var (
+	LightColors = Colors{
+		Accent: "#5B3BB0", AccentText: "#5B3BB0", OK: "#1A7F37", Warn: "#9A6700", Fail: "#CF222E", Info: "#0969DA",
+		Bright: "#111114", Text: "#2E2E34", Muted: "#6E6E76", Faint: "#BCBCC4", Ink: "#FFFFFF", Selected: "#E6DDF7", Surface: "#ECEAF2",
+	}
+	DarkColors = Colors{
+		Accent: "#7A57D3", AccentText: "#A88DF2", OK: "#00D787", Warn: "#FFAF00", Fail: "#FF5F5F", Info: "#5FAFFF",
+		Bright: "#F5F5F5", Text: "#D0D0D0", Muted: "#8A8A8A", Faint: "#444444", Ink: "#F5F5F5", Selected: "#2B2140", Surface: "#26262C",
+	}
+)
+
 func newTheme(dark bool) theme {
 	ld := lipgloss.LightDark(dark)
+	pick := func(light, dark string) color.Color { return ld(lipgloss.Color(light), lipgloss.Color(dark)) }
+	l, d := LightColors, DarkColors
 	return theme{
 		dark:       dark,
-		accent:     ld(lipgloss.Color("#5B3BB0"), lipgloss.Color("#7A57D3")),
-		accentText: ld(lipgloss.Color("#5B3BB0"), lipgloss.Color("#A88DF2")),
-		ok:         ld(lipgloss.Color("#1A7F37"), lipgloss.Color("#00D787")),
-		warn:       ld(lipgloss.Color("#9A6700"), lipgloss.Color("#FFAF00")),
-		fail:       ld(lipgloss.Color("#CF222E"), lipgloss.Color("#FF5F5F")),
-		info:       ld(lipgloss.Color("#0969DA"), lipgloss.Color("#5FAFFF")),
-		bright:     ld(lipgloss.Color("#111114"), lipgloss.Color("#F5F5F5")),
-		text:       ld(lipgloss.Color("#2E2E34"), lipgloss.Color("#D0D0D0")),
-		muted:      ld(lipgloss.Color("#6E6E76"), lipgloss.Color("#8A8A8A")),
-		faint:      ld(lipgloss.Color("#BCBCC4"), lipgloss.Color("#444444")),
-		ink:        ld(lipgloss.Color("#FFFFFF"), lipgloss.Color("#F5F5F5")),
-		selected:   ld(lipgloss.Color("#E6DDF7"), lipgloss.Color("#2B2140")),
-		surface:    ld(lipgloss.Color("#ECEAF2"), lipgloss.Color("#26262C")),
+		accent:     pick(l.Accent, d.Accent),
+		accentText: pick(l.AccentText, d.AccentText),
+		ok:         pick(l.OK, d.OK),
+		warn:       pick(l.Warn, d.Warn),
+		fail:       pick(l.Fail, d.Fail),
+		info:       pick(l.Info, d.Info),
+		bright:     pick(l.Bright, d.Bright),
+		text:       pick(l.Text, d.Text),
+		muted:      pick(l.Muted, d.Muted),
+		faint:      pick(l.Faint, d.Faint),
+		ink:        pick(l.Ink, d.Ink),
+		selected:   pick(l.Selected, d.Selected),
+		surface:    pick(l.Surface, d.Surface),
 	}
 }
 

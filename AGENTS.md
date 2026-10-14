@@ -9,7 +9,7 @@
 - `internal/skill/guide.md`: the agent guide embedded in the binary, printed by `self-host skill`.
 - `skills/self-host/SKILL.md`: the one discoverable skill, a router to `self-host skill`.
 - `internal/system/` holds every outside dependency; `internal/systemtest/` and `internal/clitest/` fake it for tests.
-- `site/`: the static Astro site at self-host.fyi; `go run ./tools/sitecatalog` writes its `src/data/catalog.json` from the Catalog and `tools/sitestars` its GitHub star counts. `video/`: the showreel.
+- `site/`: the static Astro site at self-host.fyi; `go run ./tools/sitecatalog` writes its `src/data/catalog.json` from the Catalog `tools/sitestars` its GitHub star counts and `tools/sitetheme` its colours from the Dashboard theme. `video/`: the showreel.
 - `e2e/` (build tag `e2e`, runs Docker), `tools/` (development generators), `scripts/verify-install.sh`, `install.sh`, `.goreleaser.yaml`.
 - `docs/`: `adr/` decisions, `agents/` briefs for agents, `releasing.md`, `spec.md`, and proofs under `docs/*-proof.*`. Files named `legacy-*`, `where-to-look.md` and `handoff.md` describe the removed TypeScript product and are historical.
 

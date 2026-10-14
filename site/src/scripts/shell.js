@@ -66,7 +66,7 @@ const ok = (...rest) => print("  ", ["green", "✓"], ...rest);
 function render(event) {
   if (event.type === "run") print(`▶ ${event.msg}`);
   if (event.type === "pull") print(["green", "✓"], ` pulled ${event.image}`);
-  if (event.type === "step" && event.step.startsWith("link-")) print(["pink", "⇄"], ` ${event.app} → ${event.step.slice(5)} `, ["muted", event.msg]);
+  if (event.type === "step" && event.step.startsWith("link-")) print(["accent", "⇄"], ` ${event.app} → ${event.step.slice(5)} `, ["muted", event.msg]);
   else if (event.type === "step") ok(` ${event.app} › ${event.step} `, ["muted", event.msg]);
   if (event.type === "end") print(`■ ${event.msg}`);
 }
@@ -96,7 +96,7 @@ async function install(targets, yes) {
     if (links.length) {
       print("");
       print(["bold", "Links"], ["muted", " wired after install, using each App's own API and keys"]);
-      for (const l of links) print("  ", ["pink", "⇄"], ` ${pad(`${l.from} → ${l.to}`, 26)} `, ["muted", l.title]);
+      for (const l of links) print("  ", ["accent", "⇄"], ` ${pad(`${l.from} → ${l.to}`, 26)} `, ["muted", l.title]);
     }
     print("");
     print(["muted", "Project   "], "~/.self-host");
@@ -149,7 +149,7 @@ function status(json) {
 function appsList(json) {
   if (json) return print(JSON.stringify({ apps: APPS.map(({ id, name, d, c, p }) => ({ id, name, description: d, category: c, port: p })), recipes: RECIPES }, null, 2));
   print(["bold", "Recipes"]);
-  for (const r of RECIPES) print("  ", ["pink", pad(r.id, 20)], ` ${r.description} `, ["muted", `(${r.apps.join(", ")})`]);
+  for (const r of RECIPES) print("  ", ["accent", pad(r.id, 20)], ` ${r.description} `, ["muted", `(${r.apps.join(", ")})`]);
   print("");
   print(["bold", "Apps"]);
   for (const a of APPS) print("  ", ["cyan", pad(a.id, 20)], ` ${a.description}`);
@@ -167,7 +167,7 @@ function appsInfo(id) {
   print(["muted", "image  "], a.image);
   print(["muted", "port   "], a.port ? String(a.port) : "none, it has no web page");
   print(["muted", "group  "], a.category);
-  a.links.forEach((l, i) => print(["muted", i ? "       " : "links  "], ["pink", "⇄ "], pad(l.to, 16), ["muted", l.title]));
+  a.links.forEach((l, i) => print(["muted", i ? "       " : "links  "], ["accent", "⇄ "], pad(l.to, 16), ["muted", l.title]));
   print("");
   print(["muted", "try: "], ["cyan", `self-host install ${a.id}`]);
 }
@@ -420,7 +420,7 @@ screen.addEventListener("click", () => {
 });
 
 function welcome() {
-  print(["pink bold", "◆ self-host"], ["muted", ` playground · v${VERSION} · simulated in your browser`]);
+  print(["accent bold", "◆ self-host"], ["muted", ` playground · v${VERSION} · simulated in your browser`]);
   print(["muted", "Nothing here touches a real machine. The catalog is the real one."]);
   print("");
   print("Try ", ["cyan", "self-host install media"], ", then ", ["cyan", "self-host"], " to open the Dashboard. ", ["muted", "help lists everything."]);

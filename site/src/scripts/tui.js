@@ -83,11 +83,11 @@ function workflow() {
   const rows = apps
     .map((a, i) => {
       const open = ui.expanded.has(a.id);
-      const head = `<div class="row">${i === ui.wsel ? sp("pink", ">") : " "} ${open ? "▾" : "▸"} ${sp("pink bold", a.name)}</div>`;
+      const head = `<div class="row">${i === ui.wsel ? sp("accent", ">") : " "} ${open ? "▾" : "▸"} ${sp("accent bold", a.name)}</div>`;
       return open ? `${head}<div class="indent">${stepRows(a)}</div>` : head;
     })
     .join("");
-  return `<div class="body one"><div class="col"><div class="row">${sp("pink bold", "Workflow")} · ${done} Apps fully set up · 0 steps failed · ${running} steps running</div><div class="scroll fill">${rows || '<div class="row muted">No Apps yet. Press i to install.</div>'}</div></div></div>${keyline([
+  return `<div class="body one"><div class="col"><div class="row">${sp("accent bold", "Workflow")} · ${done} Apps fully set up · 0 steps failed · ${running} steps running</div><div class="scroll fill">${rows || '<div class="row muted">No Apps yet. Press i to install.</div>'}</div></div></div>${keyline([
     ["↑/↓", "select"],
     ["space", "collapse"],
     ["tab", "next view"],
@@ -113,9 +113,9 @@ function installView() {
       const at = start + i === ui.cursor;
       let mark = "[ ]";
       if (it.kind === "app" && project.has(it.id)) mark = sp("green", " ✓ ");
-      else if (ui.picks.has(it.id)) mark = sp("pink", "[x]");
+      else if (ui.picks.has(it.id)) mark = sp("accent", "[x]");
       const name = it.kind === "recipe" ? `▣ ${it.name}` : it.name;
-      return `<div class="row${at ? " sel" : ""}">${at ? sp("pink", ">") : " "} ${mark} ${esc(name.padEnd(22).slice(0, 22))} ${sp("muted", it.id)}</div>`;
+      return `<div class="row${at ? " sel" : ""}">${at ? sp("accent", ">") : " "} ${mark} ${esc(name.padEnd(22).slice(0, 22))} ${sp("muted", it.id)}</div>`;
     })
     .join("");
   const cur = items[ui.cursor];
@@ -126,9 +126,9 @@ function installView() {
   if (cur?.kind === "app") {
     detail = `<div class="row wrap">${esc(cur.description)}</div><div class="row"> </div><div class="row">${sp("muted", "image  ")}${esc(cur.image)}</div><div class="row">${sp("muted", "port   ")}${cur.port || "none"}</div><div class="row">${sp("muted", "group  ")}${esc(cur.category)}</div>${cur.links.length ? `<div class="row wrap">${sp("muted", "links  ")}${esc(cur.links.map((l) => l.to).join(", "))}</div>` : ""}`;
   }
-  const picked = ui.picks.size ? sp("pink", ` ${ui.picks.size} picked`) : "";
+  const picked = ui.picks.size ? sp("accent", ` ${ui.picks.size} picked`) : "";
   const review = ui.review ? `<div class="modal">${ui.review}</div>` : "";
-  return `<div class="body"><div class="col"><div class="box grow"><span class="legend">Install <span class="muted">recipes &amp; apps</span>${picked}</span><div class="row">/ ${esc(ui.query)}<span class="pink">▌</span></div><div class="row"> </div><div class="scroll">${list}</div></div></div><div class="col"><div class="box grow"><span class="legend">${esc(cur ? cur.name : "")}</span><div class="scroll">${detail}</div></div></div></div>${keyline([
+  return `<div class="body"><div class="col"><div class="box grow"><span class="legend">Install <span class="muted">recipes &amp; apps</span>${picked}</span><div class="row">/ ${esc(ui.query)}<span class="accent">▌</span></div><div class="row"> </div><div class="scroll">${list}</div></div></div><div class="col"><div class="box grow"><span class="legend">${esc(cur ? cur.name : "")}</span><div class="scroll">${detail}</div></div></div></div>${keyline([
     ["type", "search"],
     ["space", "pick"],
     ["enter", "review"],
@@ -176,7 +176,7 @@ function review() {
     return;
   }
   const lines = fresh.map((a) => `${sp("green", "+ ")}${esc(`${a.id.padEnd(18)} ${a.category.padEnd(16)} ${a.url}`)}`);
-  ui.review = `${sp("bold", "Review")}\n\n${lines.join("\n")}\n\n${sp("muted", "Project   ")}~/.self-host\n${sp("muted", "Access    ")}Home network at ${LAN}\n\n${sp("bold", `Install ${fresh.length} App${fresh.length > 1 ? "s" : ""}?`)}  ${sp("pink", "y")} approve · ${sp("pink", "n")} back`;
+  ui.review = `${sp("bold", "Review")}\n\n${lines.join("\n")}\n\n${sp("muted", "Project   ")}~/.self-host\n${sp("muted", "Access    ")}Home network at ${LAN}\n\n${sp("bold", `Install ${fresh.length} App${fresh.length > 1 ? "s" : ""}?`)}  ${sp("accent", "y")} approve · ${sp("accent", "n")} back`;
 }
 
 function installKey(key) {

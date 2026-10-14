@@ -52,10 +52,10 @@ const jsonld = {
           <p class="muted">Install these together and self-host connects them for you.</p>
           <ul class="linklist">
             {links.map((l) => (
-              <li><span class="pink">⇄</span> <a href={`/apps/${l.to}`}>{nameOf(l.to)}</a> <span class="muted">{l.title}</span></li>
+              <li><span class="accent">⇄</span> <a href={`/apps/${l.to}`}>{nameOf(l.to)}</a> <span class="muted">{l.title}</span></li>
             ))}
             {into.map((l) => (
-              <li><span class="pink">⇄</span> <a href={`/apps/${l.from}`}>{nameOf(l.from)}</a> <span class="muted">{l.title}</span></li>
+              <li><span class="accent">⇄</span> <a href={`/apps/${l.from}`}>{nameOf(l.from)}</a> <span class="muted">{l.title}</span></li>
             ))}
           </ul>
         </section>
