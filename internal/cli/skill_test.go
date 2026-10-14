@@ -68,6 +68,22 @@ func TestSkillGuideNamesEveryRegisteredCommandAndFlag(t *testing.T) {
 	})
 }
 
+func TestSkillGuideDistinguishesDockerSocketFailures(t *testing.T) {
+	guide := guideOutput(t)
+	for _, want := range []string{
+		"check's `msg`, `hint` and `docs`",
+		"For example,",
+		"the engine may be stopped or socket permission may be denied",
+	} {
+		if !strings.Contains(guide, want) {
+			t.Errorf("guide does not distinguish Docker socket failures: missing %q", want)
+		}
+	}
+	if strings.Contains(guide, "check's `detail`") {
+		t.Error("guide exposes the internal check detail field instead of the public msg field")
+	}
+}
+
 // commandsTable returns the command path (without "self-host") of every row
 // in the guide's Commands table; the bare command is the empty path.
 func commandsTable(guide string) []string {
