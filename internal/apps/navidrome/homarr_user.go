@@ -175,11 +175,9 @@ func createHomarrUser(ctx context.Context, h *helpers.H) error {
 			return fmt.Errorf("%w: Navidrome could not create its regular Homarr account (HTTP %d); preserve existing users and restore the saved credential", helpers.ErrManual, resp.Status)
 		}
 		var created struct {
-			ID       string `json:"id"`
-			Username string `json:"userName"`
-			IsAdmin  *bool  `json:"isAdmin"`
+			ID string `json:"id"`
 		}
-		if resp.Decode(&created) != nil || created.ID == "" || created.Username != user || created.IsAdmin == nil || *created.IsAdmin {
+		if resp.Decode(&created) != nil || created.ID == "" {
 			return errors.New("Navidrome did not confirm creation of the regular Homarr account; retry Setup without changing accounts")
 		}
 		account, err = regularAccount(ctx, h)
