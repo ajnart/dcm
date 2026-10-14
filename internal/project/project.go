@@ -53,10 +53,29 @@ func (p *Project) Exists() bool {
 // MkdirAll creates a directory inside the Project owned by the Project owner.
 func (p *Project) MkdirAll(parts ...string) error {
 	dir := p.Path(parts...)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := p.mkdirAll(dir); err != nil {
 		return err
 	}
 	return p.chown(dir)
+}
+
+func (p *Project) mkdirAll(dir string) error {
+	var created []string
+	for path := dir; ; path = filepath.Dir(path) {
+		if _, err := os.Lstat(path); err == nil || path == filepath.Dir(path) {
+			break
+		}
+		created = append(created, path)
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	for _, path := range created {
+		if err := p.chown(path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (p *Project) chown(path string) error {
@@ -67,7 +86,7 @@ func (p *Project) chown(path string) error {
 }
 
 func (p *Project) writeFile(name string, data []byte, mode os.FileMode) error {
-	if err := os.MkdirAll(filepath.Dir(name), 0o755); err != nil {
+	if err := p.mkdirAll(filepath.Dir(name)); err != nil {
 		return err
 	}
 	// A unique temporary file per write: concurrent writers sharing one used
@@ -564,7 +583,7 @@ func (p *Project) LockError() error {
 }
 
 func (p *Project) lockFile(pid int, alive func(int) bool) (func(), error) {
-	if err := os.MkdirAll(p.Root, 0o755); err != nil {
+	if err := p.mkdirAll(p.Root); err != nil {
 		return nil, err
 	}
 	// Keep this inode in place: unlinking even a stale claim can split owners

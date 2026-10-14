@@ -60,7 +60,7 @@ func (p *Project) ReadNamesCaddyfile() ([]byte, error) { return os.ReadFile(p.Na
 // MkdirAllOwned creates a folder outside the Project, such as the media
 // folder, handing it to the Project owner when run as root.
 func (p *Project) MkdirAllOwned(dir string) error {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := p.mkdirAll(dir); err != nil {
 		return err
 	}
 	if os.Geteuid() == 0 {
