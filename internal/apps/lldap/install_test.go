@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -74,7 +75,10 @@ func TestInstallPreservesConfiguredIdentityAndCredentials(t *testing.T) {
 				Services map[string]struct {
 					Environment map[string]string `yaml:"environment"`
 					Command     []string          `yaml:"command"`
+					Volumes     []string          `yaml:"volumes"`
+					Secrets     []any             `yaml:"secrets"`
 				} `yaml:"services"`
+				Secrets map[string]any `yaml:"secrets"`
 			}
 			if err := yaml.Unmarshal([]byte(clitest.Read(t, filepath.Join(root, "apps", "lldap", "compose.yml"))), &doc); err != nil {
 				t.Fatal(err)
@@ -87,7 +91,13 @@ func TestInstallPreservesConfiguredIdentityAndCredentials(t *testing.T) {
 				t.Fatalf("post-entrypoint user = %q, want configured %s", got, tc.want)
 			}
 			svc := doc.Services["lldap"]
-			for _, name := range []string{"jwt-secret", "key-seed"} {
+			if len(svc.Secrets) != 0 || len(doc.Secrets) != 0 {
+				t.Fatalf("Compose secret injection remains: service=%#v top-level=%#v", svc.Secrets, doc.Secrets)
+			}
+			if !slices.Contains(svc.Volumes, "./admin-password:/run/secrets/admin-password:ro") {
+				t.Fatalf("administrator password is not mounted as a read-only private file: %#v", svc.Volumes)
+			}
+			for _, name := range []string{"jwt-secret", "key-seed", "admin-password"} {
 				path := filepath.Join(root, "apps", "lldap", name)
 				info, err := os.Stat(path)
 				if err != nil {

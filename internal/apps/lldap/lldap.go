@@ -40,6 +40,7 @@ func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
 	return []app.File{
 		{Path: "jwt-secret", Content: secret("jwt_secret"), Mode: 0o600},
 		{Path: "key-seed", Content: secret("key_seed"), Mode: 0o600},
+		{Path: "admin-password", Content: secret("ADMIN_PASSWORD"), Mode: 0o600},
 	}
 }
 
@@ -60,14 +61,9 @@ func (App) Compose(rc app.RenderContext) string {
       - ./data:/data
       - ./jwt-secret:/run/secrets/jwt-secret:ro
       - ./key-seed:/run/secrets/key-seed:ro
-    secrets:
-      - admin-password
+      - ./admin-password:/run/secrets/admin-password:ro
     ports:
       - ${BIND_IP}:` + strconv.Itoa(rc.Port) + `:17170
-
-secrets:
-  admin-password:
-    environment: ADMIN_PASSWORD
 `
 }
 
