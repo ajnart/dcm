@@ -1,0 +1,21 @@
+internal/cli/host.go
+  s_378d5db6c5f6de::t_188e738c512b7b 43-45,55-57
+internal/host/report.go
+  s_378d5db6c5f6de::t_711009889293ca 16-17,61-67,71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "35a5e59f0012bc09fd64f2ce2451e52ceb10a389",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
