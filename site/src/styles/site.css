@@ -1593,6 +1593,13 @@ h2 {
   color: var(--accent-text);
 }
 
+.prose pre {
+  border: 1px solid var(--line);
+  background: var(--deep);
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+}
+
 .prose ul {
   padding-left: 2ch;
 }

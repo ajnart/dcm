@@ -42,6 +42,12 @@ disabled; payloads contain no IP addresses or locations. Receiving network
 infrastructure still sees the source IP. Server-side "Discard client IP data"
 is a maintainer-controlled setting, not something the CLI verifies.
 
+## This website
+
+self-host.fyi counts page views with Cloudflare Web Analytics: no cookies, no
+fingerprinting, no personal data, and nothing shared with the CLI telemetry
+above.
+
 ## What is never sent automatically
 
 Host names, absolute file paths, typed inputs, secrets, App data, raw error or
