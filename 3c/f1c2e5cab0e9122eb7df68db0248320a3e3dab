@@ -1,0 +1,47 @@
+CONTEXT.md
+  s_378d5db6c5f6de::t_3a3535891a1b77 173
+README.md
+  s_378d5db6c5f6de::t_9abb2a6e2c05a0 297
+docs/adr/0006-telemetry-on-by-default.md
+  s_378d5db6c5f6de::t_9e6525d41d5ec8 39,44
+docs/adr/0009-onboarding-event-and-experience-property.md
+  s_378d5db6c5f6de::t_a2c683ba5ff8ea 27-28
+internal/cli/telemetry_test.go
+  s_378d5db6c5f6de::t_9c0b3cb09cd722 26,327-328
+internal/skill/guide.md
+  s_378d5db6c5f6de::t_697d413dd5da58 635
+internal/telemetry/telemetry.go
+  s_378d5db6c5f6de::t_d2c0de7c381b58 41,45-46
+internal/telemetry/telemetry_test.go
+  s_378d5db6c5f6de::t_17706022bf49a6 429,431-432
+internal/tui/intro_test.go
+  s_378d5db6c5f6de::t_04e10168dca85f 304,308
+internal/tui/onboarding_telemetry_test.go
+  s_378d5db6c5f6de::t_d9bf5ab894836c 28,214,218,225
+internal/tui/testdata/onboarding-welcome-telemetry-narrow.golden
+  s_378d5db6c5f6de::t_3e35c772dbe2e0 22
+internal/tui/testdata/onboarding-welcome-telemetry.golden
+  s_378d5db6c5f6de::t_fea87fcf1364df 28
+site/src/components/SiteFooter.astro
+  s_378d5db6c5f6de::t_0d5e8c78997e61 8
+site/src/pages/telemetry.astro
+  s_378d5db6c5f6de::t_e2812ba513b28a 1-11
+site/src/styles/site.css
+  s_378d5db6c5f6de::t_686c0058ec5cb6 1560-1582
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3cf1c2e5cab0e9122eb7df68db0248320a3e3dab",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
