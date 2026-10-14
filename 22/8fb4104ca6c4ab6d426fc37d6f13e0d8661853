@@ -1,0 +1,23 @@
+site/src/layouts/Base.astro
+  s_a09975eea43bed::t_ebf5699d5dc05e 20
+video/reel/thumbs/.gitignore
+  s_a09975eea43bed::t_7777071138c26d 1-4
+video/reel/thumbs/README.md
+  s_a09975eea43bed::t_0891fcfb6685d3 8-10,15-16,71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "228fb4104ca6c4ab6d426fc37d6f13e0d8661853",
+  "prompts": {},
+  "sessions": {
+    "s_a09975eea43bed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65b888e6-e9d5-44f0-ba29-07bb9492e2f8",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
