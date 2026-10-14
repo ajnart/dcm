@@ -1,0 +1,33 @@
+site/bun.lock
+  s_7fa234028f3f9f::t_b1c9a017ae0523 9,12,57-58,63-64,101-102,119,175-182,245-260,311-312,319-320,323-324,369-370,375-376,381-384,389-390,395-396,419-420,425-426,429-432,447-448,473-474,509-526,529-532,535-536,541-542,545-546,549-554,557-558,561-562,569-570,595-596,603-608,611-614,617-632,635-646,649-654,657-658,665-666,701-704,715-718,737-740,813-814,827-830,895-896,903-904,913-914
+site/package.json
+  s_7fa234028f3f9f::t_deed14a1da82f3 13,15-16
+site/src/components/SiteFooter.astro
+  s_7fa234028f3f9f::t_ec1dff96ec2074 8
+site/src/components/SiteHeader.astro
+  s_7fa234028f3f9f::t_7662701ddcd1fd 14
+site/src/lib/docs-route.ts
+  s_7fa234028f3f9f::t_0aa15f01005677 1-65
+site/src/pages/apps/index.astro
+  s_7fa234028f3f9f::t_7f791eeacbcc1b 11-18,21
+site/src/pages/og/[...slug].png.ts
+  s_7fa234028f3f9f::t_56c43c14bb1ce9 1-22
+site/src/styles/transitions.css
+  s_7fa234028f3f9f::t_32e6e4a975bf73 1-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f73fe093775fc1fcd590ee47c302df09feafab0f",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
