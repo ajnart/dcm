@@ -1536,48 +1536,6 @@ h2 {
   gap: 0.4rem;
 }
 
-@view-transition {
-  navigation: auto;
-}
-
-.bar:not(.foot) {
-  view-transition-name: site-header;
-}
-
-.apphead .ico,
-.applist .ico {
-  view-transition-name: auto;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) {
-    animation: 160ms ease-in both vt-out;
-  }
-  ::view-transition-new(root) {
-    animation: 220ms ease-out both vt-in;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  @view-transition {
-    navigation: none;
-  }
-}
-
-@keyframes vt-out {
-  to {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-}
-
-@keyframes vt-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
 .prose {
   max-width: 60rem;
 }

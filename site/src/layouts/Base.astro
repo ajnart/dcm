@@ -1,9 +1,11 @@
 ---
 import "../styles/theme.css";
 import "../styles/site.css";
+import "../styles/transitions.css";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import og from "../assets/og.png";
+import { OG_HEIGHT, OG_WIDTH, ogPath } from "../lib/og";
 import { VERSION } from "../lib/site";
 
 interface Props {
@@ -16,8 +18,10 @@ interface Props {
 
 const { title, description, video = false, jsonld, noindex = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Astro.site);
-const image = new URL(og.src, Astro.site);
-const imageAlt = "self-host: Stop renting your software. $92 a month becomes $0. Install any App with one command.";
+const landingCard = { src: og.src, width: og.width, height: og.height, alt: "self-host: Stop renting your software. $92 a month becomes $0. Install any App with one command." };
+const pageCard = { src: ogPath(Astro.url.pathname), width: OG_WIDTH, height: OG_HEIGHT, alt: title };
+const card = canonical.pathname === "/" || noindex ? landingCard : pageCard;
+const image = new URL(card.src, Astro.site);
 const reel = new URL("/reel.mp4", Astro.site);
 ---
 
@@ -39,9 +43,9 @@ const reel = new URL("/reel.mp4", Astro.site);
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={image} />
     <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content={String(og.width)} />
-    <meta property="og:image:height" content={String(og.height)} />
-    <meta property="og:image:alt" content={imageAlt} />
+    <meta property="og:image:width" content={String(card.width)} />
+    <meta property="og:image:height" content={String(card.height)} />
+    <meta property="og:image:alt" content={card.alt} />
     {
       video && (
         <>
@@ -56,7 +60,7 @@ const reel = new URL("/reel.mp4", Astro.site);
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image} />
-    <meta name="twitter:image:alt" content={imageAlt} />
+    <meta name="twitter:image:alt" content={card.alt} />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

@@ -1,0 +1,20 @@
+---
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import { recipes } from "../../lib/catalog";
+---
+
+<StarlightPage frontmatter={{ title: "Recipes", description: `${recipes.length} pre-wired bundles of self-hosted Apps, each installed and wired together with one self-host command.` }}>
+  <p>A Recipe is a named, pre-wired bundle of Apps chosen together for one purpose. Installing it installs all of its Apps and runs their Setup and Links. In Onboarding and the Catalog, picking a Recipe picks all of its Apps at once.</p>
+  <table>
+    <thead><tr><th>Recipe</th><th>What it is for</th><th>Apps</th></tr></thead>
+    <tbody>
+      {recipes.map((r) => (
+        <tr>
+          <td><a href={`/docs/recipes/${r.id}`}>{r.name}</a></td>
+          <td>{r.description}.</td>
+          <td>{r.apps.length}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</StarlightPage>

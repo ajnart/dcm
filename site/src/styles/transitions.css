@@ -1,0 +1,51 @@
+@view-transition {
+  navigation: auto;
+}
+
+.bar:not(.foot),
+.page > .header {
+  view-transition-name: site-header;
+}
+
+.bar .tag,
+.site-title .tag {
+  view-transition-name: site-logo;
+}
+
+.apphead .ico,
+.applist .ico {
+  view-transition-name: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: 160ms ease-in both vt-out;
+  }
+  ::view-transition-new(root) {
+    animation: 220ms ease-out both vt-in;
+  }
+  ::view-transition-group(site-header),
+  ::view-transition-group(site-logo) {
+    animation-duration: 220ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

@@ -1,0 +1,9 @@
+---
+import Default from "@astrojs/starlight/components/Footer.astro";
+import { LINKS } from "../../lib/site";
+---
+
+<Default><slot /></Default>
+<p class="site-foot">
+  self-host · Apache-2.0 · <a href="/">home</a> · <a href="/apps">apps</a> · <a href="/docs">docs</a> · <a href={LINKS.github}>github</a> · <a href={LINKS.discord}>discord</a> · <a href="/llms.txt">llms.txt</a> · <a href="/telemetry">telemetry</a>
+</p>

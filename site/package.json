@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
+    "@astrojs/starlight": "^0.42.5",
     "astro": "^7.3.6",
-    "prismjs": "^1.30.0"
+    "prismjs": "^1.30.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

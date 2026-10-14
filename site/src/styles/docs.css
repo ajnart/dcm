@@ -1,0 +1,136 @@
+:root,
+::backdrop {
+  color-scheme: dark;
+  --bg: #1e1d2a;
+  --panel: #23222f;
+  --deep: #171621;
+  --line: #3a3947;
+  --ink: #e4e4ea;
+  --muted: #8a8a96;
+  --dim: #5c5c68;
+
+  --sl-color-white: #f5f5f7;
+  --sl-color-gray-1: var(--ink);
+  --sl-color-gray-2: #c9c9d1;
+  --sl-color-gray-3: var(--muted);
+  --sl-color-gray-4: var(--dim);
+  --sl-color-gray-5: var(--line);
+  --sl-color-gray-6: var(--panel);
+  --sl-color-black: var(--bg);
+
+  --sl-color-accent-low: var(--selected);
+  --sl-color-accent: var(--accent);
+  --sl-color-accent-high: var(--accent-text);
+  --sl-color-text-invert: var(--on-accent);
+  --sl-color-bg-accent: var(--accent);
+  --sl-color-bg-nav: color-mix(in oklab, var(--bg) 92%, transparent);
+  --sl-color-bg-sidebar: var(--bg);
+  --sl-color-bg-inline-code: var(--deep);
+  --sl-color-hairline-light: var(--line);
+  --sl-color-hairline: var(--line);
+  --sl-color-hairline-shade: var(--deep);
+
+  --sl-color-green: var(--ok);
+  --sl-color-orange: var(--warn);
+  --sl-color-red: var(--fail);
+  --sl-color-blue: var(--info);
+
+  --sl-font:
+    ui-monospace, "JetBrains Mono", "Berkeley Mono", "SF Mono", SFMono-Regular,
+    Menlo, Consolas, monospace;
+  --sl-font-mono: var(--sl-font);
+  --sl-text-h1: 2.1rem;
+  --sl-text-h2: 1.35rem;
+  --sl-text-h3: 1.1rem;
+  --sl-text-h4: 1rem;
+  --sl-text-body: 0.95rem;
+}
+
+* {
+  border-radius: 0 !important;
+}
+
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--deep) 1px, transparent 1px),
+    linear-gradient(90deg, var(--deep) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.page > .header {
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(6px);
+}
+
+.site-title {
+  gap: 0.75rem;
+  font-size: 1rem;
+}
+
+.site-title .tag {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 800;
+  padding: 0 0.5em;
+  text-decoration: none;
+}
+
+.site-title .docs-home {
+  color: var(--muted);
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.site-title .docs-home:hover {
+  color: var(--ink);
+}
+
+.sl-markdown-content h2 {
+  color: var(--accent-text);
+}
+
+.sl-markdown-content code:not(pre code) {
+  color: var(--info);
+  padding: 0 0.25em;
+}
+
+.sl-markdown-content pre {
+  border: 1px solid var(--line);
+  background: var(--deep);
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  color: var(--ink);
+}
+
+.sl-markdown-content table {
+  display: table;
+  width: 100%;
+  font-size: 0.9em;
+}
+
+.sidebar-content a[aria-current="page"] {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+.site-foot {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  font-size: var(--sl-text-xs);
+}
+
+.site-foot a {
+  color: var(--muted);
+}
+
+.site-foot a:hover {
+  color: var(--ink);
+}
+
+.recipe-apps {
+  list-style: none;
+  padding: 0;
+}

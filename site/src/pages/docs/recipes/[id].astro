@@ -1,0 +1,58 @@
+---
+import type { GetStaticPaths } from "astro";
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import { appById, linksAmong, recipes } from "../../../lib/catalog";
+
+export const getStaticPaths = (() => recipes.map((recipe) => ({ params: { id: recipe.id }, props: { recipe } }))) satisfies GetStaticPaths;
+
+const { recipe } = Astro.props;
+const members = recipe.apps.flatMap((id) => appById.get(id) ?? []);
+const links = linksAmong(recipe.apps);
+const nameOf = (id: string) => appById.get(id)?.name ?? id;
+const headings = [
+  { depth: 2, slug: "install", text: "Install" },
+  { depth: 2, slug: "apps", text: "Apps" },
+  { depth: 2, slug: "links", text: "Links" },
+  { depth: 2, slug: "next", text: "Next" },
+];
+---
+
+<StarlightPage headings={headings} frontmatter={{ title: recipe.name, description: `${recipe.description}. The ${recipe.id} Recipe installs ${members.map((a) => a.name).join(", ")} with one self-host command.` }}>
+  <p>{recipe.description}. The <code>{recipe.id}</code> Recipe installs {members.map((a) => a.name).join(", ")} into your Project and runs their Setup.</p>
+
+  <h2 id="install">Install</h2>
+  <pre><code>self-host install {recipe.id}</code></pre>
+  <p>On a terminal, self-host shows the plan and asks before it changes anything. Agents pass <code>--yes --json</code> only after the person approves. In Onboarding, pick the Recipe at the What step.</p>
+
+  <h2 id="apps">Apps</h2>
+  <table>
+    <thead><tr><th>App</th><th>What it does</th><th>Port</th></tr></thead>
+    <tbody>
+      {members.map((a) => (
+        <tr>
+          <td><a href={`/apps/${a.id}`}>{a.name}</a></td>
+          <td>{a.description}.</td>
+          <td>{a.port || "none"}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  <h2 id="links">Links</h2>
+  {
+    links.length > 0 && (
+      <>
+        <p>Installed together, these Apps are wired to each other. Each Link belongs to the consuming App and runs once both Apps have finished their own Setup.</p>
+        <ul>
+          {links.map((l) => (
+            <li><strong>{nameOf(l.from)}</strong> → {nameOf(l.to)}: {l.title}</li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+  {links.length === 0 && <p>The Apps in this Recipe have no Links to each other.</p>}
+
+  <h2 id="next">Next</h2>
+  <p>See how to reach the Apps from your phone or TV in <a href="/docs/access">Access</a>, and what to do when a Setup step fails in <a href="/docs/troubleshooting">Troubleshooting</a>.</p>
+</StarlightPage>

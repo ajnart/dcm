@@ -1,5 +1,7 @@
 import { defineCollection } from "astro:content";
 import { file } from "astro/loaders";
+import { docsLoader } from "@astrojs/starlight/loaders";
+import { docsSchema } from "@astrojs/starlight/schema";
 import { z } from "astro/zod";
 import { toApp } from "./lib/catalog";
 
@@ -20,4 +22,4 @@ const apps = defineCollection({
   }),
 });
 
-export const collections = { apps };
+export const collections = { apps, docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }) };

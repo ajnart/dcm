@@ -8,9 +8,17 @@ import { byPopularity, linkCount, starLabel } from "../../lib/catalog";
 const apps = (await getCollection("apps")).sort((a, b) => byPopularity(a.data, b.data));
 const byCategory = Map.groupBy(apps, (a) => a.data.category);
 const categories = [...byCategory.keys()].sort();
+const jsonld = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "self-host", item: "https://self-host.fyi/" },
+    { "@type": "ListItem", position: 2, name: "Apps", item: "https://self-host.fyi/apps" },
+  ],
+};
 ---
 
-<Base title={`${apps.length} self-hosted Apps · self-host`} description={`Every App self-host installs, signs in and wires together: ${apps.length} Apps and ${linkCount} Links, each one command away.`}>
+<Base title={`${apps.length} self-hosted Apps · self-host`} description={`Every App self-host installs, signs in and wires together: ${apps.length} Apps and ${linkCount} Links, each one command away.`} jsonld={jsonld}>
   <main class="page">
     <section id="all-apps" aria-labelledby="all-apps-title">
       <SectionHead id="all-apps" num="◆" title="Apps">

@@ -143,6 +143,12 @@ build and the browser playground; the `apps` content collection validates it
 with a schema, so a generator change that breaks the shape fails the build.
 From it Astro renders the landing page, one page per App under `/apps`,
 `/catalog.json` (read by DCM), `/llms.txt`, the sitemap and `robots.txt`.
+Starlight serves the docs at `/docs` from `src/content/docs/docs/`, plus one
+page per Recipe under `/docs/recipes`; `src/lib/docs-route.ts` strips `.html`
+from its links and adds share tags. `src/pages/og/` renders every page's
+1200×630 share image with sharp at build time (App icons are fetched from the
+icon CDN, with the App's initial as fallback); the landing keeps
+`src/assets/og.png`.
 `go run ./tools/introframes` writes `site/public/intro.json`, the onboarding
 Intro recorded from `internal/intro`. The theme makes the site's
 accent and state colours the CLI's. `GITHUB_TOKEN=$(gh auth token) go run
@@ -160,7 +166,11 @@ after every release** so the page and the playground show the new version.
 `site/wrangler.toml` names the Pages project. `public/_headers` sets `nosniff`,
 `no-referrer`, `frame-ancestors`, plain-text types for the installer and CORS
 for `catalog.json`; Astro adds the rest of the Content Security Policy as a
-`<meta>` tag with hashes (`security.csp` in `astro.config.mjs`). Pages move
+`<meta>` tag with hashes (`security.csp` in `astro.config.mjs`). Starlight's
+inline scripts are hashed from its installed components, its inline `style`
+attributes are allowed by hash through `'unsafe-hashes'`, and `img-src` allows
+`data:` for its search icons; `src/lib/csp.mjs` fails the build when any inline
+script, style or style attribute is not covered. Pages move
 with native cross-document view transitions, which need no script and work
 under that policy; Astro's `<ClientRouter />` does not support its CSP.
 `404.astro` makes unknown paths such as `/go.mod` return 404.
