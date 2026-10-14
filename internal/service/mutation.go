@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"slices"
 	"strings"
 
@@ -324,6 +325,11 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 			return err
 		}
 		dir := ss.p.AppDir(id)
+		if purge {
+			if err := ss.purgeAppDir(ctx, id, dir, services); err != nil {
+				return err
+			}
+		}
 		if err := ss.p.RemoveFragment(id); err != nil {
 			return err
 		}
@@ -346,6 +352,22 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 			ErrIncomplete, strings.Join(unlinkFailed, ", "), strings.Join(unlinkFailed, " "))
 	}
 	return nil
+}
+
+// purgeAppDir deletes an App's data folder. Data a container wrote as root is
+// emptied through a one-off container of the App's own first service.
+func (ss *session) purgeAppDir(ctx context.Context, id, dir string, services []string) error {
+	err := ss.p.RemoveAppData(id)
+	if !errors.Is(err, fs.ErrPermission) {
+		return err
+	}
+	if len(services) == 0 {
+		return fmt.Errorf("%w: %s's data is owned by root; rerun with: sudo \"$(command -v self-host)\" remove %s --purge", err, id, id)
+	}
+	if cerr := ss.compose.EmptyDir(ctx, services[0], dir); cerr != nil {
+		return fmt.Errorf("%w: %s's data is owned by root and a container could not delete it (%v); rerun with: sudo \"$(command -v self-host)\" remove %s --purge", err, id, cerr, id)
+	}
+	return ss.p.RemoveAppData(id)
 }
 
 // runAfter runs Setup (and Links) or only Check for the targets.

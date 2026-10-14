@@ -48,6 +48,25 @@ func (p *Project) RemoveAppDir(dir string) error {
 	return os.RemoveAll(dir)
 }
 
+// RemoveAppData deletes everything in an App's folder except its Compose
+// fragment, which a container run may still need.
+func (p *Project) RemoveAppData(id string) error {
+	dir := p.AppDir(id)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.Name() == filepath.Base(p.FragmentPath(id)) {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(dir, entry.Name())); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // HasAppFile reports whether a file exists at rel inside apps/<id>.
 func (p *Project) HasAppFile(id, rel string) bool {
 	_, err := os.Stat(p.Path("apps", id, rel))

@@ -257,6 +257,14 @@ func (c *Compose) Remove(ctx context.Context, services ...string) error {
 	return err
 }
 
+// EmptyDir deletes everything inside dir except its compose.yml, a host folder, from a one-off
+// container of service running as root, for data the service wrote as root.
+func (c *Compose) EmptyDir(ctx context.Context, service, dir string) error {
+	_, err := c.Run(ctx, nil, "run", "--rm", "--no-deps", "-T", "--user", "0",
+		"-v", dir+":/purge", "--entrypoint", "find", service, "/purge", "-mindepth", "1", "!", "-path", "/purge/compose.yml", "-delete")
+	return err
+}
+
 // Exec runs a command in a running service container without a TTY.
 func (c *Compose) Exec(ctx context.Context, service string, env map[string]string, command ...string) (system.Result, error) {
 	args := []string{"exec", "-T"}

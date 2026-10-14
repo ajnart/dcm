@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -128,6 +129,38 @@ func TestRemoveKeepsDataUnlessPurged(t *testing.T) {
 	runWith(t, deps, cat, "remove", "two", "--purge", "--yes")
 
 	if _, err := os.Stat(filepath.Join(root, "apps", "two")); !os.IsNotExist(err) {
+		t.Fatal("--purge kept the data")
+	}
+}
+
+func TestPurgeEmptiesRootOwnedDataThroughContainer(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can delete everything")
+	}
+	deps, cat := installed(t, "one")
+	root := projectRoot(t, deps)
+	locked := filepath.Join(root, "apps", "one", "redis")
+	os.MkdirAll(locked, 0o755)
+	os.WriteFile(filepath.Join(locked, "dump.rdb"), []byte("x"), 0o644)
+	os.Chmod(locked, 0o555)
+	t.Cleanup(func() { os.Chmod(locked, 0o755) })
+	deps.Runner.(*systemtest.Runner).OnFunc("docker compose", func(cmd system.Cmd) system.Result {
+		if slices.Contains(cmd.Args, "run") {
+			os.Chmod(locked, 0o755)
+			os.RemoveAll(locked)
+		}
+		return system.Result{}
+	})
+
+	code, out := runWith(t, deps, cat, "remove", "one", "--purge", "--yes")
+
+	if code != 0 {
+		t.Fatalf("purge: %d\n%s", code, out)
+	}
+	if !strings.Contains(strings.Join(deps.Runner.(*systemtest.Runner).Calls(), "\n"), "run --rm --no-deps -T --user 0 -v "+filepath.Join(root, "apps", "one")+":/purge --entrypoint find one /purge -mindepth 1 ! -path /purge/compose.yml -delete") {
+		t.Fatal("root-owned data was not emptied through a container")
+	}
+	if _, err := os.Stat(filepath.Join(root, "apps", "one")); !os.IsNotExist(err) {
 		t.Fatal("--purge kept the data")
 	}
 }
