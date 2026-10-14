@@ -2,7 +2,7 @@
 import Prism from "prismjs";
 import "prismjs/components/prism-bash.js";
 
-type Variant = { label: string; code: string };
+type Variant = { label: string; code: string; lang?: string };
 
 interface Props {
   code?: string;
@@ -14,12 +14,14 @@ interface Props {
 
 const { code = "", lang = "bash", label, id } = Astro.props;
 const variants = Astro.props.variants ?? [{ label: label ?? lang, code }];
-const grammar = Prism.languages[lang];
-const highlight = (line: string) => (grammar ? Prism.highlight(line, grammar, lang) : Prism.util.encode(line).toString());
-const html = (text: string) =>
+const highlight = (line: string, l: string) => {
+  const grammar = Prism.languages[l];
+  return grammar ? Prism.highlight(line, grammar, l) : Prism.util.encode(line).toString();
+};
+const html = (text: string, l: string) =>
   text
     .split("\n")
-    .map((line) => `<span class="line">${highlight(line)}</span>`)
+    .map((line) => `<span class="line">${highlight(line, l)}</span>`)
     .join("");
 ---
 
@@ -38,9 +40,10 @@ const html = (text: string) =>
     }
     <button class="copybtn" type="button" data-copy={variants[0].code}>copy</button>
   </figcaption>
-  {variants.map((v, i) => (
-    <pre class={`language-${lang}`} data-code={v.code} hidden={i > 0}><code class={`language-${lang}`} set:html={html(v.code)} /></pre>
-  ))}
+  {variants.map((v, i) => {
+    const l = v.lang ?? lang;
+    return <pre class={`language-${l}`} data-code={v.code} hidden={i > 0}><code class={`language-${l}`} set:html={html(v.code, l)} /></pre>;
+  })}
 </figure>
 
 <script>

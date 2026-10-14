@@ -4,8 +4,11 @@ export { VERSION };
 
 export const INSTALL = "curl -fsSL https://self-host.fyi/install | bash";
 
+export const AGENT_INSTALL = `Install self-host by running \`${INSTALL}\` (or \`wget -qO- https://self-host.fyi/install | bash\` if curl is missing). Then run \`self-host skill\` and follow the guide it prints to help me set up my self-hosted apps.`;
+
 export const INSTALL_METHODS = [
   { label: "curl", code: INSTALL },
+  { label: "paste in your agent", code: AGENT_INSTALL, lang: "text" },
   { label: "wget", code: "wget -qO- https://self-host.fyi/install | bash" },
   {
     label: "read it first",

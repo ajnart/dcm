@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { apps, recipes } from "../lib/catalog";
-import { INSTALL, LINKS } from "../lib/site";
+import { AGENT_INSTALL, INSTALL, LINKS } from "../lib/site";
 
 const head = `# self-host
 
@@ -9,6 +9,8 @@ const head = `# self-host
 Install on Linux, macOS or WSL with Docker and the Compose v2 plugin:
 
     ${INSTALL}
+
+Paste into your agent: ${AGENT_INSTALL}
 
 Agents: run \`self-host skill\` and follow the guide it prints. Every change follows inspect, plan, approval, apply, verify; loading the skill is intent, never approval. Ask the person before any install, remove or restore, then pass --yes.
 
