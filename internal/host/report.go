@@ -39,6 +39,7 @@ type HostReport struct {
 	Docker        DockerReport `json:"docker"`
 	IPv6          IPv6Report   `json:"ipv6"`
 	Ports         []PortReport `json:"ports"`
+	Extra         []ExtraCheck `json:"extra,omitempty"`
 }
 
 // Report probes this machine without loading a Project or any secret files.

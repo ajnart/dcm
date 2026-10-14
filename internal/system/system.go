@@ -28,6 +28,26 @@ type Result struct {
 	ExitCode int
 }
 
+type DiskUsage struct {
+	AvailableBytes uint64
+}
+
+type MachineResources struct {
+	MemoryBytes  uint64
+	MemorySource string
+	CPUs         int
+}
+
+type FileLimits struct {
+	InotifyWatches uint64
+	OpenFiles      uint64
+}
+
+type FileSystem struct {
+	Type          string
+	CaseSensitive bool
+}
+
 // Resolver looks names up for the Easy names check.
 type Resolver interface {
 	// LookupHost asks this computer's own resolver, as a browser here would.
@@ -92,8 +112,13 @@ type Deps struct {
 	PortFree func(port int) bool
 	// BindTCP tries one TCP bind and closes it immediately. Callers classify the
 	// returned operating-system error without keeping the port reserved.
-	BindTCP  func(network, address string) error
-	Resolver Resolver
+	BindTCP          func(network, address string) error
+	DiskUsage        func(path string) (DiskUsage, error)
+	PathExists       func(path string) bool
+	MachineResources func() (MachineResources, error)
+	FileLimits       func() (FileLimits, error)
+	FileSystem       func(path string) (FileSystem, error)
+	Resolver         Resolver
 	// ListFolders returns the names of the folders inside dir.
 	ListFolders func(dir string) ([]string, error)
 	// ProcessAlive reports whether a PID belongs to a running process.

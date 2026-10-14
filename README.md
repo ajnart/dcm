@@ -169,6 +169,7 @@ Prefix with `self-host`. `--verbose` (`-v`) adds detail. `--yes` authorizes an a
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `doctor`                                             | Check Docker, Compose, ports and the Host.                                                               |
 | `host report`                                       | Report OS, Docker access, IPv6 and bind results for ports 80 and 443. Changes nothing.                   |
+| `host report --extra`                               | Also check optional resources, connectivity, port 53, filesystem behavior and temporary Docker resources. |
 | `install <app\|recipe>...`                           | Install Apps or Recipes into the Project.                                                                |
 | `status [--updates]`                                 | URLs, container state, health and Setup; optionally check image updates.                                 |
 | `setup [app...]`                                     | Retry unfinished Setup.                                                                                  |
@@ -191,6 +192,9 @@ The Docker section distinguishes a reachable daemon from a reachable local
 Unix socket and names only the endpoint kind (`unix`, `tcp`, `ssh`, `npipe` or
 `unknown`), never its path or remote host. Findings do not change the command's
 successful exit status.
+`--extra` adds an `extra` array. Every item has an `ok`, `warn`, `fail` or
+`skipped` level and a reason; one failed probe does not stop the remaining
+checks.
 
 Use named volumes or bind mounts for persistent data: anonymous volumes are not reattached after `down`/`up`. Duplicate Compose service names across App fragments are rejected before apply; if older fragments shared a cache service, reinstall both Apps. Old Redis containers and data are not retired automatically.
 

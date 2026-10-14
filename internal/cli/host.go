@@ -13,20 +13,23 @@ import (
 
 func (a *program) hostCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "host", Short: "Inspect what this machine can do for self-host"}
-	cmd.AddCommand(&cobra.Command{
+	var extra bool
+	reportCmd := &cobra.Command{
 		Use:   "report",
 		Short: "Print a read-only report of Docker, IPv6 and ports 80 and 443",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			a.document = true
-			report := a.service().HostReport(cmd.Context())
+			report := a.service().HostReport(cmd.Context(), extra)
 			if a.json {
 				return writeJSON(a.deps.Out, report)
 			}
 			printHostReport(a.deps.Out, report)
 			return nil
 		},
-	})
+	}
+	reportCmd.Flags().BoolVar(&extra, "extra", false, "run optional resource, connectivity and Docker write checks")
+	cmd.AddCommand(reportCmd)
 	return cmd
 }
 
@@ -56,6 +59,12 @@ func printHostReport(w io.Writer, report service.HostReport) {
 				address = "[" + address + "]"
 			}
 			fmt.Fprintf(w, "  %-21s %s\n", fmt.Sprintf("%s:%d", address, port.Port), formatProbeResult(probe.Result, probe.ErrorClass))
+		}
+	}
+	if len(report.Extra) > 0 {
+		fmt.Fprintln(w, "\nExtra checks")
+		for _, check := range report.Extra {
+			fmt.Fprintf(w, "  %-9s %-24s %s\n", check.Status, check.Title, check.Reason)
 		}
 	}
 }

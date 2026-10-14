@@ -114,3 +114,43 @@ func TestHostReportSucceedsWhenDockerCannotBeReached(t *testing.T) {
 		t.Fatalf("raw Docker error leaked into report: %s", out)
 	}
 }
+
+func TestHostReportExtraIsOptInAndAdditive(t *testing.T) {
+	deps := hostReportDeps(t)
+	deps.HTTP = nil
+	deps.DiskUsage = func(string) (system.DiskUsage, error) { return system.DiskUsage{AvailableBytes: 20 << 30}, nil }
+	deps.MachineResources = func() (system.MachineResources, error) {
+		return system.MachineResources{MemoryBytes: 4 << 30, CPUs: 4}, nil
+	}
+	deps.FileLimits = func() (system.FileLimits, error) {
+		return system.FileLimits{InotifyWatches: 524288, OpenFiles: 1048576}, nil
+	}
+	deps.FileSystem = func(string) (system.FileSystem, error) {
+		return system.FileSystem{Type: "apfs", CaseSensitive: false}, nil
+	}
+
+	_, plain := run(t, deps, "host", "report", "--json")
+	if strings.Contains(plain, `"extra"`) {
+		t.Fatalf("default report changed: %s", plain)
+	}
+	code, out := run(t, deps, "host", "report", "--extra", "--json")
+	var report service.HostReport
+	if err := json.Unmarshal([]byte(out), &report); code != 0 || err != nil {
+		t.Fatalf("exit %d, JSON error %v:\n%s", code, err, out)
+	}
+	if report.SchemaVersion != 1 || len(report.Extra) < 10 {
+		t.Fatalf("extra report is not additive: %+v", report)
+	}
+	if !strings.Contains(out, `"status":`) || !strings.Contains(out, `"reason":`) || strings.Contains(out, `"level":`) {
+		t.Fatalf("extra checks must use the stable status/reason contract: %s", out)
+	}
+	foundFilesystem := false
+	for _, item := range report.Extra {
+		if item.ID == "filesystem" && item.Status == "warn" {
+			foundFilesystem = true
+		}
+	}
+	if !foundFilesystem {
+		t.Fatal("extra report omitted the case-sensitivity warning")
+	}
+}

@@ -33,6 +33,8 @@ func emitChecks(log *events.Logger, checks []host.Check) {
 		switch c.Level {
 		case host.OK:
 			event.Event = events.StepOK
+		case host.Skipped:
+			event.Event = events.StepSkip
 		case host.Warn:
 			event.Event = events.StepWarn
 		default:
