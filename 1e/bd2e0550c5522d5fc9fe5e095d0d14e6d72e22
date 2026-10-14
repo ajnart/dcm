@@ -1,0 +1,45 @@
+site/astro.config.mjs
+  s_7fa234028f3f9f::t_ae4386707c4d01 21,27-28
+site/src/components/CodeBlock.astro
+  s_7fa234028f3f9f::t_4dd99fc9ea22e1 2,35,40
+site/src/components/ExtLinks.astro
+  s_7fa234028f3f9f::t_fa42f3c3d33aab 1-9
+site/src/components/PageLinks.astro
+  s_7fa234028f3f9f::t_de3e8ef5b26f05 1-11
+site/src/components/SiteHeader.astro
+  s_7fa234028f3f9f::t_2b3558ba20c1f7 2-3,8-9
+site/src/components/docs/Footer.astro
+  s_7fa234028f3f9f::t_e8bd5565805931 10-13
+site/src/components/docs/MarkdownContent.astro
+  s_7fa234028f3f9f::t_34e1ce6c580b92 1-8
+site/src/components/docs/SiteTitle.astro
+  s_7fa234028f3f9f::t_f452e36785bfd3 1-4,7
+site/src/components/docs/SocialIcons.astro
+  s_7fa234028f3f9f::t_d00feae0cae5bb 1-5
+site/src/layouts/Base.astro
+  s_7fa234028f3f9f::t_9146e8730b8b07 3
+site/src/lib/codeblock.mjs
+  s_7fa234028f3f9f::t_d7383b80da1e58 1-34
+site/src/scripts/codeblock.js
+  s_7fa234028f3f9f::t_f7522e1f21eb0e 1-28
+site/src/styles/docs.css
+  s_7fa234028f3f9f::t_3f1a4dbd9c724c 72,85-91
+site/src/styles/shared.css
+  s_7fa234028f3f9f::t_da7f8d43650f99 1-148
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1ebd2e0550c5522d5fc9fe5e095d0d14e6d72e22",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
