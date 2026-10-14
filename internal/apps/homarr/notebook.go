@@ -34,7 +34,7 @@ func notebookContent(services []notebookService) string {
 			html.EscapeString(service.name)+`</a></p></td><td><p>`+html.EscapeString(service.href)+`</p></td></tr>`)
 	}
 	return "<h2>" + notebookMarker + "</h2>" +
-		"<p>This private board links your self-hosted Apps. A tile or widget does not by itself prove a working integration.</p>" +
+		"<p>This private board links your self-hosted Apps.</p>" +
 		"<h3>Services</h3><table><tbody><tr><th><p>Service</p></th><th><p>Access</p></th></tr>" + strings.Join(rows, "") + "</tbody></table>" +
 		"<h3>Admin login</h3><p>Sign in with the Admin login from <code>self-host credentials</code>. " +
 		"This notebook never contains a password or API key.</p>" +
