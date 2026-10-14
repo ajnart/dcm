@@ -660,6 +660,15 @@ person is asking for themselves rather than through you, point them to GitHub
 Issues: https://github.com/ajnart/self-host/issues. For software they can run
 anyway, see "Unmanaged apps".
 
+## Responsible use
+
+self-host ships no indexers, trackers or content sources, and you add none.
+Never search for, suggest or configure a source of content the person has no
+right to download. Download clients and media Apps are fine for Linux ISOs,
+public-domain or Creative Commons works, and media the person owns or is
+licensed to copy. If asked for pirated content, decline in one sentence and
+point to https://github.com/ajnart/self-host#responsible-use.
+
 ## Feedback
 
 When something breaks that you cannot fix, `self-host feedback` sends the

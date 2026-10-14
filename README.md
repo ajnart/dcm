@@ -31,7 +31,7 @@ self-host
 
 On a machine with no Project, bare `self-host` opens Onboarding: it checks Docker, then checks Home-folder disk space and the selected Apps' ports at Review. It asks one thing at a time and writes nothing until you approve the plan. The Dashboard has five tabs: Overview, Apps, Activity, Catalog, Settings. `?` lists the keys. No single key changes an App; the Action menu (`a`) shows what each Action will do and runs it on `enter`.
 
-The Catalog ships inside the binary: **93 Apps, 20 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`).
+The Catalog ships inside the binary: **93 Apps, 20 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
 
 ![Actual self-host Dashboard showing Homarr, Jellyfin and ntfy with Setup details](docs/images/dashboard.png)
 
@@ -291,6 +291,10 @@ self-host restore /absolute/private/ntfy.tar.zst.age ntfy
 - Includes App folders, Host settings, state and secrets, so even a single-App Backup holds credential metadata. **Media libraries and data outside App folders are not included.**
 - Restore replaces the selected Apps' data and asks first (`--yes` skips). A fresh Project needs a full restore before selective ones. Review Host settings on a different machine.
 - Keep a copy off the host. **A written archive is not a verified recovery plan:** restore into an isolated Project and check the data.
+
+## Responsible use
+
+self-host installs and connects software; what you do with it is your choice and your responsibility. Download clients, indexers and media automation (qBittorrent, Prowlarr, Sonarr, Radarr and the rest) have legitimate uses: Linux ISOs, public-domain and Creative Commons works, and media you own or are licensed to copy. **We do not condone piracy and do not help anyone find or download content they have no right to.** self-host ships no indexers, trackers or content sources. You are responsible for following copyright law where you live and the terms of every service you connect. The software is provided as is, without warranty (Apache-2.0); the maintainers are not liable for how it is used.
 
 ## Telemetry
 
