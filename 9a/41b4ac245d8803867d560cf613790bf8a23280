@@ -1,0 +1,25 @@
+AGENTS.md
+  s_378d5db6c5f6de::t_d0fcdb87dcfc6f 37
+CODE_OF_CONDUCT.md
+  s_378d5db6c5f6de::t_735e0a5b6522e1 1-85
+CONTRIBUTING.md
+  s_378d5db6c5f6de::t_d4b85444675203 3,14
+docs/agents/implementing.md
+  s_378d5db6c5f6de::t_457669a0520971 68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a41b4ac245d8803867d560cf613790bf8a23280",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
