@@ -1,0 +1,89 @@
+.github/ISSUE_TEMPLATE/config.yml
+  s_378d5db6c5f6de::t_bd30a9b1d8854d 4
+.github/workflows/release.yml
+  s_378d5db6c5f6de::t_9a9cc2bfa4fadf 32
+AGENTS.md
+  s_378d5db6c5f6de::t_5a1d4e0e7bdb6b 57
+docs/adr/0006-telemetry-on-by-default.md
+  s_378d5db6c5f6de::t_928c8d609524f9 39
+docs/adr/0007-one-repo-go-cli-only.md
+  s_378d5db6c5f6de::t_e17de2a10e985b 1,3
+docs/agents/homarr-integrations.md
+  s_378d5db6c5f6de::t_b5c0f49c35bd91 149
+docs/agents/implementing.md
+  s_378d5db6c5f6de::t_d6a62fbe886d8e 9
+docs/agents/issue-tracker.md
+  s_378d5db6c5f6de::t_fd16c99c6ce5fb 3,37,39
+docs/releasing.md
+  s_378d5db6c5f6de::t_b54af6e720efea 91-94,163,182-184,212,234-236
+evals/self-host/scenarios/cant-reach-tv/doctor.jsonl
+  s_378d5db6c5f6de::t_811a66b9b1d800 8
+evals/self-host/scenarios/public-access/cloudflare-publish.jsonl
+  s_378d5db6c5f6de::t_632f9fa02740d5 1
+install.sh
+  s_378d5db6c5f6de::t_cc210b453ecaa0 23
+internal/cli/feedback.go
+  s_378d5db6c5f6de::t_47139411e07650 16
+internal/cli/feedback_test.go
+  s_378d5db6c5f6de::t_de34098ae1e115 242,316
+internal/cli/selfupdate_test.go
+  s_378d5db6c5f6de::t_2757f258a642a7 74
+internal/cli/telemetry_test.go
+  s_378d5db6c5f6de::t_a828dbb8b153b0 26,327
+internal/release/channel_test.go
+  s_378d5db6c5f6de::t_d256b23c40d4d8 88-89,214,216-217,219
+internal/release/installsh_skill_test.go
+  s_378d5db6c5f6de::t_af313799198b75 11,73,89,97,113
+internal/release/installsh_test.go
+  s_378d5db6c5f6de::t_91aaaf9b0aded0 105,111,215,515,527
+internal/release/release.go
+  s_378d5db6c5f6de::t_6c5469dd2aa4b9 31
+internal/release/release_test.go
+  s_378d5db6c5f6de::t_166b5eee67fb54 50,55,60
+internal/skill/guide.md
+  s_378d5db6c5f6de::t_f58946f8a08cb0 635,659
+internal/telemetry/telemetry.go
+  s_378d5db6c5f6de::t_6d15e9e9ea5b67 41
+internal/telemetry/telemetry_test.go
+  s_378d5db6c5f6de::t_48987795e82f61 429
+internal/tui/onboarding_telemetry_test.go
+  s_378d5db6c5f6de::t_36cd8d2dae6678 28,218
+internal/tui/testdata/onboarding-welcome-telemetry-narrow.golden
+  s_378d5db6c5f6de::t_f69721fa1f1083 22
+internal/tui/testdata/onboarding-welcome-telemetry.golden
+  s_378d5db6c5f6de::t_ca7c02a5c12a1e 28
+scripts/build-installer-site.sh
+  s_378d5db6c5f6de::t_93d3e316ed3533 6
+scripts/publish-wiki.sh
+  s_378d5db6c5f6de::t_542b845551dabc 5,11
+scripts/verify-install.sh
+  s_378d5db6c5f6de::t_6ef50a6850742b 31
+tools/catalog-import/main_test.go
+  s_378d5db6c5f6de::t_f2de85f45dcab2 14
+video/reel/HANDOFF.md
+  s_378d5db6c5f6de::t_fc8a46b24ca44d 9,31,39,42-43,46
+video/reel/STORYBOARD.md
+  s_378d5db6c5f6de::t_c4d6e628533bcf 29,65,69,71-73,139
+video/reel/end.js
+  s_378d5db6c5f6de::t_be6e4f76350ea8 6
+wiki/Home.md
+  s_378d5db6c5f6de::t_4b22a1d6aa5d32 7
+wiki/Telemetry.md
+  s_378d5db6c5f6de::t_ea74ccdf7b910a 76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "70ff1779ef815618f33b00a9d143067866d92ffb",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
