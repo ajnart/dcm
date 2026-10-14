@@ -1,0 +1,20 @@
+internal/cli/lifecycle_test.go
+  h_d6e478ca18e517 8,136-167
+internal/compose/compose.go
+  h_d6e478ca18e517 260-267
+internal/project/files.go
+  h_d6e478ca18e517 51-69
+internal/service/mutation.go
+  h_d6e478ca18e517 7,328-332,357-372
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ef84a5c9d0af3cbac07ee90591deabf060182c3e",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
