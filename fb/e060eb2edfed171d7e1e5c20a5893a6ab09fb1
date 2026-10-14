@@ -1,0 +1,41 @@
+video/reel/thumbs/build.mjs
+  s_378d5db6c5f6de::t_ff8e1534fbf85c 16-17,69-151
+video/reel/thumbs/v10-purplelogo.html
+  s_378d5db6c5f6de::t_802f6d40887ce7 14
+video/reel/thumbs/v11-links.html
+  s_378d5db6c5f6de::t_0b93a9b4d08ba7 15
+video/reel/thumbs/v12-splitbrand.html
+  s_378d5db6c5f6de::t_448a658c870fd9 1-27
+video/reel/thumbs/v13-herolockup.html
+  s_378d5db6c5f6de::t_ce694a9ba058ff 1-17
+video/reel/thumbs/v14-bands.html
+  s_378d5db6c5f6de::t_c2317796d0aaed 1-24
+video/reel/thumbs/v15-purplecard.html
+  s_378d5db6c5f6de::t_a69c421eb41779 1-17
+video/reel/thumbs/v16-terminal.html
+  s_378d5db6c5f6de::t_873639bba42b07 1-23
+video/reel/thumbs/v17-dashprice.html
+  s_378d5db6c5f6de::t_e498602ade2794 1-17
+video/reel/thumbs/v7-hook.html
+  s_378d5db6c5f6de::t_7de5e747026731 16
+video/reel/thumbs/v8-rentvsfree.html
+  s_378d5db6c5f6de::t_e892340be150f7 18
+video/reel/thumbs/variants.json
+  s_378d5db6c5f6de::t_4352cfac49a6a2 56-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fbe060eb2edfed171d7e1e5c20a5893a6ab09fb1",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
