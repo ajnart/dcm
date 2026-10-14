@@ -1,0 +1,49 @@
+README.md
+  s_00d9eee545672e::t_07e536622ae738 218
+install.sh
+  s_00d9eee545672e::t_cc1d977de4963f 337-339
+internal/cli/doctor_test.go
+  s_00d9eee545672e::t_67daf1b32438df 97
+internal/host/socket.go
+  s_00d9eee545672e::t_2ca42910a5dd03 11-12
+internal/host/socket_test.go
+  s_00d9eee545672e::t_297ac57bf44f63 66,68-70
+internal/release/installsh_test.go
+  s_00d9eee545672e::t_f98ae2e94d4c41 721
+internal/service/service.go
+  s_00d9eee545672e::t_7fee4dd28b9f87 53
+internal/skill/guide.md
+  s_00d9eee545672e::t_cf43c7c9801698 58-64
+internal/system/configfiles.go
+  s_00d9eee545672e::t_7d987373a34964 18-21,38-42,99-103
+internal/system/owner.go
+  s_00d9eee545672e::t_eacc59762c71f6 1-98
+internal/system/owner_test.go
+  s_00d9eee545672e::t_e9636ba4326939 1-58
+internal/system/real.go
+  s_00d9eee545672e::t_50b1c8e2ae7c17 75,85-89
+internal/system/system.go
+  s_00d9eee545672e::t_af27ddbe7bd363 93-97
+internal/tui/backend.go
+  s_00d9eee545672e::t_707486e2b293e4 221
+internal/tui/view.go
+  s_00d9eee545672e::t_983c65e5e6e9a9 457-458,496
+internal/updatecheck/updatecheck.go
+  s_00d9eee545672e::t_671c71fb65e91a 38-41,52,75-79,95-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1edce780a4a0a02bf0c45157f8cd1ecf4e7dd019",
+  "prompts": {},
+  "sessions": {
+    "s_00d9eee545672e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12fc3-6532-7483-af9d-07e71149ec51",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
