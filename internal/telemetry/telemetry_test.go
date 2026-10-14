@@ -866,3 +866,39 @@ func TestACommandThatSetsTheExperienceSetsThePersonProperty(t *testing.T) {
 		t.Fatal("a command that sets no Experience level carries $set")
 	}
 }
+
+func TestOnlyProblemsAndInstallsSendACommandEvent(t *testing.T) {
+	cases := []struct {
+		command string
+		outcome telemetry.Outcome
+		events  int
+	}{
+		{"status", telemetry.OutcomeOK, 0},
+		{"doctor", telemetry.OutcomeManual, 0},
+		{"status", telemetry.OutcomeFailed, 2},
+		{"logs", telemetry.OutcomeIncomplete, 2},
+		{"install", telemetry.OutcomeOK, 1},
+		{"setup", telemetry.OutcomeOK, 1},
+		{"remove", telemetry.OutcomeOK, 1},
+		{"restore", telemetry.OutcomeOK, 1},
+		{"self-update", telemetry.OutcomeOK, 1},
+	}
+	for _, c := range cases {
+		s := enabled(t)
+		s.send(telemetry.Report{Command: c.command, Outcome: c.outcome, Failure: errors.New("x")})
+		if got := len(s.net.Events()); got != c.events {
+			t.Errorf("%s %s: %d events, want %d", c.command, c.outcome, got, c.events)
+		}
+	}
+}
+
+func TestAWarnedStepOfAQuietCommandStillSendsALog(t *testing.T) {
+	s := enabled(t)
+	s.send(telemetry.Report{Command: "status", Outcome: telemetry.OutcomeOK, Steps: []telemetry.Step{{ID: "pull", Outcome: telemetry.StepWarned}}})
+	if got := len(s.net.Events()); got != 0 {
+		t.Errorf("%d events, want 0", got)
+	}
+	if got := len(s.net.LogRecords()); got != 1 {
+		t.Errorf("%d log records, want 1", got)
+	}
+}

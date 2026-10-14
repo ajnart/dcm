@@ -264,14 +264,25 @@ func (c *Client) Send(r Report) {
 	if !c.Enabled() || !c.announced() {
 		return
 	}
+	problem := r.Outcome == OutcomeFailed || r.Outcome == OutcomeIncomplete
 	c.deliver(func(id string) []posthog.Message {
+		if !problem && !reportedOnSuccess[r.Command] && r.Experience == "" {
+			return nil
+		}
 		props := c.properties(r)
 		messages := []posthog.Message{posthog.Capture{DistinctId: id, Event: "command", Properties: props}}
-		if r.Outcome == OutcomeFailed || r.Outcome == OutcomeIncomplete {
+		if problem {
 			messages = append(messages, c.exception(id, r, props))
 		}
 		return messages
 	}, func(id string) []logRecord { return c.logRecords(id, r) }, defaultDeadline)
+}
+
+// reportedOnSuccess names the commands that change the Project and show what
+// people install; every other command is reported only when it fails or is
+// incomplete (ADR 0010). Warning and error step logs go out for any command.
+var reportedOnSuccess = map[string]bool{
+	"install": true, "setup": true, "remove": true, "restore": true, "self-update": true,
 }
 
 // SendOnboarding sends the "onboarding" event of an approved Review and sets

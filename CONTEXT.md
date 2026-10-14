@@ -172,8 +172,9 @@ Anonymous usage and error data sent to the project's PostHog (through
 `hog.ajnart.dev`), on by default in releases and announced on first run with a
 link to the telemetry page, not an off-switch prompt. It carries a random install ID
 (kept in the user config folder, migrated from the Home folder and never
-derived from the machine), version, OS and architecture, command names,
-App and Recipe IDs, the Access choice, step IDs, outcomes and durations,
+derived from the machine), version, OS and architecture, the names of
+commands that install, set up, remove, restore or self-update or that fail (not
+every command, ADR 0010), App and Recipe IDs, the Access choice, step IDs, outcomes and durations,
 and errors as PostHog exceptions with module-relative in-app stack frames.
 Approving Onboarding's Review sends one `onboarding` event (Experience level,
 glyph set, whether the Intro was skipped, Doctor's outcome, duration) and sets
@@ -182,7 +183,8 @@ the person property `experience`, as `self-host profile set experience` does
 locations, host names, absolute paths, inputs, secrets, raw errors or App
 data. Person profiles group events by the random ID; `experience` is the only
 person property; GeoIP is disabled. Server-side IP discard is a maintainer setting,
-not verified by the CLI. A public dashboard may come later. Off with
+not verified by the CLI. Used only by the maintainers to see how self-host is
+used and to debug it; never sold or shared. A public dashboard may come later. Off with
 `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`, and always off in CI and
 development builds.
 _Avoid_: analytics, tracking

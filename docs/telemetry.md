@@ -5,12 +5,25 @@ Setup steps are slow, and where commands fail. Release builds send it to EU
 PostHog through `https://hog.ajnart.dev`. Development builds and CI send nothing.
 There is no public dashboard yet; one may come later.
 
+## What it is for
+
+The data is used only to see how self-host is used, such as which Apps people
+install and where Setup and Onboarding break, and to debug failures. Only the
+maintainers see it. It is never sold, rented or shared with third parties, and
+never used for advertising.
+
 ## What is sent
 
-- A random install ID; self-host version, OS and architecture.
-- Command names, outcomes and durations; Catalog App and Recipe IDs.
-- The Access choice, using the same `home`/`local` IDs as `status --json`.
-- Step IDs, outcomes and durations, including failed steps.
+Not every command is sent. Running `status`, `logs`, `doctor`, `apps` or
+`credentials` successfully sends nothing. Only these are sent:
+
+- A random install ID; self-host version, OS and architecture, with each event.
+- A command event when `install`, `setup`, `remove`, `restore` or `self-update`
+  runs, even on success: command name, outcome, duration, Catalog App and
+  Recipe IDs, and the Access choice, using the same `home`/`local` IDs as
+  `status --json`.
+- A command event for any command that fails or ends incomplete, with its step
+  IDs, outcomes and durations.
 - Errors as PostHog `$exception` events: error type, fixed description, stable
   fingerprint, and in-app function names, module-relative files and line numbers.
   Panics are unhandled exceptions, flushed before the original panic continues.
@@ -18,8 +31,10 @@ There is no public dashboard yet; one may come later.
   level (`new` or `advanced`), the glyph set (`nerd-font` or `simple`), whether
   you skipped the intro, whether the machine check warned (`ok` or `warn`) and
   how long Onboarding took. Nothing is sent if you quit before approving.
-- Warning and error steps as fixed-text OTLP log records, with the step and
-  command IDs. These are not App logs, raw error messages, or distributed traces.
+- Warning and error steps of any command, as fixed-text OTLP log records with
+  the step and command IDs. These are not App logs, raw error messages, or
+  distributed traces.
+- Feedback, only after you see the text and agree (see below).
 
 PostHog person profiles group events by the random ID to count usage and return
 visits. No names or emails are set. The one person property is `experience`

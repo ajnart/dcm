@@ -625,12 +625,12 @@ inputs are masked. Provider accounts and approvals remain prerequisites.
 ## Telemetry
 
 `self-host` sends anonymous usage and error data to the project's PostHog (ADR
-0006): a random install ID, version, OS and architecture, command names and
-outcomes, App and Recipe IDs, the Access choice, step IDs, outcomes and durations,
+0006): a random install ID, version, OS and architecture, installs, setups, removals,
+restores, self-updates and failed commands (not every command), App and Recipe IDs, the Access choice, step IDs, outcomes and durations,
 and error types with module-relative in-app stack frames. Warning and error
 steps send fixed-text logs, never App logs. Never absolute paths, host names,
 inputs, secrets, App data or raw error text. It is on by default in releases,
-announced once, and usage sending waits at most 500 ms without failing a command.
+announced once, only for the maintainers and never sold or shared, and usage sending waits at most 500 ms without failing a command.
 The random ID lives in the user config folder and survives Home-folder deletion.
 Details: https://self-host.fyi/telemetry.
 

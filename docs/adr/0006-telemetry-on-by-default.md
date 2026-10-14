@@ -51,3 +51,6 @@ make that acceptable; widening either needs a new ADR.
 
 [ADR 0009](0009-onboarding-event-and-experience-property.md) adds one
 `onboarding` event on approving Review and the person property `experience`.
+
+Which commands send an event is narrowed by
+[ADR 0010](0010-telemetry-only-problems-and-installs.md).
