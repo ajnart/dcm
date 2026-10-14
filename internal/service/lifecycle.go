@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/compose"
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -261,7 +260,10 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 				if st == nil || p.IsExtra(id) {
 					continue
 				}
-				rc := app.RenderContext{Port: st.Port, Inputs: st.Inputs, Settings: previous}
+				rc, err := s.renderContext(ctx, a, st.Port, st.Inputs, previous)
+				if err != nil {
+					return err
+				}
 				old := a.Compose(rc)
 				rc.Settings = next
 				fragment := a.Compose(rc)

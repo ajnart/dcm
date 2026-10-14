@@ -1,14 +1,36 @@
 package service
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
 	"github.com/ajnart/self-host/internal/events"
+	"github.com/ajnart/self-host/internal/helpers"
+	"github.com/ajnart/self-host/internal/system"
 	"github.com/ajnart/self-host/internal/systemtest"
 )
+
+type dockerSocketApp struct{ *testApp }
+
+func (a *dockerSocketApp) Info() app.Info {
+	return app.Info{ID: "beszel", Name: "Beszel", Image: "example/beszel:1", Port: 8090, ContainerPort: 8090, Service: "beszel-socket-proxy"}
+}
+
+func (*dockerSocketApp) DockerSocketTarget() string { return "/var/run/docker.sock" }
+
+func (a *dockerSocketApp) Compose(rc app.RenderContext) string {
+	return "services:\n  beszel-socket-proxy:\n    image: " + a.Info().Image + "\n    volumes:\n      - " + rc.DockerSocket + ":/var/run/docker.sock:ro\n"
+}
+
+func (a *dockerSocketApp) Setup(ctx context.Context, h *helpers.H) error {
+	return a.testApp.Setup(ctx, h)
+}
 
 func TestAnArgumentThatIsAnAppAndARecipeMeansTheRecipeEverywhere(t *testing.T) {
 	apps := []app.App{
@@ -32,5 +54,48 @@ func TestAnArgumentThatIsAnAppAndARecipeMeansTheRecipeEverywhere(t *testing.T) {
 	}
 	if got, want := svc.recipeOf([]string{"media"}), map[string]string{"jellyfin": "media", "ntfy": "media"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("recipeOf = %v, want %v", got, want)
+	}
+}
+
+func TestInstallRendersSocketFromExplicitDockerContext(t *testing.T) {
+	a := &dockerSocketApp{testApp: &testApp{id: "beszel", done: map[string]bool{}}}
+	h := newHarness(t, a)
+	h.deps.Getenv = func(key string) string {
+		return map[string]string{
+			"DOCKER_CONTEXT": "rootless",
+			"DOCKER_HOST":    "unix:///wrong/docker.sock",
+		}[key]
+	}
+	h.runner.On("docker context inspect", system.Result{Stdout: []byte("unix:///run/user/1000/docker.sock\n")})
+
+	if err := h.install("beszel"); err != nil {
+		t.Fatal(err)
+	}
+	fragment, err := os.ReadFile(filepath.Join(h.root(), "apps", "beszel", "compose.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(fragment), "/run/user/1000/docker.sock:/var/run/docker.sock:ro") {
+		t.Fatalf("fragment did not use the explicit context socket:\n%s", fragment)
+	}
+}
+
+func TestInstallRefusesRemoteDockerContextForSocketMount(t *testing.T) {
+	a := &dockerSocketApp{testApp: &testApp{id: "beszel", done: map[string]bool{}}}
+	h := newHarness(t, a)
+	h.deps.Getenv = func(key string) string {
+		if key == "DOCKER_CONTEXT" {
+			return "remote"
+		}
+		return ""
+	}
+	h.runner.On("docker context inspect", system.Result{Stdout: []byte("ssh://docker.example.test\n")})
+
+	err := h.install("beszel")
+	if err == nil || !strings.Contains(err.Error(), "not a Unix socket") {
+		t.Fatalf("Install error = %v, want remote-context refusal", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(h.root(), "apps", "beszel", "compose.yml")); !os.IsNotExist(statErr) {
+		t.Fatalf("fragment was written before refusal: %v", statErr)
 	}
 }

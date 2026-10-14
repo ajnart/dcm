@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/apps/beszel"
@@ -63,7 +62,7 @@ func TestTheExceptionMatchesTheBeszelApp(t *testing.T) {
 	if socketProxyException != beszel.SocketProxyService {
 		t.Errorf("exception = %q, but the Beszel App names its proxy %q", socketProxyException, beszel.SocketProxyService)
 	}
-	if !strings.HasPrefix(beszel.DockerSocketMount, dockerSocket+":") {
-		t.Errorf("the Beszel App mounts %q, not %s", beszel.DockerSocketMount, dockerSocket)
+	if beszel.DockerSocketTarget != dockerSocket {
+		t.Errorf("the Beszel App targets %q, not %s", beszel.DockerSocketTarget, dockerSocket)
 	}
 }
