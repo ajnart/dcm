@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -263,11 +264,15 @@ func (s *Service) renderContext(ctx context.Context, a app.App, port int, inputs
 	if _, ok := a.(app.DockerSocketMounter); !ok {
 		return rc, nil
 	}
-	socket, err := host.ActiveDockerSocket(ctx, s.Deps)
+	active, err := host.ActiveDockerEndpoint(ctx, s.Deps)
 	if err != nil {
 		return app.RenderContext{}, err
 	}
-	rc.DockerSocket = socket
+	endpoint, err := url.Parse(active.Host)
+	if err != nil || endpoint.Scheme != "unix" || endpoint.Path == "" {
+		return app.RenderContext{}, fmt.Errorf("the active Docker endpoint %q is not a Unix socket", active.Host)
+	}
+	rc.DockerSocket = endpoint.Path
 	return rc, nil
 }
 

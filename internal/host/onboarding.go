@@ -28,18 +28,13 @@ func Onboarding(deps *system.Deps, projectPath string, appCount int, ports []Por
 
 func onboardingDisk(deps *system.Deps, path string, apps int) Check {
 	check := Check{ID: "disk", Title: "Disk space", Level: OK}
-	if deps.DiskUsage == nil {
-		check.Level, check.Detail, check.Hint = Fail, "free space could not be read", "Fix access to the Home folder, then press r to recheck."
-		return check
-	}
-	usage, err := deps.DiskUsage(path)
+	available, required, err := diskSpace(deps, path, apps)
 	if err != nil {
 		check.Level, check.Detail, check.Hint = Fail, "free space could not be read: "+err.Error(), "Fix access to the Home folder, then press r to recheck."
 		return check
 	}
-	required := Requirements.BaseDiskBytes + uint64(max(apps, 0))*Requirements.DiskBytesPerApp
-	check.Detail = fmt.Sprintf("%d GiB free in the Home folder; %d GiB recommended", usage.AvailableBytes>>30, required>>30)
-	if usage.AvailableBytes < required {
+	check.Detail = fmt.Sprintf("%d GiB free in the Home folder; %d GiB recommended", available>>30, required>>30)
+	if available < required {
 		check.Level = Warn
 		check.Hint = "Free some space before installing large Apps or storing media."
 	}
@@ -86,14 +81,8 @@ func portUsable(deps *system.Deps, port int, protocols []string, reserved map[st
 		var probes []PortProbe
 		switch protocol {
 		case "tcp":
-			if deps.BindTCP == nil {
-				return false
-			}
 			probes = ProbePort(deps, port)
 		case "udp":
-			if deps.BindUDP == nil {
-				return false
-			}
 			probes = ProbeUDPPort(deps, port)
 		default:
 			return false

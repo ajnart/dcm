@@ -96,7 +96,6 @@ func Real(version string) *Deps {
 		HostIPs:          hostIPs,
 		HomeNetwork:      homeNetwork,
 		TimeZone:         timeZone,
-		PortFree:         portFree,
 		BindTCP:          bindTCP,
 		BindUDP:          bindUDP,
 		DiskUsage:        diskUsage,
@@ -222,24 +221,6 @@ func homeNetwork(ip string) bool {
 	return false
 }
 
-// portFree tries IPv4 and IPv6 separately: on macOS a dual-stack ":port"
-// listener succeeds while Docker (OrbStack, Docker Desktop) holds the IPv4
-// port, which made a second Project collide with the first.
-func portFree(port int) bool {
-	p := strconv.Itoa(port)
-	for _, addr := range [][2]string{{"tcp4", "0.0.0.0:" + p}, {"tcp4", "127.0.0.1:" + p}, {"tcp6", "[::]:" + p}} {
-		listener, err := net.Listen(addr[0], addr[1])
-		if err != nil {
-			if bindMeansBusy(addr[0], err) {
-				return false
-			}
-			continue
-		}
-		listener.Close()
-	}
-	return true
-}
-
 func bindTCP(network, address string) error {
 	listener, err := net.Listen(network, address)
 	if err != nil {
@@ -254,17 +235,6 @@ func bindUDP(network, address string) error {
 		return err
 	}
 	return listener.Close()
-}
-
-// bindMeansBusy reports whether a failed bind says another program holds the
-// port. A host without IPv6 cannot listen on [::], and a user cannot bind a
-// port below 1024 on Linux although the Docker daemon can publish it; neither
-// says anything about the port.
-func bindMeansBusy(network string, err error) bool {
-	if errors.Is(err, os.ErrPermission) {
-		return false
-	}
-	return network != "tcp6" || strings.Contains(err.Error(), "address already in use")
 }
 
 func processAlive(pid int) bool {

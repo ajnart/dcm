@@ -43,7 +43,7 @@ func printHostReport(w io.Writer, report service.HostReport) {
 	if report.Docker.DaemonReachable {
 		docker = "engine " + report.Docker.Version + "; daemon reachable"
 	}
-	if report.Docker.SocketReachable {
+	if report.Docker.EndpointKind == "unix" {
 		docker = "engine " + report.Docker.Version + "; socket reachable"
 	} else if report.Docker.DaemonReachable && report.Docker.EndpointKind != "" {
 		docker += " (" + report.Docker.EndpointKind + ")"
@@ -64,7 +64,7 @@ func printHostReport(w io.Writer, report service.HostReport) {
 	if len(report.Extra) > 0 {
 		fmt.Fprintln(w, "\nExtra checks")
 		for _, check := range report.Extra {
-			fmt.Fprintf(w, "  %-9s %-24s %s\n", check.Status, check.Title, check.Reason)
+			fmt.Fprintf(w, "  %-9s %-24s %s\n", check.Level, check.Title, check.Detail)
 		}
 	}
 }

@@ -107,9 +107,6 @@ type Deps struct {
 	HomeNetwork func(ip string) bool
 	// TimeZone returns the host's IANA time zone.
 	TimeZone func() string
-	// PortFree reports whether a TCP port can be bound on the host, tested with
-	// a real bind.
-	PortFree func(port int) bool
 	// BindTCP tries one TCP bind and closes it immediately. Callers classify the
 	// returned operating-system error without keeping the port reserved.
 	BindTCP func(network, address string) error
@@ -120,10 +117,7 @@ type Deps struct {
 	MachineResources func() (MachineResources, error)
 	FileLimits       func() (FileLimits, error)
 	FileSystem       func(path string) (FileSystem, error)
-	// DiskFree reports the bytes available to the current user on the
-	// filesystem containing path. The path itself does not need to exist.
-	DiskFree func(path string) (uint64, error)
-	Resolver Resolver
+	Resolver         Resolver
 	// ListFolders returns the names of the folders inside dir.
 	ListFolders func(dir string) ([]string, error)
 	// ProcessAlive reports whether a PID belongs to a running process.

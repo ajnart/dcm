@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -20,7 +21,12 @@ import (
 )
 
 func (h *harness) holdPort80(by string) {
-	h.deps.PortFree = func(port int) bool { return port != 80 }
+	h.deps.BindTCP = func(_, address string) error {
+		if strings.HasSuffix(address, ":80") {
+			return syscall.EADDRINUSE
+		}
+		return nil
+	}
 	if by != "" {
 		h.deps.GOOS = "darwin"
 		h.runner.On("lsof -nP -iTCP:80", system.Result{Stdout: []byte("p1027\nc" + by + "\n")})
@@ -714,11 +720,11 @@ func TestQueuedLANChangeRevalidatesNamesEnabledByTheLockOwner(t *testing.T) {
 	}
 	inspecting, release, waiting := make(chan struct{}), make(chan struct{}), make(chan struct{})
 	var inspected sync.Once
-	h.deps.PortFree = func(port int) bool {
-		if port == 80 {
+	h.deps.BindTCP = func(_, address string) error {
+		if strings.HasSuffix(address, ":80") {
 			inspected.Do(func() { close(inspecting); <-release })
 		}
-		return true
+		return nil
 	}
 	ctx := &queuedNamesContext{Context: context.Background(), entered: waiting}
 	enabled, invalid := make(chan error, 1), make(chan error, 1)
@@ -799,7 +805,7 @@ func TestRestoreRebuildsNamesWithoutSetupAndRejectsPortConflictBeforeReplacement
 					t.Fatal("data replaced on refusal")
 				}
 			}
-			h.deps.PortFree = func(int) bool { return true }
+			h.deps.BindTCP = func(string, string) error { return nil }
 			if !fresh {
 				if err := h.svc.Remove(context.Background(), []string{"one"}, false); err != nil {
 					t.Fatal(err)

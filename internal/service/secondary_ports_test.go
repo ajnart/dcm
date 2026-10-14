@@ -29,7 +29,6 @@ func TestInstallAllocatesAvailableSecondaryPorts(t *testing.T) {
 	} {
 		t.Run(tc.app.Info().ID, func(t *testing.T) {
 			h := newHarness(t, tc.app)
-			h.deps.PortFree = func(int) bool { return true }
 			h.deps.BindUDP = func(_ string, address string) error {
 				if strings.HasSuffix(address, ":"+strconv.Itoa(tc.occupied)) {
 					return syscall.EADDRINUSE

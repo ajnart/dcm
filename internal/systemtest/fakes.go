@@ -2,7 +2,10 @@ package systemtest
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/ajnart/self-host/internal/system"
@@ -79,11 +82,22 @@ func (n *Network) HostIPs() ([]string, error) {
 	return []string{ip}, err
 }
 
-func (n *Network) PortFree(port int) bool {
+func (n *Network) Bind(_, address string) error {
+	_, portText, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+	port, err := strconv.Atoi(portText)
+	if err != nil {
+		return err
+	}
 	n.mu.Lock()
 	busy := n.busy[port]
 	n.mu.Unlock()
-	return !busy
+	if busy {
+		return syscall.EADDRINUSE
+	}
+	return nil
 }
 
 // Host is a fake machine: its time zone, running processes and folders.

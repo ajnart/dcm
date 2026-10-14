@@ -9,22 +9,23 @@ import (
 type HostReport = host.HostReport
 
 // HostReport inspects capabilities without loading or changing the Project.
-func (s *Service) HostReport(ctx context.Context, extra ...bool) HostReport {
+func (s *Service) HostReport(ctx context.Context, extra bool) HostReport {
 	report := host.Report(ctx, s.Deps)
-	if len(extra) == 0 || !extra[0] {
+	if !extra {
 		return report
 	}
-	options := host.ExtraOptions{}
+	var path string
+	var apps int
 	if p, err := s.Project(); err == nil {
-		options.ProjectPath = p.Root
+		path = p.Root
 		if p.Exists() {
 			if state, loadErr := p.LoadState(); loadErr == nil {
-				options.AppCount = len(state.Apps)
+				apps = len(state.Apps)
 			}
 		} else if owner, ownerErr := s.Owner(); ownerErr == nil {
-			options.ProjectPath = owner.Home
+			path = owner.Home
 		}
 	}
-	report.Extra = host.Extra(ctx, s.Deps, options)
+	report.Extra = host.Extra(ctx, s.Deps, path, apps)
 	return report
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -14,8 +13,25 @@ import (
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func fakeProbes(deps *system.Deps) {
+	deps.PathExists = func(string) bool { return false }
+	deps.DiskUsage = func(string) (system.DiskUsage, error) { return system.DiskUsage{}, errors.New("unsupported") }
+	deps.MachineResources = func() (system.MachineResources, error) { return system.MachineResources{}, errors.New("unsupported") }
+	deps.FileLimits = func() (system.FileLimits, error) { return system.FileLimits{}, errors.New("unsupported") }
+	deps.FileSystem = func(string) (system.FileSystem, error) { return system.FileSystem{}, errors.New("unsupported") }
+	deps.HTTP = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		header := http.Header{"Date": {deps.Now().Add(20 * time.Second).Format(http.TimeFormat)}}
+		return &http.Response{StatusCode: http.StatusOK, Header: header, Body: http.NoBody}, nil
+	})}
+}
+
 func TestExtraChecksAreIndependentAndCleanUpOwnedDockerResources(t *testing.T) {
 	deps := systemtest.NewDeps(t)
+	fakeProbes(deps)
 	runner := deps.Runner.(*systemtest.Runner)
 	runner.On("docker context inspect", system.Result{Stdout: []byte("unix:///var/run/docker.sock\n")})
 	runner.On("docker info --format", system.Result{Stdout: []byte("\"/var/lib/docker\" \"Ubuntu 24.04.3 LTS\"\n")})
@@ -38,14 +54,14 @@ func TestExtraChecksAreIndependentAndCleanUpOwnedDockerResources(t *testing.T) {
 		return system.FileSystem{Type: "ext4", CaseSensitive: true}, nil
 	}
 
-	checks := host.Extra(context.Background(), deps, host.ExtraOptions{ProjectPath: "/project", AppCount: 3})
-	if check(checks, "disk-docker").Status != host.Warn {
+	checks := host.Extra(context.Background(), deps, "/project", 3)
+	if check(checks, "disk-docker").Level != host.Warn {
 		t.Fatal("an unreadable Docker path should warn")
 	}
-	if check(checks, "memory").Status != host.OK || check(checks, "filesystem").Status != host.OK {
+	if check(checks, "memory").Level != host.OK || check(checks, "filesystem").Level != host.OK {
 		t.Fatal("later independent checks should still run")
 	}
-	if check(checks, "docker-network").Status != host.Warn || check(checks, "docker-volume").Status != host.OK {
+	if check(checks, "docker-network").Level != host.Warn || check(checks, "docker-volume").Level != host.OK {
 		t.Fatal("network failure must not hide the volume check")
 	}
 	calls := strings.Join(runner.Calls(), "\n")
@@ -56,12 +72,8 @@ func TestExtraChecksAreIndependentAndCleanUpOwnedDockerResources(t *testing.T) {
 }
 
 func TestExtraChecksUseSharedRequirementsAndReportConnectivity(t *testing.T) {
-	registry := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Date", time.Date(2026, 10, 6, 12, 0, 20, 0, time.UTC).Format(http.TimeFormat))
-		w.WriteHeader(http.StatusOK)
-	}))
-	t.Cleanup(registry.Close)
-	deps := systemtest.NewDeps(t)
+	deps := systemtest.NewDeps(t, systemtest.WithResolver(&systemtest.Resolver{Rewrite: "192.0.2.1"}))
+	fakeProbes(deps)
 	deps.DiskUsage = func(string) (system.DiskUsage, error) {
 		return system.DiskUsage{AvailableBytes: 1 << 30}, nil
 	}
@@ -71,28 +83,25 @@ func TestExtraChecksUseSharedRequirementsAndReportConnectivity(t *testing.T) {
 	deps.FileLimits = func() (system.FileLimits, error) { return system.FileLimits{}, errors.New("unsupported") }
 	deps.FileSystem = func(string) (system.FileSystem, error) { return system.FileSystem{Type: "unknown"}, nil }
 
-	checks := host.Extra(context.Background(), deps, host.ExtraOptions{
-		ProjectPath: "/project", AppCount: 2,
-		RegistryURL: registry.URL, ReleaseURL: registry.URL,
-		RegistryHost: "registry.192-168-1-20.sslip.io", ReleaseHost: "release.192-168-1-20.sslip.io",
-	})
-	if check(checks, "disk-project").Status != host.Warn || check(checks, "memory").Status != host.Warn {
+	checks := host.Extra(context.Background(), deps, "/project", 2)
+	if check(checks, "disk-project").Level != host.Warn || check(checks, "memory").Level != host.Warn {
 		t.Fatal("resource checks should use the shared per-App requirements")
 	}
-	if check(checks, "dns-registry").Status != host.OK || check(checks, "https-release").Status != host.OK {
+	if check(checks, "dns-registry").Level != host.OK || check(checks, "https-release").Level != host.OK {
 		t.Fatal("DNS and HTTPS checks should report independently")
 	}
-	if check(checks, "clock").Status != host.OK || check(checks, "file-limits").Status != host.Skipped {
+	if check(checks, "clock").Level != host.OK || check(checks, "file-limits").Level != host.Skipped {
 		t.Fatal("clock and unsupported limit results should have stable statuses")
 	}
 }
 
 func TestExtraReportsCleanupFailure(t *testing.T) {
 	deps := systemtest.NewDeps(t)
+	fakeProbes(deps)
 	runner := deps.Runner.(*systemtest.Runner)
 	runner.On("docker volume rm", system.Result{ExitCode: 1})
-	checks := host.Extra(context.Background(), deps, host.ExtraOptions{})
-	if check(checks, "docker-volume").Status != host.Fail {
+	checks := host.Extra(context.Background(), deps, "", 0)
+	if check(checks, "docker-volume").Level != host.Fail {
 		t.Fatal("a temporary resource left behind must fail its check")
 	}
 }
@@ -107,6 +116,7 @@ func TestExtraSkipsDockerDiskForRemoteOrDesktopDaemon(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			deps := systemtest.NewDeps(t, systemtest.WithEnv(map[string]string{"DOCKER_HOST": tc.endpoint}))
+			fakeProbes(deps)
 			deps.GOOS = tc.goos
 			runner := deps.Runner.(*systemtest.Runner)
 			runner.On("docker info --format", system.Result{Stdout: []byte("\"/var/lib/docker\" \"" + tc.operatingSystem + "\"\n")})
@@ -116,9 +126,9 @@ func TestExtraSkipsDockerDiskForRemoteOrDesktopDaemon(t *testing.T) {
 				diskPaths = append(diskPaths, path)
 				return system.DiskUsage{AvailableBytes: 30 << 30}, nil
 			}
-			checks := host.Extra(context.Background(), deps, host.ExtraOptions{ProjectPath: "/project"})
+			checks := host.Extra(context.Background(), deps, "/project", 0)
 			dockerDisk := check(checks, "disk-docker")
-			if dockerDisk.Status != host.Skipped || strings.Contains(strings.Join(diskPaths, "\n"), "/var/lib/docker") {
+			if dockerDisk.Level != host.Skipped || strings.Contains(strings.Join(diskPaths, "\n"), "/var/lib/docker") {
 				t.Fatalf("Docker disk = %+v, paths = %v", dockerDisk, diskPaths)
 			}
 		})
@@ -127,6 +137,7 @@ func TestExtraSkipsDockerDiskForRemoteOrDesktopDaemon(t *testing.T) {
 
 func TestExtraChecksDockerDiskForNativeLinuxDaemon(t *testing.T) {
 	deps := systemtest.NewDeps(t, systemtest.WithEnv(map[string]string{"DOCKER_HOST": "unix:///var/run/docker.sock"}))
+	fakeProbes(deps)
 	runner := deps.Runner.(*systemtest.Runner)
 	runner.On("docker info --format", system.Result{Stdout: []byte("\"/var/lib/docker\" \"Ubuntu 24.04.3 LTS\"\n")})
 	deps.PathExists = func(path string) bool { return path == "/var/lib/docker" }
@@ -135,28 +146,29 @@ func TestExtraChecksDockerDiskForNativeLinuxDaemon(t *testing.T) {
 		diskPaths = append(diskPaths, path)
 		return system.DiskUsage{AvailableBytes: 30 << 30}, nil
 	}
-	checks := host.Extra(context.Background(), deps, host.ExtraOptions{ProjectPath: "/project"})
-	if check(checks, "disk-docker").Status != host.OK || !strings.Contains(strings.Join(diskPaths, "\n"), "/var/lib/docker") {
+	checks := host.Extra(context.Background(), deps, "/project", 0)
+	if check(checks, "disk-docker").Level != host.OK || !strings.Contains(strings.Join(diskPaths, "\n"), "/var/lib/docker") {
 		t.Fatalf("Docker disk = %+v, paths = %v", check(checks, "disk-docker"), diskPaths)
 	}
 }
 
 func TestExtraKeepsCPUFindingWhenMemoryInventoryIsUnsupported(t *testing.T) {
 	deps := systemtest.NewDeps(t)
+	fakeProbes(deps)
 	deps.MachineResources = func() (system.MachineResources, error) {
 		return system.MachineResources{CPUs: 8}, errors.New("memory inventory unsupported on darwin")
 	}
-	checks := host.Extra(context.Background(), deps, host.ExtraOptions{})
-	if check(checks, "memory").Status != host.Skipped || check(checks, "cpu").Status != host.OK {
+	checks := host.Extra(context.Background(), deps, "", 0)
+	if check(checks, "memory").Level != host.Skipped || check(checks, "cpu").Level != host.OK {
 		t.Fatalf("memory = %+v, CPU = %+v", check(checks, "memory"), check(checks, "cpu"))
 	}
 }
 
-func check(checks []host.ExtraCheck, id string) host.ExtraCheck {
+func check(checks []host.Check, id string) host.Check {
 	for _, item := range checks {
 		if item.ID == id {
 			return item
 		}
 	}
-	return host.ExtraCheck{}
+	return host.Check{}
 }

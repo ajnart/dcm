@@ -17,8 +17,6 @@ type Network interface {
 	// HostIPs returns the IPv4 addresses of this machine's active network
 	// interfaces, without loopback and container bridges.
 	HostIPs() ([]string, error)
-	// PortFree reports whether a TCP port can be bound on the host.
-	PortFree(port int) bool
 }
 
 type Host interface {
@@ -47,8 +45,6 @@ func (v depsView) LANIP() (string, error) { return v.d.LANIP() }
 
 func (v depsView) HostIPs() ([]string, error) { return v.d.HostIPs() }
 
-func (v depsView) PortFree(port int) bool { return v.d.PortFree(port) }
-
 func (d *Deps) Network() Network { return depsView{d} }
 
 func (d *Deps) WithClock(c Clock) *Deps {
@@ -57,7 +53,7 @@ func (d *Deps) WithClock(c Clock) *Deps {
 }
 
 func (d *Deps) WithNetwork(n Network) *Deps {
-	d.LANIP, d.HostIPs, d.PortFree = n.LANIP, n.HostIPs, n.PortFree
+	d.LANIP, d.HostIPs = n.LANIP, n.HostIPs
 	return d
 }
 
