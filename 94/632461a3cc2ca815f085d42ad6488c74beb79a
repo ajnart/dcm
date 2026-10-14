@@ -1,0 +1,21 @@
+site/src/pages/index.astro
+  s_378d5db6c5f6de::t_87a517fd74a0ef 54
+site/src/styles/site.css
+  s_378d5db6c5f6de::t_af2e60752adad0 195-197,250-261
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "94632461a3cc2ca815f085d42ad6488c74beb79a",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
