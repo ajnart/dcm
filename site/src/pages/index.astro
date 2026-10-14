@@ -4,7 +4,7 @@ import CodeBlock from "../components/CodeBlock.astro";
 import HeroLogo from "../components/HeroLogo.astro";
 import SectionHead from "../components/SectionHead.astro";
 import { apps, linkCount, linkingApps } from "../lib/catalog";
-import { AGENT_PROMPT, INSTALL, LINKS, VERSION } from "../lib/site";
+import { AGENT_PROMPT, INSTALL_METHODS, LINKS, VERSION } from "../lib/site";
 
 const AGENT_RUNS = `self-host skill
 self-host status --json
@@ -52,6 +52,9 @@ const jsonld = {
               <a class="btn" href="#reel">watch · 34 s</a>
               <a class="btn" href="#apps">apps</a>
               <a class="btn star" href={LINKS.github} target="_blank" rel="noopener"><span aria-hidden="true">★</span> star on GitHub</a>
+            </div>
+            <div class="hero-install">
+              <CodeBlock label="Install method" variants={INSTALL_METHODS} id="hero-install" />
             </div>
           </div>
           <HeroLogo />
@@ -152,7 +155,7 @@ const jsonld = {
 
         <section id="install" aria-labelledby="install-title">
           <SectionHead id="install" num="06" title="Install">Linux, macOS, WSL. Needs Docker with Compose v2.</SectionHead>
-          <CodeBlock lang="bash" label="install" code={INSTALL} id="oneliner" />
+          <CodeBlock label="Install method" variants={INSTALL_METHODS} id="oneliner" />
           <p class="aside">Read it first: <a href="/install">installer</a> · <a href="/install.sh.sha256">sha256</a> · <a href={LINKS.releases}>releases</a></p>
           <p class="aside">Want the YAML instead? <a href={LINKS.dcm}>DCM</a> builds a <code>docker-compose.yaml</code> for you to run yourself.</p>
         </section>

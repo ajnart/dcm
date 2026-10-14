@@ -2,36 +2,63 @@
 import Prism from "prismjs";
 import "prismjs/components/prism-bash.js";
 
+type Variant = { label: string; code: string };
+
 interface Props {
-  code: string;
+  code?: string;
   lang?: string;
   label?: string;
   id?: string;
+  variants?: Variant[];
 }
 
-const { code, lang = "bash", label, id } = Astro.props;
+const { code = "", lang = "bash", label, id } = Astro.props;
+const variants = Astro.props.variants ?? [{ label: label ?? lang, code }];
 const grammar = Prism.languages[lang];
 const highlight = (line: string) => (grammar ? Prism.highlight(line, grammar, lang) : Prism.util.encode(line).toString());
-const html = code
-  .split("\n")
-  .map((line) => `<span class="line">${highlight(line)}</span>`)
-  .join("");
+const html = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => `<span class="line">${highlight(line)}</span>`)
+    .join("");
 ---
 
 <figure class="codeblock" id={id}>
   <figcaption>
-    <span>{label ?? lang}</span>
-    <button class="copybtn" type="button" data-copy={code}>copy</button>
+    {
+      variants.length > 1 ? (
+        <select class="variant" aria-label={label ?? "Variant"}>
+          {variants.map((v, i) => (
+            <option value={i}>{v.label}</option>
+          ))}
+        </select>
+      ) : (
+        <span>{variants[0].label}</span>
+      )
+    }
+    <button class="copybtn" type="button" data-copy={variants[0].code}>copy</button>
   </figcaption>
-  <pre class={`language-${lang}`}><code class={`language-${lang}`} set:html={html} /></pre>
+  {variants.map((v, i) => (
+    <pre class={`language-${lang}`} data-code={v.code} hidden={i > 0}><code class={`language-${lang}`} set:html={html(v.code)} /></pre>
+  ))}
 </figure>
 
 <script>
   import { copy } from "../scripts/util.js";
 
+  for (const select of document.querySelectorAll<HTMLSelectElement>(".codeblock select.variant")) {
+    select.addEventListener("change", () => {
+      const block = select.closest(".codeblock");
+      const pres = block?.querySelectorAll<HTMLPreElement>("pre[data-code]") ?? [];
+      pres.forEach((pre, i) => (pre.hidden = i !== select.selectedIndex));
+      const button = block?.querySelector<HTMLButtonElement>("[data-copy]");
+      if (button) button.dataset.copy = pres[select.selectedIndex]?.dataset.code ?? "";
+    });
+  }
+
   for (const button of document.querySelectorAll<HTMLButtonElement>("[data-copy]")) {
     button.addEventListener("click", async () => {
-      const code = button.closest(".codeblock")?.querySelector("code");
+      const code = button.closest(".codeblock")?.querySelector("pre:not([hidden]) code");
       let ok = await copy(button.dataset.copy ?? "");
       if (!ok && code) {
         getSelection()?.selectAllChildren(code);

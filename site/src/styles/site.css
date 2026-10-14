@@ -247,6 +247,26 @@ h1 {
   margin-top: 1.5rem;
 }
 
+.hero-install {
+  margin-top: 1.25rem;
+  max-width: 44rem;
+}
+
+.codeblock select.variant {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--ink);
+  background: var(--deep);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+}
+
+.codeblock select.variant:focus-visible {
+  outline: 1px solid var(--accent);
+}
+
 .btn.star span {
   color: var(--warn);
   font-size: 1.15em;
@@ -1559,7 +1579,7 @@ h2 {
 }
 
 .prose {
-  max-width: 76ch;
+  max-width: 60rem;
 }
 
 .prose h1 {

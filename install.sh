@@ -187,11 +187,18 @@ json_values() {
 }
 
 api_get() {
-  if [ -n "$TOKEN" ]; then
-    printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" |
-      curl --config - -fsSL -H "Accept: $2" "$1"
+  if command -v curl >/dev/null 2>&1; then
+    if [ -n "$TOKEN" ]; then
+      printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" |
+        curl --config - -fsSL -H "Accept: $2" "$1"
+    else
+      curl -fsSL -H "Accept: $2" "$1"
+    fi
+  elif [ -n "$TOKEN" ]; then
+    (umask 077 && printf 'header = Authorization: Bearer %s\n' "$TOKEN" > "${tmp}/wgetrc")
+    WGETRC="${tmp}/wgetrc" wget -qO- --header="Accept: $2" "$1"
   else
-    curl -fsSL -H "Accept: $2" "$1"
+    wget -qO- --header="Accept: $2" "$1"
   fi
 }
 
@@ -320,7 +327,7 @@ offer_skill() {
 }
 
 main() {
-  need curl
+  command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1 || die "curl or wget is required but neither was found"
   need tar
   need uname
   configure
@@ -364,7 +371,7 @@ main() {
       [[ "$asset_id" =~ ^[1-9][0-9]*$ ]] || die "release ${tag} does not list ${name}"
       api_get "${API_URL}/releases/assets/${asset_id}" application/octet-stream > "${tmp}/${name}" || die "could not download ${name} from ${API_URL}/releases/assets/${asset_id}"
     else
-      curl -fsSL -o "${tmp}/${name}" "${WEB_URL}/releases/download/${tag}/${name}" || die "could not download ${name} from ${WEB_URL}/releases/download/${tag}/${name}"
+      api_get "${WEB_URL}/releases/download/${tag}/${name}" application/octet-stream > "${tmp}/${name}" || die "could not download ${name} from ${WEB_URL}/releases/download/${tag}/${name}"
     fi
     [ -s "${tmp}/${name}" ] || die "downloaded ${name} is empty; nothing was installed"
   done
