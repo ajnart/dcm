@@ -63,6 +63,8 @@ type onboarding struct {
 	list    *whatList
 	answers *answers
 	plan    *plan
+	// hostChecks are the read-only disk and selected-port checks shown at Review.
+	hostChecks []host.Check
 	// intro is the scene that opens Onboarding, nil once Welcome shows.
 	intro      *introScreen
 	experience int
@@ -313,6 +315,10 @@ func (o *onboarding) key(ctx *viewContext, msg tea.KeyPressMsg) (tea.Cmd, onboar
 		}
 	case "enter":
 		return o.next(ctx)
+	case "r":
+		if o.step == stepReview {
+			o.checkPlan(ctx)
+		}
 	}
 	return nil, ask
 }
@@ -375,6 +381,9 @@ func (o *onboarding) next(ctx *viewContext) (tea.Cmd, onboardingAsk) {
 	case stepLook:
 		return o.openStep(ctx, stepReview), onboardingAsk{}
 	case stepReview:
+		if host.Worst(o.hostChecks) == host.Fail {
+			return nil, onboardingAsk{}
+		}
 		if check := o.reviewNamesCheck(); !check.Available {
 			o.err = check.Message
 			return nil, onboardingAsk{}
@@ -425,11 +434,20 @@ func (o *onboarding) openStep(ctx *viewContext, s step) tea.Cmd {
 		o.look = max(o.look, 0)
 	case stepReview:
 		o.plan, o.err = planFromAnswers(ctx.backend, o.answers), ""
+		o.checkPlan(ctx)
 		if check := o.reviewNamesCheck(); !check.Available {
 			o.err = check.Message
 		}
 	}
 	return nil
+}
+
+func (o *onboarding) checkPlan(ctx *viewContext) {
+	if o.plan == nil {
+		o.hostChecks = nil
+		return
+	}
+	o.hostChecks = ctx.backend.OnboardingChecks(context.Background(), o.plan.opts)
 }
 
 func (o *onboarding) reviewNamesCheck() service.NamesCheck {

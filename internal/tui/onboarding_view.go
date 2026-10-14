@@ -7,6 +7,8 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
+
+	"github.com/ajnart/self-host/internal/host"
 )
 
 var (
@@ -49,7 +51,7 @@ func (o *onboarding) bar(ctx *viewContext) (string, []key.Binding) {
 			}
 			return quit, append(chips, onboardingBack)
 		}
-		return quit, []key.Binding{onboardingApprove, onboardingBack}
+		return quit, []key.Binding{hint("r", "recheck"), onboardingApprove, onboardingBack}
 	}
 	return quit, []key.Binding{onboardingContinue, onboardingBack}
 }
@@ -186,6 +188,21 @@ func (o *onboarding) renderReview(ctx *viewContext) []string {
 			lines = append(lines, "  "+t.dim().Render("Enter approves another attempt; esc goes back."))
 		} else {
 			lines = append(lines, "  "+t.dim().Render("Change Access or the LAN address before approval."))
+		}
+	}
+	if len(o.hostChecks) > 0 {
+		lines = append(lines, "", "  "+t.heading().Render("Machine checks"))
+		for _, level := range []host.Level{host.Fail, host.Warn, host.OK} {
+			for _, check := range o.hostChecks {
+				if check.Level != level {
+					continue
+				}
+				mark := t.dot(string(check.Level))
+				lines = append(lines, "  "+mark+" "+t.body().Render(check.Title)+t.dim().Render(" — "+check.Detail))
+				if check.Hint != "" {
+					lines = append(lines, "    "+t.dim().Render(check.Hint))
+				}
+			}
 		}
 	}
 	lines = append(lines, planLines(t, o.plan)...)
