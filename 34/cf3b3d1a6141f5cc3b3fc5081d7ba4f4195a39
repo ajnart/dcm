@@ -1,0 +1,63 @@
+video/reel/package.json
+  s_a09975eea43bed::t_3d5a0da68bd545 10-11
+video/reel/thumbs/README.md
+  s_a09975eea43bed::t_0d49f69f8f5d8a 1-92
+video/reel/thumbs/assets-logo.svg
+  s_a09975eea43bed::t_7716ea0333f7d4 1-128
+video/reel/thumbs/build.mjs
+  s_a09975eea43bed::t_8527d012fa426d 1-167
+video/reel/thumbs/index.html
+  s_a09975eea43bed::t_bd38fdbc9892fe 1-24
+video/reel/thumbs/v1-firstframe.html
+  s_a09975eea43bed::t_75b41885a3d9ed 1-9
+video/reel/thumbs/v10-purplelogo.html
+  s_a09975eea43bed::t_a61400cac80523 1-14
+video/reel/thumbs/v11-links.html
+  s_a09975eea43bed::t_70c262876091f2 1-15
+video/reel/thumbs/v12-splitbrand.html
+  s_a09975eea43bed::t_d6532f0448ef82 1-27
+video/reel/thumbs/v13-herolockup.html
+  s_a09975eea43bed::t_37a74c0220b398 1-17
+video/reel/thumbs/v14-bands.html
+  s_a09975eea43bed::t_cdf6d5123fff14 1-24
+video/reel/thumbs/v15-purplecard.html
+  s_a09975eea43bed::t_8f20fc03c6dbd1 1-17
+video/reel/thumbs/v16-terminal.html
+  s_a09975eea43bed::t_a180e54f85125e 1-23
+video/reel/thumbs/v17-dashprice.html
+  s_a09975eea43bed::t_fc3340bf74ae98 1-17
+video/reel/thumbs/v2-stoprenting.html
+  s_a09975eea43bed::t_39b7204f3d855f 1-9
+video/reel/thumbs/v3-wall.html
+  s_a09975eea43bed::t_6710cb5cfb36cb 1-9
+video/reel/thumbs/v4-yours.html
+  s_a09975eea43bed::t_d0a7a9a7a8c5e3 1-9
+video/reel/thumbs/v5-dashboard.html
+  s_a09975eea43bed::t_10c7b0b255bbc6 1-9
+video/reel/thumbs/v6-endcard.html
+  s_a09975eea43bed::t_f90475608d0461 1-9
+video/reel/thumbs/v7-hook.html
+  s_a09975eea43bed::t_eb2751dde9ba79 1-16
+video/reel/thumbs/v8-rentvsfree.html
+  s_a09975eea43bed::t_f0878a548bf94d 1-18
+video/reel/thumbs/v9-curl.html
+  s_a09975eea43bed::t_b948e6518cf5e3 1-15
+video/reel/thumbs/variants.json
+  s_a09975eea43bed::t_56bef8e490a571 1-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "34cf3b3d1a6141f5cc3b3fc5081d7ba4f4195a39",
+  "prompts": {},
+  "sessions": {
+    "s_a09975eea43bed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65b888e6-e9d5-44f0-ba29-07bb9492e2f8",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
