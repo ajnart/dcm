@@ -97,16 +97,46 @@ one_liner() {
 }
 
 expected_version() {
+  local metadata metadata_error metadata_url status
   if [ -n "${VERIFY_EXPECTED_VERSION:-}" ]; then
     printf '%s\n' "$VERIFY_EXPECTED_VERSION"
     return
   fi
-  curl -fsSL -K "$curl_config" -H 'Accept: application/vnd.github+json' \
-    "https://api.github.com/repos/${REPO}/releases?per_page=100" |
-    python3 -I -c '
+  metadata="$sandbox/releases.json"
+  metadata_error="$sandbox/releases.error"
+  metadata_url="https://api.github.com/repos/${REPO}/releases?per_page=100"
+  if ! status="$(curl -sS -K "$curl_config" -H 'Accept: application/vnd.github+json' \
+    -o "$metadata" -w '%{http_code}' "$metadata_url" 2>"$metadata_error")"; then
+    printf 'verify-install: release discovery could not reach GitHub (HTTP %s)\n' "${status:-000}" >&2
+    return 1
+  fi
+  case "$status" in
+    200) ;;
+    403)
+      printf 'verify-install: release discovery got HTTP 403; GitHub anonymous API rate limit reached, wait or set SELF_HOST_GITHUB_TOKEN\n' >&2
+      return 1
+      ;;
+    404)
+      printf 'verify-install: release discovery got HTTP 404; the release repository is private or missing\n' >&2
+      return 1
+      ;;
+    *)
+      printf 'verify-install: release discovery got HTTP %s\n' "$status" >&2
+      return 1
+      ;;
+  esac
+  python3 -I -c '
 import json, re, sys
+try:
+    releases = json.load(sys.stdin)
+except (json.JSONDecodeError, TypeError):
+    sys.exit("verify-install: release discovery returned invalid JSON")
+if not isinstance(releases, list):
+    sys.exit("verify-install: release discovery returned invalid metadata")
 best = None
-for rel in json.load(sys.stdin):
+for rel in releases:
+    if not isinstance(rel, dict):
+        continue
     if rel.get("draft") or rel.get("prerelease"):
         continue
     m = re.fullmatch(r"(?:new-cli-)?v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", rel["tag_name"])
@@ -120,8 +150,8 @@ for rel in json.load(sys.stdin):
     if best is None or key > best[0]:
         best = (key, version)
 if best is None:
-    sys.exit("no published CLI release found")
-print(best[1])'
+    sys.exit("verify-install: release metadata has no stable CLI release")
+print(best[1])' <"$metadata"
 }
 
 echo "Installer:  $URL"
