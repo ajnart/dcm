@@ -1,0 +1,27 @@
+internal/catalog/catalog.go
+  s_378d5db6c5f6de::t_652bd8a4dc8163 5,40-53,55-65,76-80
+internal/catalog/unavailable_test.go
+  s_378d5db6c5f6de::t_9d839f0cd1cc65 1-30
+internal/cli/lifecycle.go
+  s_378d5db6c5f6de::t_d444a11a41ef2a 13,178,184,248-250
+internal/cli/lifecycle_test.go
+  s_378d5db6c5f6de::t_69d9c8c0747e8a 11,246-266
+internal/service/service.go
+  s_378d5db6c5f6de::t_47f65039f22609 417
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "854cb7a891a09a9688770a2682b98924af41ab07",
+  "prompts": {},
+  "sessions": {
+    "s_378d5db6c5f6de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05046937-7ed2-4a85-8ff9-8ffdb7f2a49a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
