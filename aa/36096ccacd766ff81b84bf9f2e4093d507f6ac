@@ -1,0 +1,16 @@
+install.sh
+  h_d6e478ca18e517 329-342,422-424,426
+internal/release/installsh_test.go
+  h_d6e478ca18e517 693-733
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aa36096ccacd766ff81b84bf9f2e4093d507f6ac",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
