@@ -40,6 +40,7 @@ $data = [
  'sapi'=>$sapi, 'euid'=>$euid, 'egid'=>$egid, 'profile'=>$profile,
  'requirements_readable'=>is_readable('/etc/passbolt/requirements.php'),
  'requirements_open'=>false,
+ 'config_open'=>$open('/etc/passbolt/passbolt.php'),
  'autoload_open'=>$open('/usr/share/php/passbolt/vendor/autoload.php'),
  'bootstrap'=>'unobserved', 'fingerprint'=>'unobserved'
 ];
@@ -73,13 +74,14 @@ func passboltFPMMetadataReason(status int, output []byte) string {
 		Profile          string `json:"profile"`
 		RequirementsRead *bool  `json:"requirements_readable"`
 		RequirementsOpen *bool  `json:"requirements_open"`
+		ConfigOpen       *bool  `json:"config_open"`
 		AutoloadOpen     *bool  `json:"autoload_open"`
 		Bootstrap        string `json:"bootstrap"`
 		Fingerprint      string `json:"fingerprint"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(output))
 	decoder.DisallowUnknownFields()
-	if decoder.Decode(&doc) != nil || decoder.Decode(new(any)) != io.EOF || doc.RequirementsRead == nil || doc.RequirementsOpen == nil || doc.AutoloadOpen == nil {
+	if decoder.Decode(&doc) != nil || decoder.Decode(new(any)) != io.EOF || doc.RequirementsRead == nil || doc.RequirementsOpen == nil || doc.ConfigOpen == nil || doc.AutoloadOpen == nil {
 		return invalid
 	}
 	if doc.EUID == nil || doc.EGID == nil || *doc.EUID < 0 || *doc.EUID > 4294967295 || *doc.EGID < 0 || *doc.EGID > 4294967295 {
@@ -103,5 +105,5 @@ func passboltFPMMetadataReason(status int, output []byte) string {
 	if !*doc.AutoloadOpen && doc.Bootstrap == "initialized" {
 		return invalid
 	}
-	return fmt.Sprintf("owned Passbolt FPM metadata: sapi=%s, euid=%d, egid=%d, profile=%s, requirements-readable=%t, requirements-open=%t, autoload-open=%t, bootstrap=%s, fingerprint=%s", doc.SAPI, *doc.EUID, *doc.EGID, doc.Profile, *doc.RequirementsRead, *doc.RequirementsOpen, *doc.AutoloadOpen, doc.Bootstrap, doc.Fingerprint)
+	return fmt.Sprintf("owned Passbolt FPM metadata: sapi=%s, euid=%d, egid=%d, profile=%s, requirements-readable=%t, requirements-open=%t, config-open=%t, autoload-open=%t, bootstrap=%s, fingerprint=%s", doc.SAPI, *doc.EUID, *doc.EGID, doc.Profile, *doc.RequirementsRead, *doc.RequirementsOpen, *doc.ConfigOpen, *doc.AutoloadOpen, doc.Bootstrap, doc.Fingerprint)
 }
