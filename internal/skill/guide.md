@@ -49,11 +49,12 @@ the first Action directly in Activity. Plain commands and `--json` never animate
    A setup runs in this order: `self-host doctor --json`, Docker (4), the plan
    and a yes, `self-host install`, the Recap (6). "Setting up" has the commands.
 
-4. **Docker**: a failed `docker` check means it is missing; a failed
-   `docker-socket` check means it is installed but not running. Say Docker is
-   "the engine that runs your apps", ask, then install it by the check's `docs`
-   link for this OS, or start it as its `hint` says. Rerun
-   `self-host doctor --json` until it passes.
+4. **Docker**: a failed `docker` check means it is missing. A failed
+   `docker-socket` check means the engine cannot be reached. Use the failing
+   check's `msg`, `hint` and `docs` to diagnose and resolve it. For example,
+   the engine may be stopped or socket permission may be denied. Say Docker is
+   "the engine that runs your apps", ask, then follow the failing check's
+   guidance. Rerun `self-host doctor --json` until it passes.
 5. **agent-browser**: offer once, as a yes or no, to install it
    (`npm i -g agent-browser && agent-browser install`) so you can look at an
    App's page when something breaks. Everything works without it. When an App
