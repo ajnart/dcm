@@ -17,5 +17,8 @@ dist/
 .slim/worktrees.json
 # END oh-my-opencode-slim worktrees
 
+# Showreel render output; the site serves the committed site/public/reel.mp4
+/video/reel/out/
+
 # self-host skill eval runs
 evals/self-host/runs/

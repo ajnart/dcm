@@ -1,8 +1,0 @@
-[
-  {
-    "body": "Both fresh independent SOURCE reviews pass with zero findings at 76ff8634ddaa70ce2f5bb757bc0427f3dcf8e72c against frozen 6b82c55fb890c11a1388bd4e5a2f10b632ff4f7c. All findings resolved: read-only ownership preflight precedes mutation; actual Homarr-saved token account ID is checked before Stats; declared private inputs and guarded pending/revocation recovery provide an approved path after partial persistence without automatic second issuance or secret-file editing. Recovery explicitly requires protected-configuration review and separate Compose-replacement approval. Known-pair restoration is not cryptographic bearer-to-inventory-ID authentication; upstream broad authority remains disclosed. Common reconciliation/registry remain unchanged. Keep draft: registration and actual issuance/private-input recovery/native/rendered/both-order/shared lifecycle acceptance remain outstanding; #286 stays open.",
-    "html_url": "https://github.com/ajnart/selfhost-skills/pull/328#issuecomment-6122072416",
-    "created_at": "2026-10-12T10:05:43Z",
-    "updated_at": "2026-10-12T10:05:43Z"
-  }
-]

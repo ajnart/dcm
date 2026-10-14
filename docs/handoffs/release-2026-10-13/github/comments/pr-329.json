@@ -1,8 +1,0 @@
-[
-  {
-    "body": "Fresh independent Standards and Spec SOURCE reviews both pass with zero findings at 87a69b36ab077b5683b47932935f49a5fa41280b against fixed dce263ef822dc056558a648f8f59ea795a3e56d9. The prior P2 is resolved: unique first time and native user/system columns are required before sample alignment, numeric and freshness checks; real zeros and reversed CPU order remain valid. Nine malformed controls run through the existing Check fixture. Reviews used the actual local pin and previously fetched primary contracts during the network outage; renewed remote readback now confirms the same head. Reported local verification gates were not rerun by reviewers. Keep draft: frozen-contract normalization/registration and real native/rendered, both-order and shared lifecycle acceptance remain outstanding; #287 stays open.",
-    "html_url": "https://github.com/ajnart/selfhost-skills/pull/329#issuecomment-6121022426",
-    "created_at": "2026-10-12T08:58:12Z",
-    "updated_at": "2026-10-12T08:58:12Z"
-  }
-]

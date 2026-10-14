@@ -35,7 +35,6 @@ For music changes, read [audio provenance](reel/audio/SOURCES.md) before selecti
 track. Keep source audio in the ignored `reel/audio/track/`; the downloader verifies the existing track.
 For agent-logo changes, consult [logo provenance](reel/assets/agents/SOURCES.md).
 
-Use `reel/out/` for temporary review frames, logs and chunks. The tracked deliverables are
-`reel/out/selfhost-reel.mp4` and `reel/out/contact.png`; generated audio and intermediate renders stay
-ignored. On requested iPhone delivery, run `tailscale file cp out/selfhost-reel.mp4 iphone:` from
+Use `reel/out/` for temporary review frames, logs and chunks. The whole directory is git-ignored.
+The one tracked deliverable is `site/public/reel.mp4`: copy the finished `reel/out/selfhost-reel.mp4` there. On requested iPhone delivery, run `tailscale file cp out/selfhost-reel.mp4 iphone:` from
 `video/reel/` and check the command's own exit status, without piping through a filter.

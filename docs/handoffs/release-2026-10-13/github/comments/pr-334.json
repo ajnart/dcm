@@ -1,8 +1,0 @@
-[
-  {
-    "body": "Both fresh independent SOURCE reviews pass with zero findings at 908931b24cf9c013768fce1a94c64e96aa37f109 against fixed actual parent dce263ef822dc056558a648f8f59ea795a3e56d9. All three findings resolved: authenticated config:{} is provider absence/Manual while missing/null/malformed config fails; generic standalone capability readiness is separate from Homarr-only exact-version preflight; nonempty normalized native jobs validate required fields, finite size/progress and signed time with legitimate optional fields retained. Existing App regressions went red/green; native item coverage is source/schema/compile only. Reported full gate passed and was not rerun by reviewers. Keep draft: reference-owned normalization/registration, actual provider/native/rendered data, both installation orders and shared lifecycle acceptance remain outstanding; #298 stays open. No SABnzbd runtime batch is approved by this source verdict.",
-    "html_url": "https://github.com/ajnart/selfhost-skills/pull/334#issuecomment-6123210143",
-    "created_at": "2026-10-12T11:19:06Z",
-    "updated_at": "2026-10-12T11:19:06Z"
-  }
-]

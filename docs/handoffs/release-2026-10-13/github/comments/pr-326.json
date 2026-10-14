@@ -1,8 +1,0 @@
-[
-  {
-    "body": "Both independent preliminary SOURCE reviews pass with zero findings at e68ea343cca6fdb8097d47f0f981df11d38f48dd against fixed dce263ef822dc056558a648f8f59ea795a3e56d9. Required version/data/authentication boundaries, native options/metrics and total-minus-used memory semantics were checked; nine relevant source files at actual Homarr OCI revision match the tagged research baseline. Package-update/reboot placeholders are not observed health, and kernel/container metrics are not physical-host proof. This is source-only: final frozen-contract normalization/registration, real native/rendered data and both-order/shared lifecycle acceptance remain held. Keep draft; #281 is not complete.",
-    "html_url": "https://github.com/ajnart/selfhost-skills/pull/326#issuecomment-6118356387",
-    "created_at": "2026-10-12T05:31:12Z",
-    "updated_at": "2026-10-12T05:31:12Z"
-  }
-]

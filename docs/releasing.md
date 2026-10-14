@@ -148,8 +148,9 @@ Check with `curl -I https://selfhost.ajnart.dev/install.sh`.
 The builder needs `bun`. It runs `bun install --frozen-lockfile` and
 `astro build` straight into `public/`, then adds `install`, `install.sh` and
 `install.sh.sha256`, and puts `wrangler.toml` beside it. The showreel reaches
-the build through the `site/public/reel.mp4` symlink to
-`video/reel/out/selfhost-reel.mp4`, which Astro copies as a file. It refuses a
+the build as the committed file `site/public/reel.mp4`, which Astro copies.
+Renders in `video/reel/out/` are git-ignored; after a new render, copy the
+mp4 over `site/public/reel.mp4` and commit that. It refuses a
 destination inside the checkout or one that exists; only Astro's output and the
 installer are published, never the repository. To preview the exact published
 tree locally:

@@ -1,8 +1,0 @@
-[
-  {
-    "body": "Native acceptance remains blocked by #332. Pinned first-party source confirms the summary requires a provider-secret-bearing settings read and non-optional public-IP metadata. Do not broaden the control role or register this descriptor as working; resolve the safe upstream contract and prove the contained native lifecycle first.",
-    "html_url": "https://github.com/ajnart/selfhost-skills/pull/327#issuecomment-6113580473",
-    "created_at": "2026-10-11T20:47:16Z",
-    "updated_at": "2026-10-11T20:47:16Z"
-  }
-]

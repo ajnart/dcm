@@ -1,6 +1,6 @@
 # Spec: self-host, a single-binary TUI for self-hosting Apps
 
-Vocabulary: `CONTEXT.md`. Decisions: `docs/adr/`. Design notes: `PLAN.md`.
+Vocabulary: `CONTEXT.md`. Decisions: `docs/adr/`.
 
 ## Problem Statement
 

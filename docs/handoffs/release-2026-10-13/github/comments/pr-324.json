@@ -1,8 +1,0 @@
-[
-  {
-    "body": "Both fresh independent SOURCE reviews pass with zero findings at 0b3155367e6423acb3450ccc19021bace705e7a0 against fixed cf8f04c07da6a0394c30c5000906ac441ca4601c. All three findings resolved: malformed queue checks do not replace an active selected daemon, including connection during discovery; the retained Web password is available through a labelled identifier-only picker choice with private reread; native item time/speeds are validated with signed completion time and documented missing/null completed download speed preserved. The narrow TUI picker change was explicitly authorized; existing test bodies cover preservation/private-copy controls, while native guards have source/schema coverage only. Full local gate reported passed; reviewers did not rerun it. Keep draft: common normalization/registration and real native/rendered, both-order, malformed-field and shared lifecycle acceptance remain outstanding; #275 stays open.",
-    "html_url": "https://github.com/ajnart/selfhost-skills/pull/324#issuecomment-6122229430",
-    "created_at": "2026-10-12T10:15:51Z",
-    "updated_at": "2026-10-12T10:15:51Z"
-  }
-]

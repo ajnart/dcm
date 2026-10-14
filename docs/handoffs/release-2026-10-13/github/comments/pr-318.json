@@ -1,8 +1,0 @@
-[
-  {
-    "body": "Both fresh independent SOURCE reviews pass with zero findings at e8ea969a9d3a2f07ca9ba626996a6207d0cd087d against fixed 573a206e2b4a76574fd7e8cbd1f21c5a4c2fd37d. The capability P2 is resolved: fresh read-only Lidarr identity, numeric 3.x version, advertised API v1, host resource and authentication fields are validated before any settings PUT and reused by Check. Malformed responses fail; unsupported/external authentication remains Manual with persistent recovery guidance. Official 3.1.0.4875 and 3.0.1.4866 sources support the checked contract without an exact-minor gate. Existing fixture controls and full local gate reported pass; reviewers did not rerun them. Calendar/Stats descriptor is unchanged. Keep draft: frozen-common normalization/registration, actual native/rendered data, both installation orders, credential changes and shared lifecycle acceptance remain outstanding; #283 stays open. No runtime approval is implied.",
-    "html_url": "https://github.com/ajnart/selfhost-skills/pull/318#issuecomment-6124102113",
-    "created_at": "2026-10-12T12:17:28Z",
-    "updated_at": "2026-10-12T12:17:28Z"
-  }
-]

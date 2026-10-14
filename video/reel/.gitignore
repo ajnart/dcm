@@ -1,7 +1,5 @@
 node_modules/
-out/*
-!out/selfhost-reel.mp4
-!out/contact.png
+out/
 audio/out/
 # the Mixkit licence allows use in videos, not redistribution of the file: audio/mix.mjs fetches it
 audio/track/
