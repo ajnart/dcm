@@ -47,6 +47,7 @@ func (f *frame) keySegs(prefix string) []seg {
 	p := f.pal
 	ss := []seg{{"c", p.Gold, true}, {" Ko-fi", p.Text, false}, {"   ·   ", p.Faint, false},
 		{"s", p.Pink, true}, {" GitHub Sponsors", p.Text, false}, {"   ·   ", p.Faint, false},
+		{"g", p.Gold, true}, {" Star us on GitHub", p.Text, false}, {"   ·   ", p.Faint, false},
 		{"enter", p.Cyan, true}, {" skip", p.Text, false}}
 	if prefix != "" {
 		ss = append([]seg{{prefix, p.Muted, false}}, ss...)
@@ -54,10 +55,19 @@ func (f *frame) keySegs(prefix string) []seg {
 	return ss
 }
 
-func (f *frame) shortKeySegs() []seg {
+func (f *frame) compactKeySegs() []seg {
 	p := f.pal
 	return []seg{{"c", p.Gold, true}, {" Ko-fi", p.Text, false}, {" · ", p.Faint, false},
 		{"s", p.Pink, true}, {" Sponsors", p.Text, false}, {" · ", p.Faint, false},
+		{"g", p.Gold, true}, {" Star on GitHub", p.Text, false}, {" · ", p.Faint, false},
+		{"enter", p.Cyan, true}, {" skip", p.Text, false}}
+}
+
+func (f *frame) shortKeySegs() []seg {
+	p := f.pal
+	return []seg{{"c", p.Gold, true}, {" Ko-fi", p.Text, false}, {" ", p.Faint, false},
+		{"s", p.Pink, true}, {" Sponsors", p.Text, false}, {" ", p.Faint, false},
+		{"g", p.Gold, true}, {" Star", p.Text, false}, {" ", p.Faint, false},
 		{"enter", p.Cyan, true}, {" skip", p.Text, false}}
 }
 
@@ -111,7 +121,7 @@ func (f *frame) layoutText() block {
 	left := f.centred(l.timeY, lines...)
 	left.held = 1 - smooth(float64(f.n%rotateFrames)/6)
 	b.rows = append(b.rows, left)
-	b.rows = append(b.rows, f.centred(l.keysY, f.keySegs("Like self-host?   "), f.keySegs(""), f.shortKeySegs()))
+	b.rows = append(b.rows, f.centred(l.keysY, f.keySegs("Like self-host?   "), f.keySegs(""), f.compactKeySegs(), f.shortKeySegs()))
 
 	fact := f.fact()
 	b.barW = l.barW + 2 + max(len(fact), factWidth)

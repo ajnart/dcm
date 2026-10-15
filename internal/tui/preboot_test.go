@@ -321,8 +321,9 @@ func TestPrebootOpensTheDonationPages(t *testing.T) {
 
 	m = drive(t, m, press("c"))
 	m = drive(t, m, press("s"))
+	m = drive(t, m, press("g"))
 
-	if got := strings.Join(backend.opened, " "); got != koFiURL+" "+sponsorsURL {
+	if got := strings.Join(backend.opened, " "); got != koFiURL+" "+sponsorsURL+" "+repositoryURL {
 		t.Fatalf("opened %q", got)
 	}
 	if !strings.Contains(screen(m), "Like self-host?") {

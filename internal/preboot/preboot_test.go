@@ -161,8 +161,8 @@ func TestEveryTierKeepsItsTextWhole(t *testing.T) {
 				}
 			}
 			screen := strings.Join(lines, "\n")
-			for _, want := range []string{"s e l f - h o s t", "as long as a song on the radio.", "c Ko-fi", "s GitHub Sponsors", "enter skip", "3 of 7 images"} {
-				if size.w < 50 && want == "s GitHub Sponsors" {
+			for _, want := range []string{"s e l f - h o s t", "as long as a song on the radio.", "c Ko-fi", "s GitHub Sponsors", "g Star", "enter skip", "3 of 7 images"} {
+				if size.w < 76 && want == "s GitHub Sponsors" {
 					want = "s Sponsors"
 				}
 				if !strings.Contains(screen, want) {

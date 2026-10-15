@@ -35,8 +35,9 @@ func newPrebootScreen() *prebootScreen { return &prebootScreen{since: -1} }
 var (
 	prebootKoFi    = hint("c", "Ko-fi")
 	prebootSponsor = hint("s", "GitHub Sponsors")
+	prebootStar    = hint("g", "Star us on GitHub")
 	prebootSkip    = hint("enter", "skip")
-	prebootKeys    = []key.Binding{prebootKoFi, prebootSponsor, prebootSkip}
+	prebootKeys    = []key.Binding{prebootKoFi, prebootSponsor, prebootStar, prebootSkip}
 )
 
 // framePeriod is the time between frames: the pre-boot screen, the Intro and
@@ -92,6 +93,8 @@ func (m Model) handlePrebootKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, openLink(m.backend, koFiURL)
 	case key.Matches(msg, prebootSponsor):
 		return m, openLink(m.backend, sponsorsURL)
+	case key.Matches(msg, prebootStar):
+		return m, openLink(m.backend, repositoryURL)
 	}
 	return m, nil
 }
