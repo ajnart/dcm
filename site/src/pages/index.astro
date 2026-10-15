@@ -28,12 +28,12 @@ const jsonld = {
     },
     {
       "@type": "VideoObject",
-      name: "Replace the SaaS you pay for, in 30 seconds",
+      name: "self-host in 34 seconds",
       description,
-      thumbnailUrl: "https://self-host.fyi/reel-saas.jpg",
-      contentUrl: "https://self-host.fyi/reel-saas.mp4",
+      thumbnailUrl: "https://self-host.fyi/reel.jpg",
+      contentUrl: "https://self-host.fyi/reel.mp4",
       uploadDate: "2026-10-14",
-      duration: "PT30S",
+      duration: "PT34S",
     },
   ],
 };
@@ -65,7 +65,7 @@ const toc = [
             <div class="cta">
               <a class="btn primary" href="#play">▶ try it</a>
               <a class="btn" href="/docs">read the docs →</a>
-              <a class="btn" href="#reel">watch · 30 s</a>
+              <a class="btn" href="#reel">watch · 34 s</a>
               <a class="btn star" href={LINKS.github} target="_blank" rel="noopener"><span aria-hidden="true">★</span> star on GitHub</a>
             </div>
             <div class="hero-install">
@@ -76,9 +76,9 @@ const toc = [
         </section>
 
         <section id="reel" class="reel" aria-label="Showreel">
-          <video controls preload="none" playsinline poster="/reel-saas.jpg" width="1920" height="1080">
-            <source src="/reel-saas.mp4" type="video/mp4">
-            <a href="/reel-saas.mp4">Watch the 30-second showreel</a>
+          <video controls preload="none" playsinline poster="/reel.jpg" width="1920" height="1080">
+            <source src="/reel.mp4" type="video/mp4">
+            <a href="/reel.mp4">Watch the 34-second showreel</a>
           </video>
         </section>
 
@@ -147,12 +147,6 @@ const toc = [
         <section id="links" aria-labelledby="links-title">
           <SectionHead id="links" num="03" title="Links">Install two Apps that know each other and they get connected: download clients, indexers, requests, dashboard tiles. {linkCount} Links across {linkingApps} Apps.</SectionHead>
           <div class="linkcards" id="linkcards"></div>
-          <div class="reel" aria-label="Media server showreel">
-            <video controls preload="none" playsinline poster="/reel.jpg" width="1920" height="1080">
-              <source src="/reel.mp4" type="video/mp4">
-              <a href="/reel.mp4">Watch the 34-second media server showreel</a>
-            </video>
-          </div>
         </section>
 
         <section id="how" aria-labelledby="how-title">

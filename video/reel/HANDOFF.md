@@ -102,7 +102,8 @@ zero occurrences of “Exposure” or obsolete `new-cli/` paths. The background'
 [Issue #523](https://github.com/ajnart/self-host/issues/523) adds "Replace the SaaS you pay for", a 30-second cut beside the media
 cut. It is a separate timeline and set of scenes in `saas/` on the same engine, styles and soundtrack pipeline; the media cut renders
 unchanged. Pick it with `--cut saas` on every `render.mjs` mode and on `audio/mix.mjs`; its direction, facts and measured results are
-in the storyboard. The approved baseline above remains the media cut.
+in the storyboard. The approved baseline above remains the media cut, now showing half media and half everyday Apps (qBittorrent, Sonarr, Jellyfin, Immich, Nextcloud, Vaultwarden, Homarr), and it is
+the only reel on the site; the SaaS cut is not shipped.
 
 Follow [../AGENTS.md](../AGENTS.md) for the change and delivery workflow, and the storyboard for
 reproduction commands. Refresh this handoff when a new cut becomes the approved baseline.

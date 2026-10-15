@@ -1,4 +1,4 @@
-import { gsap, $, $$, proc, clamp, scene, icon, agentLogo, measure, read, cue, typeCues, on, cut, drift, ICON } from "./lib.js";
+import { gsap, $, $$, proc, clamp, scene, appIcon, agentLogo, measure, read, cue, typeCues, on, cut, drift, ICON } from "./lib.js";
 import { SC, b } from "./timeline.js";
 
 const [A, B] = SC.agents;
@@ -19,9 +19,11 @@ const ALL_ON = j(11);
 const until = (i) => (i + 1 < AGENTS.length ? AGENTS[i + 1].from : B);
 const active = (t) => AGENTS.reduce((k, a, i) => (t >= a.from ? i : k), 0);
 // internal/skill/guide.md, "Every conversation": pick the Recipe or Apps from `apps list`, show the plan in goals and Apps,
-// get approval, run `self-host install <recipe> --yes --json`, point to `self-host credentials`.
-const T = { request: j(1), typed: j(1) + 0.4, tool: j(2), result: j(3), plan: j(3), hover: j(4), click: j(5), chips: [j(6), j(6) + b(0.5)], done: j(7), link: j(9) };
-const PROMPT = "I want to watch my movies on the TV.";
+// get approval, run `self-host install <app|recipe>... --yes --json`, point to `self-host credentials`. No Recipe covers this request
+// exactly, so the plan names Apps.
+const AGENT_APPS = ["qbittorrent", "sonarr", "jellyfin", "immich", "nextcloud", "vaultwarden", "homarr"];
+const T = { request: j(1), typed: j(1) + 0.4, tool: j(2), result: j(3), plan: j(3), hover: j(4), click: j(5), chips: AGENT_APPS.map((_, i) => j(6) + (i * b(0.5)) / (AGENT_APPS.length - 1)), done: j(7), link: j(9) };
+const PROMPT = "Movies on my TV, and replace Photos, Drive and 1Password.";
 const IN = 0.35;
 
 export function build(tl) {
@@ -50,13 +52,12 @@ export function build(tl) {
     <div class="cw-hd">${AGENTS.map((a) => `<div class="hdv" data-agent="${a.id}"><img src="${agentLogo(a.logo)}"><b>${a.name}</b></div>`).join("")}<span class="hsk" data-deco>◆ skill: self-host</span></div>
     <div class="cw-body"><div id="flow">
       <div class="m-user" id="m-user"><span id="u-t">${PROMPT}</span></div>
-      <div class="tool" id="m-tools"><div class="tln"><span class="pr">$</span> <span id="tl-c">self-host apps list --json</span><span class="spin" id="tl-s" data-deco></span><span class="res" id="tl-r">${ICON.check}<span>20 Recipes</span></span></div></div>
+      <div class="tool" id="m-tools"><div class="tln"><span class="pr">$</span> <span id="tl-c">self-host apps list --json</span><span class="spin" id="tl-s" data-deco></span><span class="res" id="tl-r">${ICON.check}<span>19 Recipes</span></span></div></div>
       <div class="plan" id="m-plan"><div class="pl-h" id="pl-h">The plan</div>
-        <div class="pl-r"><span class="k">Recipe</span><span class="v"><img src="${icon("jellyfin")}"><code>owned-video-library</code></span></div>
-        <div class="pl-r"><span class="k">Dashboard</span><span class="v"><img src="${icon("homarr")}"><b>Homarr</b></span></div>
-        <div class="pl-r"><span class="k">Access</span><span class="v"><b>Home network</b></span></div>
+        <div class="pl-r"><span class="k">Movies &amp; TV</span><span class="v"><b>qBittorrent · Sonarr · Jellyfin</b></span></div>
+        <div class="pl-r"><span class="k">Everyday</span><span class="v"><b>Immich · Nextcloud · Vaultwarden</b></span></div>
         <div class="pl-b"><div class="btn" id="btn-ok"><span id="btn-a">Approve &amp; install</span><span id="btn-b">Approved</span></div><div class="btn ghost" id="btn-c">Change</div></div></div>
-      <div class="tool" id="m-inst"><div class="tln" id="in1"><span class="pr">$</span> self-host install owned-video-library homarr</div><div class="tln"><span id="in2">&nbsp; --yes --json</span><span class="chips" data-deco><span class="cp"><img src="${icon("jellyfin")}"><b>${ICON.check}</b></span><span class="cp"><img src="${icon("homarr")}"><b>${ICON.check}</b></span></span></div></div>
+      <div class="tool" id="m-inst"><div class="tln" id="in1"><span class="pr">$</span> self-host install qbittorrent sonarr jellyfin</div><div class="tln" id="in2">&nbsp; immich nextcloud vaultwarden homarr</div><div class="tln"><span id="in3">&nbsp; --yes --json</span><span class="chips" data-deco>${AGENT_APPS.map((id) => `<span class="cp"><img src="${appIcon(id)}"><b>${ICON.check}</b></span>`).join("")}</span></div></div>
       <div class="m-done" id="m-done"><div class="dn1"><span id="dn1">All set.</span><span class="link" id="dn-url">http://192.168.1.20:7575</span></div><div class="dn2" id="dn2">Admin login: <code>self-host credentials</code></div></div>
     </div></div>`;
   const hdvs = $$(".hdv", chat);
@@ -100,7 +101,7 @@ export function build(tl) {
     spin.textContent = t >= T.result ? "" : "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"[Math.floor(t * 16) % 10];
   });
   tl.fromTo(res, { x: -16 }, { x: 0, duration: 0.25, ease: "expo.out" }, T.result);
-  on(T.result, "20 Recipes");
+  on(T.result, "19 Recipes");
   cue(T.result, "tick");
   read("#tl-c", T.tool + IN, END, "apps list");
   read($("span", res), T.result + 0.25, END, "result");
@@ -138,7 +139,7 @@ export function build(tl) {
 
   msg("#m-inst", T.click);
   on(T.click, "approved, install runs");
-  read(["#in1", "#in2"].map((s) => $(s)), T.click + IN, END, "install command");
+  read(["#in1", "#in2", "#in3"].map((s) => $(s)), T.click + IN, END, "install command");
   $$("#m-inst .cp").forEach((c, i) => {
     tl.fromTo($("b", c), { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.3, ease: "expo.out" }, T.chips[i]);
     tl.fromTo(c, { opacity: 0.35 }, { opacity: 1, duration: 0.1 }, T.chips[i]);

@@ -306,9 +306,9 @@ body {
   top: 262px;
   font-family: var(--mono);
   font-weight: 600;
-  font-size: 76px;
+  font-size: 56px;
   letter-spacing: -0.03em;
-  white-space: nowrap;
+  white-space: pre;
   color: var(--bright);
 }
 #cmd .pr {
@@ -318,7 +318,7 @@ body {
 #out {
   position: absolute;
   left: 112px;
-  top: 384px;
+  top: 450px;
   font-family: var(--mono);
   font-size: 44px;
   line-height: 64px;

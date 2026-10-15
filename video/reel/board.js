@@ -1,11 +1,11 @@
-import { $, $$, proc, prog, scene, icon, read, cue, on, cut, drift, p3o } from "./lib.js";
+import { $, $$, proc, prog, scene, appIcon, read, cue, on, cut, drift, p3o } from "./lib.js";
 import { SC, b } from "./timeline.js";
 
 const [A, B] = SC.board;
-const TILES = [["qbittorrent", "qBittorrent"], ["sonarr", "Sonarr"], ["radarr", "Radarr"], ["prowlarr", "Prowlarr"], ["jellyfin", "Jellyfin"], ["seerr", "Seerr"], ["homarr", "Homarr"]];
+const TILES = [["qbittorrent", "qBittorrent"], ["sonarr", "Sonarr"], ["jellyfin", "Jellyfin"], ["immich", "Immich"], ["nextcloud", "Nextcloud"], ["vaultwarden", "Vaultwarden"]];
 
-// Widgets are the kinds homarr/links.go adds per target: downloads (qBittorrent), mediaServer (Jellyfin),
-// mediaRequests-requestList (Seerr), calendar (Sonarr/Radarr), indexerManager (Prowlarr), mediaReleases (Jellyfin).
+// Homarr adds a navigation tile for every installed App (installed.go). Widgets are the kinds the Links add: downloads (qBittorrent),
+// mediaServer and mediaReleases (Jellyfin), calendar (Sonarr), immich-serverStats (Immich), notifications (Nextcloud). Vaultwarden is tile only.
 // beats: 0 the whip up: the board tilts flat with its App tiles · 1 the large widgets, the numbers run up ·
 // 2 the small widgets · 3.5 the camera dives into the board, into the next scene
 const T = { in: A, big: A + b(1), small: A + b(2), dive: B - b(0.5) };
@@ -17,17 +17,17 @@ export function build(tl) {
   tl.fromTo(root, { y: 420 }, { y: 0, duration: 0.45, ease: "expo.out" }, A);
   const board = $("#board");
   board.innerHTML = `
-    <div class="bh"><img src="${icon("homarr")}"><b>Homarr</b><span class="dim">Home board</span><span class="bpill">192.168.1.20:7575</span></div>
-    <div class="btiles">${TILES.map(([id, n]) => `<div class="bt1"><img src="${icon(id)}"><span>${n}</span></div>`).join("")}</div>
+    <div class="bh"><img src="${appIcon("homarr")}"><b>Homarr</b><span class="dim">Home board</span><span class="bpill">192.168.1.20:7575</span></div>
+    <div class="btiles">${TILES.map(([id, n]) => `<div class="bt1"><img src="${appIcon(id)}"><span>${n}</span></div>`).join("")}</div>
     <div class="bw">
-      <div class="wd"><div class="wt"><img src="${icon("qbittorrent")}">Downloads</div><div class="big">↓ <span id="bn-a">24.1</span><small> MB/s</small></div><svg viewBox="0 0 400 90" class="spark"><path id="sp-a" d="M0 70 C40 60 60 20 100 44 S160 80 200 40 S270 10 300 38 S360 60 400 20" fill="none" stroke="#a88df2" stroke-width="4" stroke-linecap="square"/></svg></div>
-      <div class="wd"><div class="wt"><img src="${icon("jellyfin")}">Media server</div><div class="big"><span id="bn-b">3</span><small> streaming</small></div><div class="posters"><i style="background:#7a57d3"></i><i style="background:#00a86b"></i><i style="background:#c98a12"></i><i style="background:#3d7fc4"></i></div></div>
-      <div class="wd"><div class="wt"><img src="${icon("seerr")}">Requests</div><div class="big"><span id="bn-c">2</span><small> pending</small></div><div class="req"><span>Dune: Part Two</span><span>Severance S2</span></div></div>
+      <div class="wd"><div class="wt"><img src="${appIcon("qbittorrent")}">Downloads</div><div class="big">↓ <span id="bn-a">24.1</span><small> MB/s</small></div><svg viewBox="0 0 400 90" class="spark"><path id="sp-a" d="M0 70 C40 60 60 20 100 44 S160 80 200 40 S270 10 300 38 S360 60 400 20" fill="none" stroke="#a88df2" stroke-width="4" stroke-linecap="square"/></svg></div>
+      <div class="wd"><div class="wt"><img src="${appIcon("jellyfin")}">Media server</div><div class="big"><span id="bn-b">3</span><small> streaming</small></div><div class="posters"><i style="background:#7a57d3"></i><i style="background:#00a86b"></i><i style="background:#c98a12"></i><i style="background:#3d7fc4"></i></div></div>
+      <div class="wd"><div class="wt"><img src="${appIcon("immich")}">Server stats</div><div class="big"><span id="bn-c">12,480</span><small> photos</small></div><div class="req"><span>842 videos</span><span>184 GB used</span></div></div>
     </div>
     <div class="bf">
-      <div class="wd sm"><img src="${icon("sonarr")}"><div><div class="wt2">Calendar</div><div class="ws">3 episodes this week</div></div></div>
-      <div class="wd sm"><img src="${icon("prowlarr")}"><div><div class="wt2">Indexers</div><div class="ws">All healthy</div></div></div>
-      <div class="wd sm"><img src="${icon("jellyfin")}"><div><div class="wt2">Latest releases</div><div class="ws">Added to your library</div></div></div>
+      <div class="wd sm"><img src="${appIcon("sonarr")}"><div><div class="wt2">Calendar</div><div class="ws">3 episodes this week</div></div></div>
+      <div class="wd sm"><img src="${appIcon("nextcloud")}"><div><div class="wt2">Notifications</div><div class="ws">2 new notifications</div></div></div>
+      <div class="wd sm"><img src="${appIcon("jellyfin")}"><div><div class="wt2">Latest releases</div><div class="ws">Added to your library</div></div></div>
     </div>`;
   const cam = $("#board-cam");
   cam.style.perspective = "2400px";
@@ -41,7 +41,7 @@ export function build(tl) {
     const p = p3o(prog(t, T.big, T.big + 0.6));
     na.textContent = (24.1 * p).toFixed(1);
     nb.textContent = String(Math.round(3 * p));
-    nc.textContent = String(Math.round(2 * p));
+    nc.textContent = Math.round(12480 * p).toLocaleString("en-US");
   });
   on(T.big, "large widgets");
   on(T.small, "small widgets");

@@ -36,7 +36,6 @@ track. Keep source audio in the ignored `reel/audio/track/`; the downloader veri
 For agent-logo changes, consult [logo provenance](reel/assets/agents/SOURCES.md).
 
 Use `reel/out/` for temporary review frames, logs and chunks. The whole directory is git-ignored.
-The tracked deliverables are `site/public/reel.mp4`: copy the finished `reel/out/selfhost-reel.mp4` there, and, for the
-"Replace the SaaS you pay for" cut (`--cut saas`, see the storyboard), `site/public/reel-saas.mp4` from `reel/out/selfhost-reel-saas.mp4`
-plus its poster `site/public/reel-saas.jpg`. On requested iPhone delivery, run `tailscale file cp out/selfhost-reel.mp4 iphone:` from
+The one tracked deliverable is `site/public/reel.mp4`: copy the finished `reel/out/selfhost-reel.mp4` there. The "Replace the SaaS you pay for"
+cut (`--cut saas`, see the storyboard) still renders from `reel/saas/` but is not shipped on the site. On requested iPhone delivery, run `tailscale file cp out/selfhost-reel.mp4 iphone:` from
 `video/reel/` and check the command's own exit status, without piping through a filter.

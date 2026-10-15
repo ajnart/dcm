@@ -1,4 +1,4 @@
-import { gsap, $, $$, proc, prog, scene, icon, read, cue, on, cut } from "./lib.js";
+import { gsap, $, $$, proc, prog, scene, appIcon, read, cue, on, cut } from "./lib.js";
 import { SC, b } from "./timeline.js";
 
 const [A, B] = SC.setup;
@@ -6,19 +6,26 @@ const [A, B] = SC.setup;
 // on each beat from 1 while the camera eases in on the Apps box · 6 the Links start · 7 the camera pushes
 // into the Links box
 const STEP = 0.5;
+// Setup steps are the ones internal/apps declare; every App here ends Setup ok.
 const APPS = [
-  ["qbittorrent", "qBittorrent"], ["sonarr", "Sonarr"], ["radarr", "Radarr"], ["prowlarr", "Prowlarr"],
-  ["jellyfin", "Jellyfin"], ["seerr", "Seerr"], ["homarr", "Homarr"],
-].map(([id, name], i) => ({ id, name, s: A + i * STEP, e: A + (i + 1) * STEP }));
-// the Links each App declares (internal/apps/{arr,seerr,homarr})
+  { id: "qbittorrent", name: "qBittorrent", steps: ["wait for qBittorrent to answer", "replace the temporary password with the Admin login", "save downloads in /downloads"] },
+  { id: "sonarr", name: "Sonarr", steps: ["wait for Sonarr to answer", "read the Sonarr API key", "add the root folder /media/tv"] },
+  { id: "jellyfin", name: "Jellyfin", steps: ["wait for Jellyfin to answer", "finish the startup wizard with the Admin login", "create the selfhost API key"] },
+  { id: "immich", name: "Immich", steps: ["wait for Immich to answer", "create the first administrator", "prepare read-only Immich statistics"] },
+  { id: "nextcloud", name: "Nextcloud", steps: ["wait for Nextcloud's first installation", "administrator signs in", "prepare Nextcloud's Homarr app password"] },
+  { id: "vaultwarden", name: "Vaultwarden", steps: ["wait for Vaultwarden to answer", "admin page accepts the admin token", "signups are closed"] },
+  { id: "homarr", name: "Homarr", steps: ["sign in as the administrator", "create and store a Homarr API key", "reconcile installed App tiles"] },
+].map((a, i) => ({ ...a, s: A + i * STEP, e: A + (i + 1) * STEP }));
+// the Links these Apps declare: Sonarr gets qBittorrent (arr/links.go), Homarr adds a tile for each, with an integration and widgets
+// for qBittorrent, Sonarr, Jellyfin, Immich and Nextcloud, and a tile only for Vaultwarden (homarr/links.go and its targets)
 export const LINKS = [
   ["sonarr", "Sonarr", "qbittorrent", "qBittorrent"],
-  ["radarr", "Radarr", "qbittorrent", "qBittorrent"],
-  ["prowlarr", "Prowlarr", "sonarr", "Sonarr"],
-  ["prowlarr", "Prowlarr", "radarr", "Radarr"],
-  ["seerr", "Seerr", "jellyfin", "Jellyfin"],
-  ["seerr", "Seerr", "sonarr", "Sonarr"],
+  ["homarr", "Homarr", "qbittorrent", "qBittorrent"],
+  ["homarr", "Homarr", "sonarr", "Sonarr"],
   ["homarr", "Homarr", "jellyfin", "Jellyfin"],
+  ["homarr", "Homarr", "immich", "Immich"],
+  ["homarr", "Homarr", "nextcloud", "Nextcloud"],
+  ["homarr", "Homarr", "vaultwarden", "Vaultwarden"],
 ];
 const L0 = APPS[5].e, LSTEP = 0.06, LFILL = 0.22;
 const SPIN = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
@@ -44,7 +51,7 @@ export function build(tl) {
     </div>
     <div class="keys"><span><kbd>tab</kbd> next</span><span><kbd>1-5</kbd> tabs</span><span><kbd>/</kbd> search</span><span><kbd>?</kbd> help</span><span><kbd>q</kbd> quit</span></div>`;
 
-  $("#links-rows").innerHTML = LINKS.map(([c, cn, tg, tn]) => `<div class="lk"><img src="${icon(c)}"><span class="ln1">${cn}</span><span class="ln-line"><i class="fillbar"></i><b class="head">▶</b></span><img src="${icon(tg)}"><span class="ln2">${tn}</span><span class="lst"></span></div>`).join("");
+  $("#links-rows").innerHTML = LINKS.map(([c, cn, tg, tn]) => `<div class="lk"><img src="${appIcon(c)}"><span class="ln1">${cn}</span><span class="ln-line"><i class="fillbar"></i><b class="head">▶</b></span><img src="${appIcon(tg)}"><span class="ln2">${tn}</span><span class="lst"></span></div>`).join("");
   const lkEls = $$("#links-rows .lk");
   const appsRows = $("#apps-rows");
   APPS.forEach((a, i) => {
@@ -59,17 +66,17 @@ export function build(tl) {
     if (t < A || t > B) return;
     $("#apps-count").textContent = `${APPS.filter((a) => t >= a.e).length}/7 set up`;
     let html = "";
-    APPS.forEach((a, i) => {
+    APPS.forEach((a) => {
       const running = t >= a.s && t < a.e;
       const done = t >= a.e;
       const lit = done && t - a.e < 0.25;
       let mark = `<span class="faintc">○</span>`, fact = "waiting", cls = "muted";
       if (running) { mark = `<span class="acc">${spin(t)}</span>`; fact = "setting up"; cls = "bright"; }
       if (done) { mark = lit ? `<span class="okc b">◉</span>` : `<span class="okc">●</span>`; fact = "ready"; cls = lit ? "okc b" : "text"; }
-      html += `<div class="ar"><span class="mk1">${mark}</span><img src="${icon(a.id)}"><span class="an ${cls}">${a.name}</span><span class="af">${fact}</span></div>`;
+      html += `<div class="ar"><span class="mk1">${mark}</span><img src="${appIcon(a.id)}"><span class="an ${cls}">${a.name}</span><span class="af">${fact}</span></div>`;
       if (running) {
         const p = prog(t, a.s, a.e);
-        const steps = [[`wait for the ${a.name} API`, 0.0], [`read the ${a.name} API key`, 0.3], [i === 0 ? "set the web login" : "create the admin account", 0.62]];
+        const steps = [[a.steps[0], 0.0], [a.steps[1], 0.3], [a.steps[2], 0.62]];
         steps.forEach(([label, at], k) => {
           if (p < at) return;
           const dn = k < 2 && p >= steps[k + 1][1];
@@ -92,7 +99,7 @@ export function build(tl) {
       $(".lst", el).innerHTML = p >= 1 ? '<span class="okc">✓</span>' : p > 0 ? `<span class="acc">${spin(t)}</span>` : '<span class="faintc">○</span>';
       el.style.opacity = p > 0 ? 1 : 0.4;
     });
-    $("#links-count").textContent = `${linked}/7 linked`;
+    $("#links-count").textContent = `${linked}/${LINKS.length} linked`;
 
     const setupDone = t >= APPS[6].e;
     const mk = (d, run, ico) => `${d ? '<span class="okc">✓</span>' : run ? `<span class="acc">${spin(t)}</span>` : '<span class="faintc">○</span>'} <span class="${run ? "bright b" : d ? "text" : "muted"}">${ico}</span>`;
@@ -100,9 +107,9 @@ export function build(tl) {
       mk(true, false, "▣ Pull"), mk(true, false, "▣ Start"), mk(setupDone, !setupDone, "Setup"),
       mk(setupDone, !setupDone, "✱ Credentials"), mk(false, setupDone, "⇄ Links"), mk(false, false, "Check"),
     ].join('<span class="gap"></span>');
-    $("#a-title").innerHTML = `<span class="acc">${spin(t)}</span> <b>install qbittorrent sonarr radarr prowlarr jellyfin seerr homarr</b>`;
+    $("#a-title").innerHTML = `<span class="acc">${spin(t)}</span> <b>install ${APPS.map((a) => a.id).join(" ")}</b>`;
     const run = APPS.find((a) => t >= a.s && t < a.e);
-    const narr = run ? `Setting up ${run.name}: ${t - run.s > STEP * 0.62 ? "create the admin account" : "read the API key"}` : setupDone ? "Linking the Apps together" : "Pulled 7 images and started 7 Apps";
+    const narr = run ? `Setting up ${run.name}: ${run.steps[t - run.s > STEP * 0.62 ? 2 : 1]}` : setupDone ? "Linking the Apps together" : "Pulled 7 images and started 7 Apps";
     $("#a-narr").innerHTML = `<span class="text">${narr}</span>`;
   });
 

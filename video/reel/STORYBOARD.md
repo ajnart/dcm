@@ -19,10 +19,10 @@ drift, while checking opacity, overlap, text size, layout stability and bounds.
 | Time        | Section      | Motion and content                                                                                                                                                                                                                                      |
 | ----------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0–6 s       | Hook         | “Stop renting your software.” lands in two gestures. Subscription tiles fly into a wall, locks land, the price counts up, and the tiles flip to the self-hosted replacements. The wall collapses into the next shot. No strike-through.                 |
-| 6–10 s      | Command      | A violet diamond expands into the wordmark and folds back into its mark. The lockup docks, `self-host install media homarr` types, and the Recipe/App resolution appears. Seven icons land inside the Compose Project card, which expands into the TUI. |
+| 6–10 s      | Command      | A violet diamond expands into the wordmark and folds back into its mark. The lockup docks, `self-host install qbittorrent sonarr jellyfin immich nextcloud vaultwarden homarr` types on two lines, and what it resolved appears. Seven icons land inside the Compose Project card, which expands into the TUI. |
 | 10–14 s     | Setup        | “Sets up every App.” remains for four seconds. Apps finish one per beat while the camera eases toward the activity panels, then pushes into Links.                                                                                                      |
 | 14–17.5 s   | Links        | Four cards arrive together. Wires draw, masked credential indicators travel to the configured Apps, and checkmarks land. The grid whips upward into Homarr.                                                                                             |
-| 17.5–19.5 s | Dashboard    | The board tilts into place; App tiles and widgets arrive, numbers count up and the sparkline draws. A camera dive leads into the next shot.                                                                                                             |
+| 17.5–19.5 s | Dashboard    | The board tilts into place; six App tiles and the qBittorrent, Jellyfin and Immich widgets arrive, numbers count up and the sparkline draws. A camera dive leads into the next shot.                                                                                                             |
 | 19.5–22 s   | CLI question | “Don’t want to learn the CLI?” lands over moving command lines.                                                                                                                                                                                         |
 | 22–28 s     | Agents       | A request types into the chat. Six agent headers switch while the plan, approval, install and result unfold. “One skill. Every agent.” uses the same sans-serif family as other prose.                                                                  |
 | 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “No rent.” enters from the opposite side; “Your data.” expands into place. Each keeps moving gently through its reading hold. No progress bar.           |
@@ -49,13 +49,21 @@ integrated and a true peak below −1 dBTP.
 
 ## Facts and release gate
 
-- The media Recipe resolves to qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin and Seerr;
-  Homarr adds the seventh App. Source on `main`: `internal/catalog/default.go`.
-- Link descriptions follow `internal/apps/arr/links.go`, `internal/apps/seerr/seerr.go` and
-  `internal/apps/homarr/links.go` on `main`.
+- Everything shown succeeds: half media, half everyday services, no Manual step and no warning. The Apps are qBittorrent, Sonarr, Jellyfin,
+  Immich, Nextcloud and Vaultwarden, plus Homarr. No Recipe matches (`media` also installs Radarr, Prowlarr and Seerr), so the command names
+  Catalog App ids (`self-host apps list --json`, 89 Apps, 19 Recipes). qBittorrent and Nextcloud both default to port 8080; the second gets
+  the next free port with a warning event, and the reel shows no ports but Homarr's.
+- Setup steps follow `internal/apps` (qbittorrent, arr, jellyfin, immich, nextcloud, vaultwarden, homarr); none ends on a Manual step.
+- Links: Sonarr gets qBittorrent as its download client (`arr/links.go`, `downloadClientLink`). Homarr adds a tile for every installed App
+  (`installed.go`), and its Links (`homarr/links.go`) add an integration and widgets for qBittorrent, Sonarr, Jellyfin,
+  Immich and Nextcloud (`target_immich.go`, `target_nextcloud.go`); Vaultwarden is tile only. The Setup box lists all seven; the Links scene shows
+  four cards (Sonarr to qBittorrent, Homarr to Jellyfin, Immich and Nextcloud).
+- Board widgets are kinds those Links add: `downloads` (qBittorrent), `mediaServer` and `mediaReleases` (Jellyfin), `calendar` (Sonarr),
+  `immich-serverStats` (Immich), `notifications` (Nextcloud). Vaultwarden is a tile.
+- Vaultwarden's mark is the light variant of the dashboard-icons CDN (`assets/icons/vaultwarden-light.svg`); the black one vanishes on the tiles.
 - The agent example follows `internal/skill/guide.md`, “Every conversation”: pick the Recipe or
   Apps from `apps list`, show the plan in goals and Apps, get approval, then install. The example
-  uses `owned-video-library` plus Homarr, with Access shown as “Home network.”
+  asks for movies on the TV and to replace Photos, Drive and 1Password, names the Apps in two rows, and points to `self-host credentials`.
 - 93 Apps and 20 Recipes were checked against a fresh CLI build from `origin/main` for the
   preceding terminology update.
 - Subscription prices are illustrative inherited examples, totalling $92. The $0 comparison
@@ -199,8 +207,8 @@ publication remain separate gates under #295, #193 and #268.
 [Issue #523](https://github.com/ajnart/self-host/issues/523). A 30-second cut beside the media cut above: 15 bars at the same 120 BPM, on
 the same engine, styles, track and sound pipeline. It is a separate timeline and set of scenes in `saas/`; the media cut renders unchanged.
 Select it with `--cut saas` on every `render.mjs` mode and on `audio/mix.mjs`; it writes `out/selfhost-reel-saas.mp4`,
-`audio/cues-saas.json` and `audio/out/soundtrack-saas.wav` beside the media files. Delivered as `site/public/reel-saas.mp4` and its
-poster `site/public/reel-saas.jpg` (thumbnail variant 18, `thumbs/`, made the way `reel.jpg` is).
+`audio/cues-saas.json` and `audio/out/soundtrack-saas.wav` beside the media files. It was briefly the site hero and its MP4 and poster were
+removed again; it is not shipped (thumbnail variant 18 in `thumbs/` remains).
 
 ## Direction
 
@@ -291,3 +299,13 @@ The lint contract is the media cut's, unchanged. `verify` reads a short edit's b
 - The media cut renders byte-identical stills at 20 sampled times, its cue sheet is unchanged, and its full lint still passes (103 holds, 68 samples).
 - Inspected stills at every scene boundary (hook→ask, ask→drop, each swap change, swaps→flurry→end), the drop's opening frames, and the 30-frame contact sheet.
 - MP4 SHA-256: `cb323b328a45840810d52e2153e82dbb3491aaf25559d8d8e66b3540ce694b2c`; poster SHA-256: `bde9573f37ef0df8be22404d19af6d5be9e6c5e10a90288c374f994f90bd7fdf`.
+
+### Verified Apps swap, 2026-10-14
+
+The media cut's Prowlarr, Radarr and Seerr are replaced by Immich, Nextcloud and Vaultwarden; qBittorrent, Sonarr, Jellyfin and Homarr stay. Scene order,
+timing, audio design and styles are unchanged except a 56 px two-line command; the hook, flurry and end card are untouched.
+
+- `audio/cues.json` regenerated (279 cues: the typed command and prompt are longer); soundtrack remixed from the verified track.
+- Final MP4: 2,040 frames, 1920×1080 at 60 fps, 34.000 s, 7.86 MB, faststart. −13.8 LUFS, −1.9 dBTP, 6.0 LU; no flashes; 17 cuts.
+- All 104 reading holds pass at 30 Hz; the 68 out-of-order and fresh-page seek samples pass. The command is read as two lines (5 and 4 words) so each meets the hold rule.
+- MP4 SHA-256: `d62163c02397bb3a0e3e3f2960d13a2d98183abe3e7892a7daee775b9b879671`.

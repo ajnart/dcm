@@ -3,15 +3,15 @@ import { SC, b } from "./timeline.js";
 
 const [A, B] = SC.links;
 // What each Link really does, from internal/apps:
-//   arr/links.go    downloadClientLink: Sonarr/Radarr get qBittorrent as download client with the Admin login
-//   arr/links.go    applicationLink: Prowlarr syncs indexers to Sonarr/Radarr with their API keys
-//   seerr/seerr.go  serverLink: Seerr sends requests to Sonarr/Radarr with their API keys
-//   homarr/links.go target.link: Homarr adds a Jellyfin app tile, integration (API key) and widgets
+//   arr/links.go                downloadClientLink: Sonarr gets qBittorrent as download client with the Admin login
+//   homarr/links.go            existingTargets: Homarr adds a Jellyfin app tile, integration (API key) and mediaServer, mediaReleases and stats widgets
+//   homarr/target_immich.go    Homarr adds an Immich tile, integration (API key) and the immich-serverStats and stats widgets
+//   homarr/target_nextcloud.go Homarr adds a Nextcloud tile, integration (app password) and the calendar, notifications and stats widgets
 const CARDS = [
   { from: "sonarr", fromName: "Sonarr", to: ["qbittorrent"], toName: "qBittorrent", desc: "Adds qBittorrent as Sonarr’s download client", key: "Admin login" },
-  { from: "prowlarr", fromName: "Prowlarr", to: ["sonarr", "radarr"], toName: "Sonarr · Radarr", desc: "Syncs Prowlarr’s indexers to Sonarr and Radarr", key: "Their API keys" },
-  { from: "seerr", fromName: "Seerr", to: ["sonarr", "radarr"], toName: "Sonarr · Radarr", desc: "Sends your requests to Sonarr and Radarr", key: "Their API keys" },
   { from: "homarr", fromName: "Homarr", to: ["jellyfin"], toName: "Jellyfin", desc: "Adds Jellyfin’s tile and widgets to Homarr", key: "Jellyfin API key" },
+  { from: "homarr", fromName: "Homarr", to: ["immich"], toName: "Immich", desc: "Adds Immich’s tile and library stats to Homarr", key: "Immich API key" },
+  { from: "homarr", fromName: "Homarr", to: ["nextcloud"], toName: "Nextcloud", desc: "Adds Nextcloud’s tile and calendar to Homarr", key: "App password" },
 ];
 // beats: 0 the cards open out of the push as one grid · 2 the four wires draw a sixteenth apart and each
 // credential travels to the App being configured · 4 they tick green a sixteenth apart · 5 4 of 4 linked ·
