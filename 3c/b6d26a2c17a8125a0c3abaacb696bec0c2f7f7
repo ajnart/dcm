@@ -1,0 +1,44 @@
+internal/preboot/preboot_test.go
+  h_d6e478ca18e517 164-165
+internal/preboot/testdata/exit-00-120x30.golden
+  h_d6e478ca18e517 19
+internal/preboot/testdata/exit-00-80x24.golden
+  h_d6e478ca18e517 15
+internal/preboot/testdata/pull-end-120x30.golden
+  h_d6e478ca18e517 19
+internal/preboot/testdata/pull-end-80x24.golden
+  h_d6e478ca18e517 15
+internal/preboot/testdata/pull-mid-120x30.golden
+  h_d6e478ca18e517 19
+internal/preboot/testdata/pull-mid-70x20.golden
+  h_d6e478ca18e517 11
+internal/preboot/testdata/pull-mid-80x24.golden
+  h_d6e478ca18e517 15
+internal/preboot/testdata/pull-start-120x30.golden
+  h_d6e478ca18e517 19
+internal/preboot/testdata/pull-start-80x24.golden
+  h_d6e478ca18e517 15
+internal/preboot/text.go
+  h_d6e478ca18e517 50,58,62-70,124
+internal/skill/guide.md
+  h_d6e478ca18e517 70-77,126-129,131-157
+internal/tui/harness_test.go
+  h_d6e478ca18e517 584
+internal/tui/help.go
+  h_d6e478ca18e517 30-32
+internal/tui/preboot.go
+  h_d6e478ca18e517 38,40,96-97
+internal/tui/preboot_test.go
+  h_d6e478ca18e517 324,326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3cb6d26a2c17a8125a0c3abaacb696bec0c2f7f7",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
