@@ -1,0 +1,18 @@
+.actrc
+  h_d6e478ca18e517 1-11
+CONTRIBUTING.md
+  h_d6e478ca18e517 27-28
+docs/local-ci.md
+  h_d6e478ca18e517 1-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5cf2ddcf4e1d1952bf0c453c30de6e4a5e1529e5",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
