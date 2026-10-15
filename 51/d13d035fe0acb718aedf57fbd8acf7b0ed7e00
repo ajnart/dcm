@@ -1,0 +1,28 @@
+README.md
+  h_d6e478ca18e517 35
+e2e/acceptance.md
+  h_d6e478ca18e517 3
+e2e/acceptance_fixture_test.go
+  h_d6e478ca18e517 24
+internal/catalog/batch_recipes.go
+  h_d6e478ca18e517 42
+internal/catalog/parity_test.go
+  h_d6e478ca18e517 108-124,336-341
+internal/tui/testdata/onboarding-what-default-focus-narrow.golden
+  h_d6e478ca18e517 11-16
+internal/tui/testdata/onboarding-what-default-focus.golden
+  h_d6e478ca18e517 15-22
+site/src/data/catalog.json
+  h_d6e478ca18e517 1167
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "51d13d035fe0acb718aedf57fbd8acf7b0ed7e00",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
