@@ -1,10 +1,9 @@
-import { $, $$, proc, clamp, scene, appIcon, chars, diamond, read, cue, typeCues, on, cut } from "./lib.js";
+import { $, $$, proc, clamp, scene, icon, chars, diamond, read, cue, typeCues, on, cut } from "./lib.js";
 import { SC, b } from "./timeline.js";
 
-// No Recipe covers these Apps exactly, so the command names their Catalog ids (self-host apps list --json); Homarr goes last so its Links find them ready
-export const PROJ_ICONS = ["qbittorrent", "sonarr", "jellyfin", "immich", "nextcloud", "vaultwarden", "homarr"];
-export const CMD_LINES = ["self-host install qbittorrent sonarr jellyfin\n", "  immich nextcloud vaultwarden homarr"];
-export const CMD_TEXT = CMD_LINES.join("");
+// `media` is the Recipe qbittorrent sonarr radarr prowlarr jellyfin seerr (new-cli/internal/catalog/default.go)
+export const PROJ_ICONS = ["qbittorrent", "sonarr", "radarr", "prowlarr", "jellyfin", "seerr", "homarr"];
+export const CMD_TEXT = "self-host install media homarr";
 export const WIN = { x: 220, y: 270, w: 1480, h: 720 };
 const PROJ = { x: 112, y: 660 };
 const [A, B] = SC.product;
@@ -46,23 +45,20 @@ export function build(tl) {
   on(T.dock, "the lockup docks");
 
   // the command types with a key sound per character; enter prints what it resolved
-  const cmdL1 = $("#cmd-l1"), cmdL2 = $("#cmd-l2"), caret = $("#cmd-c");
+  const cmdT = $("#cmd-t"), caret = $("#cmd-c");
   proc((t) => {
     const n = Math.round(CMD_TEXT.length * clamp((t - T.type[0]) / (T.type[1] - T.type[0])));
-    const typed = CMD_TEXT.slice(0, n);
-    cmdL1.textContent = typed.slice(0, CMD_LINES[0].length).replace(/ /g, "\u00a0");
-    cmdL2.textContent = typed.slice(CMD_LINES[0].length).replace(/ /g, "\u00a0");
+    cmdT.textContent = CMD_TEXT.slice(0, n).replace(/ /g, "\u00a0");
     const typing = t >= T.type[0] && t < T.type[1];
     caret.style.visibility = t < T.dock + 0.2 || t >= T.enter ? "hidden" : typing || Math.floor((t - T.dock) * 4) % 2 === 0 ? "visible" : "hidden";
   });
   tl.fromTo("#cmd", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, T.dock + 0.2);
   typeCues(CMD_TEXT, T.type[0], T.type[1]);
   on(T.type[0], "the command types");
-  read(cmdL1, T.type[0] + ((T.type[1] - T.type[0]) * CMD_LINES[0].length) / CMD_TEXT.length + 0.02, T.morph - 0.01, "command line 1");
-  read(cmdL2, T.type[1] + 0.02, T.morph - 0.01, "command line 2");
+  read("#cmd", T.type[1] + 0.02, T.morph - 0.01, "command");
 
   $$("#out .o").forEach((o, i) => tl.fromTo(o, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.35, ease: "expo.out" }, T.enter + i * 0.06));
-  on(T.enter, "enter: 6 Apps, homarr the Dashboard");
+  on(T.enter, "enter: media 6 Apps, homarr 1 App");
   cue(T.enter, "enter");
   read("#o1", T.enter + 0.36, T.morph - 0.01);
   read("#o2", T.enter + 0.42, T.morph - 0.01);
@@ -85,7 +81,7 @@ export function build(tl) {
   PROJ_ICONS.forEach((id, i) => {
     const el = document.createElement("div");
     el.className = "pi";
-    el.innerHTML = `<img src="${appIcon(id)}">`;
+    el.innerHTML = `<img src="${icon(id)}">`;
     row.appendChild(el);
     const at = T.proj + 0.08 + i * 0.035;
     tl.fromTo(el, { y: -60, opacity: 0, scale: 0.8 }, { y: 0, opacity: 1, scale: 1, duration: 0.45, ease: "expo.out" }, at);

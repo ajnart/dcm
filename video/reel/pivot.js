@@ -3,12 +3,12 @@ import { SC, BEAT } from "./timeline.js";
 
 const [A, B] = SC.pivot;
 const FLAGS = [
-  "self-host install sonarr qbittorrent jellyfin --exposure lan --media-root ~/media --downloads-root ~/downloads --yes --json",
-  "--set sonarr.port=8989 --set immich.port=2283 --set nextcloud.port=8081 --exposure local",
+  "self-host install sonarr radarr qbittorrent --exposure lan --media-root ~/media --downloads-root ~/downloads --yes --json",
+  "--set sonarr.port=8989 --set radarr.port=7878 --set-file vaultwarden.admin_token=./token --exposure local",
   "self-host config set LAN_IP=auto TZ=Europe/Paris PUID=1000 PGID=1000 && self-host config review --yes",
   "self-host backup --encrypt -o ~/.self-host/backups/selfhost-2026-10-09.tar.zst.age && self-host restore --yes",
-  "self-host update jellyfin sonarr immich && self-host status --updates --json && self-host doctor --json",
-  "self-host logs jellyfin --follow --tail 200 | grep -i error && self-host restart sonarr qbittorrent",
+  "self-host update jellyfin sonarr radarr && self-host status --updates --json && self-host doctor --json",
+  "self-host logs jellyfin --follow --tail 200 | grep -i error && self-host restart prowlarr sonarr radarr",
 ];
 // beats: 0 both lines land an eighth apart · then the wall of real flags lurches sideways on every beat,
 // a little further each time, while the camera pushes in

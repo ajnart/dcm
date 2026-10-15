@@ -277,8 +277,7 @@ body {
   height: 170px;
   flex: none;
 }
-#mark svg,
-.e-dia svg {
+#mark svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -296,8 +295,7 @@ body {
   padding: 0.12em 0.06em 0.2em;
   margin: -0.12em -0.06em -0.2em;
 }
-#wm .c,
-.e-wm .c {
+#wm .c {
   display: inline-block;
 }
 #cmd {
@@ -306,9 +304,9 @@ body {
   top: 262px;
   font-family: var(--mono);
   font-weight: 600;
-  font-size: 56px;
+  font-size: 76px;
   letter-spacing: -0.03em;
-  white-space: pre;
+  white-space: nowrap;
   color: var(--bright);
 }
 #cmd .pr {
@@ -318,7 +316,7 @@ body {
 #out {
   position: absolute;
   left: 112px;
-  top: 450px;
+  top: 384px;
   font-family: var(--mono);
   font-size: 44px;
   line-height: 64px;
@@ -1457,37 +1455,20 @@ kbd {
   position: absolute;
   inset: 0;
 }
-.e-lock {
+.e-intro {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 190px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 44px;
-}
-.e-dia {
-  width: 132px;
-  height: 132px;
-  flex: none;
-}
-.e-wm {
-  font-family: var(--mono);
-  font-weight: 800;
-  font-size: 196px;
-  letter-spacing: -0.07em;
-  line-height: 1;
-  white-space: nowrap;
-  overflow: clip;
-  padding: 0.12em 0.06em 0.2em;
-  margin: -0.12em -0.06em -0.2em;
+  left: 612px;
+  top: 30px;
+  width: 696px;
+  height: 450px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 90px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 90px);
 }
 .e-cmd {
   position: absolute;
   left: 0;
   right: 0;
-  top: 486px;
+  top: 526px;
   text-align: center;
 }
 .e-cmdin {
@@ -1519,21 +1500,38 @@ kbd {
   position: absolute;
   left: 0;
   right: 0;
-  top: 712px;
+  top: 740px;
   text-align: center;
   font-family: var(--mono);
-  font-size: 32px;
-  font-weight: 500;
-  color: var(--text);
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--bright);
   display: flex;
   justify-content: center;
-  gap: 16px;
+  align-items: center;
+  gap: 18px;
+}
+.e-slot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 330px;
+}
+.e-lg img {
+  width: 40px;
+  height: 40px;
+}
+#e-ag-t {
+  white-space: nowrap;
+}
+#e-ag-t.you {
+  color: #a88df2;
 }
 .e-stats {
   position: absolute;
   left: 0;
   right: 0;
-  top: 800px;
+  top: 812px;
   text-align: center;
   font-size: 54px;
   font-weight: 600;
@@ -1555,7 +1553,7 @@ kbd {
   position: absolute;
   left: 0;
   right: 0;
-  top: 920px;
+  top: 906px;
   text-align: center;
   font-family: var(--mono);
   font-size: 36px;

@@ -6,7 +6,7 @@ The maintainer approved **v5**: “perfect … I really like what it looks like 
 creative revision. Preserve this cut as the starting point for subsequent requests.
 
 - Branch: `feat/showreel-v2`.
-- Review: [PR #190](https://github.com/ajnart/self-host/pull/190), merged on 2026-10-11.
+- Review: [PR #190](https://github.com/ajnart/selfhost-skills/pull/190), merged on 2026-10-11.
 - Implementation: `de8e68ca`; concurrent Access terminology integration: `3d7546ab`.
 - Delivered MP4: `out/selfhost-reel.mp4`; review sheet: `out/contact.png`.
 - Taildrop of the approved cut to `iphone:` succeeded.
@@ -28,7 +28,7 @@ Keep reading holds meaningful while allowing controlled movement.
 The approved v5 end command was **`npx selfhost install`**, specifically requested by the maintainer
 as a preview of the planned npm installer. The later canonical-domain request supersedes that copy:
 the current release candidate uses **`curl -fsSL https://self-host.fyi/install | bash`** and
-shows the existing repository, **`github.com/ajnart/self-host`**. The approved motion, music
+shows the repository, **`github.com/ajnart/self-host`**. The approved motion, music
 and other product copy are unchanged.
 Catalog counts and product behaviour should be rechecked before changing those claims. Provenance is
 recorded in the storyboard and asset source files.
@@ -36,14 +36,14 @@ recorded in the storyboard and asset source files.
 ## Canonical-domain release candidate
 
 This revision is not a new creative approval or proof that installation works. The source repository
-remains **`ajnart/self-host`**, private; the reel does not imply a rename or visibility change.
+remains **`ajnart/selfhost-skills`**, private; the reel does not imply a rename or visibility change.
 The canonical website is live as of the current-release reconciliation on 2026-10-13. Anonymous
 installer and release-binary acceptance remain unverified; source merge does not satisfy that gate.
-[Issue #295](https://github.com/ajnart/self-host/issues/295) tracks installer/site proof, and
-[issue #193](https://github.com/ajnart/self-host/issues/193) tracks distribution decisions.
+[Issue #295](https://github.com/ajnart/selfhost-skills/issues/295) tracks installer/site proof, and
+[issue #193](https://github.com/ajnart/selfhost-skills/issues/193) tracks distribution decisions.
 Verify the canonical script and anonymous release assets before publishing this candidate; do not
 publish the private source or raw music.
-[Issue #268](https://github.com/ajnart/self-host/issues/268) tracks the reel's publication checks.
+[Issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks the reel's publication checks.
 The corrected candidate's artifact measurements are recorded in the storyboard, separately from
 approved v5 and the earlier canonical-domain render.
 
@@ -62,7 +62,6 @@ retry instructions and model selection were left unchanged, as were the reposito
 | Synthesised UI sounds                      | `audio/sfx.mjs`                                             |
 | Track tempo and downbeat analysis          | `audio/analyze.mjs`                                         |
 | Rendering, stills, lint, verification      | `render.mjs`                                                |
-| The "Replace the SaaS you pay for" cut     | `saas/` (timeline, scenes, `saas.css`); `--cut saas` everywhere |
 
 Read `package.json` for current dependencies and scripts. The project is JavaScript and has no
 configured TypeScript typecheck. The existing renderer requires Node, the installed Playwright Chromium
@@ -96,14 +95,6 @@ the detected beat. These are measurements of v5, not guaranteed properties of fu
 The concurrent branch update added a check for retired rendered wording. It was retained and rerun:
 zero occurrences of “Exposure” or obsolete `new-cli/` paths. The background's real lowercase
 `--exposure` flag remains valid. Repository validation passed all 12 checks.
-
-## Second cut
-
-[Issue #523](https://github.com/ajnart/self-host/issues/523) adds "Replace the SaaS you pay for", a 30-second cut beside the media
-cut. It is a separate timeline and set of scenes in `saas/` on the same engine, styles and soundtrack pipeline; the media cut renders
-unchanged. Pick it with `--cut saas` on every `render.mjs` mode and on `audio/mix.mjs`; its direction, facts and measured results are
-in the storyboard. The approved baseline above remains the media cut, now showing half media and half everyday Apps (qBittorrent, Sonarr, Jellyfin, Immich, Nextcloud, Vaultwarden, Homarr), and it is
-the only reel on the site; the SaaS cut is not shipped.
 
 Follow [../AGENTS.md](../AGENTS.md) for the change and delivery workflow, and the storyboard for
 reproduction commands. Refresh this handoff when a new cut becomes the approved baseline.

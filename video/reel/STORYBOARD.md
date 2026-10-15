@@ -19,14 +19,14 @@ drift, while checking opacity, overlap, text size, layout stability and bounds.
 | Time        | Section      | Motion and content                                                                                                                                                                                                                                      |
 | ----------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0–6 s       | Hook         | “Stop renting your software.” lands in two gestures. Subscription tiles fly into a wall, locks land, the price counts up, and the tiles flip to the self-hosted replacements. The wall collapses into the next shot. No strike-through.                 |
-| 6–10 s      | Command      | A violet diamond expands into the wordmark and folds back into its mark. The lockup docks, `self-host install qbittorrent sonarr jellyfin immich nextcloud vaultwarden homarr` types on two lines, and what it resolved appears. Seven icons land inside the Compose Project card, which expands into the TUI. |
+| 6–10 s      | Command      | A violet diamond expands into the wordmark and folds back into its mark. The lockup docks, `self-host install media homarr` types, and the Recipe/App resolution appears. Seven icons land inside the Compose Project card, which expands into the TUI. |
 | 10–14 s     | Setup        | “Sets up every App.” remains for four seconds. Apps finish one per beat while the camera eases toward the activity panels, then pushes into Links.                                                                                                      |
 | 14–17.5 s   | Links        | Four cards arrive together. Wires draw, masked credential indicators travel to the configured Apps, and checkmarks land. The grid whips upward into Homarr.                                                                                             |
-| 17.5–19.5 s | Dashboard    | The board tilts into place; six App tiles and the qBittorrent, Jellyfin and Immich widgets arrive, numbers count up and the sparkline draws. A camera dive leads into the next shot.                                                                                                             |
+| 17.5–19.5 s | Dashboard    | The board tilts into place; App tiles and widgets arrive, numbers count up and the sparkline draws. A camera dive leads into the next shot.                                                                                                             |
 | 19.5–22 s   | CLI question | “Don’t want to learn the CLI?” lands over moving command lines.                                                                                                                                                                                         |
 | 22–28 s     | Agents       | A request types into the chat. Six agent headers switch while the plan, approval, install and result unfold. “One skill. Every agent.” uses the same sans-serif family as other prose.                                                                  |
-| 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “No rent.” enters from the opposite side; “Your data.” expands into place. Each keeps moving gently through its reading hold. No progress bar.           |
-| 30–34 s     | End          | The wordmark lands on the final hit, `curl -fsSL https://self-host.fyi/install \| bash` types, agent names appear and the counts resolve with `github.com/ajnart/self-host`. A slow push and caret keep the card alive.                         |
+| 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “Your data.” expands into place; “No rent.” enters from the right. Each keeps moving gently through its reading hold. No progress bar.           |
+| 30–34 s     | End          | The CLI Intro plays on the final hit, cropped to its logo, horizon and wordmark: the four containers drop with the CLI’s skew, squash and hop, their lights spark on and “self-host” morphs in from cipher glyphs. `curl -fsSL https://self-host.fyi/install \| bash` types, “CLI + your agent” appears and “your agent” glyph-morphs through Claude Code, Codex, OpenChamber, Hermes, OpenCode and Pi (each with its logo) before settling back, and the counts resolve to 89 Apps · 19 Recipes · 1 binary with `github.com/ajnart/self-host`. A slow push and caret keep the card alive.                         |
 
 ## Music and UI sound
 
@@ -42,43 +42,35 @@ See `audio/SOURCES.md` for source, licence and download verification. The raw tr
 The source grid is measured by `audio/analyze.mjs`: approximately 119.997 BPM, first downbeat
 0.0297 seconds. Track edits use a 4 ms equal-power crossfade beginning around 6 ms before the attack.
 
-`audio/sfx.mjs` synthesises 218 cues: keys, enter/click sounds, lock thocks, flips, pops, checks,
+`audio/sfx.mjs` synthesises 225 cues: keys, enter/click sounds, lock thocks, flips, pops, checks,
 success chimes, whooshes, zips and impacts. These are mixed with the music, including a small reverb
 bus, rather than replacing it. `audio/mix.mjs` measures and masters the result toward −14 LUFS
 integrated and a true peak below −1 dBTP.
 
 ## Facts and release gate
 
-- Everything shown succeeds: half media, half everyday services, no Manual step and no warning. The Apps are qBittorrent, Sonarr, Jellyfin,
-  Immich, Nextcloud and Vaultwarden, plus Homarr. No Recipe matches (`media` also installs Radarr, Prowlarr and Seerr), so the command names
-  Catalog App ids (`self-host apps list --json`, 89 Apps, 19 Recipes). qBittorrent and Nextcloud both default to port 8080; the second gets
-  the next free port with a warning event, and the reel shows no ports but Homarr's.
-- Setup steps follow `internal/apps` (qbittorrent, arr, jellyfin, immich, nextcloud, vaultwarden, homarr); none ends on a Manual step.
-- Links: Sonarr gets qBittorrent as its download client (`arr/links.go`, `downloadClientLink`). Homarr adds a tile for every installed App
-  (`installed.go`), and its Links (`homarr/links.go`) add an integration and widgets for qBittorrent, Sonarr, Jellyfin,
-  Immich and Nextcloud (`target_immich.go`, `target_nextcloud.go`); Vaultwarden is tile only. The Setup box lists all seven; the Links scene shows
-  four cards (Sonarr to qBittorrent, Homarr to Jellyfin, Immich and Nextcloud).
-- Board widgets are kinds those Links add: `downloads` (qBittorrent), `mediaServer` and `mediaReleases` (Jellyfin), `calendar` (Sonarr),
-  `immich-serverStats` (Immich), `notifications` (Nextcloud). Vaultwarden is a tile.
-- Vaultwarden's mark is the light variant of the dashboard-icons CDN (`assets/icons/vaultwarden-light.svg`); the black one vanishes on the tiles.
+- The media Recipe resolves to qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin and Seerr;
+  Homarr adds the seventh App. Source on `main`: `internal/catalog/default.go`.
+- Link descriptions follow `internal/apps/arr/links.go`, `internal/apps/seerr/seerr.go` and
+  `internal/apps/homarr/links.go` on `main`.
 - The agent example follows `internal/skill/guide.md`, “Every conversation”: pick the Recipe or
   Apps from `apps list`, show the plan in goals and Apps, get approval, then install. The example
-  asks for movies on the TV and to replace Photos, Drive and 1Password, names the Apps in two rows, and points to `self-host credentials`.
-- 93 Apps and 20 Recipes were checked against a fresh CLI build from `origin/main` for the
-  preceding terminology update.
+  uses the Jellyfin App plus Homarr, with Access shown as “Home network.”
+- 89 Apps and 19 Recipes match the Catalog on `main`; the agent's `apps list` result and the
+  end-card counts say 19 Recipes.
 - Subscription prices are illustrative inherited examples, totalling $92. The $0 comparison
   concerns software subscriptions, not hardware, electricity or hosting costs.
 - The maintainer's 2026-10-11 request changes the end card to the canonical installer Address,
-  **`https://self-host.fyi/install`**. The repository line now names the existing
-  **`ajnart/self-host`** repository. This supersedes the
+  **`https://self-host.fyi/install`**. The repository line names
+  **`ajnart/self-host`**. This supersedes the
   approved v5 npm preview, without changing the 34-second timeline or creative direction. The longer
   command uses 40 px type; the repository line uses 36 px and shares the counts' entrance.
 - **Publication is held pending anonymous installer and release-binary verification.** As of the
-  current-release reconciliation on 2026-10-13, the website is live and `ajnart/self-host` remains
+  current-release reconciliation on 2026-10-13, the website is live and `ajnart/selfhost-skills` remains
   private. This source correction does not rename or publish it.
-  [Issue #295](https://github.com/ajnart/self-host/issues/295) tracks installer/site acceptance,
-  [issue #193](https://github.com/ajnart/self-host/issues/193) tracks distribution decisions, and
-  [issue #268](https://github.com/ajnart/self-host/issues/268) tracks reel publication acceptance.
+  [Issue #295](https://github.com/ajnart/selfhost-skills/issues/295) tracks installer/site acceptance,
+  [issue #193](https://github.com/ajnart/selfhost-skills/issues/193) tracks distribution decisions, and
+  [issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks reel publication acceptance.
   A successful mock render does not establish a working anonymous installer or public binaries.
 - Agent logo provenance is in `assets/agents/SOURCES.md`.
 
@@ -202,110 +194,22 @@ publication remain separate gates under #295, #193 and #268.
   command fits its card with no clipping.
 - MP4 SHA-256: `e2b9ec389c0d567ca6f870ce6c3c5dd188eecbf7cfa316ad706c92737ee0bd1c`.
 
-# Cut 2: Replace the SaaS you pay for
+### Verified Recipe rework and CLI Intro end card, 2026-10-14
 
-[Issue #523](https://github.com/ajnart/self-host/issues/523). A 30-second cut beside the media cut above: 15 bars at the same 120 BPM, on
-the same engine, styles, track and sound pipeline. It is a separate timeline and set of scenes in `saas/`; the media cut renders unchanged.
-Select it with `--cut saas` on every `render.mjs` mode and on `audio/mix.mjs`; it writes `out/selfhost-reel-saas.mp4`,
-`audio/cues-saas.json` and `audio/out/soundtrack-saas.wav` beside the media files. It was briefly the site hero and its MP4 and poster were
-removed again; it is not shipped (thumbnail variant 18 in `thumbs/` remains).
-
-## Direction
-
-The same technical product demo as the media cut: Inter Tight for headlines, JetBrains Mono for code and the Dashboard, sharp corners,
-cuts on the beat. The story is one sentence to an agent (or `self-host install`), then five quick swaps. Each swap flips a rented tile
-into the Catalog App that replaces it, says what Setup did, and brings that App's row up in the Dashboard with its Address and Status.
-
-## Timeline
-
-| Time        | Scene   | Motion and content                                                                                                                                                                                                                                       |
-| ----------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0–3 s       | Hook    | “Replace the SaaS / you pay for.” lands in two gestures. Five rented tiles (Photos, Drive, Dropbox, a smart-home glyph, UptimeRobot) fly in dim behind it and lock one after another.                                                                    |
-| 3–8 s       | Ask     | The six agents drop in. The chat types “Swap my subscriptions for apps I own.”; the plan lists the five Apps by Catalog category; the cursor clicks Approve & install; the `self-host install` command appears and the five Apps check.                   |
-| 8–24 s      | Swaps   | The drop (beat 16): a diamond with a violet edge opens onto the Dashboard Overview, five Apps spinning. Five swaps of 3, 3, 3, 3 and 4 s: a rented tile lands, “Replaces …”, it flips to the App, its name and Setup result land, its row comes up. |
-| 24–26 s     | Flurry  | The media cut's four phrases (“Your hardware.” … “Your data.”), one per beat, on the track's riser.                                                                                                                                                     |
-| 26–30 s     | End     | The wordmark lands on the final hit, `curl -fsSL https://self-host.fyi/install \| bash` types, then **self-host.fyi** and “Or ask your agent.” A slow push and caret keep the card alive.                                                                |
-
-The five swaps, in order, with what each row shows (`saas/data.js`):
-
-| Rented                 | App            | Address               | Setup result shown | Status    |
-| ---------------------- | -------------- | --------------------- | ------------------ | --------- |
-| Google Photos          | Immich         | `192.168.1.20:2283`   | Admin created      | ok        |
-| Dropbox                | Syncthing      | `192.168.1.20:8384`   | Web login set      | ok        |
-| Google Drive           | Nextcloud      | `192.168.1.20:8080`   | Admin login ready  | ok        |
-| cloud smart-home apps  | Home Assistant | `192.168.1.20:8123`   | Owner created      | attention |
-| UptimeRobot            | Uptime Kuma    | `192.168.1.20:3001`   | none               | attention |
-
-## Music and UI sound
-
-The same track, “Let's Move” (see `audio/SOURCES.md`), re-cut for 15 bars in `saas/timeline.js`:
-
-| Reel bars      | Source bars | Purpose                                                                        |
-| -------------- | ----------- | ------------------------------------------------------------------------------ |
-| 0–11 (0–24 s)  | 4–15        | Quiet intro lifted 8 dB under the hook and the ask; the drop at reel bar 4 (8 s) opens the swaps. |
-| 12 (24–26 s)   | 35          | The track's biggest riser, under the flurry.                                   |
-| 13–14 (26–30 s) | 48–49      | The final hit and ring-out, under the end card.                                |
-
-139 cues come from the same `audio/sfx.mjs` kinds (typing, lock thocks, flips, pops, checks, whooshes, slams, impacts, success).
-
-## Facts
-
-Checked against the Catalog on 2026-10-14 (`self-host apps list --json` from a fresh build of `main`, `4a7d120c`: 89 Apps, 19 Recipes).
-
-- Names, categories and default ports are the Catalog's: Immich (Photos, 2283), Syncthing (Files, 8384), Nextcloud (Files, 8080),
-  Home Assistant (Home automation, 8123), Uptime Kuma (Monitoring, 3001). Addresses are the Home network ones at the reel's mock LAN address.
-  The install command, `self-host install immich syncthing nextcloud home-assistant uptime-kuma`, uses the real App IDs.
-- Setup follows `internal/apps`. Immich creates its first administrator through the API; Syncthing sets the web login through its REST
-  API; Nextcloud verifies the administrator's sign-in and trusts the Project's Addresses.
-- **Status is not ok for two of the five, and the cut says so.** `service.Level` gives a Manual step the Status *attention*. Uptime Kuma has
-  no HTTP setup API, so its first administrator is a Manual step (`internal/apps/uptimekuma`). Home Assistant's Setup creates the owner, but
-  the core-config, analytics and integration choices stay a Manual step (`internal/apps/homeassistant`). Their rows show yellow
-  *attention* and “Finish in browser”, never ok. The runtime matrix (`docs/runtime-matrix.md`, an older head) records Uptime Kuma as manual.
-- The agent flow follows `internal/skill/guide.md`: the plan names the Apps, the person approves, then the agent installs. The Approve click
-  comes before the command (ADR 0005: loading the skill is never approval).
-- Nextcloud is shown replacing Google Drive only. The Catalog's `files` Recipe says “replacing Google Drive, OneDrive and Dropbox”; it does not
-  describe a Notion-style docs workspace (Docmost is the Catalog's notes App), so no docs claim is made. Smart-home is the generic “cloud
-  smart-home apps”, not a named speaker: Home Assistant's trap notes say a smart-speaker experience needs separate hardware.
-- No prices. The media cut's illustrative subscription totals are not reused.
-- The end card repeats the media cut's installer line (`END_INSTALL`); the publication gate in the release notes above applies to this
-  cut as well. UptimeRobot's icon is `assets/icons/uptimerobot.svg`, from the same dashboard-icons CDN as the other icons.
-
-## Validation and reproduction
-
-```sh
-node render.mjs lint --cut saas
-node render.mjs cues --cut saas
-node audio/mix.mjs --cut saas
-node render.mjs video --cut saas --workers 8 --sub 8
-node render.mjs verify --cut saas
-node audio/seams.mjs --cut saas
-node render.mjs contact --cut saas
-ffmpeg -y -i thumbs/v18-saasswaps-1280x720.png -q:v 3 ../../site/public/reel-saas.jpg   # after node thumbs/build.mjs
-```
-
-The lint contract is the media cut's, unchanged. `verify` reads a short edit's beat phase half a beat off (every cut reads exactly
--250 ms with the tempo right at 119.99 BPM), so the music's seams are measured directly by `audio/seams.mjs`.
-
-### Verified render, 2026-10-14
-
-- 1,800 frames at 60 fps, 1920×1080, H.264 High `yuv420p`, faststart; AAC 48 kHz stereo. Video, audio and container all measure 30.000
-  seconds; 4.14 MB (4,136,368 bytes). Rendered in 57 s with eight workers and eight sub-frames.
-- Integrated loudness −14.0 LUFS, true peak −1.6 dBTP, loudness range 6.6 LU. No flashes by the limited luminance scan (the drop opens as
-  a violet-edged diamond, not a full-frame flood, for this reason).
-- All 84 reading holds pass at 30 Hz, with no overlap, bounds, undeclared-text or terminology failures; the tightest are the flurry
-  phrases at 0.41 s against 0.4 s. All 60 out-of-order and fresh-page seek samples pass (worst raster noise 79.6 dB PSNR).
-- The music's three seams (the drop at 8 s, the riser at 24 s, the final hit at 26 s) land within 1.0 ms of the grid. Picture cuts sit on the
-  0.5 s grid (lint). `verify`'s detected-phase beat offsets are not a valid measure for this edit, see above.
-- The media cut renders byte-identical stills at 20 sampled times, its cue sheet is unchanged, and its full lint still passes (103 holds, 68 samples).
-- Inspected stills at every scene boundary (hook→ask, ask→drop, each swap change, swaps→flurry→end), the drop's opening frames, and the 30-frame contact sheet.
-- MP4 SHA-256: `cb323b328a45840810d52e2153e82dbb3491aaf25559d8d8e66b3540ce694b2c`; poster SHA-256: `bde9573f37ef0df8be22404d19af6d5be9e6c5e10a90288c374f994f90bd7fdf`.
-
-### Verified Apps swap, 2026-10-14
-
-The media cut's Prowlarr, Radarr and Seerr are replaced by Immich, Nextcloud and Vaultwarden; qBittorrent, Sonarr, Jellyfin and Homarr stay. Scene order,
-timing, audio design and styles are unchanged except a 56 px two-line command; the hook, flurry and end card are untouched.
-
-- `audio/cues.json` regenerated (279 cues: the typed command and prompt are longer); soundtrack remixed from the verified track.
-- Final MP4: 2,040 frames, 1920×1080 at 60 fps, 34.000 s, 7.86 MB, faststart. −13.8 LUFS, −1.9 dBTP, 6.0 LU; no flashes; 17 cuts.
-- All 104 reading holds pass at 30 Hz; the 68 out-of-order and fresh-page seek samples pass. The command is read as two lines (5 and 4 words) so each meets the hold rule.
-- MP4 SHA-256: `d62163c02397bb3a0e3e3f2960d13a2d98183abe3e7892a7daee775b9b879671`.
+- Hook through Flurry keep the approved timeline (17 bars, 34 s); only the flurry order changes, “Your data.”
+  before “No rent.”. The end card plays the CLI Intro recording (`assets/intro.json`, a copy of
+  `site/public/intro.json`, 24 fps) cropped to columns 22–79 and rows 3–20, played at 1.5× (36 fps) and starting 14 frames in so the
+  first container lands just after the hit. `intro.js` paints frame n as a pure function of the clock.
+- The full-width agent list is now “CLI + your agent”. It enters as “self-host” starts to morph in, then the
+  slot morphs through each agent and its logo, 0.36 s per agent, and settles back on “your agent”.
+  The agent example installs Jellyfin with Homarr and the counts say 19 Recipes.
+- Regenerated `audio/cues.json` (225 cues: a lock per landing, a check per light, a whoosh on the morph).
+- Final MP4: 2,040 frames, 1920×1080 at 60 fps, H.264 High `yuv420p`, faststart; AAC 48 kHz stereo.
+  Picture, sound and container all measure 34.000 seconds; size 7.68 MB.
+- Loudness −13.8 LUFS, true peak −2.0 dBTP, loudness range 6.0 LU. No flashes under the limited luminance scan;
+  17 cuts with a mean absolute beat offset of 1.46 ms (worst 2.68 ms).
+- All 103 reading holds pass at 30 Hz, with no overlap, bounds, undeclared-text or terminology failures.
+  All 68 out-of-order and fresh-page seek samples pass (worst raster noise 53.4 dB PSNR).
+- `transformOrigin` for the Links grid and the Board now sits in inline styles, so a jump into those tweens
+  renders the same as reaching them in order.
+- MP4 SHA-256: `a6fb3f7f893885a551b7c8fe4e9c71c71cdecf2822a06521d31ea8829ca5d476`.

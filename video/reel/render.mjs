@@ -1,6 +1,4 @@
 // Deterministic frame renderer: every pixel is a pure function of t (window.seek).
-// Every mode takes --cut <name> (default media): saas renders "Replace the SaaS you pay for" from saas/, writing
-// selfhost-reel-saas.mp4, cues-saas.json and soundtrack-saas.wav beside the media cut's files.
 //   node render.mjs stills 0:52:0.5        PNG stills (list "1,2.5", range start:end:step, or "holds") → out/stills/
 //   node render.mjs lint [times]           readability holds + undeclared text + safe area + determinism
 //   node render.mjs cues                   write the cue sheet (picture cuts, sound cues, the edit) → audio/cues.json
@@ -10,6 +8,7 @@
 //   node render.mjs sheets [dir] [prefix]  4×3 review sheets of out/<dir>/*.png → out/sheets/
 //   node render.mjs eval "<js>" <t>        evaluate an expression at t
 import { chromium } from "playwright";
+import { DUR } from "./timeline.js";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { readFile, readdir, mkdir, writeFile, rm, access, rename } from "node:fs/promises";
@@ -29,10 +28,6 @@ const flag = (name, def) => {
   return i < 0 ? def : args[i + 1];
 };
 const has = (name) => args.includes(`--${name}`);
-const pos = (i) => (args[i] && !args[i].startsWith("--") ? args[i] : undefined);
-const CUT = flag("cut", "media");
-const SFX = CUT === "media" ? "" : `-${CUT}`;
-const { DUR } = await import(CUT === "media" ? "./timeline.js" : `./${CUT}/timeline.js`);
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".woff2": "font/woff2", ".woff": "font/woff", ".json": "application/json" };
 function serve() {
@@ -96,7 +91,7 @@ function parseTimes(spec) {
 }
 
 async function stills(url, spec) {
-  const dir = join(OUT, flag("dir", `stills${SFX}`));
+  const dir = join(OUT, flag("dir", "stills"));
   await mkdir(dir, { recursive: true });
   const browser = await chromium.launch(LAUNCH);
   const { page, cdp } = await openPage(browser, url);
@@ -242,7 +237,7 @@ async function sourceHash() {
 
 async function video(url, { fps, sub, workers, chunk, fresh, out, crf }) {
   const total = Math.round(DUR * fps);
-  const dir = join(OUT, `chunks${SFX}-${await sourceHash()}-${fps}-${sub}-open`);
+  const dir = join(OUT, `chunks-${await sourceHash()}-${fps}-${sub}-open`);
   if (fresh) await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
   const jobs = [];
@@ -298,7 +293,7 @@ async function video(url, { fps, sub, workers, chunk, fresh, out, crf }) {
 
   const list = join(dir, "list.txt");
   await writeFile(list, jobs.map((j) => `file '${j.file}'`).join("\n"));
-  const wav = join(AUDIO, "out", `soundtrack${SFX}.wav`);
+  const wav = join(AUDIO, "out", "soundtrack.wav");
   await access(wav).catch(() => { throw new Error(`no soundtrack at ${wav}: run node render.mjs cues && node audio/mix.mjs first`); });
   const ff = ffmpeg(["-f", "concat", "-safe", "0", "-i", list, "-i", wav, "-map", "0:v:0", "-map", "1:a:0",
     "-c:v", "libx264", "-preset", "slow", "-crf", String(crf), "-profile:v", "high", "-tune", "film", "-pix_fmt", "yuv420p", "-r", String(fps), "-frames:v", String(total),
@@ -354,9 +349,8 @@ async function verify(file) {
   const perSecond = Math.max(0, ...flashes.map((t) => flashes.filter((u) => u >= t && u < t + 1).length));
   const lum = { frames: luma.length, mean: +(luma.reduce((s, x) => s + x, 0) / luma.length).toFixed(1), max: +Math.max(...luma).toFixed(1), maxFrameJump: maxJump, changesOver20: changes.length, flashes, maxFlashesPerSecond: perSecond };
   const { analyze, offsets } = await import("./audio/analyze.mjs");
-  // the grid is the cut's own 120 BPM; a short edit can fold to 80, so the other cuts search near it
-  const g = analyze(file, CUT === "media" ? {} : { min: 100, max: 140 });
-  const sheet = JSON.parse(await readFile(join(AUDIO, `cues${SFX}.json`), "utf8"));
+  const g = analyze(file);
+  const sheet = JSON.parse(await readFile(join(AUDIO, "cues.json"), "utf8"));
   const off = offsets(sheet.cuts.map((c) => c.t), g.firstBeat, g.beat);
   let worst = 0, wi = 0;
   off.forEach((o, i) => { if (Math.abs(o) > Math.abs(worst)) { worst = o; wi = i; } });
@@ -376,16 +370,16 @@ async function grid(files, labels, out, { cols, w, h }) {
 }
 
 async function contact() {
-  const src = join(OUT, `selfhost-reel${SFX}.mp4`);
-  const dir = join(OUT, `contact-frames${SFX}`);
+  const src = join(OUT, "selfhost-reel.mp4");
+  const dir = join(OUT, "contact-frames");
   await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
   const ff = ffmpeg(["-i", src, "-vf", "select='eq(mod(n\\,60)\\,30)',scale=240:135:flags=lanczos", "-fps_mode", "vfr", join(dir, "f%03d.png")]);
   ff.stdin.end();
   await ff.done;
   const files = (await readdir(dir)).filter((f) => f.endsWith(".png")).sort().map((f) => join(dir, f));
-  await grid(files, files.map((_, i) => `${i}.5 s`), join(OUT, `contact${SFX}.png`), { cols: 8, w: 240, h: 135 });
-  console.log("wrote", join(OUT, `contact${SFX}.png`), `(${files.length} frames, one per second)`);
+  await grid(files, files.map((_, i) => `${i}.5 s`), join(OUT, "contact.png"), { cols: 8, w: 240, h: 135 });
+  console.log("wrote", join(OUT, "contact.png"), `(${files.length} frames, one per second)`);
 }
 
 async function sheets(dir, prefix = "s") {
@@ -400,29 +394,29 @@ async function sheets(dir, prefix = "s") {
 }
 
 const srv = await serve();
-const url = `http://127.0.0.1:${srv.address().port}/index.html?cut=${CUT}`;
+const url = `http://127.0.0.1:${srv.address().port}/index.html`;
 try {
-  if (mode === "stills") await stills(url, pos(1));
-  else if (mode === "lint") await lint(url, parseTimes(pos(1) || `0.25:${DUR - 0.25}:0.5`));
+  if (mode === "stills") await stills(url, args[1]);
+  else if (mode === "lint") await lint(url, parseTimes(args[1] || `0.25:${DUR - 0.25}:0.5`));
   else if (mode === "cues") {
     const browser = await chromium.launch(LAUNCH);
     const { page } = await openPage(browser, url);
     const sheet = await page.evaluate(() => window.cueSheet());
     await mkdir(AUDIO, { recursive: true });
-    await writeFile(join(AUDIO, `cues${SFX}.json`), JSON.stringify(sheet, null, 1) + "\n");
-    console.log(`wrote ${join(AUDIO, `cues${SFX}.json`)}: ${sheet.cues.length} cues over ${sheet.duration} s`);
+    await writeFile(join(AUDIO, "cues.json"), JSON.stringify(sheet, null, 1) + "\n");
+    console.log(`wrote ${join(AUDIO, "cues.json")}: ${sheet.cues.length} cues over ${sheet.duration} s`);
     await browser.close();
   }
   else if (mode === "contact") await contact();
-  else if (mode === "verify") await verify(join(OUT, pos(1) || `selfhost-reel${SFX}.mp4`));
-  else if (mode === "sheets") await sheets(join(OUT, pos(1) || `stills${SFX}`), pos(2));
+  else if (mode === "verify") await verify(join(OUT, args[1] || "selfhost-reel.mp4"));
+  else if (mode === "sheets") await sheets(join(OUT, args[1] || "stills"), args[2]);
   else if (mode === "eval") {
     const browser = await chromium.launch(LAUNCH);
     const { page } = await openPage(browser, url);
     await page.evaluate((x) => window.seek(x), +(args[2] || 0));
     console.log(JSON.stringify(await page.evaluate(args[1]), null, 1));
     await browser.close();
-  } else if (mode === "video") await video(url, { fps: +flag("fps", 60), sub: +flag("sub", 8), workers: +flag("workers", Math.max(2, Math.min(8, Math.floor(cpus().length / 2)))), chunk: +flag("chunk", 60), fresh: has("fresh"), out: flag("out", `selfhost-reel${SFX}.mp4`), crf: +flag("crf", 23) });
+  } else if (mode === "video") await video(url, { fps: +flag("fps", 60), sub: +flag("sub", 8), workers: +flag("workers", Math.max(2, Math.min(8, Math.floor(cpus().length / 2)))), chunk: +flag("chunk", 60), fresh: has("fresh"), out: flag("out", "selfhost-reel.mp4"), crf: +flag("crf", 23) });
   else console.log("usage: node render.mjs stills|lint|cues|video|contact|eval");
 } finally {
   srv.close();

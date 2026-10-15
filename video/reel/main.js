@@ -1,8 +1,14 @@
 import { gsap, $$, procs, track, READS, CUES, BEATS, CUTS, countWords, needHold } from "./lib.js";
-
-// ?cut=<name> picks the cut: its timeline, its scenes and the beat the end card settles on (media by default)
-const cutName = new URLSearchParams(location.search).get("cut") || "media";
-const { DUR, FPS, BPM, BEAT, SC, EDIT, scenes, settled } = await import(cutName === "media" ? "./cut-media.js" : `./${cutName}/cut.js`);
+import { DUR, FPS, BPM, BEAT, SC, EDIT } from "./timeline.js";
+import * as hook from "./hook.js";
+import * as product from "./product.js";
+import * as setup from "./setup.js";
+import * as links from "./links.js";
+import * as board from "./board.js";
+import * as pivot from "./pivot.js";
+import * as agents from "./agents.js";
+import * as flurry from "./flurry.js";
+import * as end from "./end.js";
 
 gsap.ticker.sleep();
 gsap.config({ force3D: false });
@@ -16,7 +22,7 @@ const faces = [
 await Promise.all(faces.map((f) => document.fonts.load(f, "Aa Zz 0123 ◆ ⠋ ✓ ● ▶ → › •")));
 await document.fonts.ready;
 track(tl);
-scenes.forEach((s) => s.build(tl));
+[hook, product, setup, links, board, pivot, agents, flurry, end].forEach((s) => s.build(tl));
 tl.finalize();
 
 // a word pushed fully out of its mask is hidden, so it neither shows a stray serif nor catches a hit test
@@ -182,9 +188,9 @@ window.lintBeats = () => {
   const off = (t) => Math.abs(t / BEAT - Math.round(t / BEAT)) * BEAT;
   // cuts must sit on the beat; sound cues and smaller events may fall between beats
   const beats = [];
-  for (let k = 0; k * BEAT < settled - 1e-6; k++) beats.push({ k, t: k * BEAT, what: BEATS.filter((e) => Math.abs(e.t - k * BEAT) < 1e-3).map((e) => e.what) });
+  for (let k = 0; k * BEAT < end.SETTLED - 1e-6; k++) beats.push({ k, t: k * BEAT, what: BEATS.filter((e) => Math.abs(e.t - k * BEAT) < 1e-3).map((e) => e.what) });
   return {
-    settled: settled,
+    settled: end.SETTLED,
     beats,
     empty: beats.filter((x) => !x.what.length),
     offGrid: CUTS.map((c) => ({ ...c, kind: "cut" })).filter((c) => off(c.t) > 1e-3),

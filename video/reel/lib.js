@@ -33,9 +33,6 @@ export const procs = [];
 export const proc = (fn) => procs.push(fn);
 
 export const icon = (name, ext = "svg") => `assets/icons/${name}.${ext}`;
-// Vaultwarden's own mark is black, which vanishes on the reel's dark tiles; dashboard-icons ships a light variant
-const LIGHT = { vaultwarden: "vaultwarden-light" };
-export const appIcon = (id) => icon(LIGHT[id] || id);
 export const agentLogo = (name) => `assets/agents/${name}.svg`;
 
 // Readability contract: every element meant to be read declares the window in which it must sit

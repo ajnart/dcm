@@ -1,17 +1,18 @@
 import { $, $$, proc, prog, lerp, scene, read, cue, on, cut, eOut } from "./lib.js";
 import { SC, BEAT } from "./timeline.js";
 
+const [A, B] = SC.flurry;
 // one phrase per beat over the track's biggest riser, each a hard cut into its own composition: a slam
 // from scale, a whip from either side, a flood of violet; then a slow push until the next cut
 export const PHRASES = [
   { a: "Your", z: "hardware.", size: 250, align: "c", from: { s: 1.6 }, ink: "#f5f5f5", bg: "#09080f" },
   { a: "Your", z: "rules.", size: 300, align: "l", from: { x: -520 }, ink: "#09080f", bg: "#7a57d3" },
-  { a: "No", z: "rent.", size: 380, align: "r", from: { x: 520 }, ink: "#f5f5f5", bg: "#09080f" },
   { a: "Your", z: "data.", size: 290, align: "c", from: { s: 0.55 }, ink: "#f5f5f5", bg: "#09080f", accent: "#a88df2" },
+  { a: "No", z: "rent.", size: 380, align: "r", from: { x: 520 }, ink: "#f5f5f5", bg: "#09080f" },
 ];
 const IN = 0.08;
 
-export function build(_tl, [A, B] = SC.flurry) {
+export function build() {
   scene("flurry", A, B);
   const bg = $("#fl-bg");
   $("#fl-words").innerHTML = PHRASES.map((p, i) => `<div class="fp ${p.align === "l" ? "" : p.align}" id="fp${i}" style="font-size:${p.size}px;color:${p.ink}"><span class="w">${p.a} <b${p.accent ? ` style="color:${p.accent}"` : ""}>${p.z}</b></span></div>`).join("");
