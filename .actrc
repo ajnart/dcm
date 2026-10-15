@@ -1,0 +1,11 @@
+--workflows=.github/workflows/ci.yml
+--job=test
+--platform=ubuntu-latest=catthehacker/ubuntu:act-latest
+--container-architecture=linux/amd64
+--container-daemon-socket=-
+--env-file=/dev/null
+--secret-file=/dev/null
+--var-file=/dev/null
+--input-file=/dev/null
+--env=GOFLAGS=-buildvcs=false
+--env=SELF_HOST_NO_TELEMETRY=1

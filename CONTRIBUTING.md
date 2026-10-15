@@ -24,6 +24,8 @@ bash -n install.sh
 
 Docker, e2e and browser runs happen only when the ticket asks.
 
+For optional workflow execution on macOS, see [Local CI with act](docs/local-ci.md).
+
 ## Pull requests
 
 Use conventional commit titles, one ticket per branch, and end the body with `Closes #<n>`. Disclose material AI assistance. Keep secrets, private hosts and session data out of every file and screenshot.
