@@ -21,7 +21,7 @@ func TestAcceptanceInventory(t *testing.T) {
 	if err := json.Unmarshal(data, &want); err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 112 || !reflect.DeepEqual(got, want) {
+	if len(got) != 100 || !reflect.DeepEqual(got, want) {
 		t.Fatalf("inventory differs: got %d targets, want %d", len(got), len(want))
 	}
 }

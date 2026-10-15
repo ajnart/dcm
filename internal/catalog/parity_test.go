@@ -105,6 +105,23 @@ var excluded = map[string]string{
 	"coolify": "a host controller: it needs the Docker socket and SSH authority over the host, which the Project never grants",
 }
 
+// retiredRecipes are legacy Recipes dropped on purpose, with the reason. Their
+// Apps stay in the Catalog and install by name.
+var retiredRecipes = map[string]string{
+	"audio-library":       "two Apps with nothing to wire; install navidrome or audiobookshelf",
+	"backups":             "one App; install restic, kopia or borgmatic",
+	"dns":                 "two Apps with no shared setup; install adguard-home",
+	"documents":           "two Apps with nothing to wire; install paperless-ngx or stirling-pdf",
+	"download-privacy":    "gluetun needs VPN credentials; install it as an App next to qbittorrent",
+	"files":               "one App; install nextcloud, or photos-and-files",
+	"owned-video-library": "one App; install jellyfin, or media",
+	"passwords":           "one App; install vaultwarden",
+	"personal-finance":    "one App; install actual-budget",
+	"personal-media":      "a superset of media; media is the one bundle",
+	"photos":              "one App; install immich, or photos-and-files",
+	"private-notes":       "one App; install docmost",
+}
+
 func loadLegacyFacts(t *testing.T) legacyFacts {
 	t.Helper()
 	data, err := os.ReadFile("testdata/legacy-facts.json")
@@ -316,6 +333,12 @@ func TestEveryLegacyRecipeIsPorted(t *testing.T) {
 	cat := Default()
 	var missing []string
 	for _, f := range facts.Recipes {
+		if _, retired := retiredRecipes[f.ID]; retired {
+			if _, found := cat.Recipe(f.ID); found {
+				t.Errorf("recipe %s is retired but still in the Catalog", f.ID)
+			}
+			continue
+		}
 		r, found := cat.Recipe(f.ID)
 		if !found {
 			missing = append(missing, f.ID)

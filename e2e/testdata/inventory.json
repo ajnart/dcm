@@ -652,52 +652,6 @@
   },
   {
     "kind": "recipe",
-    "id": "audio-library",
-    "apps": [
-      "audiobookshelf",
-      "navidrome"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "backups",
-    "apps": [
-      "restic"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "dns",
-    "apps": [
-      "unbound",
-      "adguard-home"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "documents",
-    "apps": [
-      "paperless-ngx",
-      "stirling-pdf"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "download-privacy",
-    "apps": [
-      "gluetun",
-      "qbittorrent"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "files",
-    "apps": [
-      "nextcloud"
-    ]
-  },
-  {
-    "kind": "recipe",
     "id": "full",
     "apps": [
       "qbittorrent",
@@ -757,59 +711,10 @@
   },
   {
     "kind": "recipe",
-    "id": "owned-video-library",
-    "apps": [
-      "jellyfin"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "passwords",
-    "apps": [
-      "vaultwarden"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "personal-finance",
-    "apps": [
-      "actual-budget"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "personal-media",
-    "apps": [
-      "qbittorrent",
-      "gluetun",
-      "sonarr",
-      "radarr",
-      "prowlarr",
-      "bazarr",
-      "jellyfin",
-      "seerr"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "photos",
-    "apps": [
-      "immich"
-    ]
-  },
-  {
-    "kind": "recipe",
     "id": "photos-and-files",
     "apps": [
       "immich",
       "nextcloud"
-    ]
-  },
-  {
-    "kind": "recipe",
-    "id": "private-notes",
-    "apps": [
-      "docmost"
     ]
   },
   {

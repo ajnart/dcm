@@ -32,7 +32,7 @@ self-host
 
 On a machine with no Project, bare `self-host` opens Onboarding: it checks Docker, then checks Home-folder disk space and the selected Apps' ports at Review. It asks one thing at a time and writes nothing until you approve the plan. The Dashboard has five tabs: Overview, Apps, Activity, Catalog, Settings. `?` lists the keys. No single key changes an App; the Action menu (`a`) shows what each Action will do and runs it on `enter`.
 
-The Catalog ships inside the binary: **93 Apps, 19 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
+The Catalog ships inside the binary: **93 Apps, 7 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
 
 ![Actual self-host Dashboard showing Homarr, Jellyfin and ntfy with Setup details](docs/images/dashboard.png)
 

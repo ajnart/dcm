@@ -1111,58 +1111,6 @@
    ]
   },
   {
-   "id": "audio-library",
-   "name": "Audiobooks and music",
-   "d": "Listen to your audiobooks and music on your phone or computer",
-   "apps": [
-    "audiobookshelf",
-    "navidrome"
-   ]
-  },
-  {
-   "id": "backups",
-   "name": "Backups and restore",
-   "d": "Back up your important files safely, and check you can get them back",
-   "apps": [
-    "restic"
-   ]
-  },
-  {
-   "id": "dns",
-   "name": "DNS and network filtering",
-   "d": "Block ads across your whole home network, with a backup in case one stops",
-   "apps": [
-    "unbound",
-    "adguard-home"
-   ]
-  },
-  {
-   "id": "documents",
-   "name": "Documents, PDF, and OCR",
-   "d": "Scan paper into a searchable archive, and edit PDFs without uploading them",
-   "apps": [
-    "paperless-ngx",
-    "stirling-pdf"
-   ]
-  },
-  {
-   "id": "download-privacy",
-   "name": "Downloader privacy",
-   "d": "Download torrents through a VPN, and stop if the VPN drops",
-   "apps": [
-    "gluetun",
-    "qbittorrent"
-   ]
-  },
-  {
-   "id": "files",
-   "name": "Files and synchronization",
-   "d": "Your own cloud drive, replacing Google Drive, OneDrive and Dropbox",
-   "apps": [
-    "nextcloud"
-   ]
-  },
-  {
    "id": "full",
    "name": "Full private home server",
    "d": "Everything for a household: movies, photos, files, music, passwords and smart home",
@@ -1214,67 +1162,12 @@
    ]
   },
   {
-   "id": "owned-video-library",
-   "name": "Owned movie and TV library",
-   "d": "Stream the movies and shows you already own to every screen",
-   "apps": [
-    "jellyfin"
-   ]
-  },
-  {
-   "id": "passwords",
-   "name": "Passwords",
-   "d": "Set up a password manager for the whole household",
-   "apps": [
-    "vaultwarden"
-   ]
-  },
-  {
-   "id": "personal-finance",
-   "name": "Personal finance",
-   "d": "Track your spending and budget privately",
-   "apps": [
-    "actual-budget"
-   ]
-  },
-  {
-   "id": "personal-media",
-   "name": "Personal media",
-   "d": "Watch movies and shows, with downloads, subtitles and requests handled for you",
-   "apps": [
-    "qbittorrent",
-    "gluetun",
-    "sonarr",
-    "radarr",
-    "prowlarr",
-    "bazarr",
-    "jellyfin",
-    "seerr"
-   ]
-  },
-  {
-   "id": "photos",
-   "name": "Photos and mobile backup",
-   "d": "Back up your family photos automatically from every phone",
-   "apps": [
-    "immich"
-   ]
-  },
-  {
    "id": "photos-and-files",
    "name": "Photos and cloud files",
-   "d": "Back up your photos and keep your files in sync, replacing cloud drives",
+   "d": "Back up every phone's photos and keep your files in sync, replacing cloud drives",
    "apps": [
     "immich",
     "nextcloud"
-   ]
-  },
-  {
-   "id": "private-notes",
-   "name": "Private notes and knowledge",
-   "d": "A private place for your family or team to write and share notes",
-   "apps": [
-    "docmost"
    ]
   },
   {
