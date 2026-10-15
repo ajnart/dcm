@@ -1,0 +1,16 @@
+video/reel/agents.js
+  h_d6e478ca18e517 53,103
+video/reel/end.js
+  h_d6e478ca18e517 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "08e8a39d971e10a47ea53c4aaba6f4faf0c06ce8",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
