@@ -682,7 +682,8 @@ func TestInstallScriptExplainsHowToAddTheInstallDirToPATH(t *testing.T) {
 			home := t.TempDir()
 			server := (&installFake{tag: "v1.3.0", binary: "x"}).server(t)
 
-			out, err := runInstaller(t, server, "HOME="+home, "SHELL="+tc.shell)
+			installDir := filepath.Join(home, ".local", "bin")
+			out, err := runInstaller(t, server, "HOME="+home, "SELF_HOST_INSTALL_DIR="+installDir, "SHELL="+tc.shell)
 
 			if err != nil || !strings.Contains(out, "not on your PATH") || !strings.Contains(out, tc.want) {
 				t.Fatalf("install: %v; want %q in:\n%s", err, tc.want, out)
