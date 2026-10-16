@@ -19,6 +19,7 @@
     "@astrojs/check": "^0.9.10",
     "@types/node": "^26.6.4",
     "@types/prismjs": "^1.26.6",
+    "starlight-links-validator": "^0.27.0",
     "starlight-page-actions": "^0.7.1",
     "typescript": "^6.0.3"
   },

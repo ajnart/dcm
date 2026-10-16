@@ -2,6 +2,7 @@ import sitemap from "@astrojs/sitemap";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightPageActions from "starlight-page-actions";
+import starlightLinksValidator from "starlight-links-validator";
 import catalog from "./src/data/catalog.json" with { type: "json" };
 import { cspCheck, starlightInlineScriptHashes, styleAttributeHashes } from "./src/lib/csp.mjs";
 
@@ -29,7 +30,7 @@ export default defineConfig({
         MarkdownContent: "./src/components/docs/MarkdownContent.astro",
       },
       routeMiddleware: "./src/lib/docs-route.ts",
-      plugins: [starlightPageActions({ actions: { markdown: true, chatgpt: true, claude: true, cursor: true } })],
+      plugins: [starlightLinksValidator({ exclude: ["/apps", "/apps/**", "/docs/recipes", "/docs/recipes/**", "/telemetry"] }), starlightPageActions({ actions: { markdown: true, chatgpt: true, claude: true, cursor: true } })],
       head: [
         { tag: "meta", attrs: { name: "theme-color", content: "#1e1d2a" } },
         { tag: "link", attrs: { rel: "icon", href: "/icon-192.png", type: "image/png", sizes: "192x192" } },
