@@ -1,0 +1,21 @@
+video/reel/readme/README.md
+  s_e28601c1ff902a::t_2eb2cdf4b5f797 42
+video/reel/readme/index.html
+  s_e28601c1ff902a::t_6add512993df81 48-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a4de768ae7c124a0e95e66e6b313920458ed5c9a",
+  "prompts": {},
+  "sessions": {
+    "s_e28601c1ff902a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "02c00e3f-4296-4c2b-b282-42129bf1a962",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
