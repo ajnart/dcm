@@ -1,0 +1,21 @@
+docs/assets/readme/links-graph.svg
+  s_000cec9e5fa539::t_eb0160008ff853 1
+video/reel/readme/section-links.mjs
+  s_000cec9e5fa539::t_8ef14c0dc4e151 67-77,90-92,95,169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1dc9784ef95f030cadf38003ac470c38274de94c",
+  "prompts": {},
+  "sessions": {
+    "s_000cec9e5fa539": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e031966-d516-420f-9cc7-4e768003c516",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
