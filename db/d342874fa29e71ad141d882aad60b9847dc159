@@ -1,0 +1,23 @@
+.github/workflows/release.yml
+  s_7fa234028f3f9f::t_a1ad63d7cb1062 69,78
+.goreleaser.yaml
+  s_7fa234028f3f9f::t_bb89391e6cec59 73
+docs/releasing.md
+  s_7fa234028f3f9f::t_7f3abceb799c8b 60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dbd342874fa29e71ad141d882aad60b9847dc159",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
