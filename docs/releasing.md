@@ -192,12 +192,38 @@ agent guide and the site builder all default to `ajnart/self-host`.
 
 ## Installer site
 
-Cloudflare Pages serves the site at `https://self-host.fyi` from the Pages
-project `selfhost` (also `selfhost-d8k.pages.dev`), uploaded with Wrangler
-Direct Upload of a locally built tree: no Git integration, no GitHub Actions. The apex
-and `www` are proxied CNAMEs to `selfhost-d8k.pages.dev` in the `self-host.fyi`
-zone. Deploying changes no Project and publishes no release archives. Use
-managed Wrangler authentication (`wrangler whoami`), never extract tokens.
+Cloudflare Pages serves the site at `https://self-host.fyi` (apex and `www`
+are proxied CNAMEs in the `self-host.fyi` zone). Deploying changes no Project
+and publishes no release archives. Use managed Wrangler authentication
+(`wrangler whoami`), never extract tokens.
+
+### Automatic deploys (Git integration)
+
+The Pages project `self-host-fyi`, connected to `ajnart/self-host` with
+Cloudflare's GitHub app, rebuilds the site when a push to `main` changes one of
+its watch paths, and makes a preview for other branches. GitHub Actions is
+not involved. Its build settings:
+
+| Setting                | Value                                        |
+| ---------------------- | -------------------------------------------- |
+| Production branch      | `main`                                       |
+| Build command          | `bash scripts/build-site-pages.sh`           |
+| Build output directory | `site/dist-pages`                            |
+| Root directory         | (repository root)                            |
+| Build watch paths      | include `site/*`, `install.sh`, `scripts/build-installer-site.sh`, `scripts/build-site-pages.sh` |
+| `BUN_VERSION`          | `1.4.3`                                      |
+| `GITHUB_TOKEN` secret  | read-only token for `ajnart/self-host` releases, needed while the repo is private; the site reads the latest release version at build time |
+
+A release does not push to `main`, so the site would keep showing the old
+version: after publishing a release, trigger the project's deploy hook
+(Settings > Builds > Deploy hooks) with `curl -X POST "$SITE_DEPLOY_HOOK"`,
+or run the manual deploy below.
+
+The original `selfhost` project was created by Direct Upload, which Cloudflare
+cannot convert to Git integration; the Git project replaces it, and the custom
+domains move to it.
+
+### Manual deploy (Direct Upload)
 
 ```bash
 stage="$(mktemp -d)"
