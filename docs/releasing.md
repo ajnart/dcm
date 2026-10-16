@@ -42,6 +42,12 @@ the key, and the binary sends nothing. Check with `grep -c phc_ dist/self-host_*
 
 ## Release from CI
 
+For release-note images, follow
+[the release-visual skill](../.claude/skills/release-visual/SKILL.md).
+It compares the previous CLI tag with the release ref and renders the Logo hub
+only when Apps were added. Upload the PNG and animated SVG as release assets;
+embed the PNG in the notes and link the animation separately.
+
 Push the tag. `.github/workflows/release.yml` validates the tag against
 `^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`, packages with
 goreleaser in snapshot mode (`SELF_HOST_RELEASE_VERSION` supplies `X.Y.Z`),
@@ -210,14 +216,14 @@ Cloudflare's GitHub app, rebuilds the site when a push to `main` changes one of
 its watch paths, and makes a preview for other branches. GitHub Actions is
 not involved. Its build settings:
 
-| Setting                | Value                                        |
-| ---------------------- | -------------------------------------------- |
-| Production branch      | `main`                                       |
-| Build command          | `bash scripts/build-site-pages.sh`           |
-| Build output directory | `site/dist-pages`                            |
-| Root directory         | (repository root)                            |
-| Build watch paths      | include `site/*`, `install.sh`, `scripts/build-installer-site.sh`, `scripts/build-site-pages.sh` |
-| `BUN_VERSION`          | `1.4.3`                                      |
+| Setting                | Value                                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Production branch      | `main`                                                                                                                                            |
+| Build command          | `bash scripts/build-site-pages.sh`                                                                                                                |
+| Build output directory | `site/dist-pages`                                                                                                                                 |
+| Root directory         | (repository root)                                                                                                                                 |
+| Build watch paths      | include `site/*`, `install.sh`, `scripts/build-installer-site.sh`, `scripts/build-site-pages.sh`                                                  |
+| `BUN_VERSION`          | `1.4.3`                                                                                                                                           |
 | `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `vX.Y.Z` tag of the Go CLI from the checkout, since the releases API is private while the repo is |
 
 A release does not push to `main`, so the site would keep showing the old

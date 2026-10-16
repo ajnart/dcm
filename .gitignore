@@ -20,5 +20,9 @@ dist/
 # Showreel render output; the site serves the committed site/public/reel.mp4
 /video/reel/out/
 
+# Release image renders and the icon cache the engine fills
+/video/reel/release/out/
+/video/reel/release/.icons/
+
 # self-host skill eval runs
 evals/self-host/runs/

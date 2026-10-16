@@ -12,7 +12,7 @@
 
 <p align="center">
   <!-- Static while the repo is private; switch back to https://img.shields.io/github/v/release/ajnart/self-host?style=flat-square&labelColor=14121e&color=7a57d3 once it is public. -->
-  <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Release v0.5.10" src="https://img.shields.io/badge/release-v0.5.10-7a57d3?style=flat-square&labelColor=14121e"></a>
+  <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Release v0.5.11" src="https://img.shields.io/badge/release-v0.5.11-7a57d3?style=flat-square&labelColor=14121e"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-7a57d3?style=flat-square&labelColor=14121e"></a>
   <img alt="Platforms: Linux, macOS, WSL2" src="https://img.shields.io/badge/platforms-Linux%20%C2%B7%20macOS%20%C2%B7%20WSL2-7a57d3?style=flat-square&labelColor=14121e">
   <a href="https://self-host.fyi/apps"><img alt="90 Apps in the Catalog" src="https://img.shields.io/badge/Apps-90-00d787?style=flat-square&labelColor=14121e"></a>

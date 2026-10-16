@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>self-host release image preview</title>
+<style>
+  :root{color-scheme:dark}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0d1117;color:#e6edf3;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;min-height:100vh;display:grid;place-items:center;padding:24px}
+  body.light{background:#fff;color:#1f2328}
+  .repo{width:min(880px,100%)}
+  .owner{font-size:20px;font-weight:600;margin-bottom:16px}
+  .owner span{color:#8b949e;font-weight:400}
+  body.light .owner span{color:#656d76}
+  .release{border:1px solid #30363d;border-radius:6px;padding:24px}
+  body.light .release{border-color:#d0d7de}
+  h1{font-size:24px;font-weight:600;margin-bottom:4px}
+  .meta{color:#8b949e;font-size:13px;margin-bottom:20px}
+  body.light .meta{color:#656d76}
+  img{width:100%;max-width:880px;display:block;border-radius:6px}
+  .bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;padding:8px 12px;border:1px solid #30363d;border-radius:999px;background:#161b22;font:13px ui-monospace,SFMono-Regular,Menlo,monospace;color:#e6edf3}
+  .bar a{padding:4px 10px;border-radius:999px;color:inherit;text-decoration:none;border:1px solid transparent}
+  .bar a[aria-current]{background:#7a57d3;border-color:#7a57d3;color:#fff}
+  .bar b{font-weight:600;color:#8b949e}
+</style>
+</head>
+<body>
+  <div class="repo">
+    <div class="owner">ajnart / self-host <span>· Private</span></div>
+    <div class="release">
+      <h1 id="title">self-host</h1>
+      <div class="meta">New Apps in this release</div>
+      <img id="shot" alt="">
+    </div>
+  </div>
+  <nav class="bar">
+    <b>N</b><span id="ns"></span>
+    <b>theme</b><span id="ts"></span>
+    <b>file</b><span id="fs"></span>
+  </nav>
+<script>
+  const q = new URLSearchParams(location.search);
+  const n = Math.min(6, Math.max(1, +(q.get("n") || 3)));
+  const t = q.get("t") === "light" ? "light" : "dark";
+  const f = q.get("f") === "png" ? "png" : "svg";
+  document.body.className = t === "light" ? "light" : "";
+  document.getElementById("title").textContent = "self-host 0.6.0";
+  const img = document.getElementById("shot");
+  img.src = `out/preview/new-apps-n${n}.${f}`;
+  img.alt = `Preview of the release image for ${n} new Apps.`;
+  const pick = (id, values, value, key) => {
+    const el = document.getElementById(id);
+    el.innerHTML = values.map((v) => `<a href="?n=${key === "n" ? v : n}&t=${key === "t" ? v : t}&f=${f}"${v === value ? ' aria-current="page"' : ""}>${v}</a>`).join("");
+  };
+  pick("ns", [1, 2, 3, 4, 5, 6], n, "n");
+  pick("ts", ["dark", "light"], t, "t");
+  document.getElementById("fs").innerHTML = `<a href="?n=${n}&t=${t}&f=svg"${f === "svg" ? ' aria-current="page"' : ""}>svg</a><a href="?n=${n}&t=${t}&f=png"${f === "png" ? ' aria-current="page"' : ""}>png</a>`;
+</script>
+</body>
+</html>
