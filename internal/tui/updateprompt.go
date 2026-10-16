@@ -55,7 +55,7 @@ func (m Model) idle() bool {
 // offerUpdate asks about the newest release the first time the dashboard is
 // idle, unless the person already skipped that release. Once a session.
 func (m Model) offerUpdate() Model {
-	if m.upgrade != nil || m.offered || m.quitting || m.latest == "" || m.opts.NoUpdatePrompt {
+	if m.upgrade != nil || m.ask != nil || m.offered || m.quitting || m.latest == "" || m.opts.NoUpdatePrompt {
 		return m
 	}
 	version := releaseVersion(m.latest)

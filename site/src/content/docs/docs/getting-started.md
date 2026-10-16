@@ -218,6 +218,8 @@ Without a terminal, `install` refuses unless you pass `--yes`. For a new Project
 
 With a Project, `self-host` opens the Dashboard: Overview, Apps, Activity, Catalog and Settings. `?` lists the keys. No single key changes an App: `a` opens the Action menu for the selected App (`A` for the Project), which shows what each Action will do and runs it only on `enter`. Destructive Actions need a second `enter`.
 
+On start, when it is idle, the Dashboard asks once about what it found: a changed network (switch the LAN address and recreate the Apps that use it), stopped Apps (start the Project) and App updates (update them). `y` runs that Action in the background; `n` leaves things as they are.
+
 `SELF_HOST_REDUCED_MOTION=1 self-host` skips the decorative transitions. Plain commands, non-TTY output and `--json` never animate.
 
 ## Where things live

@@ -376,7 +376,7 @@ func sample(t *testing.T, width, height int) (Model, *fakeBackend) {
 		{ID: "docker", Title: "Docker", Level: host.OK}, {ID: "compose", Title: "Docker Compose", Level: host.OK},
 		{ID: "firewall", Title: "Firewall", Level: host.Warn, Detail: "ufw is active", Hint: "sudo ufw allow from 192.168.0.0/16 to any port 8096"},
 	}}
-	m := New(backend, Options{Version: "1.0.0", Now: func() time.Time { return time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC) }})
+	m := New(backend, Options{Version: "1.0.0", NoStartupPrompts: true, Now: func() time.Time { return time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC) }})
 	m = update(t, m, tea.WindowSizeMsg{Width: width, Height: height})
 	m = drive(t, m, statusMsg{status: backend.status})
 	m = update(t, m, doctorMsg{checks: backend.checks})

@@ -6,6 +6,7 @@ package tui
 import (
 	"context"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -95,6 +96,9 @@ type Options struct {
 	// NoUpdatePrompt keeps the "Update now?" question away, for CI and
 	// SELF_HOST_NO_UPDATE_CHECK; the header still shows a newer release.
 	NoUpdatePrompt bool
+	// NoStartupPrompts keeps the start-up questions (changed network,
+	// stopped Apps, App updates) away; tests that are not about them set it.
+	NoStartupPrompts bool
 	// Now is the clock shown in the header; tests pin it.
 	Now func() time.Time
 }
@@ -139,6 +143,13 @@ type Model struct {
 	offered   bool
 	restart   bool
 	updatedTo string
+
+	// ask is the start-up question on screen; asked holds those already
+	// asked this session.
+	ask   *askPrompt
+	asked map[askKind]bool
+	// statusFresh is whether status was read after every finished Action.
+	statusFresh bool
 
 	containers    []service.ContainerStatus
 	containersErr string
@@ -383,7 +394,7 @@ func (m *Model) absorb(ctx *viewContext) {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.update(msg)
-	m = next.(Model).offerUpdate()
+	m = next.(Model).offerAsk().offerUpdate()
 	return m, tea.Batch(cmd, m.syncLogs(), m.syncUsage())
 }
 
@@ -551,7 +562,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.introShown() {
 			return m.onboardingAsked(nil, m.onboarding.poke())
 		}
-		if m.preboot != nil || m.upgrade != nil {
+		if m.preboot != nil || m.upgrade != nil || m.ask != nil {
 			return m, nil
 		}
 		if m.showHelp && m.helpView.page != nil {
@@ -593,6 +604,7 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	m.onboarding = nil
 	m.statusErr = ""
 	m.status = msg.status
+	m.statusFresh = !slices.ContainsFunc(m.tasks.terminalIDs(), func(id int) bool { return !slices.Contains(msg.finishedTasks, id) })
 	m.tasks.acknowledge(msg.finishedTasks)
 	m.applyUpdates()
 	m.refreshed = m.opts.Now()
@@ -612,6 +624,7 @@ func (m Model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleTaskDone(msg taskDoneMsg) (tea.Model, tea.Cmd) {
 	m.opening = 0
 	m.tasks.finish(msg.id, msg.err)
+	m.statusFresh = false
 	if msg.err != nil {
 		m.preboot = nil
 	}
@@ -790,6 +803,8 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case m.upgrade != nil:
 		return m.handleUpdateKey(msg)
+	case m.ask != nil:
+		return m.handleAskKey(msg)
 	case m.preboot != nil:
 		return m.handlePrebootKey(msg)
 	case m.introShown():
@@ -949,7 +964,7 @@ func (m Model) handleClick(id string) (tea.Model, tea.Cmd) {
 	if m.apps.overlayOpen() {
 		return m, nil
 	}
-	if m.upgrade != nil {
+	if m.upgrade != nil || m.ask != nil {
 		return m, nil
 	}
 	if m.showHelp && m.helpView.page != nil {
@@ -1054,6 +1069,9 @@ func (m Model) installRows() []installItem {
 func (m Model) renderOverlay() string {
 	if m.upgrade != nil {
 		return m.renderUpdate()
+	}
+	if m.ask != nil {
+		return m.renderAsk()
 	}
 	if !m.showHelp || m.helpView.page != nil {
 		return ""

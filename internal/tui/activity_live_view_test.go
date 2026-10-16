@@ -87,7 +87,7 @@ func TestActivityViewSuccessfulRefreshSupersedesFinishedTask(t *testing.T) {
 
 func TestActivityViewKeepsEventsUntilRefreshReadsFinishedTask(t *testing.T) {
 	backend := &fakeBackend{}
-	m := New(backend, Options{})
+	m := New(backend, Options{NoStartupPrompts: true})
 	backend.status = service.Status{Apps: []service.AppStatus{{ID: "sonarr", Name: "Sonarr", Managed: true, Setup: stepstatus.SetupIncomplete, Steps: []service.StepStatus{{ID: "ready", Status: stepstatus.StepFail, Msg: "saved failure"}}}}}
 	m.status = backend.status
 	m.activity, m.surface = &activityView{}, surfaceActivity

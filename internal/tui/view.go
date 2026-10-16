@@ -668,6 +668,9 @@ func (m Model) view() tea.View {
 		if m.upgrade != nil && m.upgrade.state == updateAsking {
 			mode, chips = m.updateBar()
 		}
+		if m.ask != nil {
+			mode, chips = m.askBar()
+		}
 		content = header + "\n" + fit(main, m.width, m.mainHeight()) + "\n" + status + "\n" + m.renderBar(mode, chips)
 	}
 
