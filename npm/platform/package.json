@@ -1,0 +1,17 @@
+{
+  "name": "@ajnart/self-host-__OS__-__NPM_ARCH__",
+  "version": "0.0.0",
+  "description": "self-host CLI binary for __OS__/__NPM_ARCH__",
+  "license": "Apache-2.0",
+  "homepage": "https://self-host.fyi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajnart/self-host.git"
+  },
+  "os": ["__OS__"],
+  "cpu": ["__NPM_ARCH__"],
+  "files": ["bin/self-host", "LICENSE"],
+  "engines": {
+    "node": ">=18"
+  }
+}

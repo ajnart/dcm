@@ -308,6 +308,9 @@ func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe stri
 	if err := c.validate(); err != nil {
 		return err
 	}
+	if err := checkSelfManaged(exe); err != nil {
+		return err
+	}
 	if !validTag(rel.Tag) {
 		return errors.New("invalid CLI release tag")
 	}
@@ -404,6 +407,23 @@ func extract(archive []byte, limit int64) ([]byte, error) {
 			return binary, nil
 		}
 	}
+}
+
+func checkSelfManaged(exe string) error {
+	path := exe
+	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
+		path = resolved
+	}
+	path = filepath.ToSlash(path)
+	switch {
+	case strings.Contains(path, "/node_modules/"):
+		return errors.New("npm owns this install; update with: npm i -g self-host@latest")
+	case strings.Contains(path, "/Caskroom/") || strings.Contains(path, "/Cellar/"):
+		return errors.New("Homebrew owns this install; update with: brew upgrade self-host")
+	case strings.HasPrefix(path, "/usr/bin/"):
+		return fmt.Errorf("a system package manager owns %s; update it with that package manager", path)
+	}
+	return nil
 }
 
 // replace writes binary next to exe and renames it over exe.
