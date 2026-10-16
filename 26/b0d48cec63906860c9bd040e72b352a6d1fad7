@@ -1,0 +1,35 @@
+.github/workflows/ci.yml
+  s_7fa234028f3f9f::t_c9da325fbd1939 99
+.github/workflows/release.yml
+  s_7fa234028f3f9f::t_cbdc4ba664cc85 5,33-34,40,89
+.goreleaser.yaml
+  s_7fa234028f3f9f::t_533c66c3334bfd 5
+README.md
+  s_7fa234028f3f9f::t_e71aa852298951 203
+docs/releasing.md
+  s_7fa234028f3f9f::t_4118171e401180 3,21-29,46,94,167,188,221
+install.sh
+  s_7fa234028f3f9f::t_934cebb9298b08 8
+scripts/verify-install.sh
+  s_7fa234028f3f9f::t_76d6968b2d7850 11-12,24,34
+site/src/content/docs/docs/getting-started.md
+  s_7fa234028f3f9f::t_5d2d5ecf070586 137
+site/src/lib/version.ts
+  s_7fa234028f3f9f::t_194ebe8c1edb63 47-49,54-61,63,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "26b0d48cec63906860c9bd040e72b352a6d1fad7",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
