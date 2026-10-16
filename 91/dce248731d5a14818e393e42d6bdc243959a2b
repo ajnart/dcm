@@ -1,0 +1,41 @@
+docs/assets/readme/setup-cast.svg
+  s_af975bf400fb93::t_93dfac5fc5d37d 1
+tools/castdemo/main.go
+  s_d7e9318179c8cd::t_84a7b7f4c8471c 1-200
+video/reel/package.json
+  s_d7e9318179c8cd::t_1f2fb04305750e 18-20
+video/reel/readme/cast/record.py
+  s_af975bf400fb93::t_407e7539ebe461 1-127
+video/reel/readme/cast/render.mjs
+  s_af975bf400fb93::t_bbf3c978f13ec9 1-192
+video/reel/readme/cast/replay.mjs
+  s_af975bf400fb93::t_be1ff97593c9a4 1-91
+video/reel/readme/cast/script.txt
+  s_af975bf400fb93::t_95b7d9ed0ff6fc 1-27
+video/reel/readme/section-setup.mjs
+  s_af975bf400fb93::t_812e82a3786f3f 4-6,24,28,30,36,50-54,56-60,63-64,66,72,78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "91dce248731d5a14818e393e42d6bdc243959a2b",
+  "prompts": {},
+  "sessions": {
+    "s_af975bf400fb93": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f1ba958e-d8a1-42a8-b44e-67c5c1323420",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_d7e9318179c8cd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58b775e0-6a41-4b86-bba1-c7123ea9467f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
