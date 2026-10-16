@@ -1,0 +1,19 @@
+video/reel/readme/hero.mjs
+  s_75bcb858dae6ad::t_804466fda2eda4 39,103,118-119,237-243,245-247,250-256,258
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "055d15b950cf13caa5916fffde10b1a3e3a43a11",
+  "prompts": {},
+  "sessions": {
+    "s_75bcb858dae6ad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3a0a0f6c-b5af-40d5-bea9-4b86f9c17e1c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
