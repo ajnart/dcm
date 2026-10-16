@@ -1,0 +1,29 @@
+CONTEXT.md
+  s_7fa234028f3f9f::t_386846f4f984de 86-89
+internal/app/link.go
+  s_7fa234028f3f9f::t_3c4ecb0f8dd29c 55-123
+internal/apps/arr/links.go
+  s_7fa234028f3f9f::t_3a7346267739e1 67-85,87,109-110,136,159,183
+internal/apps/cleanuparr/cleanuparr.go
+  s_7fa234028f3f9f::t_b9d47ae4dab01b 6,196-220,227-228,232,240,251-252,256,265
+internal/apps/seerr/seerr.go
+  s_7fa234028f3f9f::t_68d8db1772cdd4 266-286,352,361
+internal/service/install.go
+  s_7fa234028f3f9f::t_a2f85bf8b55ed7 620-621,624
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca12d0dd83dc62a6bfb64205a7ad51c75b333e09",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
