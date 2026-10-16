@@ -1,0 +1,19 @@
+docs/assets/readme/setup-rack.svg
+  s_2c9b86d3f386ea::t_8a8aee39697569 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b420ec23730fe33e67b44c2995819b1818638121",
+  "prompts": {},
+  "sessions": {
+    "s_2c9b86d3f386ea": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68f9530c-8ad2-476f-ad10-fdf0e0c8c41e",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
