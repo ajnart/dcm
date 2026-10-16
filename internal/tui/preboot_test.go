@@ -503,7 +503,7 @@ func TestSmallTerminalsGetTheSmallSceneWithWholeText(t *testing.T) {
 
 	out := screen(m)
 
-	for _, want := range []string{"s e l f - h o s t", "Warming up the engines…", "Like self-host?", "c Ko-fi", "s GitHub Sponsors", "enter skip"} {
+	for _, want := range []string{"s e l f - h o s t", "Warming up the engines…", "c Ko-fi · s Sponsors · g Star on GitHub · enter skip"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("the small scene lacks %q\n%s", want, out)
 		}
