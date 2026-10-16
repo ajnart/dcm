@@ -30,13 +30,18 @@ self-host install media homarr
 self-host
 ```
 
+![Actual self-host Dashboard showing Homarr, Jellyfin and ntfy with Setup details](docs/images/dashboard.png)
+
+<details>
+<summary><b>What happens next</b> (Onboarding, Dashboard, Catalog)</summary>
+
 On a machine with no Project, bare `self-host` opens Onboarding: it checks Docker, then checks Home-folder disk space and the selected Apps' ports at Review. It asks one thing at a time and writes nothing until you approve the plan. The Dashboard has five tabs: Overview, Apps, Activity, Catalog, Settings. `?` lists the keys. No single key changes an App; the Action menu (`a`) shows what each Action will do and runs it on `enter`.
 
 The Catalog ships inside the binary: **93 Apps, 7 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
 
-![Actual self-host Dashboard showing Homarr, Jellyfin and ntfy with Setup details](docs/images/dashboard.png)
+The screenshot is a real 120×30 session of a loopback-only Homarr/Jellyfin/ntfy Project: [Activity](docs/images/workflow.png), [Catalog search](docs/images/install-search.png), [recording](docs/demos/self-host.cast), [provenance](docs/demos/capture.json).
 
-Real 120×30 session, loopback-only Homarr/Jellyfin/ntfy Project. [Activity](docs/images/workflow.png), [Catalog search](docs/images/install-search.png), [recording](docs/demos/self-host.cast), [provenance](docs/demos/capture.json). Shows these three Apps, not the whole Catalog.
+</details>
 
 ## With an agent
 
@@ -46,11 +51,14 @@ Paste this into Claude Code, Codex, OpenCode, OpenClaw or any coding agent:
 Install the self-host skill from github.com/ajnart/self-host and help me run my own movie server.
 ```
 
-Or add the skill yourself, from any install channel:
+Or write the skill for every agent on the machine (Claude Code, Codex, OpenCode, Pi, Gemini, Hermes, `~/.agents`):
 
 ```bash
 self-host skill install
 ```
+
+<details>
+<summary><b>Agent reference</b> (guide, JSON commands, flags, exit codes)</summary>
 
 The installer offers the same step when it finishes. The one public skill, [`skills/self-host/SKILL.md`](skills/self-host/SKILL.md), only routes to the guide built into the binary; it costs about 150 tokens while idle and installing it deploys nothing. Invoke it with `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex.
 
@@ -80,19 +88,13 @@ self-host status --json
 
 Isolated Project: set `SELF_HOST_HOME` (absolute path) and a unique lowercase `SELF_HOST_COMPOSE_PROJECT`, and keep both for later commands. Do not point this CLI at an older CLI's Project.
 
+</details>
+
 ## Install
 
-```bash
-curl -fsSL https://self-host.fyi/install | bash
-```
+The `curl` one-liner in [30 seconds setup](#30-seconds-setup) is the recommended way. It picks the highest stable release, verifies the archive against `checksums.txt`, and installs to `~/.local/bin` (`/usr/local/bin` as root). It prints the exact `PATH` line for bash, zsh or fish when needed. A truncated download installs nothing.
 
-That is the recommended way. It picks the highest stable release, verifies the archive against `checksums.txt`, and installs to `~/.local/bin` (`/usr/local/bin` as root). It prints the exact `PATH` line for bash, zsh or fish when needed. A truncated download installs nothing.
-
-Every other method below installs the same release binary, byte for byte. Then let your AI agents find self-host:
-
-```bash
-self-host skill install   # writes the self-host skill for Claude Code, Codex, OpenCode, Pi, Gemini and ~/.agents
-```
+Every other method below installs the same release binary, byte for byte.
 
 <details>
 <summary><b>Homebrew</b> (macOS and Linux)</summary>
@@ -241,7 +243,8 @@ Development builds cannot `self-update`.
 
 </details>
 
-### Update
+<details>
+<summary><b>Updating</b></summary>
 
 ```bash
 self-host self-update
@@ -251,89 +254,14 @@ For the install script and the release archive. Homebrew, npm and system package
 
 Verify any install URL with `scripts/verify-install.sh` (throwaway `HOME`; checks the version, `self-host skill` and an upgrade through `self-update`; `VERIFY_INSTALL_URL` overrides the URL). Maintainers: [how to cut a release](docs/releasing.md), [site deployment and release gates](docs/releasing.md#installer-site).
 
-## Links: Apps that wire themselves
-
-Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link** is the part that connects one App to another. It belongs to the consuming App and runs once both have finished Setup.
-
-| Consumer       | Linked to                                         |
-| -------------- | ------------------------------------------------- |
-| Sonarr, Radarr | qBittorrent (download client)                     |
-| Prowlarr       | Sonarr, Radarr                                    |
-| Seerr          | Jellyfin, Sonarr, Radarr                          |
-| Homarr         | native tiles and widgets for the Apps it supports |
-
-A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links need Homarr **2.4.1** or newer; NZBGet and SABnzbd Links need **2.5.1** or **2.5.2**. Other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
-
-## Commands
-
-Prefix with `self-host`. `--verbose` (`-v`) adds detail. `--yes` authorizes an approved noninteractive install, remove or restore; it is not a preview flag.
-
-| Command                                              | Effect                                                                                                   |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `doctor`                                             | Check Docker, Compose and the Host; with a Project, check its Apps and published ports.                  |
-| `host report`                                       | Report OS, Docker access, IPv6 and bind results for ports 80 and 443. Changes nothing.                   |
-| `host report --extra`                               | Also check optional resources, connectivity, port 53, filesystem behavior and temporary Docker resources. |
-| `install <app\|recipe>...`                           | Install Apps or Recipes into the Project.                                                                |
-| `status [--updates]`                                 | URLs, container state, health and Setup; optionally check image updates.                                 |
-| `setup [app...]`                                     | Retry unfinished Setup.                                                                                  |
-| `up`, `down`                                         | Start / remove the Project's containers and networks. `down` keeps volumes, App files and Setup records. |
-| `start`, `stop`, `restart [app...]`                  | Operate named Apps, or every installed App when omitted.                                                 |
-| `update [app...]`                                    | Pull images, recreate Apps and rerun checks.                                                             |
-| `logs <app> [--follow] [--tail N]`                   | Container logs; default tail is 200 lines.                                                               |
-| `remove <app>... [--yes]`                            | Remove Apps, keep data; `--purge` also deletes their data folders.                                       |
-| `config set KEY=value...`                            | Change Host settings and recreate affected Apps.                                                         |
-| `config review [--yes]`                              | Review Host drift; `--yes` applies detected LAN address and time zone fixes.                             |
-| `access export --format caddy\|nginx\|traefik\|json` | Print each App's upstream for your own reverse proxy. Changes nothing.                                   |
-| `backup`, `restore`                                  | See [Backup and Restore](#backup-and-restore).                                                           |
-| `apps request <name> [--url URL]`                    | For agents: report an App the Catalog lacks (one anonymous Telemetry event; people open an issue).       |
-| `feedback [-m text] [--app app]`                     | Send a report to the maintainers; shows the masked text and asks y/n first.                              |
-| `self-update`                                        | Replace the binary with the latest checksummed release.                                                  |
-
-`host report --json` has schema version `1`. It returns `os`, `architecture`,
-`docker`, `ipv6` and `ports`. Each port contains probes for `0.0.0.0`,
-`127.0.0.1` and `::`; each result is `ok`, `permission`, `in_use` or
-`unsupported`, with `error_class` when the operating system returned one.
-The Docker section distinguishes a reachable daemon from a reachable local
-Unix socket and names only the endpoint kind (`unix`, `tcp`, `ssh`, `npipe` or
-`unknown`), never its path or remote host. Findings do not change the command's
-successful exit status.
-`--extra` adds an `extra` array. Every item has an `ok`, `warn`, `fail` or
-`skipped` level and a reason; one failed probe does not stop the remaining
-checks.
-
-Use named volumes or bind mounts for persistent data: anonymous volumes are not reattached after `down`/`up`. Duplicate Compose service names across App fragments are rejected before apply; if older fragments shared a cache service, reinstall both Apps. Old Redis containers and data are not retired automatically.
-
-**Unmanaged apps:** a Compose folder you add by hand under `~/.self-host/extra/<name>/` gets lifecycle, Address listing and Backup, but no Setup.
-
-Motion: `SELF_HOST_REDUCED_MOTION=1 self-host` skips decorative transitions. Plain commands, non-TTY and `--json` never animate. A Project from a pre-release build in `~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI at one.
-
-## Troubleshooting
-
-| Symptom                                       | Fix                                                                         |
-| --------------------------------------------- | --------------------------------------------------------------------------- |
-| `self-host: command not found`                | Add `~/.local/bin` to `PATH`.                                               |
-| Agent guide lacks the New/Advanced paths      | `self-host self-update`.                                                    |
-| Docker missing or stopped                     | Install or start it, then `self-host doctor`.                               |
-| 403 rate limit on install                     | `SELF_HOST_GITHUB_TOKEN="$(gh auth token)"` before `bash`, or wait an hour. |
-| `curl` error but the command seems to succeed | A pipe hides curl's exit status; use `set -o pipefail` in scripts.          |
-| Native Windows                                | Unsupported. Use WSL.                                                       |
-
-## Requirements and platforms
-
-Docker engine, the `docker compose` v2 plugin with `include` support, write access to the Project and data folders, free published ports, and enough storage and RAM for the Apps. Start with one App; photos, AI and multi-App Recipes need more. Run `self-host doctor` first. If the Docker socket is denied, run `sudo "$(command -v self-host)"` (the Project, config and cache stay yours; the full path is needed because sudo drops `~/.local/bin`), or use rootless Docker; adding yourself to the `docker` group also works but gives root-equivalent access without a password. With rootless Docker, compatible images may need `PUID=0 PGID=0`; host file ownership stays with the invoking user.
-
-| Platform       | Binary       | Validation                                                             |
-| -------------- | ------------ | ---------------------------------------------------------------------- |
-| Linux amd64    | Yes          | Published install/update and clean Alpine bootstrap passed.            |
-| Linux arm64    | Yes          | Native CLI and archive checks passed; image support varies by App.     |
-| macOS arm64    | Yes          | Native checks passed; deployment needs a Linux Docker VM.              |
-| Intel macOS    | Yes          | Native execution, checksummed install and corruption rejection passed. |
-| WSL2           | Linux binary | Planned; native WSL validation pending.                                |
-| Native Windows | No           | Unsupported.                                                           |
-
-Published-asset install/update proof covers Linux amd64 only ([scope](docs/release-proof.md)).
+</details>
 
 ## Reaching your Apps (Access)
+
+Home network by default. Easy names, Tailscale, Cloudflare or your own reverse proxy when you want them; each change needs your approval.
+
+<details>
+<summary><b>Access modes and how to set them up</b></summary>
 
 Access decides each App's Address. Choose it in Onboarding or Settings → Access. **Review always needs your approval.**
 
@@ -383,7 +311,14 @@ Needs a domain already **active** on Cloudflare, Zero Trust onboarding done (tea
 
 Start with `self-host debug <app>`, `self-host status` and `self-host doctor`; check the recorded Access, Docker, published ports and the host firewall. `local` binds loopback; to allow the LAN: `self-host config set EXPOSURE=lan`. After a network move, `status --json` reports `lan_ip_stale`: `self-host config set LAN_IP=auto` (or `config review`). These recreate affected Apps. If it works on the host but not your phone or TV, check same-network connectivity, guest-network isolation, firewall and Docker VM forwarding: a host-side probe cannot prove device reachability.
 
+</details>
+
 ## Backup and Restore
+
+`self-host backup --encrypt` writes one archive; `self-host restore <archive> [app]` brings it back.
+
+<details>
+<summary><b>Backup details</b></summary>
 
 ```bash
 self-host backup --encrypt
@@ -397,15 +332,122 @@ self-host restore /absolute/private/ntfy.tar.zst.age ntfy
 - Restore replaces the selected Apps' data and asks first (`--yes` skips). A fresh Project needs a full restore before selective ones. Review Host settings on a different machine.
 - Keep a copy off the host. **A written archive is not a verified recovery plan:** restore into an isolated Project and check the data.
 
-## Responsible use
+</details>
 
-self-host installs and connects software; what you do with it is your choice and your responsibility. Download clients, indexers and media automation (qBittorrent, Prowlarr, Sonarr, Radarr and the rest) have legitimate uses: Linux ISOs, public-domain and Creative Commons works, and media you own or are licensed to copy. **We do not condone piracy and do not help anyone find or download content they have no right to.** self-host ships no indexers, trackers or content sources. You are responsible for following copyright law where you live and the terms of every service you connect. The software is provided as is, without warranty (Apache-2.0); the maintainers are not liable for how it is used.
+## Commands
 
-## Telemetry
+Everything the Dashboard does is also a plain command.
 
-Anonymous Onboarding, error, agent App-request and approved feedback data, with no stored ID, used only by the maintainers and never sold or shared; on by default in releases, never in CI or development builds. Opt out with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. What is sent: [telemetry page](https://self-host.fyi/telemetry).
+<details>
+<summary><b>All commands</b></summary>
+
+Prefix with `self-host`. `--verbose` (`-v`) adds detail. `--yes` authorizes an approved noninteractive install, remove or restore; it is not a preview flag.
+
+| Command                                              | Effect                                                                                                   |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `doctor`                                             | Check Docker, Compose and the Host; with a Project, check its Apps and published ports.                  |
+| `host report`                                       | Report OS, Docker access, IPv6 and bind results for ports 80 and 443. Changes nothing.                   |
+| `host report --extra`                               | Also check optional resources, connectivity, port 53, filesystem behavior and temporary Docker resources. |
+| `install <app\|recipe>...`                           | Install Apps or Recipes into the Project.                                                                |
+| `status [--updates]`                                 | URLs, container state, health and Setup; optionally check image updates.                                 |
+| `setup [app...]`                                     | Retry unfinished Setup.                                                                                  |
+| `up`, `down`                                         | Start / remove the Project's containers and networks. `down` keeps volumes, App files and Setup records. |
+| `start`, `stop`, `restart [app...]`                  | Operate named Apps, or every installed App when omitted.                                                 |
+| `update [app...]`                                    | Pull images, recreate Apps and rerun checks.                                                             |
+| `logs <app> [--follow] [--tail N]`                   | Container logs; default tail is 200 lines.                                                               |
+| `remove <app>... [--yes]`                            | Remove Apps, keep data; `--purge` also deletes their data folders.                                       |
+| `config set KEY=value...`                            | Change Host settings and recreate affected Apps.                                                         |
+| `config review [--yes]`                              | Review Host drift; `--yes` applies detected LAN address and time zone fixes.                             |
+| `access export --format caddy\|nginx\|traefik\|json` | Print each App's upstream for your own reverse proxy. Changes nothing.                                   |
+| `backup`, `restore`                                  | See [Backup and Restore](#backup-and-restore).                                                           |
+| `apps request <name> [--url URL]`                    | For agents: report an App the Catalog lacks (one anonymous Telemetry event; people open an issue).       |
+| `feedback [-m text] [--app app]`                     | Send a report to the maintainers; shows the masked text and asks y/n first.                              |
+| `self-update`                                        | Replace the binary with the latest checksummed release.                                                  |
+
+`host report --json` has schema version `1`. It returns `os`, `architecture`,
+`docker`, `ipv6` and `ports`. Each port contains probes for `0.0.0.0`,
+`127.0.0.1` and `::`; each result is `ok`, `permission`, `in_use` or
+`unsupported`, with `error_class` when the operating system returned one.
+The Docker section distinguishes a reachable daemon from a reachable local
+Unix socket and names only the endpoint kind (`unix`, `tcp`, `ssh`, `npipe` or
+`unknown`), never its path or remote host. Findings do not change the command's
+successful exit status.
+`--extra` adds an `extra` array. Every item has an `ok`, `warn`, `fail` or
+`skipped` level and a reason; one failed probe does not stop the remaining
+checks.
+
+Use named volumes or bind mounts for persistent data: anonymous volumes are not reattached after `down`/`up`. Duplicate Compose service names across App fragments are rejected before apply; if older fragments shared a cache service, reinstall both Apps. Old Redis containers and data are not retired automatically.
+
+**Unmanaged apps:** a Compose folder you add by hand under `~/.self-host/extra/<name>/` gets lifecycle, Address listing and Backup, but no Setup.
+
+Motion: `SELF_HOST_REDUCED_MOTION=1 self-host` skips decorative transitions. Plain commands, non-TTY and `--json` never animate. A Project from a pre-release build in `~/self-host` is not picked up; `SELF_HOST_HOME=$HOME/self-host` points the CLI at one.
+
+</details>
+
+## Links: Apps that wire themselves
+
+Every App gets headless Setup, and Links connect them: Sonarr and Radarr get qBittorrent, Seerr gets Jellyfin, Homarr gets native tiles.
+
+<details>
+<summary><b>Which Apps link to which</b></summary>
+
+Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link** is the part that connects one App to another. It belongs to the consuming App and runs once both have finished Setup.
+
+| Consumer       | Linked to                                         |
+| -------------- | ------------------------------------------------- |
+| Sonarr, Radarr | qBittorrent (download client)                     |
+| Prowlarr       | Sonarr, Radarr                                    |
+| Seerr          | Jellyfin, Sonarr, Radarr                          |
+| Homarr         | native tiles and widgets for the Apps it supports |
+
+A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links need Homarr **2.4.1** or newer; NZBGet and SABnzbd Links need **2.5.1** or **2.5.2**. Other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
+
+</details>
+
+## Requirements and platforms
+
+Docker with the Compose v2 plugin, on Linux, macOS or WSL2.
+
+<details>
+<summary><b>Requirements and validated platforms</b></summary>
+
+Docker engine, the `docker compose` v2 plugin with `include` support, write access to the Project and data folders, free published ports, and enough storage and RAM for the Apps. Start with one App; photos, AI and multi-App Recipes need more. Run `self-host doctor` first. If the Docker socket is denied, run `sudo "$(command -v self-host)"` (the Project, config and cache stay yours; the full path is needed because sudo drops `~/.local/bin`), or use rootless Docker; adding yourself to the `docker` group also works but gives root-equivalent access without a password. With rootless Docker, compatible images may need `PUID=0 PGID=0`; host file ownership stays with the invoking user.
+
+| Platform       | Binary       | Validation                                                             |
+| -------------- | ------------ | ---------------------------------------------------------------------- |
+| Linux amd64    | Yes          | Published install/update and clean Alpine bootstrap passed.            |
+| Linux arm64    | Yes          | Native CLI and archive checks passed; image support varies by App.     |
+| macOS arm64    | Yes          | Native checks passed; deployment needs a Linux Docker VM.              |
+| Intel macOS    | Yes          | Native execution, checksummed install and corruption rejection passed. |
+| WSL2           | Linux binary | Planned; native WSL validation pending.                                |
+| Native Windows | No           | Unsupported.                                                           |
+
+Published-asset install/update proof covers Linux amd64 only ([scope](docs/release-proof.md)).
+
+</details>
+
+## Troubleshooting
+
+<details>
+<summary><b>Common fixes</b></summary>
+
+| Symptom                                       | Fix                                                                         |
+| --------------------------------------------- | --------------------------------------------------------------------------- |
+| `self-host: command not found`                | Add `~/.local/bin` to `PATH`.                                               |
+| Agent guide lacks the New/Advanced paths      | `self-host self-update`.                                                    |
+| Docker missing or stopped                     | Install or start it, then `self-host doctor`.                               |
+| 403 rate limit on install                     | `SELF_HOST_GITHUB_TOKEN="$(gh auth token)"` before `bash`, or wait an hour. |
+| `curl` error but the command seems to succeed | A pipe hides curl's exit status; use `set -o pipefail` in scripts.          |
+| Native Windows                                | Unsupported. Use WSL.                                                       |
+
+</details>
 
 ## What is supported
+
+97 of 113 tested targets pass the runtime matrix.
+
+<details>
+<summary><b>Runtime matrix details</b></summary>
 
 [Runtime matrix](docs/runtime-matrix.md) ([JSON](docs/runtime-matrix.json)) over all 113 targets (a 2026-10-07 snapshot, pending the launch runs in the "Public launch" milestone): **97 pass, 3 fail, 8 await external credentials, 5 manual.** Each result belongs to its recorded head, binary, image IDs and platform; mixed-head passes do not verify every App on the current binary.
 
@@ -413,6 +455,16 @@ Anonymous Onboarding, error, agent App-request and approved feedback data, with 
 - **Manual setup:** Dockge, Emby, Stalwart, Uptime Kuma and the monitoring Recipe. Provider accounts, VPN credentials, tunnel enrollment and licenses stay owner-supplied.
 - **Homarr:** [real API/browser proof](docs/homarr-proof.md), nine machine checks. Immich Links need a read-only stats key: `self-host setup immich`, then `self-host setup homarr` ([Immich proof](docs/homarr-immich-proof.md), empty-library only). Gluetun's native Homarr Link stays blocked by upstream design ([contract](docs/homarr-gluetun-contract.md)).
 - Update checks do not establish safe version-to-version migration. VPN fail-closed behavior, DNS/TLS and external accounts need their own proof. [Acceptance docs](e2e/acceptance.md) define stages and the limits of generic checks.
+
+</details>
+
+## Responsible use
+
+self-host installs and connects software; what you do with it is your choice and your responsibility. Download clients, indexers and media automation (qBittorrent, Prowlarr, Sonarr, Radarr and the rest) have legitimate uses: Linux ISOs, public-domain and Creative Commons works, and media you own or are licensed to copy. **We do not condone piracy and do not help anyone find or download content they have no right to.** self-host ships no indexers, trackers or content sources. You are responsible for following copyright law where you live and the terms of every service you connect. The software is provided as is, without warranty (Apache-2.0); the maintainers are not liable for how it is used.
+
+## Telemetry
+
+Anonymous Onboarding, error, agent App-request and approved feedback data, with no stored ID, used only by the maintainers and never sold or shared; on by default in releases, never in CI or development builds. Opt out with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. What is sent: [telemetry page](https://self-host.fyi/telemetry).
 
 ## Community
 
