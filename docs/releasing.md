@@ -30,9 +30,9 @@ version, so publish every `vX.Y.Z` release with `--latest` and its
 2. Pick the next version. Tags are plain `vX.Y.Z` with no leading zeros.
 
 The Telemetry project key (public; ADR 0006) is set at build time from
-`POSTHOG_PROJECT_KEY`: the CI release reads it from the repository variable of
-that name, and a local release needs it exported. Without it the binary is built
-with the placeholder key and sends nothing.
+`POSTHOG_PROJECT_KEY`, and `.goreleaser.yaml` falls back to the project's key
+when it is unset. Leave it unset for a local release: an empty value replaces
+the key, and the binary sends nothing. Check with `grep -c phc_ dist/self-host_*/self-host`.
 
 ## Release from CI
 
@@ -88,19 +88,21 @@ draft release or a `dist/checksums.txt` that differs from the published one, so
 a rerun is safe. The `new-cli-vX.Y.Z` twin is never published anywhere. Each
 script also runs alone, with `--dry-run` for npm and Docker.
 
-| Channel  | Needs once                                                                 | Works while the repo is private |
-| -------- | -------------------------------------------------------------------------- | ------------------------------- |
-| npm      | `npm login` as an account that owns the `@ajnart` scope                    | yes, the packages carry the binary |
-| Docker   | `docker login ghcr.io -u ajnart` with `write:packages`; make the GHCR package public after the first push | yes |
-| Homebrew | the public `ajnart/homebrew-tap` repo                                      | no, the cask downloads release assets ([#295](https://github.com/ajnart/self-host/issues/295)) |
-| AUR      | an AUR account (registration is closed for now)                            | no                              |
+| Channel  | Needs once                                                                                                | Works while the repo is private                                                                |
+| -------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| npm      | `npm login` as an account that owns the `@ajnart` scope                                                   | yes, the packages carry the binary                                                             |
+| Docker   | `docker login ghcr.io -u ajnart` with `write:packages`; make the GHCR package public after the first push | yes                                                                                            |
+| Homebrew | the public `ajnart/homebrew-tap` repo                                                                     | no, the cask downloads release assets ([#295](https://github.com/ajnart/self-host/issues/295)) |
+| AUR      | an AUR account (registration is closed for now)                                                           | no                                                                                             |
 
 ### npm
 
 `scripts/publish-npm.sh X.Y.Z [--dry-run]` builds `self-host` and the four
 `@ajnart/self-host-<os>-<arch>` packages into `dist/npm/` from the archives
 (checked against `checksums.txt`), publishes the platform packages first and the
-main one last, and skips versions already on npm.
+main one last, and skips versions already on npm. The `ajnart` account has 2FA:
+run it in a terminal to authenticate in the browser, or pass a one-time
+password with `npm_config_otp=123456`.
 
 ### Docker image
 
