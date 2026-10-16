@@ -88,8 +88,8 @@ release is published, from the checkout that built it:
 scripts/publish-channels.sh X.Y.Z
 ```
 
-It runs, in order, `publish-docker.sh` and
-`publish-homebrew.sh`, stops at the first failure, and each script refuses a
+It runs, in order, `publish-docker.sh`,
+`publish-homebrew.sh` and `publish-site.sh`, stops at the first failure, and each script refuses a
 draft release or a `dist/checksums.txt` that differs from the published one, so
 a rerun is safe. Each
 script also runs alone, with `--dry-run` for Docker.
@@ -221,9 +221,10 @@ not involved. Its build settings:
 | `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `vX.Y.Z` tag of the Go CLI from the checkout, since the releases API is private while the repo is |
 
 A release does not push to `main`, so the site would keep showing the old
-version: after publishing a release, trigger the project's deploy hook
-(Settings > Builds > Deploy hooks) with `curl -X POST "$SITE_DEPLOY_HOOK"`,
-or run the manual deploy below.
+version: `scripts/publish-channels.sh` ends with `scripts/publish-site.sh X.Y.Z`,
+which builds the site, checks it shows the new version and deploys it to the
+same project with Wrangler. The apex is the project's only custom domain;
+`www` is a zone redirect rule to the apex.
 
 The original `selfhost` project was created by Direct Upload, which Cloudflare
 cannot convert to Git integration; the Git project replaces it, and the custom
