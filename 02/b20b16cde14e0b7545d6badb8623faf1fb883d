@@ -1,0 +1,49 @@
+README.md
+  s_d5a80020a9c5ef::t_963c8b0bf0eda9 15-20,46,99-100,385-386
+site/astro.config.mjs
+  s_d5a80020a9c5ef::t_3a8eff0bf17d0b 4-9,37-43,68
+site/bun.lock
+  s_d5a80020a9c5ef::t_fc006d2a9a8275 18-22,27-29,31-32,65-67,251-252,337-338,369-372,381-382,395-398,411-412,415-416,435-436,495-497,501-504,509-524,543-544,563-564,567-568,573-576,589-590,593-594,597-600,619-620,623-624,629-630,635-638,641-642,687-692,695-696,699-718,735-758,763-764,787-788,835-836,847-850,877-884,893-898,901-912,919-922,925-926,945-946,951-960,967-974,977-980,989-990,1021-1022,1025-1028,1033-1034,1047-1048,1053-1056,1093-1094,1119-1124,1135-1136,1141-1142,1147-1150,1153-1154,1171-1188,1191-1192,1196-1203
+site/package.json
+  s_d5a80020a9c5ef::t_01fbcf5f0c7bf3 22-26,32-34
+site/patches/starlight-page-actions@0.7.1.patch
+  s_d5a80020a9c5ef::t_895a00617b6a0b 1-15
+site/src/content.config.ts
+  s_d5a80020a9c5ef::t_4bb4a892368619 7-23,42-46
+site/src/content/docs/docs/access.md
+  s_d5a80020a9c5ef::t_cc91a7e53e20c1 112
+site/src/lib/changelog.ts
+  s_d5a80020a9c5ef::t_858bbf93e5f533 1-21
+site/src/lib/version.ts
+  s_d5a80020a9c5ef::t_c9c061ef8c1a3b 9,34
+site/src/pages/404.astro
+  s_d5a80020a9c5ef::t_677877755bebbc 4,10-12
+site/src/styles/docs.css
+  s_d5a80020a9c5ef::t_14cb3b6a68fb5e 125-137
+site/src/styles/site.css
+  s_d5a80020a9c5ef::t_b2b0d8ef857a67 139-141,196-200,644-647,772-776,878-883,1387-1392
+video/reel/readme/README.md
+  s_d5a80020a9c5ef::t_7d5f0c6bbf4bbc 8,11-21,30,36-40,42,44,50,56,58,66,74
+video/reel/readme/build.mjs
+  s_d5a80020a9c5ef::t_b6b94e40a8332c 2,5,8,14-15,60-61,67,70,74,81
+video/reel/readme/hero.mjs
+  s_d5a80020a9c5ef::t_fab5e7aa91c7bc 39,103,118-119,237-243,245-247,250-256,258
+video/reel/readme/index.html
+  s_d5a80020a9c5ef::t_c0bedd5126e85a 51,86-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "02b20b16cde14e0b7545d6badb8623faf1fb883d",
+  "prompts": {},
+  "sessions": {
+    "s_d5a80020a9c5ef": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3400e7b4-f45e-4164-9bc7-2f47a116d41c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
