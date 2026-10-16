@@ -1,0 +1,20 @@
+docs/assets/readme/hero-command.svg
+  h_d6e478ca18e517 1
+video/reel/readme/build.mjs
+  h_d6e478ca18e517 97,99-102,155
+video/reel/readme/hero.mjs
+  h_d6e478ca18e517 245-249
+video/reel/readme/index.html
+  h_d6e478ca18e517 33,36,49,51-58,66-76,80-83,85-86,90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5f3d87538e2acfe11854ce065ce3b6813804be45",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
