@@ -1,0 +1,51 @@
+docs/assets/readme/section-agent-modal.svg
+  s_d5a80020a9c5ef::t_6bf4066e3a74be 1
+docs/assets/readme/section-agent-payoff.svg
+  s_d5a80020a9c5ef::t_1f53d98cdb4d6a 1
+docs/assets/readme/section-agent-phone.svg
+  s_d5a80020a9c5ef::t_9d082da7274f48 1
+docs/assets/readme/section-agent-spine.svg
+  s_d5a80020a9c5ef::t_1a921a71a59d29 1
+docs/assets/readme/section-agent-stages.svg
+  s_d5a80020a9c5ef::t_178ef23845e980 1
+video/reel/readme/README.md
+  s_3d37b6355074d3::t_44421c07e64753 31
+video/reel/readme/index.html
+  s_3d37b6355074d3::t_9d64c1709c07bc 53
+video/reel/readme/section-agent-protos.mjs
+  s_964521a667a4b8::t_6d880a3cc6d09f 1-624
+video/reel/readme/section-agent.mjs
+  s_964521a667a4b8::t_d0104bbc758df4 5,226,241
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9d80d1e7efa814eb1168165fd851ea789a287fcd",
+  "prompts": {},
+  "sessions": {
+    "s_3d37b6355074d3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fca367f3-48fa-4994-8d9a-4996ab2e10f6",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_964521a667a4b8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cb662163-19b3-4547-8cd8-9ac119712186",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_d5a80020a9c5ef": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3400e7b4-f45e-4164-9bc7-2f47a116d41c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
