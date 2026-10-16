@@ -1,0 +1,23 @@
+video/reel/readme/build.mjs
+  s_5038fd5c39252a::t_301dea76f62c58 8,112-113
+video/reel/readme/index.html
+  s_5038fd5c39252a::t_11bfbfe9b79316 13-14,35,52,63
+video/reel/readme/section-agent.mjs
+  s_5038fd5c39252a::t_9027e4ea099d6d 1-389
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "530465eaa4c42ad2f6171fa83a2a5ed6f833004a",
+  "prompts": {},
+  "sessions": {
+    "s_5038fd5c39252a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f3142c7b-1bcb-4621-9ca0-fa693bc36c5e",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
