@@ -1,0 +1,27 @@
+docs/assets/readme/header.html
+  s_368ff7fa5dcd4a::t_f86d9b3d52c8c0 19
+video/reel/readme/README.md
+  s_368ff7fa5dcd4a::t_b5014910f6d47c 31,33,39
+video/reel/readme/build.mjs
+  s_368ff7fa5dcd4a::t_230636ae28dc03 57-62,66,94-99,103,154
+video/reel/readme/hero.mjs
+  s_368ff7fa5dcd4a::t_078e6a0e0a9274 81-97,108,118,184,186-191,197,199-208,210-211,213-214,216-218,220-227,229-230,238,240-243,250-264,267-273,275-286
+video/reel/readme/index.html
+  s_368ff7fa5dcd4a::t_81d7998c5f7cd9 63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f9ac0b02e5f0199cbbf0e8102ed7d2087030cbc5",
+  "prompts": {},
+  "sessions": {
+    "s_368ff7fa5dcd4a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d784ee69-6f51-460d-928d-8e4277123a00",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
