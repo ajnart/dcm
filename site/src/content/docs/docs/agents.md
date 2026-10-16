@@ -11,7 +11,13 @@ self-host is built to be driven by an agent through plain commands. Paste this o
 Install the self-host skill from github.com/ajnart/self-host and help me run my own movie server.
 ```
 
-Or add the skill yourself (needs Bun or Node.js):
+Or let the binary write the skill for every agent on the machine: `~/.agents/skills`, plus Claude Code, Codex, OpenCode, Pi, Gemini and Hermes when they are installed (Omarchy's agents read the same folders). `self-host skill remove` deletes only what it wrote.
+
+```bash
+self-host skill install
+```
+
+Or use the skills CLI (needs Bun or Node.js):
 
 ```bash
 bunx --bun skills@latest add ajnart/self-host --skill self-host

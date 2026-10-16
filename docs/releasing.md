@@ -10,6 +10,8 @@ self-host_X.Y.Z_darwin_amd64.tar.gz   self-host_X.Y.Z_darwin_arm64.tar.gz
 self-host_X.Y.Z_linux_amd64.deb       self-host_X.Y.Z_linux_arm64.deb
 self-host_X.Y.Z_linux_amd64.rpm       self-host_X.Y.Z_linux_arm64.rpm
 self-host_X.Y.Z_linux_amd64.apk       self-host_X.Y.Z_linux_arm64.apk
+self-host_X.Y.Z_linux_amd64.pkg.tar.zst  self-host_X.Y.Z_linux_arm64.pkg.tar.zst
+PKGBUILD
 ```
 
 The installer and `self-host self-update` pick the highest semver among
@@ -56,8 +58,9 @@ SELF_HOST_RELEASE_VERSION=X.Y.Z go run github.com/goreleaser/goreleaser/v2@v2.18
 Then follow what the workflow does: draft, download, compare, publish.
 
 ```bash
+cp dist/aur/self-host-bin.pkgbuild dist/PKGBUILD
 cd dist
-assets=(self-host_X.Y.Z_linux_amd64.tar.gz self-host_X.Y.Z_linux_arm64.tar.gz self-host_X.Y.Z_darwin_amd64.tar.gz self-host_X.Y.Z_darwin_arm64.tar.gz self-host_X.Y.Z_linux_{amd64,arm64}.{deb,rpm,apk,pkg.tar.zst} checksums.txt)
+assets=(self-host_X.Y.Z_linux_amd64.tar.gz self-host_X.Y.Z_linux_arm64.tar.gz self-host_X.Y.Z_darwin_amd64.tar.gz self-host_X.Y.Z_darwin_arm64.tar.gz self-host_X.Y.Z_linux_{amd64,arm64}.{deb,rpm,apk,pkg.tar.zst} PKGBUILD checksums.txt)
 shasum -a 256 -c checksums.txt
 gh release create vX.Y.Z "${assets[@]}" --target main --draft --title "self-host X.Y.Z" \
   --notes "Linux and macOS amd64/arm64 CLI. WSL2 uses Linux binaries. Native Windows is unsupported."
@@ -69,35 +72,62 @@ gh release edit vX.Y.Z --draft=false --latest
 `gh release create` of a draft with `--target main` makes the tag when the
 release is published; no separate `git tag` is needed.
 
-## AUR package
+## Publish the channels
 
-`self-host-bin` on the [AUR](https://aur.archlinux.org/packages/self-host-bin)
-installs the `vX.Y.Z` Linux archives (`x86_64`, `aarch64`) with
-`yay -S self-host-bin`. Every goreleaser run writes its `PKGBUILD` and `.SRCINFO`,
-pinned to that run's archive hashes, into `dist/aur/`; goreleaser never pushes
-them. Once the `vX.Y.Z` release is published, push the ones built with it:
+Every channel repackages the release archives from the same `dist/` (never a
+rebuild), so each installs the release binary byte for byte. Once the `vX.Y.Z`
+release is published, from the checkout that built it:
 
 ```bash
-scripts/publish-aur.sh X.Y.Z
+scripts/publish-channels.sh X.Y.Z
 ```
 
-The script works from any directory. It refuses a `dist/aur/` built for another
-version, a release that is still a draft, and a `dist/checksums.txt` that differs
-from the published one. The `new-cli-vX.Y.Z` twin is never published to the AUR. The
-package only installs once the release assets are anonymously downloadable
-([#295](https://github.com/ajnart/self-host/issues/295)).
+It runs, in order, `publish-npm.sh`, `publish-docker.sh` and
+`publish-homebrew.sh`, stops at the first failure, and each script refuses a
+draft release or a `dist/checksums.txt` that differs from the published one, so
+a rerun is safe. The `new-cli-vX.Y.Z` twin is never published anywhere. Each
+script also runs alone, with `--dry-run` for npm and Docker.
 
-### One-time maintainer setup
+| Channel  | Needs once                                                                 | Works while the repo is private |
+| -------- | -------------------------------------------------------------------------- | ------------------------------- |
+| npm      | `npm login` as an account that owns the `@ajnart` scope                    | yes, the packages carry the binary |
+| Docker   | `docker login ghcr.io -u ajnart` with `write:packages`; make the GHCR package public after the first push | yes |
+| Homebrew | the public `ajnart/homebrew-tap` repo                                      | no, the cask downloads release assets ([#295](https://github.com/ajnart/self-host/issues/295)) |
+| AUR      | an AUR account (registration is closed for now)                            | no                              |
 
-1. Create an account at <https://aur.archlinux.org/register>.
-2. Add an SSH public key under _My Account → SSH Public Key_, and point
-   `aur.archlinux.org` at its private half in `~/.ssh/config`
-   (`Host aur.archlinux.org`, `User aur`, `IdentityFile ~/.ssh/aur`).
-3. The first `scripts/publish-aur.sh` run claims the empty `self-host-bin` repo.
+### npm
+
+`scripts/publish-npm.sh X.Y.Z [--dry-run]` builds `self-host` and the four
+`@ajnart/self-host-<os>-<arch>` packages into `dist/npm/` from the archives
+(checked against `checksums.txt`), publishes the platform packages first and the
+main one last, and skips versions already on npm.
+
+### Docker image
+
+`scripts/publish-docker.sh X.Y.Z [--dry-run]` builds `ghcr.io/ajnart/self-host`
+for linux/amd64 and linux/arm64 from the archives (alpine + Docker CLI + Compose
+plugin, about 130 MB) and pushes `:X.Y.Z` and `:latest`. `--dry-run` builds the
+host architecture locally and pushes nothing.
+
+### AUR package
+
+AUR account registration is closed for now, so `self-host-bin` is not on the
+AUR. Every goreleaser run still writes its `PKGBUILD` and `.SRCINFO`, pinned to
+that run's archive hashes, into `dist/aur/`; the `PKGBUILD` ships as a release
+asset so Arch users can `makepkg -si` it, and the `.pkg.tar.zst` covers `pacman -U`.
+When registration reopens:
+
+1. Create the `ajnart` account at <https://aur.archlinux.org/register> with the
+   public key `~/.ssh/aur.pub` (`~/.ssh/config` already points
+   `aur.archlinux.org` at it).
+2. Run `scripts/publish-aur.sh X.Y.Z`; the first run claims the empty
+   `self-host-bin` repo. Same guards as the other channels.
+3. Add `publish-aur.sh` back to `publish-channels.sh` and the AUR line to the
+   README and the site's install methods.
 
 ## Linux packages
 
-Every goreleaser run also builds `.deb`, `.rpm` and `.apk` packages (nfpm) that
+Every goreleaser run also builds `.deb`, `.rpm`, `.apk` and Arch `.pkg.tar.zst` packages (nfpm) that
 install `/usr/bin/self-host` and recommend, but do not require, `docker`. They are
 release assets listed in `checksums.txt`; the installer and `self-update` only read
 the `.tar.gz` lines and ignore them.
@@ -106,6 +136,7 @@ the `.tar.gz` lines and ignore them.
 sudo apt install ./self-host_X.Y.Z_linux_amd64.deb
 sudo dnf install ./self-host_X.Y.Z_linux_amd64.rpm
 sudo apk add --allow-untrusted ./self-host_X.Y.Z_linux_amd64.apk
+sudo pacman -U ./self-host_X.Y.Z_linux_amd64.pkg.tar.zst
 ```
 
 They are unsigned and not in an apt/dnf repository; users download them from the
@@ -125,13 +156,12 @@ damaged). Once the `vX.Y.Z` release is published:
 scripts/publish-homebrew.sh X.Y.Z
 ```
 
-Same guards as the AUR script (not a draft, `dist/checksums.txt` matches the
+Same guards as the other channels (not a draft, `dist/checksums.txt` matches the
 published one); it commits `Casks/self-host.rb` to `ajnart/homebrew-tap` and pushes.
-The `new-cli-vX.Y.Z` twin is never published to Homebrew. Like the AUR package it
-needs anonymously downloadable release assets
+The `new-cli-vX.Y.Z` twin is never published to Homebrew. It needs anonymously downloadable release assets
 ([#295](https://github.com/ajnart/self-host/issues/295)).
 
-One-time setup: `gh repo create ajnart/homebrew-tap --public`.
+The tap repo [ajnart/homebrew-tap](https://github.com/ajnart/homebrew-tap) exists.
 
 ## Verify
 

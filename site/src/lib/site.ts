@@ -24,11 +24,32 @@ curl -fsSLO $BASE/self-host_\${VERSION}_\${OS}_\${ARCH}.tar.gz -O $BASE/checksum
 sha256sum -c --ignore-missing checksums.txt   # macOS: shasum -a 256 -c --ignore-missing checksums.txt
 tar -xzf self-host_\${VERSION}_\${OS}_\${ARCH}.tar.gz self-host && mkdir -p ~/.local/bin && mv self-host ~/.local/bin/`,
   },
-  { label: "AUR", code: "yay -S self-host-bin   # Arch Linux; or: paru -S self-host-bin" },
+  { label: "Homebrew", code: "brew install ajnart/tap/self-host" },
+  { label: "npm", code: "npx self-host   # or: npm i -g self-host" },
+  {
+    label: "Docker",
+    code: `docker run --rm -it --network host \\
+  --user "$(id -u):$(id -g)" --group-add "$(stat -c %g /var/run/docker.sock)" \\
+  -v /var/run/docker.sock:/var/run/docker.sock \\
+  -v "$HOME/.self-host:$HOME/.self-host" \\
+  -e USER -e HOME -e SELF_HOST_HOME="$HOME/.self-host" \\
+  ghcr.io/ajnart/self-host:latest   # Linux; macOS: see the docs`,
+  },
+  {
+    label: "deb / rpm / apk",
+    code: `BASE=https://github.com/ajnart/self-host/releases/download/v${VERSION}
+curl -fsSLO $BASE/self-host_${VERSION}_linux_amd64.deb && sudo apt install ./self-host_${VERSION}_linux_amd64.deb
+# Fedora: .rpm with dnf install; Alpine: .apk with apk add --allow-untrusted`,
+  },
+  {
+    label: "Arch / Omarchy",
+    code: `curl -fsSLO https://github.com/ajnart/self-host/releases/download/v${VERSION}/PKGBUILD
+makepkg -si   # not on the AUR yet: registration is closed`,
+  },
   {
     label: "from source",
-    code: `git clone https://github.com/ajnart/self-host && cd self-host
-go build -o ~/.local/bin/self-host ./cmd/self-host`,
+    code: `go install github.com/ajnart/self-host/cmd/self-host@latest
+# or: git clone https://github.com/ajnart/self-host && cd self-host && go build -o ~/.local/bin/self-host ./cmd/self-host`,
   },
 ];
 

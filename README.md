@@ -82,40 +82,108 @@ Isolated Project: set `SELF_HOST_HOME` (absolute path) and a unique lowercase `S
 
 ## Install
 
-### 1. The script (recommended)
-
 ```bash
 curl -fsSL https://self-host.fyi/install | bash
 ```
 
-It picks the highest stable release, verifies the archive against `checksums.txt`, and installs to `~/.local/bin` (`/usr/local/bin` as root). It prints the exact `PATH` line for bash, zsh or fish when needed. A truncated download installs nothing.
+That is the recommended way. It picks the highest stable release, verifies the archive against `checksums.txt`, and installs to `~/.local/bin` (`/usr/local/bin` as root). It prints the exact `PATH` line for bash, zsh or fish when needed. A truncated download installs nothing.
 
-| Variable                 | Effect                                                                                  |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| `SELF_HOST_VERSION`      | Install `X.Y.Z`, `vX.Y.Z` or `new-cli-vX.Y.Z` instead of the latest.                    |
-| `SELF_HOST_INSTALL_DIR`  | Install here instead of the default directory.                                          |
-| `SELF_HOST_RELEASE_REPO` | `owner/name` that publishes releases; also used by `self-update`. For forks.            |
-| `SELF_HOST_GITHUB_TOKEN` | Lifts GitHub's anonymous API rate limit; falls back to `gh auth token`. Never paste it. |
-
-Read it before you run it, and check the published hash:
+Every other method below installs the same release binary, byte for byte. Then let your AI agents find self-host:
 
 ```bash
-curl -fsSL https://self-host.fyi/install -o install.sh
-curl -fsSL https://self-host.fyi/install.sh.sha256   # compare with: shasum -a 256 install.sh
-less install.sh && bash install.sh
+self-host skill install   # writes the self-host skill for Claude Code, Codex, OpenCode, Pi, Gemini and ~/.agents
 ```
 
-### 2. Arch Linux (AUR)
+<details>
+<summary><b>Homebrew</b> (macOS and Linux)</summary>
 
 ```bash
-yay -S self-host-bin   # or: paru -S self-host-bin
+brew install ajnart/tap/self-host
 ```
 
-Installs the release binary to `/usr/bin/self-host`; update it with your AUR helper (`self-host self-update` is for the script and manual installs). Needs Docker and the Compose v2 plugin (`docker`, `docker-compose`).
+Update with `brew upgrade self-host`.
 
-### 3. Manual download
+</details>
 
-Pick the archive for your system from [GitHub Releases](https://github.com/ajnart/self-host/releases): `self-host_<version>_<os>_<arch>.tar.gz` for `linux` or `darwin`, `amd64` or `arm64`.
+<details>
+<summary><b>npm / npx</b></summary>
+
+```bash
+npx self-host            # run without installing
+npm i -g self-host       # or install it
+```
+
+The package ships the binary for your platform (no download script). Update with `npm i -g self-host@latest`.
+
+</details>
+
+<details>
+<summary><b>Docker</b> (nothing installed on the host)</summary>
+
+The image holds the binary, the Docker CLI and the Compose plugin. It drives your host's Docker through the socket, which is the same trust as running self-host yourself. Mount the Home folder at the same path, because Compose resolves folders on the host.
+
+```bash
+# Linux
+docker run --rm -it --network host \
+  --user "$(id -u):$(id -g)" --group-add "$(stat -c %g /var/run/docker.sock)" \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "$HOME/.self-host:$HOME/.self-host" \
+  -e USER -e HOME -e SELF_HOST_HOME="$HOME/.self-host" \
+  ghcr.io/ajnart/self-host:latest
+
+# macOS (OrbStack or Docker Desktop): the container cannot see your LAN address, so pass it
+docker run --rm -it \
+  --user "$(id -u):$(id -g)" --group-add 0 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "$HOME/.self-host:$HOME/.self-host" \
+  -e USER -e HOME -e SELF_HOST_HOME="$HOME/.self-host" \
+  -e SELF_HOST_LAN_IP="$(ipconfig getifaddr en0)" \
+  ghcr.io/ajnart/self-host:latest
+```
+
+No arguments opens the Dashboard; add any command (`doctor`, `install jellyfin`, `status`) after the image name. Update with `docker pull ghcr.io/ajnart/self-host:latest`.
+
+</details>
+
+<details>
+<summary><b>Debian, Ubuntu, Fedora, Alpine</b> (.deb, .rpm, .apk)</summary>
+
+Download the package for your architecture (`amd64` or `arm64`) from [GitHub Releases](https://github.com/ajnart/self-host/releases/latest):
+
+```bash
+sudo apt install ./self-host_X.Y.Z_linux_amd64.deb                    # Debian, Ubuntu
+sudo dnf install ./self-host_X.Y.Z_linux_amd64.rpm                    # Fedora, RHEL
+sudo apk add --allow-untrusted ./self-host_X.Y.Z_linux_amd64.apk      # Alpine
+```
+
+They install `/usr/bin/self-host` and recommend Docker. Update by installing the newer package.
+
+</details>
+
+<details>
+<summary><b>Arch Linux and Omarchy</b></summary>
+
+```bash
+sudo pacman -U ./self-host_X.Y.Z_linux_amd64.pkg.tar.zst   # from GitHub Releases
+```
+
+Or build it the way the AUR would, from the `PKGBUILD` attached to each release:
+
+```bash
+curl -fsSLO https://github.com/ajnart/self-host/releases/latest/download/PKGBUILD
+makepkg -si
+```
+
+`self-host-bin` is not on the AUR yet: AUR account registration is closed for now. It will be published there as soon as it reopens.
+
+On Omarchy, Docker needs `sudo` by default (your user is not in the `docker` group). Either run `sudo self-host` (the Project stays yours) or turn on sudoless Docker with `omarchy-setup-security-sudoless-docker` and reboot. Omarchy also enables `ufw` with incoming traffic denied; if another device cannot reach an App, allow its port with `sudo ufw allow <port>/tcp`.
+
+</details>
+
+<details>
+<summary><b>Release archive</b> (manual download)</summary>
+
+Pick `self-host_<version>_<os>_<arch>.tar.gz` for `linux` or `darwin`, `amd64` or `arm64` from [GitHub Releases](https://github.com/ajnart/self-host/releases).
 
 ```bash
 VERSION=X.Y.Z   # set to the latest release (no leading v): https://github.com/ajnart/self-host/releases/latest
@@ -135,16 +203,43 @@ mkdir -p ~/.local/bin && mv self-host ~/.local/bin/
 
 Do not run the binary if the checksum check fails.
 
-### 4. Build from source
+</details>
+
+<details>
+<summary><b>Install script options</b> (version, folder, read it first)</summary>
+
+| Variable                 | Effect                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------- |
+| `SELF_HOST_VERSION`      | Install `X.Y.Z`, `vX.Y.Z` or `new-cli-vX.Y.Z` instead of the latest.                    |
+| `SELF_HOST_INSTALL_DIR`  | Install here instead of the default directory.                                          |
+| `SELF_HOST_RELEASE_REPO` | `owner/name` that publishes releases; also used by `self-update`. For forks.            |
+| `SELF_HOST_GITHUB_TOKEN` | Lifts GitHub's anonymous API rate limit; falls back to `gh auth token`. Never paste it. |
+
+Read it before you run it, and check the published hash:
+
+```bash
+curl -fsSL https://self-host.fyi/install -o install.sh
+curl -fsSL https://self-host.fyi/install.sh.sha256   # compare with: shasum -a 256 install.sh
+less install.sh && bash install.sh
+```
+
+</details>
+
+<details>
+<summary><b>Go / from source</b></summary>
 
 Needs Go 1.26.0+.
 
 ```bash
+go install github.com/ajnart/self-host/cmd/self-host@latest
+# or
 git clone https://github.com/ajnart/self-host && cd self-host
 go build -buildvcs=false -o ~/.local/bin/self-host ./cmd/self-host
 ```
 
 Development builds cannot `self-update`.
+
+</details>
 
 ### Update
 
@@ -152,7 +247,7 @@ Development builds cannot `self-update`.
 self-host self-update
 ```
 
-It replaces the binary after checking its sha256. The Dashboard asks "Update now? y/n" once when idle (`n` is remembered per release in `<user cache dir>/self-host/update.json`); plain commands print one line at most every 24 hours. Silent under `--json`, off a terminal, with `CI` set, on development builds, or with `SELF_HOST_NO_UPDATE_CHECK=1`.
+For the install script and the release archive. Homebrew, npm and system packages are updated by their own package manager, and `self-update` says so. It replaces the binary after checking its sha256. The Dashboard asks "Update now? y/n" once when idle (`n` is remembered per release in `<user cache dir>/self-host/update.json`); plain commands print one line at most every 24 hours. Silent under `--json`, off a terminal, with `CI` set, on development builds, or with `SELF_HOST_NO_UPDATE_CHECK=1`.
 
 Verify any install URL with `scripts/verify-install.sh` (throwaway `HOME`; checks the version, `self-host skill` and an upgrade through `self-update`; `VERIFY_INSTALL_URL` overrides the URL). Maintainers: [how to cut a release](docs/releasing.md), [site deployment and release gates](docs/releasing.md#installer-site).
 
