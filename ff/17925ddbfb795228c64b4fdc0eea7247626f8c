@@ -1,0 +1,29 @@
+internal/cli/selfupdate.go
+  s_7fa234028f3f9f::t_c580c22ec2e213 26-32
+internal/release/managed_test.go
+  s_7fa234028f3f9f::t_f7fe2721868c05 35,38,41,45,49
+internal/release/release.go
+  s_7fa234028f3f9f::t_8367f2f2d955cf 311,412-414
+internal/tui/backend.go
+  s_7fa234028f3f9f::t_08d422f18f4f91 269-275
+internal/updatecheck/updatecheck.go
+  s_7fa234028f3f9f::t_e22b340c41c557 105-106,108-115
+scripts/publish-docker.sh
+  s_7fa234028f3f9f::t_b91378caabbc7b 39-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ff17925ddbfb795228c64b4fdc0eea7247626f8c",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
