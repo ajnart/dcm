@@ -22,6 +22,8 @@
   <a href="https://self-host.fyi">Website</a> · <a href="https://self-host.fyi/docs">Docs</a> · <a href="https://self-host.fyi/#reel">Showreel</a> · <a href="https://discord.gg/aCsmEV5RgA">Discord</a>
 </p>
 
+[![self-host: Your Apps. Your home. One binary. Watch the showreel.](docs/assets/social-card.png)](https://self-host.fyi/#reel)
+
 Run your own Apps at home without learning Docker. One binary installs and runs them, with a terminal Dashboard for you and plain commands for your agent.
 
 ```bash
