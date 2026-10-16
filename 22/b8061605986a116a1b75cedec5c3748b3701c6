@@ -1,0 +1,19 @@
+video/reel/readme/section-replaces.mjs
+  s_000cec9e5fa539::t_e427aabba32925 79-83,88-89,97,101,103,105-107,113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "22b8061605986a116a1b75cedec5c3748b3701c6",
+  "prompts": {},
+  "sessions": {
+    "s_000cec9e5fa539": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e031966-d516-420f-9cc7-4e768003c516",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
