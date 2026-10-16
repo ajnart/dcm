@@ -1,0 +1,28 @@
+internal/release/managed_test.go
+  h_d6e478ca18e517 1-41
+internal/release/release.go
+  h_d6e478ca18e517 311-313,412-426
+npm/platform/README.md
+  h_d6e478ca18e517 1-3
+npm/platform/package.json
+  h_d6e478ca18e517 1-17
+npm/self-host/README.md
+  h_d6e478ca18e517 1-13
+npm/self-host/bin/self-host.js
+  h_d6e478ca18e517 1-59
+npm/self-host/package.json
+  h_d6e478ca18e517 1-26
+scripts/publish-npm.sh
+  h_d6e478ca18e517 1-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "17a162eb4dd1ed25cc67dd7df789760b36440467",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
