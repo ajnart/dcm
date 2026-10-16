@@ -1,0 +1,14 @@
+video/reel/release/README.md
+  h_d6e478ca18e517 20-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ee0e2390152e5167c07926e3677a9015de8da398",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
