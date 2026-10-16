@@ -1,0 +1,27 @@
+site/astro.config.mjs
+  s_7fa234028f3f9f::t_6ffeb7717ece87 6-9,37-43,68
+site/bun.lock
+  s_7fa234028f3f9f::t_9b433d0177ce40 18-20,31-32,65-67,251-252,337-338,369-372,395-398,435-436,501-504,509-524,589-590,593-594,597-600,619-620,687-692,695-696,699-714,717-718,735-758,763-764,787-788,847-848,877-884,893-898,901-912,919-922,925-926,945-946,951-956,967-970,1021-1022,1025-1028,1033-1034,1119-1124,1135-1136,1147-1150,1171-1188,1197-1200,1202-1203
+site/package.json
+  s_7fa234028f3f9f::t_81b9241b5415e5 22-24
+site/src/content/docs/docs/access.md
+  s_7fa234028f3f9f::t_9c54bdfd9dbb1a 112
+site/src/lib/version.ts
+  s_7fa234028f3f9f::t_3f926362f9582a 9,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3d5005b3be8335ff4e86b3fd4146013cfe3a469d",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
