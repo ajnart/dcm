@@ -12,6 +12,12 @@
 
 [![self-host: Your Apps. Your home. One binary. Watch the showreel.](docs/assets/social-card.png)](https://self-host.fyi/#reel)
 
+## What it replaces
+
+<p align="center"><img src="docs/assets/readme/replaces-meet.svg" width="880" alt="What it replaces: Netflix to Jellyfin, Spotify to Navidrome, Drive to Nextcloud, Dropbox to Syncthing, Photos to Immich, 1Password to Vaultwarden, Notion to Docmost, ChatGPT to Open WebUI. Every App is in the Catalog, with 82 more."></p>
+
+Netflix, Spotify, Drive, Dropbox, Photos, 1Password, Notion and ChatGPT each have an App you can run yourself, and every App in the picture is in the Catalog and installs today, for example `self-host install immich`. Each one runs on your own machine through Docker Compose, with Setup done for you. Browse the rest in the [Catalog](https://self-host.fyi/apps) or with `self-host apps list`.
+
 ## 30 seconds setup
 
 Needs Docker with the Compose v2 plugin. Linux, macOS, or Windows through WSL.
@@ -37,7 +43,7 @@ self-host
 
 On a machine with no Project, bare `self-host` opens Onboarding: it checks Docker, then checks Home-folder disk space and the selected Apps' ports at Review. It asks one thing at a time and writes nothing until you approve the plan. The Dashboard has five tabs: Overview, Apps, Activity, Catalog, Settings. `?` lists the keys. No single key changes an App; the Action menu (`a`) shows what each Action will do and runs it on `enter`. On start it asks once about a changed network, stopped Apps or App updates, and `y` fixes it.
 
-The Catalog ships inside the binary: **94 Apps, 7 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
+The Catalog ships inside the binary: **90 Apps, 7 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
 
 The screenshot is a real 120×30 session of a loopback-only Homarr/Jellyfin/ntfy Project: [Activity](docs/images/workflow.png), [Catalog search](docs/images/install-search.png), [recording](docs/demos/self-host.cast), [provenance](docs/demos/capture.json).
 
@@ -89,6 +95,8 @@ self-host status --json
 Isolated Project: set `SELF_HOST_HOME` (absolute path) and a unique lowercase `SELF_HOST_COMPOSE_PROJECT`, and keep both for later commands. Do not point this CLI at an older CLI's Project.
 
 </details>
+
+<p align="center"><img src="docs/assets/readme/hero-command.svg" width="880" alt="The install command, curl -fsSL self-host.fyi/install | bash, wired to nine Apps with data pulses travelling the wires: Jellyfin, Sonarr, Radarr, Immich, Nextcloud, Homarr, Vaultwarden, Navidrome and Home Assistant."></p>
 
 ## Install
 
@@ -373,6 +381,8 @@ Motion: `SELF_HOST_REDUCED_MOTION=1 self-host` skips decorative transitions. Pla
 </details>
 
 ## Links: Apps that wire themselves
+
+<p align="center"><img src="docs/assets/readme/links-graph.svg" width="880" alt="Apps that wire themselves. Apps appear and arrows draw between them: Sonarr and Radarr to qBittorrent, Prowlarr to Sonarr and Radarr, Seerr to Jellyfin, Sonarr and Radarr, Cleanuparr to Sonarr, Radarr and qBittorrent, and Homarr to a row of tiles for the other Apps."></p>
 
 Every App gets headless Setup, and Links connect them: Sonarr and Radarr get qBittorrent, Seerr gets Jellyfin, Homarr gets native tiles.
 

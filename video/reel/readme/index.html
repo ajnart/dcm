@@ -1,0 +1,99 @@
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>README header and hero variants</title>
+<style>
+:root{--bg:#0d1117;--fg:#e6edf3;--mute:#8b949e;--line:#30363d;--page:#010409}
+.light{--bg:#fff;--fg:#1f2328;--mute:#59636e;--line:#d1d9e0;--page:#f6f8fa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:16px 16px 90px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;font:12px "JetBrains Mono",ui-monospace,monospace}
+.tools label,.tools button{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;padding:4px 10px;cursor:pointer;font:inherit}
+.tools button[aria-pressed=true]{background:#7a57d3;border-color:#7a57d3;color:#fff}
+.tools b{color:var(--mute);font-weight:600;margin-left:8px}
+.readme{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:32px;margin:0 auto;width:var(--w,920px);max-width:100%}
+.readme p{margin:0 0 16px}
+.readme h1{font-size:2em;font-weight:600;border-bottom:0;margin:0 0 16px;padding-bottom:.3em}
+.readme img{max-width:100%;height:auto;vertical-align:middle}
+.readme a{color:#4493f8;text-decoration:none}
+.light .readme a{color:#0969da}
+.cap{margin:0 auto 12px;width:var(--w,920px);max-width:100%;font:12px "JetBrains Mono",ui-monospace,monospace;color:var(--mute)}
+.cap em{color:var(--fg);font-style:normal;font-weight:700}
+table{border-collapse:collapse;margin:32px auto 0;width:var(--w,920px);max-width:100%;font:12px "JetBrains Mono",ui-monospace,monospace}
+td,th{border:1px solid var(--line);padding:5px 10px;text-align:left}
+.over{color:#ff5f5f;font-weight:700}.ok{color:#00d787}
+.x{margin:32px auto 0;width:var(--w,920px);max-width:100%}
+.x h2{font:700 12px "JetBrains Mono",ui-monospace,monospace;color:var(--mute);margin:0 0 8px}
+.x img{display:block;max-width:100%;height:auto;outline:1px solid var(--line)}
+.x .pn{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:16px}.x .pn img{outline:0;margin:0 auto}
+.x .alt{font:12px "JetBrains Mono",ui-monospace,monospace;color:var(--mute);margin:8px 0 24px}.x .alt a{color:#4493f8}
+#bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#f5f5f5;color:#111;padding:8px 14px;border-radius:99px;box-shadow:0 4px 24px #000a;display:flex;gap:16px;align-items:center;font:700 12px "JetBrains Mono",ui-monospace,monospace;white-space:nowrap;max-width:96vw}
+#bar button{border:0;background:#111;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer}
+#l{overflow:hidden;text-overflow:ellipsis}
+</style>
+<div class=tools>
+<button id=th data-k=theme>theme: dark</button>
+<button id=h1 data-k=h1 aria-pressed=true>tagline in HTML</button>
+<button id=w data-k=width>width: 920</button>
+<a href="#replaces-meet" style="color:#4493f8;margin-left:8px">#563 What it replaces ↓</a>
+<button id=cmp data-k=cmp>compare with current</button>
+<span id=fmt style="display:none"><b>format</b> <span id=fb></span></span>
+</div>
+<div id=stage></div>
+<table id=sz></table>
+<div class=x id=ex></div>
+<div class=x id=sec-links></div>
+<div id=bar><button id=p>←</button><span id=l></span><button id=n>→</button></div>
+<script>
+const root="../../../",kb=b=>(b/1024).toFixed(0)+" KB";
+const widths=[920,640,390];
+Promise.all([fetch("variants.json").then(r=>r.json()),fetch(root+"docs/assets/readme/header.html").then(r=>r.text())]).then(([D,header])=>{
+const V=D.variants;
+const q=new URLSearchParams(location.search);
+let i=Math.max(0,Math.min(V.length-1,(+q.get("v")||1)-1));
+let dark=q.get("t")!="light",tag=q.get("h1")!="0",wi=Math.max(0,widths.indexOf(+q.get("w")||920)),fmt=q.get("f")=="png"?q.get("f"):"svg";
+let cmp=q.get("c")=="1";
+const abs=s=>s.replace(/(src|srcset)="docs\//g,`$1="${root}docs/`);
+const mock=(v,fmtWanted)=>{
+const f=v.files.find(x=>x.kind==fmtWanted)||v.files[0];
+const el=document.createElement("div");el.className="readme";
+if(v.current){
+const lg=dark?"logo-dark":"logo-light";
+el.innerHTML=`<p><img src="${root}docs/assets/${lg}.svg" alt="" width=152 height=144></p><h1>self-host</h1><p><b>Run your own apps at home without learning Docker.</b> One Go binary installs, wires together and operates self-hosted Apps with Docker Compose: a terminal Dashboard for people, plain commands for agents.</p><p><a href="#">Website</a> · <a href="#">Try it in the browser</a> · <a href="#">Discord</a> · <a href="#">Agent docs</a></p><p><img src="${root}docs/assets/readme/${f.file}" alt="${v.alt}"></p>`;
+return [`<em>${v.n}. ${v.name}</em> · ${v.desc}`,el,f];
+}
+const box=document.createElement("div");box.innerHTML=abs(header);
+box.querySelectorAll("picture").forEach(pc=>{
+const want=dark?"dark":"light",s=[...pc.querySelectorAll("source")].find(x=>x.media.includes(want));
+pc.querySelector("img").src=s.srcset;pc.querySelectorAll("source").forEach(x=>x.remove())});
+const hero=[...box.querySelectorAll("img")].find(x=>x.src.includes("social-card"));
+hero.src=root+"docs/assets/readme/"+f.file;hero.alt=v.alt;
+if(!tag)box.querySelector("h1").remove();
+el.replaceChildren(...box.childNodes);
+return [`<em>${v.n}. ${v.name}</em> · ${v.desc}`,el,f];
+};
+const show=()=>{
+const v=V[i];
+document.documentElement.className=dark?"":"light";document.body.className=dark?"":"light";
+document.documentElement.style.setProperty("--w",widths[wi]+"px");
+const cur=V.find(x=>x.current);
+const shown=cmp&&cur&&cur!==v?[v,cur]:[v];
+stage.replaceChildren(...shown.flatMap(x=>{const [c,el]=mock(x,fmt);const cp=document.createElement("div");cp.className="cap";cp.innerHTML=c;return [cp,el]}));
+const f=v.files.find(x=>x.kind==fmt)||v.files[0];
+fmtEl.style.display=v.files.length>1?"":"none";
+fb.innerHTML=v.files.map(x=>`<button data-f=${x.kind} aria-pressed=${x.kind==f.kind}>${x.kind}</button>`).join("");
+th.textContent="theme: "+(dark?"dark":"light");w.textContent="width: "+widths[wi];
+h1.setAttribute("aria-pressed",tag);cmpEl.setAttribute("aria-pressed",cmp);
+const kbs=y=>y.budget?kb(y.budget):"none",cls=y=>y.budget&&y.bytes>y.budget?"over":"ok";
+sz.innerHTML="<tr><th>#<th>variant<th>file<th>size<th>budget</tr>"+V.flatMap(x=>x.files.map(y=>`<tr><td>${x.n}<td>${x.id}<td>${y.file}<td class="${cls(y)}">${kb(y.bytes)}<td>${kbs(y)}</tr>`)).join("")+D.extras.map(y=>`<tr><td>·<td>${y.id}<td>${y.file}<td class="${cls(y)}">${kb(y.bytes)}<td>${kbs(y)}</tr>`).join("");
+ex.innerHTML=D.extras.filter(e=>!e.id.startsWith("replaces")).map(e=>`<h2>Section image (not a header candidate): ${e.name}</h2><img src="${root}docs/assets/readme/${e.file}" width=880 style="margin-bottom:24px">`).join("");
+ex.innerHTML+=D.extras.filter(e=>e.group=="replaces").map(e=>`<h2 id="${e.id}">#563 What it replaces: ${e.name}</h2><div class=pn><img src="${root}docs/assets/readme/${e.file}" alt="${e.alt}"></div><p class=alt>alt: ${e.alt} · <a href="${root}docs/assets/readme/${e.png}">PNG fallback</a></p>`).join("");
+l.textContent=`${v.n}/${V.length} ${v.id}`;
+const u=new URLSearchParams({v:v.n,t:dark?"dark":"light",h1:tag?1:0,w:widths[wi],f:fmt,c:cmp?1:0});history.replaceState(0,"","?"+u)};
+const cmpEl=document.getElementById("cmp");
+const fmtEl=document.getElementById("fmt");
+p.onclick=()=>{i=(i+V.length-1)%V.length;show()};n.onclick=()=>{i=(i+1)%V.length;show()};
+th.onclick=()=>{dark=!dark;show()};h1.onclick=()=>{tag=!tag;show()};w.onclick=()=>{wi=(wi+1)%widths.length;show()};
+cmpEl.onclick=()=>{cmp=!cmp;show()};
+fmtEl.onclick=e=>{if(e.target.dataset.f){fmt=e.target.dataset.f;show()}};
+addEventListener("keydown",e=>{if(e.key=="ArrowLeft")p.click();if(e.key=="ArrowRight")n.click()});
+show()});
+</script>
+<script src="section-links-gallery.js"></script>
