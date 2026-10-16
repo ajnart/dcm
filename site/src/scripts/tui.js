@@ -1,4 +1,4 @@
-import { apps as APPS, recipes as RECIPES, appById, expand } from "../lib/catalog";
+import { appById, appsByName, expand, recipesByName } from "../lib/catalog";
 import { LAN, VERSION, project, urlOf } from "./project.js";
 import { $, esc } from "./util.js";
 
@@ -98,9 +98,32 @@ function workflow() {
 function installItems() {
   const q = ui.query.toLowerCase();
   const match = (s) => s.toLowerCase().includes(q);
-  const recipes = RECIPES.filter((r) => match(r.id) || match(r.name) || match(r.description) || r.apps.some((a) => a.includes(q))).map((r) => ({ kind: "recipe", ...r }));
-  const apps = APPS.filter((a) => match(a.id) || match(a.name) || match(a.description) || match(a.category)).map((a) => ({ kind: "app", ...a }));
+  const recipes = recipesByName.filter((r) => match(r.id) || match(r.name) || match(r.description) || r.apps.some((a) => a.includes(q))).map((r) => ({ kind: "recipe", ...r }));
+  const apps = appsByName.filter((a) => match(a.id) || match(a.name) || match(a.description) || match(a.category)).map((a) => ({ kind: "app", ...a }));
   return [...recipes, ...apps];
+}
+
+const isPicked = (id) => ui.picks.has(id) || project.has(id);
+
+function recipeMark(r) {
+  const n = r.apps.filter(isPicked).length;
+  if (n === r.apps.length) return sp("green", " ✓ ");
+  if (n) return sp("gold", " ◐ ");
+  return sp("dim", " ○ ");
+}
+
+function toggleRecipe(r) {
+  const all = r.apps.every(isPicked);
+  for (const id of r.apps) {
+    if (project.has(id)) continue;
+    if (all) ui.picks.delete(id);
+    else ui.picks.add(id);
+  }
+}
+
+function toggleApp(id) {
+  if (ui.picks.has(id)) ui.picks.delete(id);
+  else ui.picks.add(id);
 }
 
 function installView() {
@@ -112,7 +135,8 @@ function installView() {
     .map((it, i) => {
       const at = start + i === ui.cursor;
       let mark = "[ ]";
-      if (it.kind === "app" && project.has(it.id)) mark = sp("green", " ✓ ");
+      if (it.kind === "recipe") mark = recipeMark(it);
+      else if (project.has(it.id)) mark = sp("green", " ✓ ");
       else if (ui.picks.has(it.id)) mark = sp("accent", "[x]");
       const name = it.kind === "recipe" ? `▣ ${it.name}` : it.name;
       return `<div class="row${at ? " sel" : ""}">${at ? sp("accent", ">") : " "} ${mark} ${esc(name.padEnd(22).slice(0, 22))} ${sp("muted", it.id)}</div>`;
@@ -121,17 +145,17 @@ function installView() {
   const cur = items[ui.cursor];
   let detail = '<div class="row muted">No match.</div>';
   if (cur?.kind === "recipe") {
-    detail = `<div class="row wrap">${esc(cur.description)}</div><div class="row"> </div><div class="row bold">Apps</div>${cur.apps.map((id) => `<div class="row">${esc(appById.get(id).name.padEnd(16))} ${sp("muted", appById.get(id).d)}</div>`).join("")}`;
+    detail = `<div class="row wrap">${esc(cur.description)}</div><div class="row"> </div><div class="row bold">Apps</div>${cur.apps.map((id) => `<div class="row">${esc(appById.get(id).name.padEnd(16))} ${sp("muted", appById.get(id).description)}</div>`).join("")}`;
   }
   if (cur?.kind === "app") {
     detail = `<div class="row wrap">${esc(cur.description)}</div><div class="row"> </div><div class="row">${sp("muted", "image  ")}${esc(cur.image)}</div><div class="row">${sp("muted", "port   ")}${cur.port || "none"}</div><div class="row">${sp("muted", "group  ")}${esc(cur.category)}</div>${cur.links.length ? `<div class="row wrap">${sp("muted", "links  ")}${esc(cur.links.map((l) => l.to).join(", "))}</div>` : ""}`;
   }
   const picked = ui.picks.size ? sp("accent", ` ${ui.picks.size} picked`) : "";
   const review = ui.review ? `<div class="modal">${ui.review}</div>` : "";
-  return `<div class="body"><div class="col"><div class="box grow"><span class="legend">Install <span class="muted">recipes &amp; apps</span>${picked}</span><div class="row">/ ${esc(ui.query)}<span class="accent">▌</span></div><div class="row"> </div><div class="scroll">${list}</div></div></div><div class="col"><div class="box grow"><span class="legend">${esc(cur ? cur.name : "")}</span><div class="scroll">${detail}</div></div></div></div>${keyline([
+  return `<div class="body"><div class="col"><div class="box grow"><span class="legend">Install <span class="muted">recipes &amp; apps</span>${picked}</span><div class="row">/ ${esc(ui.query)}<span class="accent">▌</span></div><div class="row muted wrap">space picks a Recipe and every App in it · enter shows the plan; nothing installs until you approve</div><div class="row"> </div><div class="scroll">${list}</div></div></div><div class="col"><div class="box grow"><span class="legend">${esc(cur ? cur.name : "")}</span><div class="scroll">${detail}</div></div></div></div>${keyline([
     ["type", "search"],
     ["space", "pick"],
-    ["enter", "review"],
+    ["enter", "plan"],
     ["esc", "back"],
   ])}${review}`;
 }
@@ -188,10 +212,8 @@ function installKey(key) {
   else if (key === "ArrowUp") ui.cursor = Math.max(0, ui.cursor - 1);
   else if (key === " ") {
     const it = items[ui.cursor];
-    if (it && !(it.kind === "app" && project.has(it.id))) {
-      if (ui.picks.has(it.id)) ui.picks.delete(it.id);
-      else ui.picks.add(it.id);
-    }
+    if (it?.kind === "recipe") toggleRecipe(it);
+    else if (it && !project.has(it.id)) toggleApp(it.id);
   } else if (key === "Enter") review();
   else if (key === "Backspace") ui.query = ui.query.slice(0, -1);
   else if (key.length === 1 && /[\w\- ]/.test(key)) {

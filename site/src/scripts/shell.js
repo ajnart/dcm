@@ -1,4 +1,4 @@
-import { apps as APPS, recipes as RECIPES, appById, linksAmong, recipeById } from "../lib/catalog";
+import { apps as APPS, recipes as RECIPES, appById, appsByName, linksAmong, recipeById, recipesByName } from "../lib/catalog";
 import { LAN, VERSION, project, urlOf } from "./project.js";
 import { $, pad, sleep } from "./util.js";
 import { tui } from "./tui.js";
@@ -128,11 +128,11 @@ function status(json) {
   const apps = project.list();
   if (!apps.length) return json ? print('{"error":"no Project yet"}') : noProject();
   if (json) {
-    const doc = { home: "~/.self-host", access: "lan", lan_ip: LAN, apps: apps.map((a) => ({ id: a.id, url: urlOf(a), state: a.state, setup: project.setupOf(a), description: appById.get(a.id).d })) };
+    const doc = { home: "~/.self-host", access: "lan", lan_ip: LAN, apps: apps.map((a) => ({ id: a.id, url: urlOf(a), state: a.state, setup: project.setupOf(a), description: appById.get(a.id).description })) };
     return print(JSON.stringify(doc, null, 2));
   }
   print(`You have ${apps.length} App${apps.length > 1 ? "s" : ""}.`);
-  for (const a of apps) print("  ", ["bold", pad(a.name, 18)], ["cyan", pad(urlOf(a), 28)], ["muted", appById.get(a.id).d]);
+  for (const a of apps) print("  ", ["bold", pad(a.name, 18)], ["cyan", pad(urlOf(a), 28)], ["muted", appById.get(a.id).description]);
   if (project.has("homarr")) print("Dashboard: Homarr at ", ["cyan", urlOf(project.get("homarr"))]);
   print("Everything lives in ~/.self-host.");
   print("");
@@ -147,12 +147,12 @@ function status(json) {
 }
 
 function appsList(json) {
-  if (json) return print(JSON.stringify({ apps: APPS.map(({ id, name, d, c, p }) => ({ id, name, description: d, category: c, port: p })), recipes: RECIPES }, null, 2));
+  if (json) return print(JSON.stringify({ apps: APPS.map(({ id, name, description, category, port }) => ({ id, name, description, category, port })), recipes: RECIPES }, null, 2));
   print(["bold", "Recipes"]);
-  for (const r of RECIPES) print("  ", ["accent", pad(r.id, 20)], ` ${r.description} `, ["muted", `(${r.apps.join(", ")})`]);
+  for (const r of recipesByName) print("  ", ["accent", pad(r.id, 20)], ` ${r.description} `, ["muted", `(${r.apps.join(", ")})`]);
   print("");
   print(["bold", "Apps"]);
-  for (const a of APPS) print("  ", ["cyan", pad(a.id, 20)], ` ${a.description}`);
+  for (const a of appsByName) print("  ", ["cyan", pad(a.id, 20)], ` ${a.description}`);
 }
 
 function appsInfo(id) {
@@ -424,6 +424,7 @@ function welcome() {
   print(["muted", "Nothing here touches a real machine. The catalog is the real one."]);
   print("");
   print("Try ", ["cyan", "self-host install media"], ", then ", ["cyan", "self-host"], " to open the Dashboard. ", ["muted", "help lists everything."]);
+  print(["muted", "A Recipe is a set of Apps that work together; install shows the plan and waits for your approval."]);
   print("");
 }
 

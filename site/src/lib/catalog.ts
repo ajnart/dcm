@@ -48,6 +48,11 @@ export function starLabel(stars: number): string {
 
 export const recipes: Recipe[] = data.recipes.map((r) => ({ id: r.id, name: r.name, description: r.d, apps: r.apps }));
 
+const byName = (a: { name: string }, b: { name: string }): number => a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+
+export const appsByName: App[] = [...apps].sort(byName);
+export const recipesByName: Recipe[] = [...recipes].sort(byName);
+
 export const appById = new Map(apps.map((a) => [a.id, a]));
 export const recipeById = new Map(recipes.map((r) => [r.id, r]));
 
