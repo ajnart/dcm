@@ -1,0 +1,19 @@
+video/reel/readme/index.html
+  s_9e8774a61bc547::t_ac62aa637b6a1e 85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ab5aeaa0b33ed8cee9a4400ce0f9f0a45ae3bf5",
+  "prompts": {},
+  "sessions": {
+    "s_9e8774a61bc547": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "40f271ca-9018-48af-bb54-77d72353c6b0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
