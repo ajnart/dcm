@@ -1,0 +1,19 @@
+docs/assets/readme/replaces-meet.svg
+  s_000cec9e5fa539::t_2499b65a71e9db 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3444e12613f10386c1536b856592e95f0b539522",
+  "prompts": {},
+  "sessions": {
+    "s_000cec9e5fa539": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e031966-d516-420f-9cc7-4e768003c516",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
