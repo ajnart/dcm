@@ -212,7 +212,7 @@ not involved. Its build settings:
 | Root directory         | (repository root)                            |
 | Build watch paths      | include `site/*`, `install.sh`, `scripts/build-installer-site.sh`, `scripts/build-site-pages.sh` |
 | `BUN_VERSION`          | `1.4.3`                                      |
-| `GITHUB_TOKEN` secret  | read-only token for `ajnart/self-host` releases, needed while the repo is private; the site reads the latest release version at build time |
+| `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `new-cli-vX.Y.Z` tag from the checkout, since the releases API is private while the repo is |
 
 A release does not push to `main`, so the site would keep showing the old
 version: after publishing a release, trigger the project's deploy hook

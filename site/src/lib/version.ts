@@ -44,9 +44,25 @@ async function fromGitHub(): Promise<string | undefined> {
   return latest?.tag_name.replace(/^(new-cli-)?v/, "");
 }
 
+function fromTags(): string | undefined {
+  try {
+    execFileSync("git", ["fetch", "--tags", "--quiet"], { stdio: "ignore" });
+  } catch {}
+  try {
+    const tags = execFileSync("git", ["tag", "--list", "new-cli-v*"], { encoding: "utf8" }).split("\n").filter((t) => semver.test(t));
+    let latest: string | undefined;
+    for (const tag of tags) {
+      if (!latest || newer(tag, latest)) latest = tag;
+    }
+    return latest?.replace(/^new-cli-v/, "");
+  } catch {
+    return undefined;
+  }
+}
+
 export async function latestVersion(): Promise<string> {
   if (process.env.SELF_HOST_SITE_VERSION) return process.env.SELF_HOST_SITE_VERSION;
-  const version = await fromGitHub().catch(() => undefined);
+  const version = (await fromGitHub().catch(() => undefined)) ?? fromTags();
   if (version) return version;
   throw new Error(`Could not look up the latest CLI release of ${REPO}. Log in with gh, set GITHUB_TOKEN, or set SELF_HOST_SITE_VERSION.`);
 }
