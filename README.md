@@ -46,14 +46,13 @@ Paste this into Claude Code, Codex, OpenCode, OpenClaw or any coding agent:
 Install the self-host skill from github.com/ajnart/self-host and help me run my own movie server.
 ```
 
-Or add the skill yourself (needs Bun or Node.js):
+Or add the skill yourself, from any install channel:
 
 ```bash
-bunx --bun skills@latest add ajnart/self-host --skill self-host
-# or: npx --yes skills add ajnart/self-host --skill self-host
+self-host skill install
 ```
 
-The installer offers the same command when it finishes. The one public skill, [`skills/self-host/SKILL.md`](skills/self-host/SKILL.md), only routes to the guide built into the binary; it costs about 150 tokens while idle and installing it deploys nothing. Invoke it with `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex.
+The installer offers the same step when it finishes. The one public skill, [`skills/self-host/SKILL.md`](skills/self-host/SKILL.md), only routes to the guide built into the binary; it costs about 150 tokens while idle and installing it deploys nothing. Invoke it with `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex.
 
 ```bash
 self-host skill        # prints the guide that matches the installed binary

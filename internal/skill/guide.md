@@ -166,7 +166,8 @@ Expose every knob: specific Apps, `--set`, `--set-file`, `--exposure local`,
 | `self-host self-update`                                          | Replace the binary with the latest verified release                                                                 |
 | `self-host apps request "<name>" [--url <homepage>]`             | Tell the maintainers an App is wanted that the Catalog lacks (see "Apps the Catalog lacks")                         |
 | `self-host feedback --message <text> [--app <app>] [--yes]`      | Send the maintainers a report of what broke, after the person agrees (see "Feedback")                               |
-| `self-host skill`                                                | Print this guide                                                                                                    |
+| `self-host skill install`                                        | Make this skill discoverable by the AI agents installed on this computer; plain `self-host skill` prints this guide |
+| `self-host skill remove`                                         | Remove only the skill directories `skill install` wrote                                                             |
 
 Global flags: `--json` (one JSON event per line; document commands print one
 JSON document), `--verbose` or `-v` (also print every command and step start).

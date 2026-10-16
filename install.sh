@@ -284,17 +284,9 @@ resolve_release() {
   die "could not read release metadata for $* from ${API_URL} (404 means no such release; 403 is GitHub's anonymous rate limit, set SELF_HOST_GITHUB_TOKEN)"
 }
 
-skill_command() {
-  if command -v bunx >/dev/null 2>&1; then
-    echo bunx --bun skills@latest add "$REPO" --skill self-host
-  elif command -v npx >/dev/null 2>&1; then
-    echo npx --yes skills add "$REPO" --skill self-host
-  fi
-}
-
 skill_hint() {
-  say "To add the self-host skill to your AI agent (needs Bun or Node.js), run:"
-  say "  bunx --bun skills@latest add ${REPO} --skill self-host"
+  say "To make the self-host skill discoverable by your AI agents, run:"
+  say "  self-host skill install"
   say "or paste this into your AI:"
   say "  Install the self-host skill from github.com/${REPO} and help me run my own movie server."
 }
@@ -303,22 +295,18 @@ skill_hint() {
 # when piped), and only when a terminal can be opened. Without one it prints
 # the hint. A failure here never fails an install that already succeeded.
 offer_skill() {
-  local tty="${SELF_HOST_TTY:-/dev/tty}" answer="" command_line
+  local tty="${SELF_HOST_TTY:-/dev/tty}" answer="" installed_binary="$1"
   if [ -z "${SELF_HOST_SKIP_SKILL_PROMPT:-}" ] && { exec 3<"$tty"; } 2>/dev/null; then
     printf 'Add the self-host skill to your AI agent too? y/n '
     read -r answer <&3 || answer=""
     say
     case "$answer" in y | Y | yes | YES | Yes)
-      command_line="$(skill_command)"
-      if [ -n "$command_line" ]; then
-        say "Running: ${command_line}"
-        # shellcheck disable=SC2086
-        if $command_line <&3; then
-          exec 3<&-
-          return
-        fi
-        say "That did not finish."
+      say "Running: ${installed_binary} skill install"
+      if "$installed_binary" skill install <&3; then
+        exec 3<&-
+        return
       fi
+      say "That did not finish."
       ;;
     esac
     exec 3<&-
@@ -428,7 +416,7 @@ main() {
   say
   say "Next: run  self-host  for the dashboard, or  self-host install media --yes  for the media server."
   say
-  offer_skill
+  offer_skill "${dir}/self-host"
 }
 
 main "$@"

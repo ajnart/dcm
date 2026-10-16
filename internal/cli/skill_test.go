@@ -334,3 +334,26 @@ func TestSkillFileLoadsOnItsOwnAndStaysWithinTheIdleBudget(t *testing.T) {
 		t.Errorf("SKILL.md costs about %d tokens while idle, want 200 or fewer", tokens)
 	}
 }
+
+func TestSkillInstallAndRemoveReportEveryPathAsJSON(t *testing.T) {
+	deps := systemtest.NewDeps(t)
+	owner, _ := deps.CurrentUser()
+	if err := os.MkdirAll(filepath.Join(owner.Home, ".claude"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	res := clitest.Run(t, deps, catalog.Default(), "skill", "install", "--json")
+	if res.Code != cli.ExitOK {
+		t.Fatalf("exit %d:\n%s", res.Code, res.Out)
+	}
+	for _, want := range []string{`"status": "written"`, `"status": "skipped, agent not installed"`, ".claude/skills/self-host"} {
+		if !strings.Contains(res.Out, want) {
+			t.Errorf("install output missing %q:\n%s", want, res.Out)
+		}
+	}
+
+	res = clitest.Run(t, deps, catalog.Default(), "skill", "remove")
+	if res.Code != cli.ExitOK || !strings.Contains(res.Out, "removed") {
+		t.Errorf("remove: exit %d:\n%s", res.Code, res.Out)
+	}
+}
