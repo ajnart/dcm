@@ -1,0 +1,67 @@
+docs/assets/brand/animated/build-dark.svg
+  s_7fa234028f3f9f::t_0c3e946fe8f7e3 1
+docs/assets/brand/animated/build-light.svg
+  s_7fa234028f3f9f::t_afa644c678db81 1
+docs/assets/brand/animated/light-up-dark.svg
+  s_7fa234028f3f9f::t_8efabb0f88ed55 1
+docs/assets/brand/animated/light-up-light.svg
+  s_7fa234028f3f9f::t_139910e15a387e 1
+docs/assets/brand/animated/pulse-dark.svg
+  s_7fa234028f3f9f::t_215c2f048eac54 1
+docs/assets/brand/animated/pulse-light.svg
+  s_7fa234028f3f9f::t_d177094af4e19f 1
+docs/assets/brand/dashboard-icons/svg/self-host-dark.svg
+  s_7fa234028f3f9f::t_e8b17318fb5c3d 1
+docs/assets/brand/dashboard-icons/svg/self-host-light.svg
+  s_7fa234028f3f9f::t_0cda26ff14e479 1
+docs/assets/brand/dashboard-icons/svg/self-host.svg
+  s_7fa234028f3f9f::t_b5c8a116950e7d 1
+docs/assets/brand/manifest.json
+  s_6ffc27df9af36a::t_12954239a81fe1 12-14,18-19,24-25,30-31,45-47,51-52,57-58,63-64,78-80,84-85,90-91,96-97,111-113,117-118,123-124,129-130,144-146,150-151,156-157,162,164,177-179,192-194,207-209,222-224,237-239,252-254,268,273-274,279-280,295,300-301,306-307,322,327-328,333-334
+docs/assets/brand/mark/mark-color.svg
+  s_7fa234028f3f9f::t_9a06820d717536 1
+docs/assets/brand/mark/mark-dark.svg
+  s_7fa234028f3f9f::t_b2258d472f9dad 1
+docs/assets/brand/mark/mark-light.svg
+  s_7fa234028f3f9f::t_31b8ec4a9b808c 1
+docs/assets/brand/mark/mark-mono-white.svg
+  s_7fa234028f3f9f::t_1dcaa15c32d5f9 1
+docs/assets/brand/mark/mark-mono.svg
+  s_7fa234028f3f9f::t_99ecf41c687507 1
+video/reel/brand/README.md
+  s_6ffc27df9af36a::t_b486d2142a4682 22-27
+video/reel/brand/animate.mjs
+  s_6ffc27df9af36a::t_2eb6fa78b7591d 1-2,28
+video/reel/brand/build.mjs
+  s_6ffc27df9af36a::t_0e1f89a8697e60 6-7,36,54
+video/reel/brand/index.html
+  s_6ffc27df9af36a::t_5013713255e0de 58,120-121,124,126,134
+video/reel/brand/shapes.mjs
+  s_6ffc27df9af36a::t_9d92e0a899e974 1,12-14
+video/reel/brand/source.mjs
+  s_6ffc27df9af36a::t_2498c4a1867113 81-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6d25112bcd92b6ff2d10362ec3fc220bc8908ee8",
+  "prompts": {},
+  "sessions": {
+    "s_6ffc27df9af36a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71bef8d5-5ed5-4d46-9fcd-8d4ea0536d2c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
