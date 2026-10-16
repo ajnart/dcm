@@ -1,0 +1,23 @@
+site/astro.config.mjs
+  s_7fa234028f3f9f::t_7f05880151b448 5,33
+site/bun.lock
+  s_7fa234028f3f9f::t_1f37004201c164 18,366-367,474-476,526-527,532-535,572-573,640-641,742-743,810-811,820-823,826-827,888-889,934-935,974-975
+site/package.json
+  s_7fa234028f3f9f::t_3279b993eacefe 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7a3871577b6968280ce62d480b4a5c2d1b13e3cf",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
