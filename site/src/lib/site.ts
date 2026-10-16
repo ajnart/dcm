@@ -25,7 +25,6 @@ sha256sum -c --ignore-missing checksums.txt   # macOS: shasum -a 256 -c --ignore
 tar -xzf self-host_\${VERSION}_\${OS}_\${ARCH}.tar.gz self-host && mkdir -p ~/.local/bin && mv self-host ~/.local/bin/`,
   },
   { label: "Homebrew", code: "brew install ajnart/tap/self-host" },
-  { label: "npm", code: "npx self-host   # or: npm i -g self-host" },
   {
     label: "Docker",
     code: `docker run --rm -it --network host \\

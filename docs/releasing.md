@@ -82,27 +82,25 @@ release is published, from the checkout that built it:
 scripts/publish-channels.sh X.Y.Z
 ```
 
-It runs, in order, `publish-npm.sh`, `publish-docker.sh` and
+It runs, in order, `publish-docker.sh` and
 `publish-homebrew.sh`, stops at the first failure, and each script refuses a
 draft release or a `dist/checksums.txt` that differs from the published one, so
 a rerun is safe. The `new-cli-vX.Y.Z` twin is never published anywhere. Each
-script also runs alone, with `--dry-run` for npm and Docker.
+script also runs alone, with `--dry-run` for Docker.
 
 | Channel  | Needs once                                                                                                | Works while the repo is private                                                                |
 | -------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| npm      | `npm login` as an account that owns the `@ajnart` scope                                                   | yes, the packages carry the binary                                                             |
 | Docker   | `docker login ghcr.io -u ajnart` with `write:packages`; make the GHCR package public after the first push | yes                                                                                            |
 | Homebrew | the public `ajnart/homebrew-tap` repo                                                                     | no, the cask downloads release assets ([#295](https://github.com/ajnart/self-host/issues/295)) |
 | AUR      | an AUR account (registration is closed for now)                                                           | no                                                                                             |
 
 ### npm
 
-`scripts/publish-npm.sh X.Y.Z [--dry-run]` builds `self-host` and the four
-`@ajnart/self-host-<os>-<arch>` packages into `dist/npm/` from the archives
-(checked against `checksums.txt`), publishes the platform packages first and the
-main one last, and skips versions already on npm. The `ajnart` account has 2FA:
-run it in a terminal to authenticate in the browser, or pass a one-time
-password with `npm_config_otp=123456`.
+Not published. npm only allows unattended publishing through trusted
+publishing (OIDC) from GitHub Actions or GitLab, and Actions is unavailable while
+the repository is private; 2FA-bypass tokens last at most 90 days and lose
+direct publishing in January 2027. Revisit once the repository is public: a
+trusted-publishing job in `release.yml` can publish from the release archives.
 
 ### Docker image
 

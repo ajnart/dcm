@@ -42,18 +42,6 @@ Update with `brew upgrade self-host`.
 </details>
 
 <details>
-<summary><b>npm / npx</b></summary>
-
-```bash
-npx self-host            # run without installing
-npm i -g self-host       # or install it
-```
-
-The package ships the binary for your platform (no download script). Update with `npm i -g self-host@latest`.
-
-</details>
-
-<details>
 <summary><b>Docker</b> (nothing installed on the host)</summary>
 
 The image holds the binary, the Docker CLI and the Compose plugin. It drives your host's Docker through the socket, which is the same trust as running self-host yourself. Mount the Home folder at the same path, because Compose resolves folders on the host.

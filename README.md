@@ -108,18 +108,6 @@ Update with `brew upgrade self-host`.
 </details>
 
 <details>
-<summary><b>npm / npx</b></summary>
-
-```bash
-npx self-host            # run without installing
-npm i -g self-host       # or install it
-```
-
-The package ships the binary for your platform (no download script). Update with `npm i -g self-host@latest`.
-
-</details>
-
-<details>
 <summary><b>Docker</b> (nothing installed on the host)</summary>
 
 The image holds the binary, the Docker CLI and the Compose plugin. It drives your host's Docker through the socket, which is the same trust as running self-host yourself. Mount the Home folder at the same path, because Compose resolves folders on the host.
@@ -250,7 +238,7 @@ Development builds cannot `self-update`.
 self-host self-update
 ```
 
-For the install script and the release archive. Homebrew, npm and system packages are updated by their own package manager, and `self-update` says so. It replaces the binary after checking its sha256. The Dashboard asks "Update now? y/n" once when idle (`n` is remembered per release in `<user cache dir>/self-host/update.json`); plain commands print one line at most every 24 hours. Silent under `--json`, off a terminal, with `CI` set, on development builds, or with `SELF_HOST_NO_UPDATE_CHECK=1`.
+For the install script and the release archive. Homebrew, the Docker image and system packages are updated by their own package manager, and `self-update` says so. It replaces the binary after checking its sha256. The Dashboard asks "Update now? y/n" once when idle (`n` is remembered per release in `<user cache dir>/self-host/update.json`); plain commands print one line at most every 24 hours. Silent under `--json`, off a terminal, with `CI` set, on development builds, or with `SELF_HOST_NO_UPDATE_CHECK=1`.
 
 Verify any install URL with `scripts/verify-install.sh` (throwaway `HOME`; checks the version, `self-host skill` and an upgrade through `self-update`; `VERIFY_INSTALL_URL` overrides the URL). Maintainers: [how to cut a release](docs/releasing.md), [site deployment and release gates](docs/releasing.md#installer-site).
 
