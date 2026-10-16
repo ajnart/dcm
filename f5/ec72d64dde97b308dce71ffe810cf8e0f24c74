@@ -1,0 +1,43 @@
+docs/assets/readme/setup-closeup.svg
+  s_2778c96de158c5::t_67e0a512c5390d 1
+docs/assets/readme/setup-rack.svg
+  s_2778c96de158c5::t_bbc868a84d469b 1
+docs/assets/readme/setup-terminal.svg
+  s_2778c96de158c5::t_8c3d4b5c6564b3 1
+video/reel/readme/.gitignore
+  s_2778c96de158c5::t_77d42fbd131b46 4
+video/reel/readme/build.mjs
+  s_2778c96de158c5::t_9157251bf0225d 9,105
+video/reel/readme/index.html
+  s_2778c96de158c5::t_49a21b1c654288 39,78
+video/reel/readme/section-setup-gallery.js
+  s_2778c96de158c5::t_93377818833034 1-16
+video/reel/readme/section-setup.mjs
+  s_8b76b1c77ab48c::t_fd4ee6cbba13ff 1-208
+video/reel/readme/setup-engine.mjs
+  s_2778c96de158c5::t_f663a3ef7b1b74 1-386
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f5ec72d64dde97b308dce71ffe810cf8e0f24c74",
+  "prompts": {},
+  "sessions": {
+    "s_2778c96de158c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1844fc6b-136e-4d20-97a4-129e432b7ea0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b76b1c77ab48c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54efe0a7-1d10-4cf0-b582-fba3820dfef8",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
