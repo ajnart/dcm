@@ -1,0 +1,16 @@
+.claude/skills/release-visual/SKILL.md
+  h_d6e478ca18e517 1-61
+docs/releasing.md
+  h_d6e478ca18e517 45-50,219-226
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b856bcf852bc2ebc5b4af86eb5084dd1596af126",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
