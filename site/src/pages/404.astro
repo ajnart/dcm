@@ -1,13 +1,14 @@
 ---
 import Base from "../layouts/Base.astro";
 import CodeBlock from "../components/CodeBlock.astro";
-import { INSTALL } from "../lib/site";
+import { INSTALL_METHODS } from "../lib/site";
 ---
-
 <Base title="404 · self-host" description="Nothing here." noindex>
   <main class="notfound">
     <h1><span class="accent">404</span> not found</h1>
     <p>Nothing here. <a href="/">Back to self-host</a></p>
-    <CodeBlock lang="bash" label="install" code={INSTALL} />
+    <div class="notfound-install">
+      <CodeBlock label="Install method" variants={INSTALL_METHODS} id="notfound-install" />
+    </div>
   </main>
 </Base>
