@@ -6,7 +6,6 @@ on:
   push:
     tags:
       - "v*"
-      - "new-cli-v*"
   workflow_dispatch:
     inputs:
       targets:

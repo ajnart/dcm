@@ -5,7 +5,7 @@
 #
 # Installs to ~/.local/bin, or /usr/local/bin when run as root.
 # Environment:
-#   SELF_HOST_VERSION      install this version (1.2.0, v1.2.0 or new-cli-v1.2.0) instead of the latest
+#   SELF_HOST_VERSION      install this version (1.2.0 or v1.2.0) instead of the latest
 #   SELF_HOST_INSTALL_DIR  install here instead of the default directory
 #   SELF_HOST_GITHUB_TOKEN GitHub token to lift the anonymous API rate limit; defaults to `gh auth token` when gh is logged in
 #   SELF_HOST_RELEASE_REPO owner/name of the repository that publishes releases (default below)

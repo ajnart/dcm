@@ -44,17 +44,28 @@ async function fromGitHub(): Promise<string | undefined> {
   return latest?.tag_name.replace(/^(new-cli-)?v/, "");
 }
 
+// fromTags reads the newest CLI release tag from the checkout: a vX.Y.Z tag
+// whose tree holds the Go CLI (the legacy v1.x skill-pack tags do not), or one
+// of the new-cli-vX.Y.Z tags releases up to 0.5.10 carried.
 function fromTags(): string | undefined {
   try {
     execFileSync("git", ["fetch", "--tags", "--quiet"], { stdio: "ignore" });
   } catch {}
+  const isCLI = (tag: string) => {
+    try {
+      execFileSync("git", ["cat-file", "-e", `${tag}:cmd/self-host/main.go`], { stdio: "ignore" });
+      return true;
+    } catch {
+      return false;
+    }
+  };
   try {
-    const tags = execFileSync("git", ["tag", "--list", "new-cli-v*"], { encoding: "utf8" }).split("\n").filter((t) => semver.test(t));
+    const tags = execFileSync("git", ["tag", "--list", "v*", "new-cli-v*"], { encoding: "utf8" }).split("\n").filter((t) => semver.test(t) && isCLI(t));
     let latest: string | undefined;
     for (const tag of tags) {
       if (!latest || newer(tag, latest)) latest = tag;
     }
-    return latest?.replace(/^new-cli-v/, "");
+    return latest?.replace(/^(new-cli-)?v/, "");
   } catch {
     return undefined;
   }

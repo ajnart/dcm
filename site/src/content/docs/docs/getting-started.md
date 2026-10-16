@@ -134,7 +134,7 @@ Do not run the binary if the checksum check fails.
 
 | Variable                 | Effect                                                                                  |
 | ------------------------ | --------------------------------------------------------------------------------------- |
-| `SELF_HOST_VERSION`      | Install `X.Y.Z`, `vX.Y.Z` or `new-cli-vX.Y.Z` instead of the latest.                    |
+| `SELF_HOST_VERSION`      | Install `X.Y.Z` or `vX.Y.Z` instead of the latest.                                      |
 | `SELF_HOST_INSTALL_DIR`  | Install here instead of the default directory.                                          |
 | `SELF_HOST_RELEASE_REPO` | `owner/name` that publishes releases; also used by `self-update`. For forks.            |
 | `SELF_HOST_GITHUB_TOKEN` | Lifts GitHub's anonymous API rate limit; falls back to `gh auth token`. Never paste it. |

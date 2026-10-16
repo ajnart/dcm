@@ -2,7 +2,7 @@ name: release
 
 on:
   push:
-    tags: ["v*", "new-cli-v*"]
+    tags: ["v*"]
 
 permissions:
   contents: read
@@ -30,15 +30,14 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           [[ "$GITHUB_REPOSITORY" == ajnart/self-host ]]
-          [[ "$RELEASE_TAG" =~ ^(new-cli-)?v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
-          version=${RELEASE_TAG#new-cli-}
-          printf 'SELF_HOST_RELEASE_VERSION=%s\n' "${version#v}" >> "$GITHUB_ENV"
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          printf 'SELF_HOST_RELEASE_VERSION=%s\n' "${RELEASE_TAG#v}" >> "$GITHUB_ENV"
       - name: Check installer and self-update fixtures
         run: |
           bash -n install.sh
           go test ./internal/release ./internal/cli -run '^(TestLatest|TestAuthenticated|TestUpdate|TestNewer|TestDevBuild|TestMalformedVersions|TestExtract|TestInstall|TestRepository|TestAnInvalid|TestSelfUpdate)'
       # OSS snapshot packaging never publishes from goreleaser itself.
-      # The validated tag (vX.Y.Z or new-cli-vX.Y.Z) supplies the version; gh owns publication.
+      # The validated vX.Y.Z tag supplies the version; gh owns publication.
       - uses: goreleaser/goreleaser-action@v7.2.3
         env:
           POSTHOG_PROJECT_KEY: ${{ vars.POSTHOG_PROJECT_KEY }}
@@ -87,6 +86,4 @@ jobs:
             cmp "$asset" "$RUNNER_TEMP/release-download/${asset##*/}"
           done
           (cd "$RUNNER_TEMP/release-download" && sha256sum --check checksums.txt)
-          latest=true
-          [[ "$RELEASE_TAG" == new-cli-v* ]] && latest=false
-          gh release edit "$RELEASE_TAG" --draft=false --latest="$latest"
+          gh release edit "$RELEASE_TAG" --draft=false --latest

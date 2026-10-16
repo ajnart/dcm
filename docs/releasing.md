@@ -1,7 +1,6 @@
 # Releasing the self-host CLI
 
-A CLI release is a GitHub release tagged **`vX.Y.Z`** (the earlier channel used
-`new-cli-vX.Y.Z`; both are accepted) that carries these assets:
+A CLI release is a GitHub release tagged **`vX.Y.Z`** that carries these assets:
 
 ```
 checksums.txt
@@ -19,8 +18,15 @@ non-draft, non-prerelease releases that carry `checksums.txt` and a
 `self-host_<version>_*.tar.gz`. Releases without them (the legacy skill-pack
 releases `v1.0.0`, `v1.1.1`, `v1.1.2`) are never chosen. The CLI does not read
 GitHub's "Latest" badge, but GitHub would give it to the legacy `v1.1.2` by
-version, so publish every `vX.Y.Z` release with `--latest` and its
-`new-cli-vX.Y.Z` twin with `--latest=false`.
+version, so publish every `vX.Y.Z` release with `--latest`.
+
+Releases up to 0.2.0 were tagged `new-cli-vX.Y.Z`, from when the Go CLI lived
+in a `new-cli/` folder next to the TypeScript product, and CLI 0.2.x and older
+only look for that prefix. Until 0.5.10 every release had a byte-identical
+`new-cli-v` twin for them. No twins are made after 0.5.10: an old binary
+self-updates to `new-cli-v0.5.10`, which reads `vX.Y.Z` tags and updates again.
+The installer, `self-update` and the site still read the old tags, so pinned
+old versions keep installing.
 
 ## Prepare
 
@@ -37,7 +43,7 @@ the key, and the binary sends nothing. Check with `grep -c phc_ dist/self-host_*
 ## Release from CI
 
 Push the tag. `.github/workflows/release.yml` validates the tag against
-`^(new-cli-)?v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`, packages with
+`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`, packages with
 goreleaser in snapshot mode (`SELF_HOST_RELEASE_VERSION` supplies `X.Y.Z`),
 smoke-tests the Linux binary, creates a **draft** release, downloads it, compares
 every asset with `cmp`, checks the checksums, and only then publishes it, as
@@ -85,7 +91,7 @@ scripts/publish-channels.sh X.Y.Z
 It runs, in order, `publish-docker.sh` and
 `publish-homebrew.sh`, stops at the first failure, and each script refuses a
 draft release or a `dist/checksums.txt` that differs from the published one, so
-a rerun is safe. The `new-cli-vX.Y.Z` twin is never published anywhere. Each
+a rerun is safe. Each
 script also runs alone, with `--dry-run` for Docker.
 
 | Channel  | Needs once                                                                                                | Works while the repo is private                                                                |
@@ -158,7 +164,7 @@ scripts/publish-homebrew.sh X.Y.Z
 
 Same guards as the other channels (not a draft, `dist/checksums.txt` matches the
 published one); it commits `Casks/self-host.rb` to `ajnart/homebrew-tap` and pushes.
-The `new-cli-vX.Y.Z` twin is never published to Homebrew. It needs anonymously downloadable release assets
+The cask needs anonymously downloadable release assets
 ([#295](https://github.com/ajnart/self-host/issues/295)).
 
 The tap repo [ajnart/homebrew-tap](https://github.com/ajnart/homebrew-tap) exists.
@@ -179,7 +185,7 @@ shows the new version.
 ## Tag triggers
 
 Two workflows react to release tags: `release.yml` (the release) and `e2e.yml`
-(the end-to-end suite); both fire on `v*` and `new-cli-v*`. `ci.yml` has no tag
+(the end-to-end suite); both fire on `v*`. `ci.yml` has no tag
 trigger. The legacy skill pack no longer exists, so a plain `vX.Y.Z` tag is
 always a CLI release at that version from the tagged commit.
 
@@ -212,7 +218,7 @@ not involved. Its build settings:
 | Root directory         | (repository root)                            |
 | Build watch paths      | include `site/*`, `install.sh`, `scripts/build-installer-site.sh`, `scripts/build-site-pages.sh` |
 | `BUN_VERSION`          | `1.4.3`                                      |
-| `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `new-cli-vX.Y.Z` tag from the checkout, since the releases API is private while the repo is |
+| `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `vX.Y.Z` tag of the Go CLI from the checkout, since the releases API is private while the repo is |
 
 A release does not push to `main`, so the site would keep showing the old
 version: after publishing a release, trigger the project's deploy hook

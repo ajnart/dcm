@@ -8,7 +8,8 @@
 #   2. self-host skill works
 #   3. the installer never prompts or hangs without a terminal (it runs in a
 #      new session with no controlling terminal) and prints the skill hint
-#   4. a pinned old version (SELF_HOST_VERSION, default 0.1.2) upgrades to the
+#   4. a pinned old version (SELF_HOST_VERSION, default 0.3.0, the oldest
+#      release that finds plain vX.Y.Z tags) upgrades to the
 #      latest through  self-host self-update
 #
 # Environment:
@@ -20,7 +21,7 @@
 #                            public installer site. A file:// URL tests a local
 #                            script before it is pushed.
 #   SELF_HOST_RELEASE_REPO   repository that publishes the releases
-#   VERIFY_PINNED_VERSION    the old version to upgrade from (default 0.1.2)
+#   VERIFY_PINNED_VERSION    the old version to upgrade from (default 0.3.0)
 #   VERIFY_EXPECTED_VERSION  skip the release lookup and expect this version
 #   VERIFY_INSTALL_TIMEOUT   seconds before an install counts as hung (default 300)
 #
@@ -30,7 +31,7 @@ set -euo pipefail
 
 REPO="${SELF_HOST_RELEASE_REPO:-ajnart/self-host}"
 URL="${VERIFY_INSTALL_URL:-https://self-host.fyi/install}"
-PINNED="${VERIFY_PINNED_VERSION:-0.1.2}"
+PINNED="${VERIFY_PINNED_VERSION:-0.3.0}"
 TOKEN="${SELF_HOST_GITHUB_TOKEN:-}"
 
 sandbox="$(mktemp -d "${TMPDIR:-/tmp}/self-host-verify.XXXXXX")"

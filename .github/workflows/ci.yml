@@ -96,7 +96,7 @@ jobs:
 
           root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "native-smoke"
           version = os.environ["SMOKE_VERSION"]
-          tag = "new-cli-v" + version
+          tag = "v" + version
           archive_name = "self-host_{}_{}_{}.tar.gz".format(version, os.environ["TARGET_OS"], os.environ["TARGET_ARCH"])
           archive = (root / archive_name).read_bytes()
           checksum = hashlib.sha256(archive).hexdigest()
