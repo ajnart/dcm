@@ -1,0 +1,39 @@
+docs/assets/readme/header.html
+  s_2c9b86d3f386ea::t_8d27b986a0669d 19
+docs/assets/readme/hero-lockup.svg
+  s_88fbc8564416f1::t_7b03b008bf37fb 1
+video/reel/readme/README.md
+  s_88fbc8564416f1::t_d244036ef4f48a 11,20,26-28,33,37-40,43,64
+video/reel/readme/build.mjs
+  s_2c9b86d3f386ea::t_7eeb0b6a85723c 9,15,33,35,37,53-65,67-81,97,99-102,134,143
+video/reel/readme/glyphs.mjs
+  s_88fbc8564416f1::t_71d31ecf72e123 217-403,411-425,428
+video/reel/readme/hero.mjs
+  s_88fbc8564416f1::t_d150554c11ad62 1-262
+video/reel/readme/index.html
+  s_2c9b86d3f386ea::t_264a89c9416011 36-37,39,50-51,53-60,68-78,80,82-85,88-89,93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "12c7524f56b80de7ff734ab198122501668f6fcf",
+  "prompts": {},
+  "sessions": {
+    "s_2c9b86d3f386ea": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68f9530c-8ad2-476f-ad10-fdf0e0c8c41e",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_88fbc8564416f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "73e51a19-13e4-4347-9cad-9d03e6e40b7d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
