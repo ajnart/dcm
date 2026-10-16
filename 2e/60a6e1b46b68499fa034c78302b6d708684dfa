@@ -1,0 +1,25 @@
+docs/releasing.md
+  s_7fa234028f3f9f::t_0b62edab002bf1 91-92,224-227
+scripts/publish-channels.sh
+  s_7fa234028f3f9f::t_144e91bba9238a 7
+scripts/publish-site.sh
+  s_7fa234028f3f9f::t_85e420de819d2a 1-13
+site/wrangler.toml
+  s_7fa234028f3f9f::t_f0e3573287a721 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2e60a6e1b46b68499fa034c78302b6d708684dfa",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
