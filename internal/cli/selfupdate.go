@@ -23,6 +23,13 @@ func (a *program) selfUpdateCmd() *cobra.Command {
 			if !release.IsRelease(current) {
 				return a.fail(fmt.Errorf("this is a development build (%s); install a release instead: %s", current, release.InstallCommand))
 			}
+			exe, err := a.deps.Executable()
+			if err != nil {
+				return a.fail(errors.New("cannot locate the running binary: " + err.Error()))
+			}
+			if err := release.CheckSelfManaged(exe); err != nil {
+				return a.fail(err)
+			}
 			rel, err := client.Latest(cmd.Context())
 			if err != nil {
 				return a.fail(err)
@@ -34,10 +41,6 @@ func (a *program) selfUpdateCmd() *cobra.Command {
 			if !newer {
 				log.Emit(events.Event{Event: events.RunEnd, Msg: fmt.Sprintf("self-host %s is up to date (latest release %s)", current, rel.Version())})
 				return nil
-			}
-			exe, err := a.deps.Executable()
-			if err != nil {
-				return a.fail(errors.New("cannot locate the running binary: " + err.Error()))
 			}
 			log.Emit(events.Event{Event: events.StepStart, Step: "download", Msg: fmt.Sprintf("self-host %s for %s/%s", rel.Version(), a.deps.GOOS, a.deps.GOARCH)})
 			if err := client.Install(cmd.Context(), rel, a.deps.GOOS, a.deps.GOARCH, exe); err != nil {

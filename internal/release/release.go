@@ -308,7 +308,7 @@ func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe stri
 	if err := c.validate(); err != nil {
 		return err
 	}
-	if err := checkSelfManaged(exe); err != nil {
+	if err := CheckSelfManaged(exe); err != nil {
 		return err
 	}
 	if !validTag(rel.Tag) {
@@ -409,7 +409,9 @@ func extract(archive []byte, limit int64) ([]byte, error) {
 	}
 }
 
-func checkSelfManaged(exe string) error {
+// CheckSelfManaged refuses to replace a binary that a package manager or the
+// Docker image owns, naming the command that updates it instead.
+func CheckSelfManaged(exe string) error {
 	path := exe
 	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
 		path = resolved

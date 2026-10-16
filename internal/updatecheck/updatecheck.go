@@ -102,9 +102,17 @@ func (c Cache) Save(s State) error {
 }
 
 // Disabled is true where no one should be asked or told about an update: a
-// development build, continuous integration, or an explicit opt-out.
+// development build, continuous integration, an explicit opt-out, or a binary
+// a package manager updates.
 func Disabled(deps *system.Deps) bool {
-	return !release.IsRelease(deps.Version) || deps.Getenv("CI") != "" || deps.Getenv(EnvOptOut) == "1"
+	if !release.IsRelease(deps.Version) || deps.Getenv("CI") != "" || deps.Getenv(EnvOptOut) == "1" {
+		return true
+	}
+	if deps.Executable == nil {
+		return false
+	}
+	exe, err := deps.Executable()
+	return err == nil && release.CheckSelfManaged(exe) != nil
 }
 
 // Notice is the line a plain command prints for a newer release.

@@ -36,6 +36,7 @@ gh release view "v$version" -R ajnart/self-host --json isDraft --jq '.isDraft' |
 gh release download "v$version" -R ajnart/self-host -p checksums.txt -O - | cmp -s - dist/checksums.txt \
   || { echo "dist/ was not built from the published v$version assets" >&2; exit 1; }
 
-docker buildx build --platform linux/amd64,linux/arm64 --build-arg "VERSION=$version" \
+docker buildx inspect self-host >/dev/null 2>&1 || docker buildx create --name self-host --driver docker-container >/dev/null
+docker buildx build --builder self-host --platform linux/amd64,linux/arm64 --build-arg "VERSION=$version" \
   --provenance=false --push -t "$image:$version" -t "$image:latest" .
 echo "$image:$version and :latest pushed"

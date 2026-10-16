@@ -32,21 +32,21 @@ func TestSelfUpdateRefusesInstallsAPackageManagerOwns(t *testing.T) {
 	if got, _ := os.ReadFile(npmBin); string(got) != "old" {
 		t.Fatalf("binary was modified: %q", got)
 	}
-	if checkSelfManaged("/usr/bin/self-host") == nil {
+	if CheckSelfManaged("/usr/bin/self-host") == nil {
 		t.Fatal("/usr/bin install should be refused")
 	}
-	if checkSelfManaged("/opt/homebrew/Caskroom/self-host/1.0.0/self-host") == nil {
+	if CheckSelfManaged("/opt/homebrew/Caskroom/self-host/1.0.0/self-host") == nil {
 		t.Fatal("Homebrew install should be refused")
 	}
-	if checkSelfManaged("/usr/local/bin/self-host") != nil {
+	if CheckSelfManaged("/usr/local/bin/self-host") != nil {
 		t.Fatal("/usr/local/bin install should be allowed")
 	}
 	t.Setenv("SELF_HOST_IMAGE", "1")
-	if checkSelfManaged("/usr/local/bin/self-host") == nil {
+	if CheckSelfManaged("/usr/local/bin/self-host") == nil {
 		t.Fatal("Docker image install should be refused")
 	}
 	t.Setenv("SELF_HOST_IMAGE", "")
-	if checkSelfManaged(filepath.Join(dir, "self-host")) != nil {
+	if CheckSelfManaged(filepath.Join(dir, "self-host")) != nil {
 		t.Fatal("plain install should be allowed")
 	}
 }
