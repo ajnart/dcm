@@ -22,7 +22,7 @@
   <a href="https://self-host.fyi">Website</a> · <a href="https://self-host.fyi/docs">Docs</a> · <a href="https://self-host.fyi/#reel">Showreel</a> · <a href="https://discord.gg/aCsmEV5RgA">Discord</a>
 </p>
 
-[![self-host: Your Apps. Your home. One binary. Watch the showreel.](docs/assets/social-card.png)](https://self-host.fyi/#reel)
+<p align="center"><a href="https://self-host.fyi/#reel"><img src="docs/assets/readme/hero-lockup.svg" width="880" alt="Stop renting your software. One curl command is typed, the four containers' status lights come on and $92 a month counts down to $0."></a></p>
 
 Run your own Apps at home without learning Docker. One binary installs and runs them, with a terminal Dashboard for you and plain commands for your agent.
 
@@ -32,7 +32,6 @@ curl -fsSL https://self-host.fyi/install | bash
 
 That installs only the binary and deploys nothing. Needs Docker with the Compose v2 plugin on Linux, macOS or WSL2. Then run `self-host`.
 
-<p align="center"><img src="docs/assets/readme/setup-terminal.svg" width="880" alt="Setting up self-host in 30 seconds. A terminal installs with curl -fsSL https://self-host.fyi/install | bash, answers Onboarding one question at a time (Welcome, What, Where, Access, Who, Look), shows the Review plan and presses enter to approve, then lands on the Dashboard Overview with Homarr, Jellyfin, Prowlarr, qBittorrent, Radarr, Seerr and Sonarr running."></p>
 
 <details>
 <summary><b>Other ways to install</b> (wget, Homebrew, Docker, packages, Arch, archive, source)</summary>
