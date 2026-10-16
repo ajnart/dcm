@@ -1,0 +1,27 @@
+README.md
+  s_7fa234028f3f9f::t_010d926065a613 389
+docs/catalog/traps/cleanuparr.md
+  s_7fa234028f3f9f::t_128239e481aa9c 7-9
+internal/apps/cleanuparr/cleanuparr.go
+  s_7fa234028f3f9f::t_f34cf9eec3d7c5 10,33-36,76,79-80,82,149-150,153,156,159,161,164-169,173-177,184-298
+internal/apps/cleanuparr/cleanuparr_test.go
+  s_7fa234028f3f9f::t_4c0d10896ae547 25-27,32-38,40,42,46,48,55-68,74-79,84,86-87,105-145
+site/src/data/catalog.json
+  s_7fa234028f3f9f::t_718882461ab612 131-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3de318e0c88c81aacc4f3dc0f05f8ab19d000289",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
