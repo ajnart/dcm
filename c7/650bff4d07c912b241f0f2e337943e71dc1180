@@ -1,0 +1,23 @@
+docs/assets/readme/replaces-meet.svg
+  s_9e8774a61bc547::t_dbaa0c43561ed6 1
+video/reel/readme/README.md
+  s_9e8774a61bc547::t_95cc50e196e9c7 60
+video/reel/readme/section-replaces.mjs
+  s_9e8774a61bc547::t_930fc9a043b57a 72,79,81-83,88-89,94-95,97-102,108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7650bff4d07c912b241f0f2e337943e71dc1180",
+  "prompts": {},
+  "sessions": {
+    "s_9e8774a61bc547": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "40f271ca-9018-48af-bb54-77d72353c6b0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
