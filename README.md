@@ -38,8 +38,6 @@ self-host install media homarr
 self-host
 ```
 
-![Actual self-host Dashboard showing Homarr, Jellyfin and ntfy with Setup details](docs/images/dashboard.png)
-
 <details>
 <summary><b>What happens next</b> (Onboarding, Dashboard, Catalog)</summary>
 
@@ -47,7 +45,7 @@ On a machine with no Project, bare `self-host` opens Onboarding: it checks Docke
 
 The Catalog ships inside the binary: **90 Apps, 7 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
 
-The screenshot is a real 120×30 session of a loopback-only Homarr/Jellyfin/ntfy Project: [Activity](docs/images/workflow.png), [Catalog search](docs/images/install-search.png), [recording](docs/demos/self-host.cast), [provenance](docs/demos/capture.json).
+Real captures of a 120×30 session of a loopback-only Homarr/Jellyfin/ntfy Project: [Activity](docs/images/workflow.png), [Catalog search](docs/images/install-search.png), [recording](docs/demos/self-host.cast), [provenance](docs/demos/capture.json).
 
 </details>
 
