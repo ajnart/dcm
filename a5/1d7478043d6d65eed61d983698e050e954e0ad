@@ -1,0 +1,19 @@
+site/src/lib/catalog.ts
+  s_6a71ab19daa863::t_cd3046a658d2ee 51-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a51d7478043d6d65eed61d983698e050e954e0ad",
+  "prompts": {},
+  "sessions": {
+    "s_6a71ab19daa863": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "850ec604-a207-4917-80df-37a44ceb5b27",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
