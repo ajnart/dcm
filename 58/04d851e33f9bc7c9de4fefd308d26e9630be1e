@@ -1,0 +1,43 @@
+docs/assets/brand/manifest.json
+  s_6ffc27df9af36a::t_989024491c0b59 1-574
+video/reel/brand/README.md
+  s_6ffc27df9af36a::t_7f70421fa3e0b3 1-31
+video/reel/brand/animate.mjs
+  s_3d37b6355074d3::t_66606c4e14b1e2 1-139
+video/reel/brand/build.mjs
+  s_3d37b6355074d3::t_3c7c81254abd85 1-153
+video/reel/brand/glyphs.mjs
+  s_3d37b6355074d3::t_078fd251551c4f 1-443
+video/reel/brand/index.html
+  s_3d37b6355074d3::t_f6fff6c7fc9eb0 1-153
+video/reel/brand/shapes.mjs
+  s_3d37b6355074d3::t_9f77bd160d6900 1-113
+video/reel/brand/source.mjs
+  s_3d37b6355074d3::t_dae230a22d1f49 1-86
+video/reel/package.json
+  s_3d37b6355074d3::t_a61aa554c94d41 10-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5804d851e33f9bc7c9de4fefd308d26e9630be1e",
+  "prompts": {},
+  "sessions": {
+    "s_3d37b6355074d3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fca367f3-48fa-4994-8d9a-4996ab2e10f6",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_6ffc27df9af36a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "71bef8d5-5ed5-4d46-9fcd-8d4ea0536d2c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
