@@ -109,7 +109,7 @@ self-host access export --format caddy   # or nginx, traefik, json (the default)
 
 It prints every App's upstream, an `example.com` hostname to replace, and whether the App needs WebSockets or long timeouts when known. You run the proxy, its certificates and its login; the `IP:port` Address keeps working.
 
-## When the network changes
+## When the network changes :badge[New]
 
 The LAN address is stored when the Project is made. When the machine moves to another network, every Address points at the old one: `self-host status --json` reports `lan_ip_stale` and `self-host doctor` warns on `lan-ip`. Fix it with:
 

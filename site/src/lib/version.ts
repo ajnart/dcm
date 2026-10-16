@@ -6,7 +6,7 @@ type Release = { tag_name: string; draft: boolean; prerelease: boolean; assets: 
 
 const semver = /^(?:new-cli-)?v(\d+)\.(\d+)\.(\d+)$/;
 
-function token(): string | undefined {
+export function githubToken(): string | undefined {
   if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
   try {
     return execFileSync("gh", ["auth", "token"], { encoding: "utf8" }).trim() || undefined;
@@ -31,7 +31,7 @@ function newer(a: string, b: string): boolean {
 }
 
 async function fromGitHub(): Promise<string | undefined> {
-  const auth = token();
+  const auth = githubToken();
   const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=100`, {
     headers: { Accept: "application/vnd.github+json", ...(auth && { Authorization: `Bearer ${auth}` }) },
   });

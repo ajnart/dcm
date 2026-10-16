@@ -3,6 +3,10 @@ import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightPageActions from "starlight-page-actions";
 import starlightLinksValidator from "starlight-links-validator";
+import starlightGitHubAlerts from "starlight-github-alerts";
+import starlightHeadingBadges from "starlight-heading-badges";
+import starlightChangelogs, { makeChangelogsSidebarLinks } from "starlight-changelogs";
+import { changelog } from "./src/lib/changelog";
 import catalog from "./src/data/catalog.json" with { type: "json" };
 import { cspCheck, starlightInlineScriptHashes, styleAttributeHashes } from "./src/lib/csp.mjs";
 
@@ -30,7 +34,13 @@ export default defineConfig({
         MarkdownContent: "./src/components/docs/MarkdownContent.astro",
       },
       routeMiddleware: "./src/lib/docs-route.ts",
-      plugins: [starlightLinksValidator({ exclude: ["/apps", "/apps/**", "/docs/recipes", "/docs/recipes/**", "/telemetry"] }), starlightPageActions({ actions: { markdown: true, chatgpt: true, claude: true, cursor: true } })],
+      plugins: [
+        starlightGitHubAlerts(),
+        starlightHeadingBadges(),
+        starlightChangelogs(),
+        starlightLinksValidator({ exclude: ["/apps", "/apps/**", "/docs/recipes", "/docs/recipes/**", "/telemetry"] }),
+        starlightPageActions({ actions: { markdown: true, chatgpt: true, claude: true, cursor: true } }),
+      ],
       head: [
         { tag: "meta", attrs: { name: "theme-color", content: "#1e1d2a" } },
         { tag: "link", attrs: { rel: "icon", href: "/icon-192.png", type: "image/png", sizes: "192x192" } },
@@ -55,6 +65,7 @@ export default defineConfig({
             { label: "Access", link: "/docs/access" },
             { label: "Agents", link: "/docs/agents" },
             { label: "Troubleshooting", link: "/docs/troubleshooting" },
+            ...(changelog.enabled ? makeChangelogsSidebarLinks([{ type: "all", base: changelog.base, label: "Changelog" }]) : []),
           ],
         },
         {
