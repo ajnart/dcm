@@ -1,0 +1,19 @@
+README.md
+  s_a74bcf62a987b5::t_f6ca7fca1cc544 344-363
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ea1788aebcba7a163ea81db39502708ce7688183",
+  "prompts": {},
+  "sessions": {
+    "s_a74bcf62a987b5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a137de42-6e4d-41da-9a30-501df490d231",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
