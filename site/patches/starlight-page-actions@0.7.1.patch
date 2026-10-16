@@ -1,0 +1,15 @@
+diff --git a/components/PageActions.astro b/components/PageActions.astro
+index 860dd2228cf39d69089508bee02ed47bac870c57..8cf03d6a010332d573f2b9b7c04c2423957d2318 100644
+--- a/components/PageActions.astro
++++ b/components/PageActions.astro
+@@ -48,8 +48,8 @@ interface OptionsProps {
+   icon?: IconComponent;
+ }
+ 
+-const currentPath = Astro.url.pathname.replace(/\/$/, "");
+-const currentUrl = Astro.url.href;
++const currentPath = Astro.url.pathname.replace(/\.html$/, "").replace(/\/$/, "");
++const currentUrl = new URL(`${currentPath}.md`, Astro.url).href;
+ const currentLocale = Astro.currentLocale;
+ const { actions, share } = config;
+ 

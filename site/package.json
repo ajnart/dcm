@@ -19,10 +19,14 @@
     "@astrojs/check": "^0.9.10",
     "@types/node": "^26.6.4",
     "@types/prismjs": "^1.26.6",
+    "starlight-page-actions": "^0.7.1",
     "typescript": "^6.0.3"
   },
   "packageManager": "bun@1.4.3",
   "engines": {
     "bun": ">=1.4.3"
+  },
+  "patchedDependencies": {
+    "starlight-page-actions@0.7.1": "patches/starlight-page-actions@0.7.1.patch"
   }
 }
