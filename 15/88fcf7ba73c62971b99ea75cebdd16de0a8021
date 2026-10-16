@@ -1,0 +1,21 @@
+docs/releasing.md
+  s_7fa234028f3f9f::t_a4cb2a13e59c62 215
+site/src/lib/version.ts
+  s_7fa234028f3f9f::t_50930d57256786 47-62,65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1588fcf7ba73c62971b99ea75cebdd16de0a8021",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
