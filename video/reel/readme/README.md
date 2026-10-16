@@ -77,3 +77,13 @@ Generated and git-ignored: `v*.html`, `variants.json`. Committed: everything in 
 ## Section: Apps that wire themselves (#565)
 
 `section-links.mjs` draws the Links between Apps as an animated SVG (`links-graph.svg`) with a static PNG fallback (`links-graph.png`). Apps pop in within the first 3 s and the Links draw straight away; the fully drawn graph holds for about 3 s of the 8 s loop, then the build rewinds in 0.8 s (arrows retract in reverse order, chips pop out) onto the first frame, so the loop has no jump. Every Link drawn is asserted against `site/src/data/catalog.json` when the module loads, so a Link that leaves the Catalog fails the build; the Homarr tile count is read from the same file. Budget: 400 KB per file. The base state is fully drawn, which is what `prefers-reduced-motion` and the PNG show. The gallery's bottom block shows it; `?s=1` shows the PNG.
+
+## Section: 30 seconds setup (#564)
+
+`section-setup.mjs` (variants and `buildSetup`) and `setup-engine.mjs` (glyph-path terminal, scenes, timeline) write the looping animated SVG with a static PNG fallback to `docs/assets/readme/setup-terminal.{svg,png}`. It plays a ~22.6 s story: the install one-liner, Onboarding one question at a time, the Review plan and its `enter approve`, then the Dashboard with the Apps running. Screens come from `internal/tui/testdata/` and `install.sh`, trimmed to 22 rows. Nothing fades: elements appear by motion and the loop restarts with a hard cut to the first frame.
+
+| id               | idea                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `setup-terminal` | faithful 104-column terminal, an Install / Onboarding / Approve / Running strip above |
+
+Budget: SVG 400 KB, PNG 600 KB. The base state (no animation, `prefers-reduced-motion`) is the finished Dashboard, which is what the PNG shows. README.md shows `setup-terminal.svg` under "30 seconds setup". The gallery lists it under the header variants; `section-setup.json` is generated and git-ignored.

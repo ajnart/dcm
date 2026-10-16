@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { dashboard, FRAME } from "./scene.mjs";
 import { buildReplaces } from "./section-replaces.mjs";
+import { buildSetup } from "./section-setup.mjs";
 import { command, lockup, SIZES, swaps } from "./hero.mjs";
 import { SCENES as LINKS_SCENES } from "./section-links.mjs";
 const dir = dirname(fileURLToPath(import.meta.url));
@@ -78,6 +79,7 @@ await sp.screenshot({ path: join(out, "section-dashboard.png"), omitBackground: 
 await sp.close();
 extras.push({ id: "section-dashboard", name: "Section image: the Dashboard Overview", file: "section-dashboard.png", budget: HERO });
 extras.push(...(await buildReplaces({ browser: b, out, budgets: { svg: 400 * 1024, png: 400 * 1024 } })));
+await buildSetup(b, out, kb);
 const linksOut = [];
 for (const s of LINKS_SCENES) {
   const svg = s.build(true), still = s.build(false);

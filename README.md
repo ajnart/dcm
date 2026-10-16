@@ -20,6 +20,8 @@ Netflix, Spotify, Drive, Dropbox, Photos, 1Password, Notion and ChatGPT each hav
 
 ## 30 seconds setup
 
+<p align="center"><img src="docs/assets/readme/setup-terminal.svg" width="880" alt="Setting up self-host in 30 seconds. A terminal installs with curl -fsSL https://self-host.fyi/install | bash, answers Onboarding one question at a time (Welcome, What, Where, Access, Who, Look), shows the Review plan and presses enter to approve, then lands on the Dashboard Overview with Homarr, Jellyfin, Prowlarr, qBittorrent, Radarr, Seerr and Sonarr running."></p>
+
 Needs Docker with the Compose v2 plugin. Linux, macOS, or Windows through WSL.
 
 ```bash
