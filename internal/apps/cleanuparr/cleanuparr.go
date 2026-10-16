@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/firstadmin"
@@ -29,7 +30,10 @@ func (App) Info() app.Info {
 }
 
 func (App) Inputs() []app.Input { return nil }
-func (App) Links() []app.Link   { return nil }
+
+func (App) Links() []app.Link {
+	return []app.Link{arrLink("sonarr", "Sonarr", 4), arrLink("radarr", "Radarr", 6), qbittorrentLink()}
+}
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
@@ -69,32 +73,13 @@ func admin() firstadmin.FirstAdmin {
 }
 
 func (App) Setup(ctx context.Context, h *helpers.H) error {
-	if err := admin().Setup(ctx, h); err != nil {
-		return err
-	}
-	return h.Step(ctx, "connections", "connect Sonarr or Radarr and a download client", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) { return connected(ctx, h) },
-		Do: func(ctx context.Context) error {
-			return fmt.Errorf("%w: Cleanuparr is connected to Sonarr, Radarr and download clients in its web UI", helpers.ErrManual)
-		},
-		Hint: "Open " + h.URL + " and sign in with the Admin login. Under Settings add Sonarr and Radarr (Arr Applications) and qBittorrent (Download Client); " +
-			"their API keys and passwords are shown by `self-host credentials`. Then run: self-host setup cleanuparr",
-		Credential: "admin",
-	})
+	return admin().Setup(ctx, h)
 }
 
+// Check proves the Admin login signs in; what Cleanuparr is connected to is
+// the Links' job.
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	if err := admin().Check(ctx, h); err != nil {
-		return err
-	}
-	ok, err := connected(ctx, h)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return errors.New("Cleanuparr has no Sonarr or Radarr and no download client yet; add them in its Settings")
-	}
-	return nil
+	return admin().Check(ctx, h)
 }
 
 func setupCompleted(ctx context.Context, h *helpers.H) (bool, error) {
@@ -161,46 +146,153 @@ func login(ctx context.Context, h *helpers.H, user, password string) (string, bo
 	return body.Tokens.AccessToken, true, nil
 }
 
-func connected(ctx context.Context, h *helpers.H) (bool, error) {
+// token signs in with the Admin login and returns the access token.
+func token(ctx context.Context, h *helpers.H) (string, error) {
 	token, ok, err := login(ctx, h, h.AdminUser(), h.AdminPassword())
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	if !ok {
-		return false, errors.New("the Admin login cannot sign in to Cleanuparr")
+		return "", errors.New("the Admin login cannot sign in to Cleanuparr")
 	}
 	if token == "" {
-		return false, fmt.Errorf("%w: two-factor sign-in stops self-host from reading Cleanuparr's connections", helpers.ErrManual)
+		return "", fmt.Errorf("%w: two-factor sign-in stops self-host from changing Cleanuparr's connections", helpers.ErrManual)
 	}
-	arrs := 0
-	for _, kind := range []string{"sonarr", "radarr"} {
-		var config struct {
-			Instances []struct{} `json:"instances"`
-		}
-		if err := read(ctx, h, token, "/api/configuration/"+kind, &config); err != nil {
-			return false, err
-		}
-		arrs += len(config.Instances)
-	}
-	var clients struct {
-		Clients []struct{} `json:"clients"`
-	}
-	if err := read(ctx, h, token, "/api/configuration/download_client", &clients); err != nil {
-		return false, err
-	}
-	return arrs > 0 && len(clients.Clients) > 0, nil
+	return token, nil
 }
 
-func read(ctx context.Context, h *helpers.H, token, path string, value any) error {
-	resp, err := h.HTTP(ctx, helpers.Request{Path: path, Header: map[string]string{"Authorization": "Bearer " + token}})
+func call(ctx context.Context, h *helpers.H, method, path string, body, value any) error {
+	tok, err := token(ctx, h)
+	if err != nil {
+		return err
+	}
+	resp, err := h.HTTP(ctx, helpers.Request{Method: method, Path: path, JSON: body, Header: map[string]string{"Authorization": "Bearer " + tok}})
 	if err != nil {
 		return h.Log.RedactError(err)
 	}
-	if resp.Status != http.StatusOK {
-		return fmt.Errorf("Cleanuparr %s returned HTTP %d", path, resp.Status)
+	if !resp.OK() {
+		return fmt.Errorf("Cleanuparr %s %s returned HTTP %d", method, path, resp.Status)
+	}
+	if value == nil {
+		return nil
 	}
 	if err := resp.Decode(value); err != nil {
 		return fmt.Errorf("Cleanuparr %s returned invalid data", path)
 	}
 	return nil
+}
+
+func sameURL(a, b string) bool {
+	return strings.TrimSuffix(a, "/") == strings.TrimSuffix(b, "/")
+}
+
+type entry struct {
+	ID   string `json:"id"`
+	URL  string `json:"url"`
+	Host string `json:"host"`
+}
+
+// arrInstance finds the instance of kind that points at to, by its Compose
+// service address; instances the person added for other hosts are left alone.
+func arrInstance(ctx context.Context, from, to *helpers.H, kind string) (string, error) {
+	var config struct {
+		Instances []entry `json:"instances"`
+	}
+	if err := call(ctx, from, http.MethodGet, "/api/configuration/"+kind, nil, &config); err != nil {
+		return "", err
+	}
+	for _, i := range config.Instances {
+		if sameURL(i.URL, to.InternalURL()) {
+			return i.ID, nil
+		}
+	}
+	return "", nil
+}
+
+// arrLink makes Cleanuparr watch Sonarr's or Radarr's queue, reached by
+// Compose service name with its API key.
+func arrLink(kind, name string, version float64) app.Link {
+	linked := func(ctx context.Context, from, to *helpers.H) (bool, error) {
+		id, err := arrInstance(ctx, from, to, kind)
+		return id != "", err
+	}
+	return app.NewLink("link-"+kind, kind, "clean "+name+"'s queue",
+		app.LinkStep{
+			Message: "connect " + name,
+			Check:   linked,
+			Do: func(ctx context.Context, from, to *helpers.H) error {
+				return call(ctx, from, http.MethodPost, "/api/configuration/"+kind+"/instances", map[string]any{
+					"enabled": true, "name": name, "url": to.InternalURL(), "apiKey": to.Secret(to.Key("api_key")), "version": version,
+				}, nil)
+			},
+			Hint: func(from, to *helpers.H) string {
+				return "Open " + from.URL + " > Settings > " + name + " and add " + to.InternalURL() + " with its API key from `self-host credentials`."
+			},
+		},
+		&app.LinkStep{
+			Message: "disconnect " + name,
+			Check:   app.Absent(linked),
+			Do: func(ctx context.Context, from, to *helpers.H) error {
+				id, err := arrInstance(ctx, from, to, kind)
+				if err != nil || id == "" {
+					return err
+				}
+				return call(ctx, from, http.MethodDelete, "/api/configuration/"+kind+"/instances/"+id, nil, nil)
+			},
+			Hint: func(from, _ *helpers.H) string {
+				return "Open " + from.URL + " > Settings > " + name + " and delete it."
+			},
+		})
+}
+
+func qbittorrentClient(ctx context.Context, from, to *helpers.H) (string, error) {
+	var config struct {
+		Clients []entry `json:"clients"`
+	}
+	if err := call(ctx, from, http.MethodGet, "/api/configuration/download_client", nil, &config); err != nil {
+		return "", err
+	}
+	for _, c := range config.Clients {
+		if sameURL(c.Host, to.InternalURL()) {
+			return c.ID, nil
+		}
+	}
+	return "", nil
+}
+
+// qbittorrentLink adds qBittorrent as Cleanuparr's download client, reached
+// by its Compose service name and the Admin login.
+func qbittorrentLink() app.Link {
+	linked := func(ctx context.Context, from, to *helpers.H) (bool, error) {
+		id, err := qbittorrentClient(ctx, from, to)
+		return id != "", err
+	}
+	return app.NewLink("link-qbittorrent", "qbittorrent", "download client: qBittorrent",
+		app.LinkStep{
+			Message: "use qBittorrent as the download client",
+			Check:   linked,
+			Do: func(ctx context.Context, from, to *helpers.H) error {
+				return call(ctx, from, http.MethodPost, "/api/configuration/download_client", map[string]any{
+					"enabled": true, "name": "qBittorrent", "typeName": "qBittorrent", "host": to.InternalURL(),
+					"username": from.AdminUser(), "password": from.AdminPassword(),
+				}, nil)
+			},
+			Hint: func(from, to *helpers.H) string {
+				return "Open " + from.URL + " > Settings > Download Clients and add qBittorrent at " + to.InternalURL() + " with the Admin login."
+			},
+		},
+		&app.LinkStep{
+			Message: "remove the qBittorrent download client",
+			Check:   app.Absent(linked),
+			Do: func(ctx context.Context, from, to *helpers.H) error {
+				id, err := qbittorrentClient(ctx, from, to)
+				if err != nil || id == "" {
+					return err
+				}
+				return call(ctx, from, http.MethodDelete, "/api/configuration/download_client/"+id, nil, nil)
+			},
+			Hint: func(from, _ *helpers.H) string {
+				return "Open " + from.URL + " > Settings > Download Clients and delete qBittorrent."
+			},
+		})
 }

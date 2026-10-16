@@ -128,8 +128,16 @@
    "c": "Requests",
    "img": "ghcr.io/cleanuparr/cleanuparr:2.10.10",
    "p": 11011,
-   "l": [],
-   "lt": [],
+   "l": [
+    "sonarr",
+    "radarr",
+    "qbittorrent"
+   ],
+   "lt": [
+    "clean Sonarr's queue",
+    "clean Radarr's queue",
+    "download client: qBittorrent"
+   ],
    "i": "png/cleanuparr.png"
   },
   {

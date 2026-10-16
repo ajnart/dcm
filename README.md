@@ -386,6 +386,7 @@ Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link
 | Sonarr, Radarr | qBittorrent (download client)                     |
 | Prowlarr       | Sonarr, Radarr                                    |
 | Seerr          | Jellyfin, Sonarr, Radarr                          |
+| Cleanuparr     | Sonarr, Radarr, qBittorrent                       |
 | Homarr         | native tiles and widgets for the Apps it supports |
 
 A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links need Homarr **2.4.1** or newer; NZBGet and SABnzbd Links need **2.5.1** or **2.5.2**. Other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
