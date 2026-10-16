@@ -1,0 +1,346 @@
+{
+  "assets": [
+    {
+      "id": "mark-color",
+      "group": "Mark",
+      "label": "Colour",
+      "note": "mid-tone brand colours, readable on light and dark backgrounds",
+      "theme": "any",
+      "files": [
+        {
+          "path": "mark/mark-color.svg",
+          "bytes": 6265,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-color-512.png",
+          "bytes": 5039,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "path": "mark/mark-color-256.png",
+          "bytes": 2779,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-color-128.png",
+          "bytes": 1587,
+          "width": 128,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "mark-dark",
+      "group": "Mark",
+      "label": "Dark",
+      "note": "for dark backgrounds, the Dashboard's palette",
+      "theme": "dark",
+      "files": [
+        {
+          "path": "mark/mark-dark.svg",
+          "bytes": 6265,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-dark-512.png",
+          "bytes": 5106,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "path": "mark/mark-dark-256.png",
+          "bytes": 3001,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-dark-128.png",
+          "bytes": 1701,
+          "width": 128,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "mark-light",
+      "group": "Mark",
+      "label": "Light",
+      "note": "for light backgrounds, the Logo's light palette",
+      "theme": "light",
+      "files": [
+        {
+          "path": "mark/mark-light.svg",
+          "bytes": 6265,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-light-512.png",
+          "bytes": 5235,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "path": "mark/mark-light-256.png",
+          "bytes": 2974,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-light-128.png",
+          "bytes": 1717,
+          "width": 128,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "mark-mono",
+      "group": "Mark",
+      "label": "Mono",
+      "note": "one ink, for light backgrounds and print",
+      "theme": "light",
+      "files": [
+        {
+          "path": "mark/mark-mono.svg",
+          "bytes": 6265,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-mono-512.png",
+          "bytes": 3962,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "path": "mark/mark-mono-256.png",
+          "bytes": 1763,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-mono-128.png",
+          "bytes": 615,
+          "width": 128,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "mark-mono-white",
+      "group": "Mark",
+      "label": "Mono white",
+      "note": "one ink, for dark backgrounds",
+      "theme": "dark",
+      "files": [
+        {
+          "path": "mark/mark-mono-white.svg",
+          "bytes": 6265,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-mono-white-512.png",
+          "bytes": 3791,
+          "width": 512,
+          "height": 512
+        },
+        {
+          "path": "mark/mark-mono-white-256.png",
+          "bytes": 1664,
+          "width": 256,
+          "height": 256
+        },
+        {
+          "path": "mark/mark-mono-white-128.png",
+          "bytes": 609,
+          "width": 128,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "animated-build-dark",
+      "group": "Animated",
+      "label": "build, dark",
+      "note": "the mark draws itself, then retracts; for dark backgrounds",
+      "theme": "dark",
+      "files": [
+        {
+          "path": "animated/build-dark.svg",
+          "bytes": 23618,
+          "width": 256,
+          "height": 256
+        }
+      ]
+    },
+    {
+      "id": "animated-light-up-dark",
+      "group": "Animated",
+      "label": "light-up, dark",
+      "note": "unlit containers light up bottom to top; for dark backgrounds",
+      "theme": "dark",
+      "files": [
+        {
+          "path": "animated/light-up-dark.svg",
+          "bytes": 21376,
+          "width": 256,
+          "height": 256
+        }
+      ]
+    },
+    {
+      "id": "animated-pulse-dark",
+      "group": "Animated",
+      "label": "pulse, dark",
+      "note": "the status lights go waiting, starting, running; for dark backgrounds",
+      "theme": "dark",
+      "files": [
+        {
+          "path": "animated/pulse-dark.svg",
+          "bytes": 10182,
+          "width": 256,
+          "height": 256
+        }
+      ]
+    },
+    {
+      "id": "animated-build-light",
+      "group": "Animated",
+      "label": "build, light",
+      "note": "the mark draws itself, then retracts; for light backgrounds",
+      "theme": "light",
+      "files": [
+        {
+          "path": "animated/build-light.svg",
+          "bytes": 23618,
+          "width": 256,
+          "height": 256
+        }
+      ]
+    },
+    {
+      "id": "animated-light-up-light",
+      "group": "Animated",
+      "label": "light-up, light",
+      "note": "unlit containers light up bottom to top; for light backgrounds",
+      "theme": "light",
+      "files": [
+        {
+          "path": "animated/light-up-light.svg",
+          "bytes": 21376,
+          "width": 256,
+          "height": 256
+        }
+      ]
+    },
+    {
+      "id": "animated-pulse-light",
+      "group": "Animated",
+      "label": "pulse, light",
+      "note": "the status lights go waiting, starting, running; for light backgrounds",
+      "theme": "light",
+      "files": [
+        {
+          "path": "animated/pulse-light.svg",
+          "bytes": 10182,
+          "width": 256,
+          "height": 256
+        }
+      ]
+    },
+    {
+      "id": "di-self-host",
+      "group": "Dashboard Icons",
+      "label": "self-host",
+      "note": "colour, works on both",
+      "theme": "any",
+      "files": [
+        {
+          "path": "dashboard-icons/svg/self-host.svg",
+          "bytes": 6263,
+          "width": 202,
+          "height": 192
+        },
+        {
+          "path": "dashboard-icons/png/self-host.png",
+          "bytes": 6108,
+          "width": 539,
+          "height": 512
+        },
+        {
+          "path": "dashboard-icons/webp/self-host.webp",
+          "bytes": 2130,
+          "width": 539,
+          "height": 512
+        }
+      ]
+    },
+    {
+      "id": "di-self-host-light",
+      "group": "Dashboard Icons",
+      "label": "self-host-light",
+      "note": "light artwork, for dark backgrounds",
+      "theme": "dark",
+      "files": [
+        {
+          "path": "dashboard-icons/svg/self-host-light.svg",
+          "bytes": 6263,
+          "width": 202,
+          "height": 192
+        },
+        {
+          "path": "dashboard-icons/png/self-host-light.png",
+          "bytes": 6154,
+          "width": 539,
+          "height": 512
+        },
+        {
+          "path": "dashboard-icons/webp/self-host-light.webp",
+          "bytes": 2258,
+          "width": 539,
+          "height": 512
+        }
+      ]
+    },
+    {
+      "id": "di-self-host-dark",
+      "group": "Dashboard Icons",
+      "label": "self-host-dark",
+      "note": "dark artwork, for light backgrounds",
+      "theme": "light",
+      "files": [
+        {
+          "path": "dashboard-icons/svg/self-host-dark.svg",
+          "bytes": 6263,
+          "width": 202,
+          "height": 192
+        },
+        {
+          "path": "dashboard-icons/png/self-host-dark.png",
+          "bytes": 6279,
+          "width": 539,
+          "height": 512
+        },
+        {
+          "path": "dashboard-icons/webp/self-host-dark.webp",
+          "bytes": 2266,
+          "width": 539,
+          "height": 512
+        }
+      ]
+    }
+  ],
+  "extra": [
+    {
+      "path": "dashboard-icons/meta/self-host.json",
+      "bytes": 350
+    }
+  ]
+}

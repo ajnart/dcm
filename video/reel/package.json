@@ -8,6 +8,7 @@
     "cues": "node render.mjs cues",
     "audio": "node render.mjs cues && node audio/mix.mjs",
     "video": "node render.mjs video",
+    "brand": "node brand/build.mjs",
     "readme": "node readme/build.mjs"
   },
   "dependencies": {

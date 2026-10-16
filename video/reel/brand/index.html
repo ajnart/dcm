@@ -1,0 +1,149 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>self-host brand kit</title>
+<style>
+:root{--mono:ui-monospace,"JetBrains Mono",Menlo,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:#1c1b22;color:#e8e6ef;font:14px/1.45 var(--sans)}
+header{position:sticky;top:0;z-index:5;display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:10px 24px;background:#111016;border-bottom:1px solid #2e2c38}
+header b{font:700 15px var(--mono)}
+header nav{display:flex;gap:12px;flex-wrap:wrap}
+header a{color:#a88df2;text-decoration:none;font:13px var(--mono)}
+main{max-width:1280px;margin:0 auto;padding:8px 24px 80px}
+h2{margin:40px 0 4px;font:700 20px var(--mono)}
+h2+p{margin:0 0 16px;color:#a09cb0}
+.card{margin:0 0 20px;padding:14px;background:#14131a;border:1px solid #2e2c38;border-radius:8px}
+.card h3{margin:0;font:700 14px var(--mono)}
+.card .note{margin:2px 0 10px;color:#a09cb0;font-size:13px}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.tile{display:flex;align-items:center;justify-content:center;min-height:var(--th,140px);padding:16px;border-radius:6px;border:1px solid #2e2c38}
+.tile img{max-width:100%;height:var(--ih,96px);width:auto;object-fit:contain}
+.tile.l{background:#fff}.tile.d{background:#0d1117}.tile.g{background:#808080}
+.files{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.files a{font:12px var(--mono);color:#cfc9e6;background:#221f2d;border:1px solid #34304a;border-radius:4px;padding:2px 7px;text-decoration:none}
+.files a:hover{background:#2c2840}
+.files a i{font-style:normal;color:#8e88a8}
+.tag{font:11px var(--mono);color:#8e88a8;text-transform:uppercase;letter-spacing:.06em;margin:2px 0 4px}
+.group-animated{--ih:110px;--th:150px}
+.group-icon{--ih:96px}
+.mocks{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.mocks{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
+.gh{border:1px solid;border-radius:6px;padding:24px 24px 28px;font:14px/1.5 var(--sans)}
+.gh.light{background:#fff;color:#1f2328;border-color:#d1d9e0}
+.gh.dark{background:#0d1117;color:#f0f6fc;border-color:#3d444d}
+.gh h1,.gh h2{margin:0;padding-bottom:.3em;border-bottom:1px solid;font-size:1.5em;font-weight:600;font-family:inherit}
+.gh.light h1,.gh.light h2{border-color:#d1d9e0b3}.gh.dark h1,.gh.dark h2{border-color:#3d444db3}
+.gh p{margin:12px 0}
+.gh .c{text-align:center}
+.gh code{font:12px var(--mono);padding:2px 5px;border-radius:6px}
+.gh.light code,.gh.light pre{background:#818b981f}.gh.dark code,.gh.dark pre{background:#656c7633}
+.gh pre{margin:12px 0 0;padding:14px;border-radius:6px;font:12px var(--mono);overflow:auto}
+.gh img{max-width:100%}
+.mocklabel{font:12px var(--mono);color:#a09cb0;margin:0 0 6px}
+.sizes{width:100%;border-collapse:collapse;font:12px var(--mono)}
+.sizes td,.sizes th{padding:3px 8px;border-bottom:1px solid #2e2c38;text-align:left}
+.sizes td:last-child,.sizes th:last-child{text-align:right}
+</style>
+<header>
+  <b>◆ self-host brand kit</b>
+  <nav id="nav"></nav>
+</header>
+<main id="main"></main>
+<script>
+const BASE = "/docs/assets/brand/";
+const kb = (n) => (n / 1024).toFixed(1) + " KB";
+const fileName = (p) => p.split("/").pop();
+const GROUPS = [
+  ["Mark", "The rack of four containers on a square canvas with room for the pulse. Colour is a mid-tone that holds on light and dark; dark and light are the Logo's two palettes; mono is one ink.", ""],
+  ["Animated", "Self-contained CSS keyframes, seamless loops with no fades at the seam, prefers-reduced-motion shows the finished mark. Use inside an img or picture.", "group-animated"],
+  ["Dashboard Icons", "The submission set: svg/ png/ webp/ meta/. Their naming: -light is for dark backgrounds, -dark is for light backgrounds.", "group-icon"],
+];
+const el = (t, props = {}, ...kids) => {
+  const e = Object.assign(document.createElement(t), props);
+  e.append(...kids);
+  return e;
+};
+const tiles = (src, label) => {
+  const r = el("div", { className: "row" });
+  for (const [c, n] of [["l", "light"], ["d", "dark"], ["g", "grey"]]) {
+    const t = el("div", { className: "tile " + c, title: label + " on " + n });
+    t.append(el("img", { src, alt: label + " on " + n, loading: "lazy" }));
+    r.append(t);
+  }
+  return r;
+};
+const sizeTable = (assets) => {
+  const rows = assets.flatMap((a) => a.files.map((f) => [f.path, f.bytes]));
+  const t = el("table", { className: "sizes" });
+  t.innerHTML = "<tr><th>file</th><th>bytes</th></tr>" + rows.map(([p, b]) => `<tr><td><a style="color:#a88df2" href="${BASE + p}">${p}</a></td><td>${b} (${kb(b)})</td></tr>`).join("");
+  return t;
+};
+fetch(BASE + "manifest.json").then((r) => r.json()).then((m) => {
+  const main = document.getElementById("main");
+  const nav = document.getElementById("nav");
+  for (const [g, blurb, cls] of GROUPS) {
+    const id = g.toLowerCase().replace(/\W+/g, "-");
+    nav.append(el("a", { href: "#" + id, textContent: g }));
+    const sec = el("section", { id, className: cls });
+    sec.append(el("h2", { textContent: g }), el("p", { textContent: blurb }));
+    for (const a of m.assets.filter((x) => x.group === g)) {
+      const card = el("div", { className: "card" });
+      card.append(el("h3", { textContent: a.label }), el("div", { className: "note", textContent: a.note }));
+      card.append(el("div", { className: "tag", textContent: "svg" }), tiles(BASE + a.files[0].path, a.label));
+      const raster = a.files.slice(1);
+      if (raster.length) {
+        const big = raster[0];
+        card.append(el("div", { className: "tag", textContent: fileName(big.path) + " (" + big.width + "x" + big.height + ")" }), tiles(BASE + big.path, a.label + " " + big.path));
+      }
+      const files = el("div", { className: "files" });
+      for (const f of a.files) files.append(el("a", { href: BASE + f.path, innerHTML: `${fileName(f.path)} <i>${kb(f.bytes)}</i>` }));
+      card.append(files);
+      sec.append(card);
+    }
+    if (g === "Dashboard Icons") {
+      const meta = m.extra[0];
+      const card = el("div", { className: "card" });
+      card.append(el("h3", { textContent: "meta/self-host.json" }));
+      const pre = el("pre", { className: "gh dark", style: "border:0" });
+      fetch(BASE + meta.path).then((r) => r.text()).then((t) => (pre.textContent = t));
+      card.append(pre, el("div", { className: "files" }));
+      card.lastChild.append(el("a", { href: BASE + meta.path, innerHTML: `self-host.json <i>${kb(meta.bytes)}</i>` }));
+      sec.append(card);
+    }
+    main.append(sec);
+  }
+
+  const find = (id) => BASE + m.assets.find((a) => a.id === id).files[0].path;
+  const mock = (theme) => {
+    const light = theme === "light";
+    const lock = find(light ? "mark-light" : "mark-dark");
+    const anim = find(light ? "animated-build-light" : "animated-build-dark");
+    const pulse = find(light ? "animated-pulse-light" : "animated-pulse-dark");
+    const box = el("div", { className: "gh " + theme });
+    box.innerHTML = `<p class="c"><img src="${lock}" height="96" alt="self-host"></p>
+<p class="c">Install and run self-hosted apps with Docker Compose, from a terminal Dashboard or from your agent.</p>
+<p class="c"><img src="${anim}" height="96" alt="the Logo building itself"><img src="${pulse}" height="96" alt="the four status lights coming on"></p>
+<h2>Install</h2>
+<pre>curl -fsSL https://self-host.fyi/install | bash</pre>
+<p>Each App is one command: <code>self-host install immich</code>.</p>`;
+    return box;
+  };
+  const sec = el("section", { id: "readme-mock" });
+  nav.append(el("a", { href: "#readme-mock", textContent: "README mock" }), el("a", { href: "#sizes", textContent: "Sizes" }));
+  sec.append(el("h2", { textContent: "README mock" }), el("p", { textContent: "The mark, and two animated variants, on GitHub's light and dark themes. In a real README each pair is a picture element switching on prefers-color-scheme." }));
+  const wrap = el("div", { className: "mocks" });
+  for (const th of ["light", "dark"]) {
+    const w = el("div");
+    w.append(el("div", { className: "mocklabel", textContent: "GitHub " + th }), mock(th));
+    wrap.append(w);
+  }
+  sec.append(wrap);
+  main.append(sec);
+
+  const sz = el("section", { id: "sizes" });
+  sz.append(el("h2", { textContent: "Sizes" }), el("p", { textContent: "Every generated file, in bytes. Animated SVGs have a 50 KB budget." }), sizeTable(m.assets));
+  main.append(sz);
+
+});
+</script>
