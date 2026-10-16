@@ -1,0 +1,19 @@
+video/reel/readme/glyphs.mjs
+  s_de27b211fee027::t_ed362b57143cd7 217-403,411-425,428
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "85bcf4a8e10d16e89dd57304ed6a5158bd0657ad",
+  "prompts": {},
+  "sessions": {
+    "s_de27b211fee027": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ba31067b-efd8-4111-be3a-778cccbe5936",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
