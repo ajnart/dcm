@@ -1,0 +1,25 @@
+video/reel/readme/README.md
+  s_000cec9e5fa539::t_c5bcf244684c0f 11,20,26-28,33,37-40,43,60
+video/reel/readme/glyphs.mjs
+  s_000cec9e5fa539::t_b01f945ae6f42a 217-403,411-425,428
+video/reel/readme/hero.mjs
+  s_000cec9e5fa539::t_61edf6fd032ac7 1-258
+video/reel/readme/index.html
+  s_000cec9e5fa539::t_da1d3eb247fde1 33,48,51,64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eefec3d6b9b5bf78426b6933535f2544880d6bd8",
+  "prompts": {},
+  "sessions": {
+    "s_000cec9e5fa539": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e031966-d516-420f-9cc7-4e768003c516",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
