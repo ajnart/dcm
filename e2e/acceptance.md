@@ -1,6 +1,6 @@
 # Runtime acceptance evidence
 
-`E2E_TARGETS=all` selects 93 Apps and 7 Recipes (6 legacy Recipes plus
+`E2E_TARGETS=all` selects 94 Apps and 7 Recipes (6 legacy Recipes plus
 `media`). `testdata/inventory.json` is the explicit inventory checked against
 the compiled Catalog. App/Recipe names in evidence are distinct, for example
 `app-ntfy.json` and `recipe-media.json`.

@@ -25,6 +25,7 @@ var repos = map[string]string{
 	"bookstack":            "BookStackApp/BookStack",
 	"borgmatic":            "borgmatic-collective/borgmatic",
 	"caddy":                "caddyserver/caddy",
+	"cleanuparr":           "Cleanuparr/Cleanuparr",
 	"cloudflare-tunnel":    "cloudflare/cloudflared",
 	"dashdot":              "MauriceNino/dashdot",
 	"deluge":               "deluge-torrent/deluge",

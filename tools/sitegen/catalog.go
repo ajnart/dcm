@@ -25,6 +25,7 @@ var icons = map[string]string{
 	"archive-team-warrior": "png/archiveteam-warrior.png",
 	"aria2":                "png/ariang.png",
 	"borgmatic":            "svg/borg.svg",
+	"cleanuparr":           "png/cleanuparr.png",
 	"cloudflare-tunnel":    "svg/cloudflare.svg",
 	"dashdot":              "png/dashdot.png",
 	"pihole":               "svg/pi-hole.svg",

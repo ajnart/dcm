@@ -85,6 +85,13 @@
   },
   {
     "kind": "app",
+    "id": "cleanuparr",
+    "apps": [
+      "cleanuparr"
+    ]
+  },
+  {
+    "kind": "app",
     "id": "cloudflare-tunnel",
     "apps": [
       "cloudflare-tunnel"

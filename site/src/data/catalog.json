@@ -122,6 +122,17 @@
    "i": "svg/caddy.svg"
   },
   {
+   "id": "cleanuparr",
+   "name": "Cleanuparr",
+   "d": "Remove stuck, fake or unwanted downloads for your movie and show apps",
+   "c": "Requests",
+   "img": "ghcr.io/cleanuparr/cleanuparr:2.10.10",
+   "p": 11011,
+   "l": [],
+   "lt": [],
+   "i": "png/cleanuparr.png"
+  },
+  {
    "id": "cloudflare-tunnel",
    "name": "Cloudflare Tunnel",
    "d": "Open your app to the internet safely through Cloudflare, with no router changes",

@@ -37,7 +37,7 @@ self-host
 
 On a machine with no Project, bare `self-host` opens Onboarding: it checks Docker, then checks Home-folder disk space and the selected Apps' ports at Review. It asks one thing at a time and writes nothing until you approve the plan. The Dashboard has five tabs: Overview, Apps, Activity, Catalog, Settings. `?` lists the keys. No single key changes an App; the Action menu (`a`) shows what each Action will do and runs it on `enter`. On start it asks once about a changed network, stopped Apps or App updates, and `y` fixes it.
 
-The Catalog ships inside the binary: **93 Apps, 7 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
+The Catalog ships inside the binary: **94 Apps, 7 Recipes**. A Recipe is a pre-wired bundle (`media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin, Seerr). Browse with `self-host apps list` and `self-host apps info <app>`. No Node.js, checkout or AI account needed. Apps share one Compose Project in `~/.self-host` (move it with `SELF_HOST_HOME`). Only download media you own or have the right to: see [Responsible use](#responsible-use).
 
 The screenshot is a real 120×30 session of a loopback-only Homarr/Jellyfin/ntfy Project: [Activity](docs/images/workflow.png), [Catalog search](docs/images/install-search.png), [recording](docs/demos/self-host.cast), [provenance](docs/demos/capture.json).
 
