@@ -1,0 +1,19 @@
+video/reel/readme/README.md
+  s_de27b211fee027::t_1b28832f4bf630 27-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a64b0f6006b015e7773921c1249e20cfc09940fe",
+  "prompts": {},
+  "sessions": {
+    "s_de27b211fee027": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ba31067b-efd8-4111-be3a-778cccbe5936",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
