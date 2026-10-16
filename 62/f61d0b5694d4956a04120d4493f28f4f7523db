@@ -1,0 +1,49 @@
+docs/assets/readme/header.html
+  s_7fa234028f3f9f::t_97022cf48ac124 1-25
+docs/assets/readme/status-lights.svg
+  s_7fa234028f3f9f::t_23191c73f50e97 1
+video/reel/package.json
+  s_7fa234028f3f9f::t_50ac4048c6acd3 10-11
+video/reel/readme/.gitignore
+  s_7fa234028f3f9f::t_ed7c665946cf7b 1-3
+video/reel/readme/build.mjs
+  s_de27b211fee027::t_d27de1fcba2d86 1-194
+video/reel/readme/glyphs.mjs
+  s_dff36cea27ab9d::t_05d14efd7b4a8c 1-243
+video/reel/readme/index.html
+  s_7fa234028f3f9f::t_9dad4419e53249 1-76
+video/reel/readme/scene.mjs
+  s_dff36cea27ab9d::t_5925ed479b5ea0 1-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "62f61d0b5694d4956a04120d4493f28f4f7523db",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_de27b211fee027": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ba31067b-efd8-4111-be3a-778cccbe5936",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_dff36cea27ab9d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c013bc7a-2b60-4f6c-ba9d-9d8a0d749939",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
