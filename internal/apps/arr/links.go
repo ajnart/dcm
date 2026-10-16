@@ -64,36 +64,28 @@ func create(ctx context.Context, h *helpers.H, api, path string, item object) er
 	return err
 }
 
-// remove deletes every resource of the list at path that match accepts.
-func remove(ctx context.Context, h *helpers.H, api, path string, match func(object) bool) error {
-	items, err := list(ctx, h, api, path)
-	if err != nil {
-		return err
-	}
-	for _, item := range items {
-		if !match(item) {
-			continue
-		}
-		id, _ := item["id"].(float64)
-		req := servarr.Request(h, api, helpers.Request{Method: "DELETE", Path: fmt.Sprintf("%s/%d", path, int(id))})
-		if _, err := h.Expect(ctx, req); err != nil {
+// owned is the resources of the list at path that match accepts.
+func owned(api, path string, match func(to *helpers.H) func(object) bool) app.Owned {
+	return app.Owned{
+		Find: func(ctx context.Context, from, to *helpers.H) ([]string, error) {
+			items, err := list(ctx, from, api, path)
+			if err != nil {
+				return nil, err
+			}
+			var ids []string
+			for _, item := range items {
+				if match(to)(item) {
+					id, _ := item["id"].(float64)
+					ids = append(ids, strconv.Itoa(int(id)))
+				}
+			}
+			return ids, nil
+		},
+		Delete: func(ctx context.Context, from, _ *helpers.H, id string) error {
+			_, err := from.Expect(ctx, servarr.Request(from, api, helpers.Request{Method: "DELETE", Path: path + "/" + id}))
 			return err
-		}
+		},
 	}
-	return nil
-}
-
-func exists(ctx context.Context, h *helpers.H, api, path string, match func(object) bool) (bool, error) {
-	items, err := list(ctx, h, api, path)
-	if err != nil {
-		return false, err
-	}
-	for _, item := range items {
-		if match(item) {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // field is one schema field to set, kept in a slice so errors come out in a
@@ -114,12 +106,10 @@ func isQBittorrent(item object) bool {
 // reached by its Compose service name and the Admin login.
 func downloadClientLink(categoryField, category string) app.Link {
 	const target = "qbittorrent"
-	return app.NewLink("link-qbittorrent", target, "download client: qBittorrent",
+	clients := owned(apiV3, "/downloadclient", func(*helpers.H) func(object) bool { return isQBittorrent })
+	return app.NewOwnedLink("link-qbittorrent", target, "download client: qBittorrent", clients,
 		app.LinkStep{
 			Message: "use qBittorrent as the download client",
-			Check: func(ctx context.Context, from, _ *helpers.H) (bool, error) {
-				return exists(ctx, from, apiV3, "/downloadclient", isQBittorrent)
-			},
 			Do: func(ctx context.Context, from, to *helpers.H) error {
 				client, err := schemaFor(ctx, from, apiV3, "/downloadclient", "QBittorrent")
 				if err != nil {
@@ -143,14 +133,8 @@ func downloadClientLink(categoryField, category string) app.Link {
 					", port " + strconv.Itoa(to.Port) + " and the Admin login."
 			},
 		},
-		&app.LinkStep{
+		app.LinkStep{
 			Message: "remove the qBittorrent download client",
-			Check: app.Absent(func(ctx context.Context, from, _ *helpers.H) (bool, error) {
-				return exists(ctx, from, apiV3, "/downloadclient", isQBittorrent)
-			}),
-			Do: func(ctx context.Context, from, _ *helpers.H) error {
-				return remove(ctx, from, apiV3, "/downloadclient", isQBittorrent)
-			},
 			Hint: func(from, _ *helpers.H) string {
 				return "Open " + from.URL + " > Settings > Download Clients and delete qBittorrent."
 			},
@@ -172,12 +156,9 @@ func applicationLink(target string) app.Link {
 			return item["implementation"] == implementation && item.field("baseUrl") == to.InternalURL()
 		}
 	}
-	return app.NewLink("link-"+target, target, "sync indexers to "+implementation,
+	return app.NewOwnedLink("link-"+target, target, "sync indexers to "+implementation, owned(apiV1, "/applications", points),
 		app.LinkStep{
 			Message: "sync indexers to " + implementation,
-			Check: func(ctx context.Context, from, to *helpers.H) (bool, error) {
-				return exists(ctx, from, apiV1, "/applications", points(to))
-			},
 			Do: func(ctx context.Context, from, to *helpers.H) error {
 				application, err := schemaFor(ctx, from, apiV1, "/applications", implementation)
 				if err != nil {
@@ -199,14 +180,8 @@ func applicationLink(target string) app.Link {
 					from.InternalURL() + ", server " + to.InternalURL() + " and its API key."
 			},
 		},
-		&app.LinkStep{
+		app.LinkStep{
 			Message: "stop syncing indexers to " + implementation,
-			Check: app.Absent(func(ctx context.Context, from, to *helpers.H) (bool, error) {
-				return exists(ctx, from, apiV1, "/applications", points(to))
-			}),
-			Do: func(ctx context.Context, from, to *helpers.H) error {
-				return remove(ctx, from, apiV1, "/applications", points(to))
-			},
 			Hint: func(from, _ *helpers.H) string {
 				return "Open " + from.URL + " > Settings > Apps and delete " + implementation + "."
 			},

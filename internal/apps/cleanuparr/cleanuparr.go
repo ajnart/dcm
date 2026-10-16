@@ -3,6 +3,7 @@ package cleanuparr
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -192,36 +193,45 @@ type entry struct {
 	Host string `json:"host"`
 }
 
-// arrInstance finds the instance of kind that points at to, by its Compose
-// service address; instances the person added for other hosts are left alone.
-func arrInstance(ctx context.Context, from, to *helpers.H, kind string) (string, error) {
-	var config struct {
-		Instances []entry `json:"instances"`
+// owned is the entries under key of the list at path that point at to by
+// its Compose service address, deleted under collection; entries the person
+// added for other hosts are left alone.
+func owned(path, key, collection string) app.Owned {
+	return app.Owned{
+		Find: func(ctx context.Context, from, to *helpers.H) ([]string, error) {
+			var config map[string]json.RawMessage
+			if err := call(ctx, from, http.MethodGet, path, nil, &config); err != nil {
+				return nil, err
+			}
+			var entries []entry
+			if raw, found := config[key]; found {
+				if err := json.Unmarshal(raw, &entries); err != nil {
+					return nil, fmt.Errorf("Cleanuparr %s returned an invalid %s list", path, key)
+				}
+			}
+			var ids []string
+			for _, e := range entries {
+				if sameURL(e.URL, to.InternalURL()) || sameURL(e.Host, to.InternalURL()) {
+					ids = append(ids, e.ID)
+				}
+			}
+			return ids, nil
+		},
+		Delete: func(ctx context.Context, from, _ *helpers.H, id string) error {
+			return call(ctx, from, http.MethodDelete, collection+"/"+id, nil, nil)
+		},
 	}
-	if err := call(ctx, from, http.MethodGet, "/api/configuration/"+kind, nil, &config); err != nil {
-		return "", err
-	}
-	for _, i := range config.Instances {
-		if sameURL(i.URL, to.InternalURL()) {
-			return i.ID, nil
-		}
-	}
-	return "", nil
 }
 
 // arrLink makes Cleanuparr watch Sonarr's or Radarr's queue, reached by
 // Compose service name with its API key.
 func arrLink(kind, name string, version float64) app.Link {
-	linked := func(ctx context.Context, from, to *helpers.H) (bool, error) {
-		id, err := arrInstance(ctx, from, to, kind)
-		return id != "", err
-	}
-	return app.NewLink("link-"+kind, kind, "clean "+name+"'s queue",
+	path := "/api/configuration/" + kind
+	return app.NewOwnedLink("link-"+kind, kind, "clean "+name+"'s queue", owned(path, "instances", path+"/instances"),
 		app.LinkStep{
 			Message: "connect " + name,
-			Check:   linked,
 			Do: func(ctx context.Context, from, to *helpers.H) error {
-				return call(ctx, from, http.MethodPost, "/api/configuration/"+kind+"/instances", map[string]any{
+				return call(ctx, from, http.MethodPost, path+"/instances", map[string]any{
 					"enabled": true, "name": name, "url": to.InternalURL(), "apiKey": to.Secret(to.Key("api_key")), "version": version,
 				}, nil)
 			},
@@ -229,50 +239,23 @@ func arrLink(kind, name string, version float64) app.Link {
 				return "Open " + from.URL + " > Settings > " + name + " and add " + to.InternalURL() + " with its API key from `self-host credentials`."
 			},
 		},
-		&app.LinkStep{
+		app.LinkStep{
 			Message: "disconnect " + name,
-			Check:   app.Absent(linked),
-			Do: func(ctx context.Context, from, to *helpers.H) error {
-				id, err := arrInstance(ctx, from, to, kind)
-				if err != nil || id == "" {
-					return err
-				}
-				return call(ctx, from, http.MethodDelete, "/api/configuration/"+kind+"/instances/"+id, nil, nil)
-			},
 			Hint: func(from, _ *helpers.H) string {
 				return "Open " + from.URL + " > Settings > " + name + " and delete it."
 			},
 		})
 }
 
-func qbittorrentClient(ctx context.Context, from, to *helpers.H) (string, error) {
-	var config struct {
-		Clients []entry `json:"clients"`
-	}
-	if err := call(ctx, from, http.MethodGet, "/api/configuration/download_client", nil, &config); err != nil {
-		return "", err
-	}
-	for _, c := range config.Clients {
-		if sameURL(c.Host, to.InternalURL()) {
-			return c.ID, nil
-		}
-	}
-	return "", nil
-}
-
 // qbittorrentLink adds qBittorrent as Cleanuparr's download client, reached
 // by its Compose service name and the Admin login.
 func qbittorrentLink() app.Link {
-	linked := func(ctx context.Context, from, to *helpers.H) (bool, error) {
-		id, err := qbittorrentClient(ctx, from, to)
-		return id != "", err
-	}
-	return app.NewLink("link-qbittorrent", "qbittorrent", "download client: qBittorrent",
+	const path = "/api/configuration/download_client"
+	return app.NewOwnedLink("link-qbittorrent", "qbittorrent", "download client: qBittorrent", owned(path, "clients", path),
 		app.LinkStep{
 			Message: "use qBittorrent as the download client",
-			Check:   linked,
 			Do: func(ctx context.Context, from, to *helpers.H) error {
-				return call(ctx, from, http.MethodPost, "/api/configuration/download_client", map[string]any{
+				return call(ctx, from, http.MethodPost, path, map[string]any{
 					"enabled": true, "name": "qBittorrent", "typeName": "qBittorrent", "host": to.InternalURL(),
 					"username": from.AdminUser(), "password": from.AdminPassword(),
 				}, nil)
@@ -281,16 +264,8 @@ func qbittorrentLink() app.Link {
 				return "Open " + from.URL + " > Settings > Download Clients and add qBittorrent at " + to.InternalURL() + " with the Admin login."
 			},
 		},
-		&app.LinkStep{
+		app.LinkStep{
 			Message: "remove the qBittorrent download client",
-			Check:   app.Absent(linked),
-			Do: func(ctx context.Context, from, to *helpers.H) error {
-				id, err := qbittorrentClient(ctx, from, to)
-				if err != nil || id == "" {
-					return err
-				}
-				return call(ctx, from, http.MethodDelete, "/api/configuration/download_client/"+id, nil, nil)
-			},
 			Hint: func(from, _ *helpers.H) string {
 				return "Open " + from.URL + " > Settings > Download Clients and delete qBittorrent."
 			},

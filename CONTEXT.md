@@ -83,7 +83,10 @@ _Avoid_: failure (for a browser-only boundary)
 Setup that wires one App to another (e.g. Sonarr to qBittorrent). It belongs
 to the consuming App: it runs once both Apps have finished their own Setup,
 and when it fails it is the consuming App whose Setup is incomplete, never
-the target's.
+the target's. Installing several Apps runs Setup targets first; a target
+installed later runs the waiting consumers' Links once its Setup finishes.
+Removing a target runs each consumer's unlink, which deletes only what the
+Link added (`app.NewOwnedLink`).
 _Avoid_: integration (reserved for Homarr's own feature)
 
 **Project**:

@@ -617,10 +617,11 @@ func portProtocolsAvailable(deps *system.Deps, port int, protocols []string) boo
 	return true
 }
 
-// setupAll runs Setup for each App, continuing past failures.
+// setupAll runs Setup for each App, Link targets first, continuing past
+// failures.
 func (ss *session) setupAll(ctx context.Context, apps []app.App) error {
 	var touched []string
-	for _, a := range apps {
+	for _, a := range app.OrderByLinks(apps) {
 		incomplete, err := ss.runSetup(ctx, a)
 		if err != nil {
 			return err

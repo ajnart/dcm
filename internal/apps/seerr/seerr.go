@@ -263,17 +263,28 @@ func (s server) list(ctx context.Context, h *helpers.H) ([]map[string]any, error
 	return items, resp.Decode(&items)
 }
 
-func (s server) linked(ctx context.Context, h, to *helpers.H) (bool, error) {
-	items, err := s.list(ctx, h)
-	if err != nil {
-		return false, err
+// owned is the servers of this kind that point at to.
+func (s server) owned() app.Owned {
+	return app.Owned{
+		Find: func(ctx context.Context, h, to *helpers.H) ([]string, error) {
+			items, err := s.list(ctx, h)
+			if err != nil {
+				return nil, err
+			}
+			var ids []string
+			for _, item := range items {
+				if s.points(item, to) {
+					id, _ := item["id"].(float64)
+					ids = append(ids, strconv.Itoa(int(id)))
+				}
+			}
+			return ids, nil
+		},
+		Delete: func(ctx context.Context, h, _ *helpers.H, id string) error {
+			_, err := h.Expect(ctx, helpers.Request{Method: "DELETE", Path: "/api/v1/settings/" + s.id + "/" + id, Header: keyHeader(h)})
+			return err
+		},
 	}
-	for _, item := range items {
-		if s.points(item, to) {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 type testResult struct {
@@ -335,41 +346,20 @@ func (s server) add(ctx context.Context, from, to *helpers.H) error {
 	return err
 }
 
-func (s server) remove(ctx context.Context, h, to *helpers.H) error {
-	items, err := s.list(ctx, h)
-	if err != nil {
-		return err
-	}
-	for _, item := range items {
-		if !s.points(item, to) {
-			continue
-		}
-		id, _ := item["id"].(float64)
-		if _, err := h.Expect(ctx, helpers.Request{Method: "DELETE", Path: fmt.Sprintf("/api/v1/settings/%s/%d", s.id, int(id)), Header: keyHeader(h)}); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // serverLink makes Sonarr or Radarr the default server Seerr sends requests
 // to, reached by Compose service name with its API key.
 func serverLink(s server) app.Link {
-	linked := s.linked
-	return app.NewLink("link-"+s.id, s.id, "requests go to "+s.name,
+	return app.NewOwnedLink("link-"+s.id, s.id, "requests go to "+s.name, s.owned(),
 		app.LinkStep{
 			Message: "send requests to " + s.name,
-			Check:   linked,
 			Do:      func(ctx context.Context, from, to *helpers.H) error { return s.add(ctx, from, to) },
 			Hint: func(from, to *helpers.H) string {
 				return "Open " + from.URL + "/settings/services, add " + s.name + " with host " + to.Service + ", port " + strconv.Itoa(to.ContainerPort) +
 					", its API key from `self-host credentials`, the first quality profile and root folder " + s.rootFolder + ", marked default."
 			},
 		},
-		&app.LinkStep{
+		app.LinkStep{
 			Message: "stop sending requests to " + s.name,
-			Check:   app.Absent(linked),
-			Do:      func(ctx context.Context, from, to *helpers.H) error { return s.remove(ctx, from, to) },
 			Hint: func(from, _ *helpers.H) string {
 				return "Open " + from.URL + "/settings/services and delete " + s.name + "."
 			},
