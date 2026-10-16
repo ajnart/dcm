@@ -119,7 +119,8 @@ _Avoid_: URL (in user-facing text), domain
 
 **LAN address**:
 The address of this machine on the local network, such as `192.168.1.20`,
-detected when the Project is made and kept as a Host setting. It builds the
+detected when the Project is made (or taken from `SELF_HOST_LAN_IP`, for
+example inside the Docker image) and kept as a Host setting. It builds the
 Home network Addresses and the Links between Apps; Access decides who can
 connect.
 

@@ -90,8 +90,8 @@ func Real(version string) *Deps {
 		LookupUser:       lookupUser,
 		Now:              time.Now,
 		Sleep:            sleep,
-		LANIP:            lanIP,
-		HostIPs:          hostIPs,
+		LANIP:            lanIPFrom(os.Getenv, lanIP),
+		HostIPs:          hostIPsFrom(os.Getenv, hostIPs),
 		HomeNetwork:      homeNetwork,
 		TimeZone:         timeZone,
 		BindTCP:          bindTCP,
@@ -149,6 +149,28 @@ func lanIP() (string, error) {
 	}
 	defer conn.Close()
 	return conn.LocalAddr().(*net.UDPAddr).IP.String(), nil
+}
+
+// EnvLANIP names this machine's LAN address when detection cannot see it, as
+// in a container whose network is not the host's.
+const EnvLANIP = "SELF_HOST_LAN_IP"
+
+func lanIPFrom(getenv func(string) string, detect func() (string, error)) func() (string, error) {
+	return func() (string, error) {
+		if ip := net.ParseIP(getenv(EnvLANIP)); ip != nil && ip.To4() != nil {
+			return ip.String(), nil
+		}
+		return detect()
+	}
+}
+
+func hostIPsFrom(getenv func(string) string, detect func() ([]string, error)) func() ([]string, error) {
+	return func() ([]string, error) {
+		if ip := net.ParseIP(getenv(EnvLANIP)); ip != nil && ip.To4() != nil {
+			return []string{ip.String()}, nil
+		}
+		return detect()
+	}
 }
 
 // Container runtimes add bridges whose addresses other devices cannot reach.

@@ -605,6 +605,12 @@ unique lowercase name (letters, digits, `-`, `_`), and keep both the same for
 every later command. A Project made by a pre-release build in `~/self-host` is
 not picked up; point `SELF_HOST_HOME` at it only if the user asks.
 
+When self-host runs from its Docker image (`ghcr.io/ajnart/self-host`), mount
+the Home folder at the same absolute path it has on the host, and on macOS pass
+`SELF_HOST_LAN_IP=<the Mac's LAN IPv4>`: inside a container the detected LAN
+address is the container's. `SELF_HOST_LAN_IP` overrides detection on any host;
+an invalid value is ignored.
+
 ## Backups
 
 `self-host backup [app...]` writes one archive of App configuration, databases

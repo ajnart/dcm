@@ -416,6 +416,8 @@ func checkSelfManaged(exe string) error {
 	}
 	path = filepath.ToSlash(path)
 	switch {
+	case os.Getenv("SELF_HOST_IMAGE") != "":
+		return errors.New("the Docker image owns this install; update with: docker pull ghcr.io/ajnart/self-host:latest")
 	case strings.Contains(path, "/node_modules/"):
 		return errors.New("npm owns this install; update with: npm i -g self-host@latest")
 	case strings.Contains(path, "/Caskroom/") || strings.Contains(path, "/Cellar/"):

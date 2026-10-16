@@ -41,6 +41,11 @@ func TestSelfUpdateRefusesInstallsAPackageManagerOwns(t *testing.T) {
 	if checkSelfManaged("/usr/local/bin/self-host") != nil {
 		t.Fatal("/usr/local/bin install should be allowed")
 	}
+	t.Setenv("SELF_HOST_IMAGE", "1")
+	if checkSelfManaged("/usr/local/bin/self-host") == nil {
+		t.Fatal("Docker image install should be refused")
+	}
+	t.Setenv("SELF_HOST_IMAGE", "")
 	if checkSelfManaged(filepath.Join(dir, "self-host")) != nil {
 		t.Fatal("plain install should be allowed")
 	}
