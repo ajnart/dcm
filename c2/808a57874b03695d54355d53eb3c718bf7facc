@@ -1,0 +1,16 @@
+.gitignore
+  h_d6e478ca18e517 23-26
+video/reel/release/build.mjs
+  h_d6e478ca18e517 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c2808a57874b03695d54355d53eb3c718bf7facc",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
