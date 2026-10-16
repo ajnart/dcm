@@ -1,0 +1,19 @@
+internal/skill/install.go
+  s_7fa234028f3f9f::t_6d8a6876cbee45 114,117,136,146-157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b86644826ddcd619efdee55b55199c957f5e6d23",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
