@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/release"
@@ -232,5 +233,44 @@ func TestInstallFollowsARepositoryRenameRedirectOnPublicDownloads(t *testing.T) 
 	}
 	if data, _ := os.ReadFile(exe); string(data) != "new" {
 		t.Fatalf("installed %q", data)
+	}
+}
+
+func TestInstallIgnoresLinuxPackagesListedInChecksums(t *testing.T) {
+	var archive bytes.Buffer
+	gz := gzip.NewWriter(&archive)
+	tw := tar.NewWriter(gz)
+	tw.WriteHeader(&tar.Header{Name: "self-host", Mode: 0755, Size: 3})
+	tw.Write([]byte("new"))
+	tw.Close()
+	gz.Close()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/releases/download/v1.2.0/checksums.txt":
+			fmt.Fprintf(w, "%[1]s  self-host_1.2.0_linux_amd64.apk\n%[1]s  self-host_1.2.0_linux_amd64.deb\n%[1]s  self-host_1.2.0_linux_amd64.rpm\n%x  self-host_1.2.0_linux_amd64.tar.gz\n", strings.Repeat("b", 64), sha256.Sum256(archive.Bytes()))
+		case "/releases/download/v1.2.0/self-host_1.2.0_linux_amd64.tar.gz":
+			w.Write(archive.Bytes())
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	exe := filepath.Join(t.TempDir(), "self-host")
+	os.WriteFile(exe, []byte("old"), 0755)
+	client := release.Client{HTTP: server.Client(), WebURL: server.URL, APIURL: server.URL}
+	if err := client.Install(context.Background(), release.Release{Tag: "v1.2.0"}, "linux", "amd64", exe); err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := os.ReadFile(exe); string(data) != "new" {
+		t.Fatalf("installed %q", data)
+	}
+}
+
+func TestLatestPicksTheArchiveWhenPackagesAreAlsoAssets(t *testing.T) {
+	assets := `[{"name":"self-host_1.2.0_linux_amd64.deb"},{"name":"self-host_1.2.0_linux_amd64.rpm"},{"name":"self-host_1.2.0_linux_amd64.apk"},`
+	assets += cliAssets("1.2.0")[1:]
+	got, err := latestFrom(t, fmt.Sprintf(`[{"tag_name":"v1.2.0","assets":%s}]`, assets))
+	if err != nil || got.Tag != "v1.2.0" || got.ArchiveName("linux", "amd64") != "self-host_1.2.0_linux_amd64.tar.gz" {
+		t.Fatalf("Latest = %+v, %v", got, err)
 	}
 }

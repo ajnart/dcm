@@ -59,3 +59,41 @@ aurs:
     package: |-
       install -Dm755 "./self-host" "${pkgdir}/usr/bin/self-host"
       install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/self-host-bin/LICENSE"
+
+# .deb, .rpm and .apk join the archives as release assets and in checksums.txt.
+nfpms:
+  - id: self-host
+    ids: [self-host]
+    package_name: self-host
+    file_name_template: "self-host_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    homepage: https://self-host.fyi
+    description: Install and operate self-hosted apps with Docker Compose from one Go binary
+    maintainer: "Thomas <thomas@ajnart.fr>"
+    license: Apache-2.0
+    formats: [deb, rpm, apk, archlinux]
+    bindir: /usr/bin
+    recommends:
+      - docker
+    contents:
+      - src: ./LICENSE
+        dst: /usr/share/licenses/self-host/LICENSE
+
+# goreleaser only writes the cask into dist/homebrew/Casks/; scripts/publish-homebrew.sh
+# pushes it to ajnart/homebrew-tap once the vX.Y.Z release is public.
+homebrew_casks:
+  - name: self-host
+    ids: [self-host]
+    homepage: https://self-host.fyi
+    description: Install and operate self-hosted apps with Docker Compose from one Go binary
+    url:
+      template: "https://github.com/ajnart/self-host/releases/download/v{{ .Version }}/{{ .ArtifactName }}"
+    repository:
+      owner: ajnart
+      name: homebrew-tap
+    skip_upload: true
+    hooks:
+      post:
+        install: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/self-host"]
+          end

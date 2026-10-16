@@ -7,6 +7,9 @@ A CLI release is a GitHub release tagged **`vX.Y.Z`** (the earlier channel used
 checksums.txt
 self-host_X.Y.Z_linux_amd64.tar.gz    self-host_X.Y.Z_linux_arm64.tar.gz
 self-host_X.Y.Z_darwin_amd64.tar.gz   self-host_X.Y.Z_darwin_arm64.tar.gz
+self-host_X.Y.Z_linux_amd64.deb       self-host_X.Y.Z_linux_arm64.deb
+self-host_X.Y.Z_linux_amd64.rpm       self-host_X.Y.Z_linux_arm64.rpm
+self-host_X.Y.Z_linux_amd64.apk       self-host_X.Y.Z_linux_arm64.apk
 ```
 
 The installer and `self-host self-update` pick the highest semver among
@@ -54,7 +57,7 @@ Then follow what the workflow does: draft, download, compare, publish.
 
 ```bash
 cd dist
-assets=(self-host_X.Y.Z_linux_amd64.tar.gz self-host_X.Y.Z_linux_arm64.tar.gz self-host_X.Y.Z_darwin_amd64.tar.gz self-host_X.Y.Z_darwin_arm64.tar.gz checksums.txt)
+assets=(self-host_X.Y.Z_linux_amd64.tar.gz self-host_X.Y.Z_linux_arm64.tar.gz self-host_X.Y.Z_darwin_amd64.tar.gz self-host_X.Y.Z_darwin_arm64.tar.gz self-host_X.Y.Z_linux_{amd64,arm64}.{deb,rpm,apk,pkg.tar.zst} checksums.txt)
 shasum -a 256 -c checksums.txt
 gh release create vX.Y.Z "${assets[@]}" --target main --draft --title "self-host X.Y.Z" \
   --notes "Linux and macOS amd64/arm64 CLI. WSL2 uses Linux binaries. Native Windows is unsupported."
@@ -91,6 +94,44 @@ package only installs once the release assets are anonymously downloadable
    `aur.archlinux.org` at its private half in `~/.ssh/config`
    (`Host aur.archlinux.org`, `User aur`, `IdentityFile ~/.ssh/aur`).
 3. The first `scripts/publish-aur.sh` run claims the empty `self-host-bin` repo.
+
+## Linux packages
+
+Every goreleaser run also builds `.deb`, `.rpm` and `.apk` packages (nfpm) that
+install `/usr/bin/self-host` and recommend, but do not require, `docker`. They are
+release assets listed in `checksums.txt`; the installer and `self-update` only read
+the `.tar.gz` lines and ignore them.
+
+```bash
+sudo apt install ./self-host_X.Y.Z_linux_amd64.deb
+sudo dnf install ./self-host_X.Y.Z_linux_amd64.rpm
+sudo apk add --allow-untrusted ./self-host_X.Y.Z_linux_amd64.apk
+```
+
+They are unsigned and not in an apt/dnf repository; users download them from the
+release page.
+
+## Homebrew tap
+
+`brew install ajnart/tap/self-host` installs the cask goreleaser writes to
+`dist/homebrew/Casks/self-host.rb` (pinned to that run's archive hashes). It is a
+cask rather than a formula because goreleaser deprecates `brews` in favour of
+`homebrew_casks`; the generated cask covers macOS and Linux (amd64/arm64) with the
+same archives. The binary is unsigned, so the cask's post-install hook strips
+`com.apple.quarantine` on macOS (without it Gatekeeper reports the binary as
+damaged). Once the `vX.Y.Z` release is published:
+
+```bash
+scripts/publish-homebrew.sh X.Y.Z
+```
+
+Same guards as the AUR script (not a draft, `dist/checksums.txt` matches the
+published one); it commits `Casks/self-host.rb` to `ajnart/homebrew-tap` and pushes.
+The `new-cli-vX.Y.Z` twin is never published to Homebrew. Like the AUR package it
+needs anonymously downloadable release assets
+([#295](https://github.com/ajnart/self-host/issues/295)).
+
+One-time setup: `gh repo create ajnart/homebrew-tap --public`.
 
 ## Verify
 
