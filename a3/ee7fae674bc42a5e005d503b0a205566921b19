@@ -1,0 +1,62 @@
+README.md
+  h_d6e478ca18e517 15-20,46,99-100,385-386
+docs/assets/readme/header.html
+  h_d6e478ca18e517 19
+docs/assets/readme/hero-command.svg
+  h_d6e478ca18e517 1
+docs/assets/readme/hero-swaps.svg
+  h_d6e478ca18e517 1
+docs/assets/readme/links-graph.svg
+  h_d6e478ca18e517 1
+docs/assets/readme/replaces-meet.svg
+  h_d6e478ca18e517 1
+site/astro.config.mjs
+  h_d6e478ca18e517 4-9,37-43,68
+site/bun.lock
+  h_d6e478ca18e517 18-22,27-29,31-32,65-67,251-252,337-338,369-372,381-382,395-398,411-412,415-416,435-436,495-497,501-504,509-524,543-544,563-564,567-568,573-576,589-590,593-594,597-600,619-620,623-624,629-630,635-638,641-642,687-692,695-696,699-718,735-758,763-764,787-788,835-836,847-850,877-884,893-898,901-912,919-922,925-926,945-946,951-960,967-974,977-980,989-990,1021-1022,1025-1028,1033-1034,1047-1048,1053-1056,1093-1094,1119-1124,1135-1136,1141-1142,1147-1150,1153-1154,1171-1188,1191-1192,1196-1203
+site/package.json
+  h_d6e478ca18e517 22-26,32-34
+site/patches/starlight-page-actions@0.7.1.patch
+  h_d6e478ca18e517 1-15
+site/src/content.config.ts
+  h_d6e478ca18e517 7-23,42-46
+site/src/content/docs/docs/access.md
+  h_d6e478ca18e517 112
+site/src/lib/changelog.ts
+  h_d6e478ca18e517 1-21
+site/src/lib/version.ts
+  h_d6e478ca18e517 9,34
+site/src/pages/404.astro
+  h_d6e478ca18e517 4,10-12
+site/src/styles/docs.css
+  h_d6e478ca18e517 125-137
+site/src/styles/site.css
+  h_d6e478ca18e517 139-141,196-200,644-647,772-776,878-883,1387-1392
+video/reel/readme/.gitignore
+  h_d6e478ca18e517 4
+video/reel/readme/README.md
+  h_d6e478ca18e517 8,11-21,30,34-41,43,49,55,57,65-69,73,77-80
+video/reel/readme/build.mjs
+  h_d6e478ca18e517 2,5-6,8-9,14-15,60-61,67,70,74,81,83-93,98-99,121,130,133
+video/reel/readme/hero.mjs
+  h_d6e478ca18e517 39,81-97,103,108,118-119,185,187-192,198,200-209,211-212,214-215,217-219,221-228,230-231,237-243,245-247,249-256,258
+video/reel/readme/index.html
+  h_d6e478ca18e517 25-26,35,42,52,67,87-88,100
+video/reel/readme/section-links-gallery.js
+  h_d6e478ca18e517 1-12
+video/reel/readme/section-links.mjs
+  h_d6e478ca18e517 1-175
+video/reel/readme/section-replaces.mjs
+  h_d6e478ca18e517 1-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a3ee7fae674bc42a5e005d503b0a205566921b19",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
