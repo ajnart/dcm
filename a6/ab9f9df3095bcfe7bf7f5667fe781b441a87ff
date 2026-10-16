@@ -1,0 +1,31 @@
+install.sh
+  s_7fa234028f3f9f::t_8ede65d9b3f961 288-289,298,304-307,309,419
+internal/cli/skill.go
+  s_7fa234028f3f9f::t_539834a2a8d6b5 5,13,21-58
+internal/cli/skill_test.go
+  s_7fa234028f3f9f::t_a446a1927d3aab 337-359
+internal/release/installsh_skill_test.go
+  s_7fa234028f3f9f::t_70bcbd38142008 56-58,60-62,71,76,81-83,89-90,95-96,98-99,105,117,128
+internal/skill/SKILL.md
+  s_7fa234028f3f9f::t_d1973112e7d950 1-18
+internal/skill/install.go
+  s_7fa234028f3f9f::t_d82110cf98db30 1-147
+internal/skill/install_test.go
+  s_7fa234028f3f9f::t_0e95d08b4060cb 1-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a6ab9f9df3095bcfe7bf7f5667fe781b441a87ff",
+  "prompts": {},
+  "sessions": {
+    "s_7fa234028f3f9f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19403f9a-b66b-4412-bd4b-71d2445e6ede",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
