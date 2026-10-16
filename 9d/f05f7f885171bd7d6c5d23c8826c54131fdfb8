@@ -1,0 +1,24 @@
+scripts/release-new-apps.sh
+  h_d6e478ca18e517 1-26
+video/reel/package.json
+  h_d6e478ca18e517 12-13
+video/reel/release/README.md
+  h_d6e478ca18e517 1-19
+video/reel/release/build.mjs
+  h_d6e478ca18e517 1-109
+video/reel/release/index.html
+  h_d6e478ca18e517 1-61
+video/reel/release/scene.mjs
+  h_d6e478ca18e517 1-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9df05f7f885171bd7d6c5d23c8826c54131fdfb8",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
