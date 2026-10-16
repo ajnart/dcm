@@ -1,0 +1,39 @@
+README.md
+  s_6a71ab19daa863::t_02155952c33a06 40
+docs/catalog/traps/cleanuparr.md
+  s_6a71ab19daa863::t_71c27017c35e17 1-14
+e2e/acceptance.md
+  s_6a71ab19daa863::t_03b6270b3a69d3 3
+e2e/acceptance_fixture_test.go
+  s_6a71ab19daa863::t_4901670272fed0 24
+e2e/testdata/inventory.json
+  s_6a71ab19daa863::t_3c14debf5f86c4 88-94
+internal/apps/cleanuparr/cleanuparr.go
+  s_6a71ab19daa863::t_b4c483bc70df9a 1-209
+internal/apps/cleanuparr/cleanuparr_test.go
+  s_6a71ab19daa863::t_618c56ed41c1d3 1-96
+internal/catalog/batch_misc2.go
+  s_6a71ab19daa863::t_19bd3780e1a2de 7,22
+site/src/data/catalog.json
+  s_6a71ab19daa863::t_2ef7c0c828cf14 124-134
+tools/sitegen/catalog.go
+  s_6a71ab19daa863::t_e88b24adf76cbc 28
+tools/sitegen/stars.go
+  s_6a71ab19daa863::t_98dbb268d4b904 28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a29fa9d3f7132c973a3dac665b2760f6fb2543f7",
+  "prompts": {},
+  "sessions": {
+    "s_6a71ab19daa863": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "850ec604-a207-4917-80df-37a44ceb5b27",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
