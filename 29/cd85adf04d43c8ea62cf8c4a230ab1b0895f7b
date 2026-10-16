@@ -1,0 +1,50 @@
+README.md
+  h_d6e478ca18e517 15-20,46,99-100,385-386
+docs/assets/readme/header.html
+  h_d6e478ca18e517 1-25
+docs/assets/readme/hero-command.svg
+  h_d6e478ca18e517 1
+docs/assets/readme/hero-lockup.svg
+  h_d6e478ca18e517 1
+docs/assets/readme/hero-swaps.svg
+  h_d6e478ca18e517 1
+docs/assets/readme/links-graph.svg
+  h_d6e478ca18e517 1
+docs/assets/readme/replaces-meet.svg
+  h_d6e478ca18e517 1
+docs/assets/readme/status-lights.svg
+  h_d6e478ca18e517 1
+video/reel/package.json
+  h_d6e478ca18e517 11-12
+video/reel/readme/.gitignore
+  h_d6e478ca18e517 1-4
+video/reel/readme/README.md
+  h_d6e478ca18e517 1-79
+video/reel/readme/build.mjs
+  h_d6e478ca18e517 1-135
+video/reel/readme/glyphs.mjs
+  h_d6e478ca18e517 1-443
+video/reel/readme/hero.mjs
+  h_d6e478ca18e517 1-259
+video/reel/readme/index.html
+  h_d6e478ca18e517 1-99
+video/reel/readme/scene.mjs
+  h_d6e478ca18e517 1-152
+video/reel/readme/section-links-gallery.js
+  h_d6e478ca18e517 1-12
+video/reel/readme/section-links.mjs
+  h_d6e478ca18e517 1-175
+video/reel/readme/section-replaces.mjs
+  h_d6e478ca18e517 1-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "29cd85adf04d43c8ea62cf8c4a230ab1b0895f7b",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
