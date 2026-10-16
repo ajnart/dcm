@@ -99,34 +99,6 @@ for (const m of linksOut) for (const f of m.files) f.bytes = kb(join(out, f.file
 writeFileSync(join(dir, "section-links.json"), JSON.stringify({ variants: linksOut }, null, 1));
 writeFileSync(join(dir, "variants.json"), JSON.stringify({ apps, variants: meta, extras }, null, 1));
 
-const shield = (path, q = "") => `https://img.shields.io/${path}?style=flat-square&labelColor=14121e${q}`;
-writeFileSync(join(out, "header.html"), `<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
-    <img src="docs/assets/logo-light.svg" alt="self-host Logo: four containers with their status lights" width="114" height="108">
-  </picture>
-</p>
-
-<h1 align="center">Stop renting your software.</h1>
-
-<p align="center">
-  <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Latest release" src="${shield("github/v/release/ajnart/self-host", "&color=7a57d3")}"></a>
-  <a href="LICENSE"><img alt="License: Apache-2.0" src="${shield("badge/license-Apache--2.0-7a57d3")}"></a>
-  <img alt="Platforms: Linux, macOS, WSL" src="${shield("badge/platforms-Linux%20%7C%20macOS%20%7C%20WSL-7a57d3")}">
-  <a href="https://self-host.fyi"><img alt="${apps} Apps in the Catalog" src="${shield(`badge/Apps-${apps}-00d787`)}"></a>
-</p>
-
-<p align="center">
-  <a href="https://self-host.fyi/#reel"><img src="docs/assets/social-card.png" alt="self-host: Your Apps. Your home. One binary. Watch the showreel." width="${W}"></a>
-</p>
-
-<p align="center">
-  <b>Replace the SaaS you pay for.</b> One binary installs and runs self-hosted Apps at home, no Docker knowledge needed.<br>
-  A terminal Dashboard for you, plain commands for your agent.
-</p>
-`);
-
 const over = [...meta.flatMap((m) => m.files), ...linksOut.flatMap((m) => m.files), ...extras].filter((f) => f.budget && f.bytes > f.budget);
 for (const m of meta) console.log(`${m.n} ${m.id}: ${m.files.map((f) => `${f.file} ${(f.bytes / 1024).toFixed(0)} KB`).join(", ")}`);
 for (const e of extras) console.log(`${e.file} ${(e.bytes / 1024).toFixed(0)} KB`);

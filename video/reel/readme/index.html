@@ -45,7 +45,16 @@ td,th{border:1px solid var(--line);padding:5px 10px;text-align:left}
 <script>
 const root="../../../",kb=b=>(b/1024).toFixed(0)+" KB";
 const widths=[920,640,390];
-Promise.all([fetch("variants.json").then(r=>r.json()),fetch(root+"docs/assets/readme/header.html").then(r=>r.text())]).then(([D,header])=>{
+const header=`<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
+    <img src="docs/assets/logo-light.svg" alt="self-host Logo: four containers with their status lights" width="114" height="108">
+  </picture>
+</p>
+<h1 align="center">Stop renting your software.</h1>
+<p align="center"><a href="#"><img src="docs/assets/social-card.png" alt="self-host: Your Apps. Your home. One binary. Watch the showreel." width="880"></a></p>`;
+fetch("variants.json").then(r=>r.json()).then(D=>{
 const V=D.variants;
 const q=new URLSearchParams(location.search);
 let i=Math.max(0,Math.min(V.length-1,(+q.get("v")||1)-1));

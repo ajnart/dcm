@@ -38,9 +38,8 @@ The gallery shows each variant inside a mock of the README header, with toggles 
 | 3   | `hero-command.svg/png` | a wide 880x240 section divider: the curl command wired to nine Apps, data pulses travel the wires|
 | 4   | `status-lights.svg`     | the Overview's six status lights going waiting, starting, running; a 6 s loop     |
 | ·   | `section-dashboard.png` | the Dashboard Overview on its own, for a README section                           |
-| ·   | `header.html`           | the header block the gallery mocks around each variant (Logo `<picture>`, tagline, badges, the current social card); README.md does not use it |
 
-The three heroes are animated SVGs with a static PNG. The README keeps its current top image, so none of them is the header; swaps and command are section images. `header.html` only feeds the gallery, which swaps a hero into the social-card slot to compare. The App count badge is computed from `site/src/data/catalog.json`.
+The three heroes are animated SVGs with a static PNG. The README keeps its current top image, so none of them is the header; swaps and command are section images. The gallery swaps a hero into the social-card slot of a mock header to compare.
 
 The $92 is the reel's illustrative subscription total (see `../STORYBOARD.md`), not a measured price.
 
