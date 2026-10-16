@@ -1,0 +1,41 @@
+docs/assets/readme/hero-command.svg
+  s_88fbc8564416f1::t_f32ae8eb91dc2d 1
+video/reel/readme/build.mjs
+  s_2778c96de158c5::t_03e05a98074e73 96,98-101,141
+video/reel/readme/hero.mjs
+  s_2778c96de158c5::t_cd01637c3fd155 245-249
+video/reel/readme/index.html
+  s_8b76b1c77ab48c::t_74779cbff462b9 33,36,48,50-57,65-75,79-82,84-85,89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3af892e5a7e85fa175b65ea2c01479d60299f6c9",
+  "prompts": {},
+  "sessions": {
+    "s_2778c96de158c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1844fc6b-136e-4d20-97a4-129e432b7ea0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_88fbc8564416f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "73e51a19-13e4-4347-9cad-9d03e6e40b7d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b76b1c77ab48c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54efe0a7-1d10-4cf0-b582-fba3820dfef8",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
