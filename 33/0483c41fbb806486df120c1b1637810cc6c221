@@ -1,0 +1,33 @@
+docs/assets/readme/links-graph.svg
+  s_8b76b1c77ab48c::t_64765e08e272f8 1
+video/reel/readme/README.md
+  s_0fc5db7d0be230::t_b20c4c992c810e 62
+video/reel/readme/section-links-gallery.js
+  s_0fc5db7d0be230::t_510ab415928dd4 6
+video/reel/readme/section-links.mjs
+  s_0fc5db7d0be230::t_4af46e8178003c 67,86,103,105-106,127,131,133-141,145,149,151-152,155,162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "330483c41fbb806486df120c1b1637810cc6c221",
+  "prompts": {},
+  "sessions": {
+    "s_0fc5db7d0be230": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a20d1d09-6e1c-4391-a478-284175352012",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8b76b1c77ab48c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54efe0a7-1d10-4cf0-b582-fba3820dfef8",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
