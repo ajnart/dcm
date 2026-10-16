@@ -1,0 +1,31 @@
+.gitignore
+  s_5fda4f7fe1eaff::t_b7192aa9c16d8d 25-28
+video/reel/package.json
+  s_5fda4f7fe1eaff::t_fc8de6420f2cef 12-13
+video/reel/release/data.mjs
+  s_5fda4f7fe1eaff::t_a4d2929847ef77 1-68
+video/reel/release/index.html
+  s_5fda4f7fe1eaff::t_dc1bc5adf5e53b 1-118
+video/reel/release/variants/hub.mjs
+  s_5fda4f7fe1eaff::t_918dab21bda4df 1-59
+video/reel/release/variants/shelf.mjs
+  s_5fda4f7fe1eaff::t_b5225ba3ef66b9 1-60
+video/reel/release/variants/terminal.mjs
+  s_5fda4f7fe1eaff::t_98b04a4342734e 1-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "53eb09fc5ade21b31be4551815e75fbd3e30214b",
+  "prompts": {},
+  "sessions": {
+    "s_5fda4f7fe1eaff": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ce4bf289-ef03-4b9e-8c0b-2e3a78f2f69a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
