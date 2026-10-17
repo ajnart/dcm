@@ -27,7 +27,7 @@ type helpPage struct {
 }
 
 const (
-	repositoryURL = "https://github.com/ajnart/selfhost-skills"
+	repositoryURL = "https://github.com/ajnart/self-host"
 	koFiURL       = "https://ko-fi.com/ajnart"
 	sponsorsURL   = "https://github.com/sponsors/ajnart"
 )
