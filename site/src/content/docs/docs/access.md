@@ -7,14 +7,14 @@ sidebar:
 
 Access is how people reach the Apps and what they type to open them. It decides each App's Address. Choose it in Onboarding's Access step or later in the Dashboard under Settings → Access, where each option has a diagram and a help page. Review always needs your approval, and anything reachable from the internet needs its own explicit yes that names the risk.
 
-| Access                   | What you type                                                                  |
-| ------------------------ | ------------------------------------------------------------------------------ |
-| Home network (default)   | `http://192.168.1.20:8096`                                                     |
-| This computer only       | `http://127.0.0.1:8096`                                                        |
-| Easy names at home       | `http://jellyfin.192-168-1-20.sslip.io`, through one managed Caddy             |
-| From anywhere, privately | A Tailscale HTTPS Address, one node per App                                    |
-| Your own web address     | `https://movies.example.com`, through Cloudflare Tunnel with a login page      |
-| Bring your own           | Whatever your own proxy serves; `self-host access export` prints the upstreams |
+| Access | What you type | Status |
+| --- | --- | --- |
+| Home network (default) | `http://192.168.1.20:8096` | Verified 2026-10-14 on Linux ([#499](https://github.com/ajnart/self-host/issues/499)) and 2026-10-17 on macOS with OrbStack ([#502](https://github.com/ajnart/self-host/issues/502)). Another device was not tried on macOS. |
+| This computer only | `http://127.0.0.1:8096` | Not yet verified on a real host. |
+| Easy names at home | `http://jellyfin.192-168-1-20.sslip.io`, through one managed Caddy | Verified 2026-10-14 on Linux with rootless Docker, from a second machine ([#500](https://github.com/ajnart/self-host/issues/500)). Not yet verified on macOS ([#502](https://github.com/ajnart/self-host/issues/502)). |
+| From anywhere, privately | A Tailscale HTTPS Address, one node per App | Not yet verified on a real host, nor from another tailnet device ([#502](https://github.com/ajnart/self-host/issues/502)). |
+| Your own web address | `https://movies.example.com`, through Cloudflare Tunnel with a login page | Not yet verified on a real host with a real domain ([#502](https://github.com/ajnart/self-host/issues/502)). |
+| Bring your own | Whatever your own proxy serves; `self-host access export` prints the upstreams | Not yet verified on a real host. |
 
 Options combine: Easy names at home and Tailscale can both be on. The `IP:port` Address is always kept as a fallback. `self-host status` and Homarr tiles show the friendliest Address that works, in this order: Tailscale HTTPS, verified Cloudflare HTTPS, working Easy names, then `IP:port`.
 
@@ -41,7 +41,7 @@ self-host config set EXPOSURE=local   # an existing Project
 
 ## Easy names at home
 
-One Caddy in the Project routes each App with a web page to `http://<app>.<lan-ip-with-dashes>.sslip.io`, on every OS.
+One Caddy in the Project routes each App with a web page to `http://<app>.<lan-ip-with-dashes>.sslip.io`. Verified on Linux; not yet verified on macOS.
 
 ```bash
 self-host install jellyfin --easy-names   # a new Project

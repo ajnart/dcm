@@ -69,7 +69,7 @@ Start with `self-host debug <app>`, `self-host status` and `self-host doctor`, a
 | Docker missing or stopped                     | Install or start it, then `self-host doctor`.                               |
 | 403 rate limit on install                     | `SELF_HOST_GITHUB_TOKEN="$(gh auth token)"` before `bash`, or wait an hour. |
 | `curl` error but the command seems to succeed | A pipe hides curl's exit status; use `set -o pipefail` in scripts.          |
-| Native Windows                                | Unsupported. Use WSL.                                                       |
+| Native Windows                                | Unsupported. WSL2 is not yet verified.                                      |
 
 ## Feedback
 

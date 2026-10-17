@@ -83,10 +83,10 @@ Each of these has an App you can install today, for example `self-host install i
 | Ships the Catalog inside the binary: 90 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                                   |
 | Runs headless Setup for each App: accounts, API keys, settings.                 | Touch anything outside its one Compose Project in `~/.self-host`.                       |
 | Wires Apps together with Links, and gives Homarr native tiles.                  | Back up media libraries or data outside App folders.                                    |
-| Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows. Use WSL2.                                                        |
+| Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows.                                                                  |
 | Offers Access from the Home network to Tailscale, Cloudflare or your own proxy. | Ship indexers, trackers or content sources.                                             |
 | Backs up and restores with optional encryption.                                 | Prove safe version-to-version migration. Update checks are not migration tests.         |
-| Gives agents plain commands with `--json` output.                               | Make every App work: 97 of 113 tested targets pass ([details](#platforms-and-support)). |
+| Gives agents plain commands with `--json` output.                               | Make every App work: four are hidden ([details](#platforms-and-support)).               |
 
 A **Recipe** is a pre-wired bundle: `media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin and Seerr.
 
@@ -138,14 +138,14 @@ Home network by default. Each change needs your approval.
 <details>
 <summary><b>Access options</b></summary>
 
-| Access                   | What you get                                                                         |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| Home network (default)   | `http://192.168.1.20:8096`. Ports publish on all host interfaces.                    |
-| This computer only       | `127.0.0.1` (`--exposure local`).                                                    |
-| Easy names at home       | `http://jellyfin.192-168-1-20.sslip.io`, through one managed Caddy.                  |
-| From anywhere, privately | Tailscale, one HTTPS node per App.                                                   |
-| Your own web address     | Cloudflare Tunnel plus a login page.                                                 |
-| Bring your own           | `self-host access export` for SWAG, Pangolin, Nginx Proxy Manager, Traefik or Caddy. |
+| Access                   | What you get                                                                         | Status                                                                                                                                                                                                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Home network (default)   | `http://192.168.1.20:8096`. Ports publish on all host interfaces.                    | Verified 2026-10-14 on Linux ([#499](https://github.com/ajnart/self-host/issues/499)) and 2026-10-17 on macOS with OrbStack ([#502](https://github.com/ajnart/self-host/issues/502)). Another device was not tried on macOS.                                                             |
+| This computer only       | `127.0.0.1` (`--exposure local`).                                                    | Not yet verified on a real host.                                                                                                                                                                                                                                                        |
+| Easy names at home       | `http://jellyfin.192-168-1-20.sslip.io`, through one managed Caddy.                  | Verified 2026-10-14 on Linux with rootless Docker, from a second machine ([#500](https://github.com/ajnart/self-host/issues/500)). Not yet verified on macOS ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                  |
+| From anywhere, privately | Tailscale, one HTTPS node per App.                                                   | Not yet verified on a real host, nor from another tailnet device ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                              |
+| Your own web address     | Cloudflare Tunnel plus a login page.                                                 | Not yet verified on a real host with a real domain ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                            |
+| Bring your own           | `self-host access export` for SWAG, Pangolin, Nginx Proxy Manager, Traefik or Caddy. | Not yet verified on a real host.                                                                                                                                                                                                                                                        |
 
 The `IP:port` Address is always kept as a fallback.
 
@@ -235,25 +235,23 @@ A failing Link marks the consuming App as needing attention, not its target. Bro
 
 You need Docker with the `docker compose` v2 plugin (with `include` support), write access to the Project and data folders, free published ports, and enough storage and RAM for the Apps. Start with one App; photos, AI and multi-App Recipes need more. Run `self-host doctor` first.
 
-| Platform       | Binary       | Validation                                                             |
-| -------------- | ------------ | ---------------------------------------------------------------------- |
-| Linux amd64    | Yes          | Published install/update and clean Alpine bootstrap passed.            |
-| Linux arm64    | Yes          | Native CLI and archive checks passed; image support varies by App.     |
-| macOS arm64    | Yes          | Native checks passed; deployment needs a Linux Docker VM.              |
-| Intel macOS    | Yes          | Native execution, checksummed install and corruption rejection passed. |
-| WSL2           | Linux binary | Planned; native WSL validation pending.                                |
-| Native Windows | No           | Unsupported.                                                           |
+Each status below is a dated launch run on a real host or VM, linked to its issue. Nothing else counts.
 
-The [runtime matrix](docs/runtime-matrix.md) ([JSON](docs/runtime-matrix.json)) covers 113 targets, a 2026-10-07 snapshot pending the launch runs:
+| Platform                     | Status                          | Run                                                                                                                                                                                                                                                   |
+| ---------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Linux amd64                  | Verified 2026-10-14             | Ubuntu 24.04, Debian 12 and 13 VMs. Install and `self-update` ([#497](https://github.com/ajnart/self-host/issues/497)); Onboarding, the Media Recipe with Homarr, Links, Backup and Restore ([#499](https://github.com/ajnart/self-host/issues/499)). |
+| Linux amd64, Docker denied   | Verified 2026-10-14             | `sudo "$(command -v self-host)"` installs the Media Recipe and the Project stays yours ([#498](https://github.com/ajnart/self-host/issues/498)).                                                                                                      |
+| Linux amd64, rootless Docker | Verified 2026-10-14             | Debian 13: a Recipe installs, and Easy names open from a second machine ([#500](https://github.com/ajnart/self-host/issues/500)).                                                                                                                     |
+| Linux arm64                  | Verified 2026-10-14             | Debian 12 VM: install and one Recipe ([#501](https://github.com/ajnart/self-host/issues/501)).                                                                                                                                                        |
+| macOS arm64 with OrbStack    | Verified 2026-10-17             | v0.5.11, Photos and cloud files Recipe, Home network Access ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                 |
+| macOS with Docker Desktop    | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                                     |
+| Intel macOS                  | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                                     |
+| WSL2                         | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                                     |
+| Native Windows               | Unsupported                     | Not supported.                                                                                                                                                                                                                         |
 
-| Result                     | Count | Notes                                                                                    |
-| -------------------------- | ----- | ---------------------------------------------------------------------------------------- |
-| Pass                       | 97    | Each result belongs to its recorded head, binary, image IDs and platform.                |
-| Fail on the test host      | 3     | BookStack, Speedtest Tracker, Passbolt ([PHP-FPM evidence](docs/php-fpm-host-limit.md)). |
-| Await external credentials | 8     | Provider accounts, VPN credentials, tunnel enrollment and licenses stay owner-supplied.  |
-| Manual                     | 5     | Dockge, Emby, Stalwart, Uptime Kuma and the monitoring Recipe.                           |
+Known issues from these runs, both open: a newcomer sees Nextcloud's Homarr credential-recovery inputs and Review still lists port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App leaves its network and `down` refuses ([#590](https://github.com/ajnart/self-host/issues/590)).
 
-Published-asset install/update proof covers Linux amd64 only ([scope](docs/release-proof.md)).
+Four Apps failed on real hosts and are hidden from new installs until each passes on a VM: BookStack ([#416](https://github.com/ajnart/self-host/issues/416)), LLDAP ([#452](https://github.com/ajnart/self-host/issues/452)), Passbolt ([#456](https://github.com/ajnart/self-host/issues/456)) and Speedtest Tracker ([#66](https://github.com/ajnart/self-host/issues/66)). Existing installs keep working ([#493](https://github.com/ajnart/self-host/issues/493)). Apps beyond those in the runs above have no launch run, so the older [runtime matrix](docs/runtime-matrix.md), a 2026-10-07 snapshot, is a pre-launch record, not a promise.
 
 Docker socket denied? Run `sudo "$(command -v self-host)"`. The Project, config and cache stay yours. Rootless Docker also works.
 
@@ -270,7 +268,7 @@ Docker socket denied? Run `sudo "$(command -v self-host)"`. The Project, config 
 | Docker missing or stopped                     | Install or start it, then `self-host doctor`.                               |
 | 403 rate limit on install                     | `SELF_HOST_GITHUB_TOKEN="$(gh auth token)"` before `bash`, or wait an hour. |
 | `curl` error but the command seems to succeed | A pipe hides curl's exit status; use `set -o pipefail` in scripts.          |
-| Native Windows                                | Unsupported. Use WSL2.                                                      |
+| Native Windows                                | Unsupported. WSL2 is not yet verified.                                      |
 
 More in the [troubleshooting docs](https://self-host.fyi/docs/troubleshooting).
 

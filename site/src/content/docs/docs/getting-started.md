@@ -8,10 +8,28 @@ sidebar:
 ## Requirements
 
 - Docker engine with the `docker compose` v2 plugin, with `include` support.
-- Linux or macOS, amd64 or arm64. On Windows, use the Linux binary inside WSL; native Windows is unsupported.
+- Linux or macOS, amd64 or arm64. Native Windows is unsupported. See [what has been verified](#what-has-been-verified).
 - Write access to the Project and data folders, free published ports, and enough storage and RAM for the Apps. Start with one App; photos, AI and multi-App Recipes need more.
 
 No Node.js, checkout or AI account is needed.
+
+## What has been verified
+
+Each status is a dated launch run on a real host or VM, linked to its issue. Nothing else counts.
+
+| Platform | Status | Run |
+| --- | --- | --- |
+| Linux amd64 | Verified 2026-10-14 | Ubuntu 24.04, Debian 12 and 13 VMs. Install and `self-update` ([#497](https://github.com/ajnart/self-host/issues/497)); Onboarding, the Media Recipe with Homarr, Links, Backup and Restore ([#499](https://github.com/ajnart/self-host/issues/499)). |
+| Linux amd64, Docker denied | Verified 2026-10-14 | `sudo "$(command -v self-host)"` installs the Media Recipe and the Project stays yours ([#498](https://github.com/ajnart/self-host/issues/498)). |
+| Linux amd64, rootless Docker | Verified 2026-10-14 | Debian 13: a Recipe installs, and Easy names open from a second machine ([#500](https://github.com/ajnart/self-host/issues/500)). |
+| Linux arm64 | Verified 2026-10-14 | Debian 12 VM: install and one Recipe ([#501](https://github.com/ajnart/self-host/issues/501)). |
+| macOS arm64 with OrbStack | Verified 2026-10-17 | v0.5.11, Photos and cloud files Recipe, Home network Access ([#502](https://github.com/ajnart/self-host/issues/502)). |
+| macOS with Docker Desktop | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)). |
+| Intel macOS | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)). |
+| WSL2 | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)). |
+| Native Windows | Unsupported | Not supported. |
+
+Known issues from these runs, both open: a newcomer sees Nextcloud's Homarr credential-recovery inputs and Review still lists port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App leaves its network and `down` refuses ([#590](https://github.com/ajnart/self-host/issues/590)). Four Apps that failed on real hosts are hidden from new installs: BookStack, LLDAP, Passbolt and Speedtest Tracker ([#493](https://github.com/ajnart/self-host/issues/493)).
 
 ## Install
 
