@@ -83,7 +83,7 @@ Each of these has an App you can install today, for example `self-host install i
 | Ships the Catalog inside the binary: 90 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                                   |
 | Runs headless Setup for each App: accounts, API keys, settings.                 | Touch anything outside its one Compose Project in `~/.self-host`.                       |
 | Wires Apps together with Links, and gives Homarr native tiles.                  | Back up media libraries or data outside App folders.                                    |
-| Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows.                                                                  |
+| Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows. Use WSL2.                                                        |
 | Offers Access from the Home network to Tailscale, Cloudflare or your own proxy. | Ship indexers, trackers or content sources.                                             |
 | Backs up and restores with optional encryption.                                 | Prove safe version-to-version migration. Update checks are not migration tests.         |
 | Gives agents plain commands with `--json` output.                               | Make every App work: four are hidden ([details](#platforms-and-support)).               |
@@ -268,7 +268,7 @@ Docker socket denied? Run `sudo "$(command -v self-host)"`. The Project, config 
 | Docker missing or stopped                     | Install or start it, then `self-host doctor`.                               |
 | 403 rate limit on install                     | `SELF_HOST_GITHUB_TOKEN="$(gh auth token)"` before `bash`, or wait an hour. |
 | `curl` error but the command seems to succeed | A pipe hides curl's exit status; use `set -o pipefail` in scripts.          |
-| Native Windows                                | Unsupported. WSL2 is not yet verified.                                      |
+| Native Windows                                | Unsupported. Use WSL2.                                                      |
 
 More in the [troubleshooting docs](https://self-host.fyi/docs/troubleshooting).
 

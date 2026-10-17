@@ -8,7 +8,7 @@ sidebar:
 ## Requirements
 
 - Docker engine with the `docker compose` v2 plugin, with `include` support.
-- Linux or macOS, amd64 or arm64. Native Windows is unsupported. See [what has been verified](#what-has-been-verified).
+- Linux or macOS, amd64 or arm64. On Windows, use the Linux binary inside WSL2; native Windows is unsupported. See [what has been verified](#what-has-been-verified).
 - Write access to the Project and data folders, free published ports, and enough storage and RAM for the Apps. Start with one App; photos, AI and multi-App Recipes need more.
 
 No Node.js, checkout or AI account is needed.
