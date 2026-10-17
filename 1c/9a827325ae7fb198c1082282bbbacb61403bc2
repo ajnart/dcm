@@ -1,0 +1,25 @@
+README.md
+  s_b2b2d100453ddb::t_57d177f40889ef 86,89,141-148,238,240-250,252,254,271
+site/src/content/docs/docs/access.md
+  s_b2b2d100453ddb::t_5738377ba62b2b 10-17,44
+site/src/content/docs/docs/getting-started.md
+  s_b2b2d100453ddb::t_e33e03156b9de3 11,16-33
+site/src/content/docs/docs/troubleshooting.md
+  s_b2b2d100453ddb::t_587c82760ec22a 72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1c9a827325ae7fb198c1082282bbbacb61403bc2",
+  "prompts": {},
+  "sessions": {
+    "s_b2b2d100453ddb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "858ea323-f716-420b-b69b-d16cf7992476",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
