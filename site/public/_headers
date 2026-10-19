@@ -2,19 +2,40 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Content-Security-Policy: frame-ancestors 'none'
+  Cache-Control: public, max-age=0, s-maxage=300, stale-while-revalidate=60
+
+/_astro/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+
+/reel.*
+  ! Cache-Control
+  Cache-Control: public, max-age=3600, s-maxage=86400
+
+/*.svg
+  ! Cache-Control
+  Cache-Control: public, max-age=3600, s-maxage=86400
+
+/*.png
+  ! Cache-Control
+  Cache-Control: public, max-age=3600, s-maxage=86400
 
 /install
   Content-Type: text/plain; charset=utf-8
+  ! Cache-Control
   Cache-Control: no-cache
 
 /install.sh
   Content-Type: text/plain; charset=utf-8
+  ! Cache-Control
   Cache-Control: no-cache
 
 /install.sh.sha256
   Content-Type: text/plain; charset=utf-8
+  ! Cache-Control
   Cache-Control: no-cache
 
 /catalog.json
   Access-Control-Allow-Origin: *
-  Cache-Control: max-age=3600
+  ! Cache-Control
+  Cache-Control: public, max-age=3600
