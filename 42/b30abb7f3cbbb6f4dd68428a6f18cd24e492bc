@@ -1,0 +1,19 @@
+site/public/_headers
+  s_84e75ead8b56b2::t_7b535d73625ffb 5-21,25,30,35,40-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "42b30abb7f3cbbb6f4dd68428a6f18cd24e492bc",
+  "prompts": {},
+  "sessions": {
+    "s_84e75ead8b56b2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9a704bcf-ea15-473e-8c86-c812e351d55b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
