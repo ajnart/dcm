@@ -22,7 +22,7 @@
   <a href="https://self-host.fyi">Website</a> · <a href="https://self-host.fyi/docs">Docs</a> · <a href="https://self-host.fyi/#reel">Showreel</a> · <a href="https://discord.gg/aCsmEV5RgA">Discord</a>
 </p>
 
-<p align="center"><a href="https://self-host.fyi/#reel"><img src="docs/assets/readme/hero-lockup.svg" width="880" alt="Stop renting your software. One curl command is typed, the four containers' status lights come on and $92 a month counts down to $0."></a></p>
+<p align="center"><a href="https://self-host.fyi/#reel"><img src="docs/assets/readme/hero-lockup.png" width="880" alt="Stop renting your software. self-host: $92 a month becomes $0 with curl -fsSL self-host.fyi/install | bash."></a></p>
 
 Run your own Apps at home without learning Docker. One binary installs and runs them, with a terminal Dashboard for you and plain commands for your agent.
 
