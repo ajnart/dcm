@@ -146,6 +146,12 @@ docker-compose up -d
 
 [![Deploy on Easypanel](https://easypanel.io/img/deploy-on-easypanel-40.svg)](https://easypanel.io/templates/dcm)
 
+### ☁️ Using RepoCloud
+
+One-click template, no other instructions required.
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/DCM/)
+
 ### 🛠️ Build from Source
 
 1. Clone the repository:
