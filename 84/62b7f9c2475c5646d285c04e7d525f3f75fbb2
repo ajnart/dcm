@@ -1,0 +1,21 @@
+README.md
+  s_895048b775105e::t_8eb81e3fe13363 251
+site/src/content/docs/docs/getting-started.md
+  s_895048b775105e::t_c21420b9b12a35 37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8462b7f9c2475c5646d285c04e7d525f3f75fbb2",
+  "prompts": {},
+  "sessions": {
+    "s_895048b775105e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80bcbf97-516e-4f18-b262-62154331b241",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
