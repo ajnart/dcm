@@ -1,0 +1,42 @@
+internal/app/app.go
+  h_d6e478ca18e517 36-41
+internal/apps/nextcloud/nextcloud.go
+  h_d6e478ca18e517 42,44
+internal/apps/nextcloud/nextcloud_test.go
+  h_d6e478ca18e517 107-108
+internal/host/checks.go
+  h_d6e478ca18e517 25-26
+internal/host/onboarding.go
+  h_d6e478ca18e517 14,51,54,66
+internal/service/onboarding_checks.go
+  h_d6e478ca18e517 37,48
+internal/service/onboarding_checks_test.go
+  h_d6e478ca18e517 50-51,54-55
+internal/tui/harness_test.go
+  h_d6e478ca18e517 40,274-277
+internal/tui/onboarding.go
+  h_d6e478ca18e517 7,437,447,449-453
+internal/tui/onboarding_flow_test.go
+  h_d6e478ca18e517 52-68
+internal/tui/onboarding_form.go
+  h_d6e478ca18e517 180-182,205-207
+internal/tui/onboarding_plan.go
+  h_d6e478ca18e517 119-125
+internal/tui/onboarding_test.go
+  h_d6e478ca18e517 10,22-23,388-435
+internal/tui/onboarding_view.go
+  h_d6e478ca18e517 200
+internal/tui/what.go
+  h_d6e478ca18e517 127-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "36cbad116c3d874654d7a268ba2f2df20bab1867",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
