@@ -1,0 +1,20 @@
+e2e/README.md
+  h_d6e478ca18e517 41,45-49
+e2e/renovate_fixture_test.go
+  h_d6e478ca18e517 148-149,168-169
+e2e/resources_runner_fixture_test.go
+  h_d6e478ca18e517 15-18,101-104
+e2e/scenario_test.go
+  h_d6e478ca18e517 197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2867d26755cbbecc1f2ef5d63de12bf720ad67bc",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
