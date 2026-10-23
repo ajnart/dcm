@@ -116,7 +116,13 @@ func planLines(t theme, p *plan) []string {
 	lines := []string{"", "  " + t.dim().Bold(true).Render(pad("APP", 20)+pad("IMAGE", 46)+"PORT")}
 	for _, a := range p.apps {
 		info := a.Info()
-		lines = append(lines, "  "+t.dot("ok")+" "+pad(info.Name, 18)+pad(info.Image, 46)+strconv.Itoa(info.Port))
+		port := strconv.Itoa(info.Port)
+		for _, set := range p.opts.Sets {
+			if value, found := strings.CutPrefix(set, info.ID+".port="); found {
+				port = value
+			}
+		}
+		lines = append(lines, "  "+t.dot("ok")+" "+pad(info.Name, 18)+pad(info.Image, 46)+port)
 	}
 	lines = append(lines, "")
 	row := func(k, v string) string { return "  " + t.dim().Render(pad(k, 10)) + t.body().Render(v) }

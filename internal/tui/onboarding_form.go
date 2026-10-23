@@ -177,6 +177,9 @@ func (o *onboarding) inputGroups(cat *catalog.Catalog) []*huh.Group {
 		id := a.Info().ID
 		var fields []huh.Field
 		for _, in := range inputs {
+			if in.RecoveryOnly {
+				continue
+			}
 			value := v.inputs[id+"."+in.Key]
 			if value == nil {
 				value = new(string)
@@ -199,7 +202,9 @@ func (o *onboarding) inputGroups(cat *catalog.Catalog) []*huh.Group {
 			}
 			fields = append(fields, field)
 		}
-		groups = append(groups, huh.NewGroup(fields...).Title(a.Info().Name).Description(a.Info().Name+" needs a few answers of its own."))
+		if len(fields) > 0 {
+			groups = append(groups, huh.NewGroup(fields...).Title(a.Info().Name).Description(a.Info().Name+" needs a few answers of its own."))
+		}
 	}
 	return groups
 }

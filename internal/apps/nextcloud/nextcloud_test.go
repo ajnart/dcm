@@ -104,8 +104,8 @@ func TestSetupThenCheckPass(t *testing.T) {
 		t.Fatal("recovery must declare only the owned app password and matching token ID")
 	}
 	for _, input := range inputs {
-		if !input.Private || input.Required || input.Default != "" {
-			t.Fatal("recovery inputs must remain private, optional and without defaults")
+		if !input.Private || !input.RecoveryOnly || input.Required || input.Default != "" {
+			t.Fatal("recovery inputs must remain recovery-only, private, optional and without defaults")
 		}
 	}
 	deps := systemtest.NewDeps(t)

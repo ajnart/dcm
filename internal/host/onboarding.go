@@ -11,6 +11,7 @@ import (
 // PortRequirement is one non-secret host port in an approved Onboarding plan.
 type PortRequirement struct {
 	App, Title string
+	Input      string
 	Port       int
 	Protocols  []string
 	Automatic  bool
@@ -47,9 +48,10 @@ func onboardingPort(deps *system.Deps, requirement PortRequirement, reserved map
 		protocols = []string{"tcp"}
 	}
 	label := protocolLabel(protocols)
-	check := Check{ID: "port", App: requirement.App, Title: requirement.Title, Level: OK,
+	check := Check{ID: "port", App: requirement.App, Input: requirement.Input, Title: requirement.Title, Level: OK,
 		Detail: fmt.Sprintf("port %d %s is free", requirement.Port, label)}
 	if portUsable(deps, requirement.Port, protocols, reserved) {
+		check.Port = requirement.Port
 		reservePort(requirement.Port, protocols, reserved)
 		return check
 	}
@@ -61,6 +63,7 @@ func onboardingPort(deps *system.Deps, requirement PortRequirement, reserved map
 	}
 	for port := requirement.Port + 1; port <= 65535; port++ {
 		if portUsable(deps, port, protocols, reserved) {
+			check.Port = port
 			check.Level = Warn
 			check.Detail = fmt.Sprintf("port %d %s is in use; install will use %d instead", requirement.Port, label, port)
 			reservePort(port, protocols, reserved)

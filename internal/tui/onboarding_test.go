@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -18,6 +19,8 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 	"github.com/ajnart/self-host/internal/host"
 	"github.com/ajnart/self-host/internal/service"
+	"github.com/ajnart/self-host/internal/system"
+	"github.com/ajnart/self-host/internal/systemtest"
 )
 
 type stubApp struct {
@@ -379,6 +382,54 @@ func TestReviewShowsSelectedAppAndDiskChecksAndBlocksOnFailure(t *testing.T) {
 	m = drive(t, m, press("enter"))
 	if len(backend.Actions()) != 0 {
 		t.Fatal("a failed Review host check must block approval")
+	}
+}
+
+func TestReviewUsesTheAllocatedPortAndWarningStyle(t *testing.T) {
+	m, backend := freshHost(t)
+	deps := systemtest.NewDeps(t)
+	deps.DiskUsage = func(string) (system.DiskUsage, error) {
+		return system.DiskUsage{AvailableBytes: 20 << 30}, nil
+	}
+	busy := 7575
+	deps.BindTCP = func(_, address string) error {
+		if strings.HasSuffix(address, fmt.Sprintf(":%d", busy)) {
+			return syscall.EADDRINUSE
+		}
+		return nil
+	}
+	backend.onboardingCheck = (ServiceBackend{Deps: deps, Apps: backend.Catalog()}).OnboardingChecks
+	m = toReview(t, m)
+	for _, want := range []string{"◐ Homarr port", "install will use 7576 instead"} {
+		if !strings.Contains(screen(m), want) {
+			t.Errorf("resolved port conflict must be a warning containing %q\n%s", want, screen(m))
+		}
+	}
+	assertPort := func(want string) {
+		t.Helper()
+		for _, line := range strings.Split(screen(m), "\n") {
+			if strings.Contains(line, "ghcr.io/homarr-labs/homarr:latest") {
+				if !strings.HasSuffix(strings.TrimSpace(line), want) {
+					t.Errorf("APP table must show the allocated port %s, got %q", want, strings.TrimSpace(line))
+				}
+				return
+			}
+		}
+		t.Fatal("Review has no Homarr APP row")
+	}
+	assertPort("7576")
+	if !slices.Contains(m.onboarding.plan.opts.Sets, "homarr.port=7576") {
+		t.Fatal("approval must install the port shown in Review")
+	}
+	busy = 7576
+	m = drive(t, m, press("r"))
+	assertPort("7575")
+	m = drive(t, m, press("enter"))
+	if len(backend.installs()) != 1 {
+		t.Fatal("an automatically resolved port conflict must not block approval")
+	}
+	if sets := backend.installs()[0].Sets; !slices.Contains(sets, "homarr.port=7575") || slices.Contains(sets, "homarr.port=7576") {
+		t.Fatalf("approval must install the rechecked plan, got %v", sets)
 	}
 }
 

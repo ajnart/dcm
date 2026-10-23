@@ -197,7 +197,7 @@ func (o *onboarding) renderReview(ctx *viewContext) []string {
 				if check.Level != level {
 					continue
 				}
-				mark := t.dot(string(check.Level))
+				mark := t.dot(checkLevel(check.Level))
 				lines = append(lines, "  "+mark+" "+t.body().Render(check.Title)+t.dim().Render(" — "+check.Detail))
 				if check.Hint != "" {
 					lines = append(lines, "    "+t.dim().Render(check.Hint))

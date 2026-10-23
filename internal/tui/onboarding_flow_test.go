@@ -49,6 +49,23 @@ func TestWhatEnterShowsOnlySelectedAppPromptsOnEveryMessage(t *testing.T) {
 	}
 }
 
+func TestPhotosAndFilesGoesStraightFromWhatToWhereOnAFreshProject(t *testing.T) {
+	m, backend := freshHost(t)
+	backend.catalog = catalog.Default()
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("/"))
+	m = typeText(t, m, "Photos and cloud files")
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("space"))
+	m = drive(t, m, press("enter"))
+	if m.onboarding.step != stepWhere || strings.Contains(screen(m), "Saved self-host Homarr") {
+		t.Fatalf("a fresh Project has no Homarr link to recover; What must continue to Where\n%s", screen(m))
+	}
+	if len(backend.Actions()) != 0 {
+		t.Fatal("continuing What must not install anything")
+	}
+}
+
 func TestWhatStartsOnAUsefulRecipeAndKeepsHomarrDeliberatelyOptional(t *testing.T) {
 	m, backend := freshHost(t)
 	backend.catalog = catalog.Default()

@@ -47,10 +47,12 @@ func TestOnboardingDefaultPortConflictWarnsWithAllocatedAlternative(t *testing.T
 
 	checks := h.svc.OnboardingChecks(context.Background(), InstallOptions{Targets: []string{"homarr", "paired"}})
 	if len(checks) != 4 || checks[1].Level != host.Warn ||
-		!strings.Contains(checks[1].Detail, "install will use 9001 instead") || checks[1].Hint != "" {
+		!strings.Contains(checks[1].Detail, "install will use 9001 instead") || checks[1].Hint != "" ||
+		checks[1].Input != "port" || checks[1].Port != 9001 {
 		t.Fatalf("default conflict = %+v", checks)
 	}
-	if checks[3].Level != host.Warn || !strings.Contains(checks[3].Detail, "install will use 6882 instead") {
+	if checks[3].Level != host.Warn || !strings.Contains(checks[3].Detail, "install will use 6882 instead") ||
+		checks[3].Input != "peer-port" || checks[3].Port != 6882 {
 		t.Fatalf("paired default conflict = %+v", checks[3])
 	}
 }

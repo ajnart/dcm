@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -433,7 +434,7 @@ func (o *onboarding) openStep(ctx *viewContext, s step) tea.Cmd {
 		o.look = slices.IndexFunc(glyphChoices, func(c glyphChoice) bool { return c.glyphs == ctx.glyphs })
 		o.look = max(o.look, 0)
 	case stepReview:
-		o.plan, o.err = planFromAnswers(ctx.backend, o.answers), ""
+		o.err = ""
 		o.checkPlan(ctx)
 		if check := o.reviewNamesCheck(); !check.Available {
 			o.err = check.Message
@@ -443,7 +444,13 @@ func (o *onboarding) openStep(ctx *viewContext, s step) tea.Cmd {
 }
 
 func (o *onboarding) checkPlan(ctx *viewContext) {
+	o.plan = planFromAnswers(ctx.backend, o.answers)
 	o.hostChecks = ctx.backend.OnboardingChecks(context.Background(), o.plan.opts)
+	for _, check := range o.hostChecks {
+		if check.ID == "port" && check.Level != host.Fail && check.Input != "" && check.Port > 0 {
+			o.plan.opts.Sets = append(o.plan.opts.Sets, check.App+"."+check.Input+"="+strconv.Itoa(check.Port))
+		}
+	}
 }
 
 func (o *onboarding) reviewNamesCheck() service.NamesCheck {

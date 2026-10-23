@@ -124,7 +124,9 @@ func (o *onboarding) whatNext(ctx *viewContext) tea.Cmd {
 		o.list.err = "pick at least one Recipe or App"
 		return nil
 	}
-	if !slices.ContainsFunc(apps, func(a app.App) bool { return len(a.Inputs()) > 0 }) {
+	if !slices.ContainsFunc(apps, func(a app.App) bool {
+		return slices.ContainsFunc(a.Inputs(), func(in app.Input) bool { return !in.RecoveryOnly })
+	}) {
 		return o.openStep(ctx, stepWhere)
 	}
 	o.list, o.form = nil, o.buildForm(ctx, stepWhat)

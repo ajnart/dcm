@@ -39,9 +39,9 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input {
 	return []app.Input{
-		{Key: "homarr_app_password", Prompt: "Saved self-host Homarr app password", Private: true,
+		{Key: "homarr_app_password", Prompt: "Saved self-host Homarr app password", Private: true, RecoveryOnly: true,
 			Help: "Optional recovery of the known app password together with its matching token ID; use c-l-e-a-r (without hyphens) in both private inputs only after explicitly revoking self-host Homarr. Reinstall replaces Compose; preserve and review existing authentication, mounts and ports and separately approve replacement first."},
-		{Key: "homarr_app_password_id", Prompt: "Saved self-host Homarr token ID", Private: true,
+		{Key: "homarr_app_password_id", Prompt: "Saved self-host Homarr token ID", Private: true, RecoveryOnly: true,
 			Help: "Optional recovery of the known token ID corresponding to the supplied app password; never infer it from a name or successful login. Empty private inputs do not erase saved values."},
 	}
 }

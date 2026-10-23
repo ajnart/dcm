@@ -37,6 +37,7 @@ type fakeBackend struct {
 	status           service.Status
 	checks           []host.Check
 	onboardingChecks []host.Check
+	onboardingCheck  func(context.Context, service.InstallOptions) []host.Check
 	actions          []string
 	opened           []string
 	// tools maps a program name to its path on PATH; executed are the
@@ -270,7 +271,10 @@ func (f *fakeBackend) Restart() error {
 
 func (f *fakeBackend) Status(context.Context) (service.Status, error) { return f.status, f.statusErr }
 func (f *fakeBackend) Doctor(context.Context) []host.Check            { return f.checks }
-func (f *fakeBackend) OnboardingChecks(context.Context, service.InstallOptions) []host.Check {
+func (f *fakeBackend) OnboardingChecks(ctx context.Context, opts service.InstallOptions) []host.Check {
+	if f.onboardingCheck != nil {
+		return f.onboardingCheck(ctx, opts)
+	}
 	return f.onboardingChecks
 }
 func (f *fakeBackend) Containers(context.Context) ([]service.ContainerStatus, error) {

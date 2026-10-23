@@ -22,6 +22,8 @@ const (
 type Check struct {
 	ID     string `json:"id"`
 	App    string `json:"app,omitempty"`
+	Input  string `json:"input,omitempty"`
+	Port   int    `json:"port,omitempty"`
 	Title  string `json:"title"`
 	Level  Level  `json:"level"`
 	Detail string `json:"detail"`

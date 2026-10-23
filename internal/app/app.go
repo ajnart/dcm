@@ -33,11 +33,12 @@ type Info struct {
 }
 
 type Input struct {
-	Key      string
-	Prompt   string
-	Help     string
-	Default  string
-	Required bool
+	Key          string
+	Prompt       string
+	Help         string
+	Default      string
+	Required     bool
+	RecoveryOnly bool `json:",omitempty"`
 	// Private inputs are stored in secrets.env, never in Project state.
 	Private bool
 	// HostPortProtocols declares a non-secret host port published by the App.

@@ -34,7 +34,7 @@ func (s *Service) OnboardingChecks(_ context.Context, opts InstallOptions) []hos
 				return []host.Check{{ID: "port", App: info.ID, Title: info.Name + " port", Level: host.Fail, Detail: parseErr.Error()}}
 			}
 			ports = append(ports, host.PortRequirement{App: info.ID, Title: info.Name + " port", Port: port,
-				Protocols: []string{"tcp"}, Automatic: !inputWasSet(opts.Sets, info.ID, "port")})
+				Input: "port", Protocols: []string{"tcp"}, Automatic: !inputWasSet(opts.Sets, info.ID, "port")})
 		}
 		for _, input := range a.Inputs() {
 			if len(input.HostPortProtocols) == 0 {
@@ -45,7 +45,7 @@ func (s *Service) OnboardingChecks(_ context.Context, opts InstallOptions) []hos
 				return []host.Check{{ID: "port", App: info.ID, Title: info.Name + " " + input.Prompt, Level: host.Fail, Detail: parseErr.Error()}}
 			}
 			ports = append(ports, host.PortRequirement{App: info.ID, Title: info.Name + " " + input.Prompt, Port: port,
-				Protocols: input.HostPortProtocols, Automatic: !inputWasSet(opts.Sets, info.ID, input.Key)})
+				Input: input.Key, Protocols: input.HostPortProtocols, Automatic: !inputWasSet(opts.Sets, info.ID, input.Key)})
 		}
 	}
 	return host.Onboarding(s.Deps, p.Root, len(apps), ports)
