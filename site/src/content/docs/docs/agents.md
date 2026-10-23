@@ -1,17 +1,21 @@
 ---
-title: Agents
-description: Let Claude Code, Codex, OpenCode or any coding agent run self-host for you with self-host skill and the --json commands.
+title: With an agent
+description: Ask your agent to help you choose, install and maintain the Apps on your home server.
 sidebar:
   order: 3
 ---
 
-self-host is built to be driven by an agent through plain commands. Paste this one sentence into Claude Code, Codex, OpenCode, OpenClaw or any coding agent:
+self-host works with agents that can run commands on your computer. Paste this into Claude Code, Codex, OpenCode, Pi, Hermes Agent, OpenClaw or another compatible agent:
 
 ```text
-Install the self-host skill from github.com/ajnart/self-host and help me run my own movie server.
+Use https://self-host.fyi/llms.txt to help me set up my own home server. Ask what I want to run, explain the plan, and wait for my approval before installing.
 ```
 
-Or let the binary write the skill for every agent on the machine: `~/.agents/skills`, plus Claude Code, Codex, OpenCode, Pi, Gemini and Hermes when they are installed (Omarchy's agents read the same folders). `self-host skill remove` deletes only what it wrote.
+Your agent reads the instructions, checks the computer, and helps you choose Apps. It asks before installing or changing anything. You can return to the same agent to add Apps, find their Addresses or investigate a problem.
+
+## Already installed self-host?
+
+Let the binary write the skill into `~/.agents/skills`, plus the dedicated folders for Claude Code, Codex, OpenCode, Pi, Gemini and Hermes when present (Omarchy's agents read the same folders). `self-host skill remove` deletes only what it wrote.
 
 ```bash
 self-host skill install
@@ -24,7 +28,15 @@ bunx --bun skills@latest add ajnart/self-host --skill self-host
 # or: npx --yes skills add ajnart/self-host --skill self-host
 ```
 
-The one public skill only routes to the guide built into the binary; installing it deploys nothing. Invoke it with `/self-host` in Claude Code and OpenClaw, `$self-host` in Codex. Agents can also start from [llms.txt](/llms.txt).
+The one public skill routes to the guide built into the binary; installing it deploys nothing. Invoke it with `/self-host` in Claude Code or `$self-host` in Codex, or ask your agent to use the self-host skill. Agents can also start from [llms.txt](/llms.txt).
+
+## OpenClaw
+
+Use the same prompt above. OpenClaw's default configuration can discover the shared `~/.agents/skills` folder written by `self-host skill install`. For a separate profile or workspace, install the skill into that profile's managed skill folder or the workspace's `skills/self-host/` folder. Preserve its `SKILL.md` and ask OpenClaw to use it.
+
+The computer running OpenClaw may differ from the one hosting your Apps. Its command tool must target the intended computer and have access to self-host and Docker there. A container sandbox does not automatically have that host access. Keep OpenClaw's execution approvals enabled and let your agent explain any missing prerequisite.
+
+See OpenClaw's [skill discovery](https://docs.openclaw.ai/tools/skills) and [command execution](https://docs.openclaw.ai/tools/exec) documentation. Discovery, permission to run commands, and a working App are separate checks.
 
 ## self-host skill
 

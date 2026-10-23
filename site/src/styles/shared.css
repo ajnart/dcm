@@ -3,20 +3,23 @@
   font-size: 0.8rem;
   color: var(--ink);
   background: var(--deep);
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-border, var(--line));
   border-radius: 0;
   padding: 0.15rem 0.4rem;
   cursor: pointer;
+  min-height: 44px;
 }
 
 .codeblock select.variant:focus-visible {
-  outline: 1px solid var(--accent);
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
 }
 
 .codeblock {
   margin: 0;
   border: 1px solid var(--line);
   background: var(--deep);
+  color: var(--ink);
   max-width: 48rem;
   min-width: 0;
 }
@@ -37,9 +40,10 @@
   font: inherit;
   color: var(--ink);
   background: transparent;
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-border, var(--line));
   padding: 0.15rem 0.7rem;
   cursor: pointer;
+  min-height: 44px;
 }
 
 .copybtn:hover,
@@ -51,6 +55,21 @@
 .copybtn.done {
   border-color: var(--ok);
   color: var(--ok);
+}
+
+.copybtn:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+.copybtn:active {
+  color: var(--accent-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copybtn {
+    transition: none;
+  }
 }
 
 .codeblock pre {

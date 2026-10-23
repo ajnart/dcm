@@ -152,7 +152,7 @@ function installView() {
   }
   const picked = ui.picks.size ? sp("accent", ` ${ui.picks.size} picked`) : "";
   const review = ui.review ? `<div class="modal">${ui.review}</div>` : "";
-  return `<div class="body"><div class="col"><div class="box grow"><span class="legend">Install <span class="muted">recipes &amp; apps</span>${picked}</span><div class="row">/ ${esc(ui.query)}<span class="accent">▌</span></div><div class="row muted wrap">space picks a Recipe and every App in it · enter shows the plan; nothing installs until you approve</div><div class="row"> </div><div class="scroll">${list}</div></div></div><div class="col"><div class="box grow"><span class="legend">${esc(cur ? cur.name : "")}</span><div class="scroll">${detail}</div></div></div></div>${keyline([
+  return `<div class="body"><div class="col"><div class="box grow"><span class="legend">Install <span class="muted">recipes &amp; apps</span>${picked}</span><div class="row">/ ${esc(ui.query)}<span class="accent">▌</span></div><div class="row muted wrap install-help">Space picks. Enter reviews.</div><div class="row install-spacer"> </div><div class="scroll">${list}</div></div></div><div class="col"><div class="box grow"><span class="legend">${esc(cur ? cur.name : "")}</span><div class="scroll">${detail}</div></div></div></div>${keyline([
     ["type", "search"],
     ["space", "pick"],
     ["enter", "plan"],
@@ -162,9 +162,37 @@ function installView() {
 
 function render() {
   if (!ui.open) return;
+  const visibleKeys = new Set(["Enter", "Escape", "q"]);
+  if (ui.review) {
+    visibleKeys.add("y");
+  } else {
+    visibleKeys.add("Tab");
+    if (ui.view !== "install") visibleKeys.add("i");
+    if (["dashboard", "workflow", "install"].includes(ui.view)) {
+      visibleKeys.add("ArrowUp");
+      visibleKeys.add("ArrowDown");
+    }
+    if (ui.view === "install") visibleKeys.add("Backspace");
+    if (["install", "workflow"].includes(ui.view)) visibleKeys.add(" ");
+    if (ui.view === "dashboard" && project.size) {
+      visibleKeys.add("ArrowLeft");
+      visibleKeys.add("ArrowRight");
+    }
+  }
+  for (const button of keys.querySelectorAll("button")) {
+    button.hidden = !visibleKeys.has(button.dataset.key);
+  }
   const views = { dashboard, workflow, install: installView };
   const body = views[ui.view]?.() ?? `<div class="body one"><div class="col"><div class="box grow"><span class="legend">${esc(ui.view)}</span><div class="row muted">Not in the playground. The real Dashboard has it. Press tab.</div></div></div></div>${keyline([["tab", "next view"], ["q", "quit"]])}`;
   root.innerHTML = topbar() + body;
+  const selected = root.querySelector(".row.sel");
+  const region = selected?.closest(".scroll");
+  if (selected && region) {
+    const row = selected.getBoundingClientRect();
+    const viewport = region.getBoundingClientRect();
+    if (row.top < viewport.top) region.scrollTop -= viewport.top - row.top;
+    if (row.bottom > viewport.bottom) region.scrollTop += row.bottom - viewport.bottom;
+  }
 }
 
 function logActivity(html) {
@@ -280,6 +308,10 @@ screen.addEventListener("keydown", (e) => {
 for (const b of keys.querySelectorAll("button")) {
   b.addEventListener("click", (e) => {
     e.stopPropagation();
+    if (b.dataset.key === "q") {
+      tui.close();
+      return;
+    }
     key(b.dataset.key);
     screen.focus({ preventScroll: true });
   });
@@ -300,6 +332,7 @@ export const tui = {
     clock = setInterval(render, 1000);
     render();
     screen.focus({ preventScroll: true });
+    $("#term").scrollIntoView({ block: "start", behavior: "instant" });
   },
   close() {
     ui.open = false;

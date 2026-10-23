@@ -2,13 +2,11 @@
   navigation: auto;
 }
 
-.bar:not(.foot),
-.page > .header {
+.site-header {
   view-transition-name: site-header;
 }
 
-.bar .tag,
-.site-title .tag {
+.site-header .tag {
   view-transition-name: site-logo;
 }
 

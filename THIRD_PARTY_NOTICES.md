@@ -5,3 +5,29 @@
 The repository includes redacted screenshots and a terminal recording involving Homarr, Jellyfin and ntfy. They are evidence or illustration assets, not relicensed application code. Review their metadata and redistribution status before every public release.
 
 Catalog URLs, container image references, and factual compatibility records identify third-party projects but are not bundled dependencies. The Apache-2.0 license applies only to original repository content unless a file states another license.
+
+Agent marks used on the site and in README artwork have their sources, licenses and modifications recorded in [Agent logos](video/reel/assets/agents/SOURCES.md). They identify compatible agents, not endorsements or verified App installs.
+
+## OpenClaw pixel lobster
+
+`video/reel/assets/agents/openclaw.svg` and its copies embedded in README artwork come from [OpenClaw](https://github.com/openclaw/openclaw/blob/a3a5cd5f969d54c774ea38a0f180015981aa16e7/docs/assets/pixel-lobster.svg), under its [MIT license](https://github.com/openclaw/openclaw/blob/a3a5cd5f969d54c774ea38a0f180015981aa16e7/LICENSE):
+
+Copyright (c) 2026 OpenClaw Foundation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

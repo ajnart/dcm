@@ -1,10 +1,18 @@
 ---
 import ExtLinks from "./ExtLinks.astro";
 import PageLinks from "./PageLinks.astro";
+import "../styles/header.css";
+
+interface Props {
+  as?: "header" | "div";
+}
+
+const Tag = Astro.props.as ?? "header";
 ---
 
-<header class="bar">
+<Tag class="site-header">
   <a class="tag" href="/" aria-label="self-host home">◆ self-host</a>
   <PageLinks />
+  <div class="site-header-tools"><slot /></div>
   <ExtLinks />
-</header>
+</Tag>

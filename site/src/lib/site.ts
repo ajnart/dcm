@@ -4,7 +4,7 @@ export { VERSION };
 
 export const INSTALL = "curl -fsSL https://self-host.fyi/install | bash";
 
-export const AGENT_INSTALL = "Install self-host from https://self-host.fyi/llms.txt and help me set it up.";
+export const AGENT_INSTALL = "Use https://self-host.fyi/llms.txt to help me set up my own home server. Ask what I want to run, explain the plan, and wait for my approval before installing.";
 
 export const INSTALL_METHODS = [
   { label: "curl", code: INSTALL },
@@ -52,7 +52,7 @@ makepkg -si   # not on the AUR yet: registration is closed`,
   },
 ];
 
-export const AGENT_PROMPT = "Install the self-host skill from github.com/ajnart/self-host and help me run my own movie server.";
+export const AGENT_PROMPT = AGENT_INSTALL;
 
 export const LINKS = {
   github: "https://github.com/ajnart/self-host",

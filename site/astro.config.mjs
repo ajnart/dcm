@@ -26,6 +26,7 @@ export default defineConfig({
       expressiveCode: false,
       customCss: ["./src/styles/theme.css", "./src/styles/shared.css", "./src/styles/transitions.css", "./src/styles/docs.css"],
       components: {
+        Header: "./src/components/docs/Header.astro",
         SiteTitle: "./src/components/docs/SiteTitle.astro",
         ThemeProvider: "./src/components/docs/Empty.astro",
         ThemeSelect: "./src/components/docs/Empty.astro",

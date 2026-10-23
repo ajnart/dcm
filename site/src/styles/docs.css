@@ -10,6 +10,8 @@
   --dim: #5c5c68;
 
   --sl-content-width: 60rem;
+  --sl-nav-height: var(--site-header-height);
+  --sl-nav-pad-x: var(--site-header-gutter);
   --sl-color-white: #f5f5f7;
   --sl-color-gray-1: var(--ink);
   --sl-color-gray-2: #c9c9d1;
@@ -60,8 +62,17 @@ body {
 }
 
 .page > .header {
-  border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(6px);
+  height: var(--site-header-height);
+  padding: 0;
+  border-bottom: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+@media (max-width: 49.99rem) {
+  :root[data-has-sidebar] .site-header {
+    padding-inline-end: calc(var(--site-header-gutter) + var(--sl-menu-button-size) + 1rem);
+  }
 }
 
 .site-title {

@@ -3,6 +3,7 @@ import Base from "../layouts/Base.astro";
 import CodeBlock from "../components/CodeBlock.astro";
 import HeroLogo from "../components/HeroLogo.astro";
 import SectionHead from "../components/SectionHead.astro";
+import AgentOptions from "../components/AgentOptions.astro";
 import { apps, linkCount, linkingApps } from "../lib/catalog";
 import { AGENT_PROMPT, INSTALL_METHODS, LINKS, VERSION } from "../lib/site";
 
@@ -10,7 +11,7 @@ const AGENT_RUNS = `self-host skill
 self-host status --json
 self-host install media --yes --json
 self-host debug sonarr`;
-const description = `One Go binary that installs, signs in and wires together ${apps.length} self-hosted Apps with Docker Compose. Try it in your browser.`;
+const description = `Your photos, files and favourite apps, running on your own computer. Choose from ${apps.length} Apps, install them yourself or ask your agent.`;
 const jsonld = {
   "@context": "https://schema.org",
   "@graph": [
@@ -43,13 +44,13 @@ const toc = [
   ["apps", "apps"],
   ["links", "links"],
   ["how", "how"],
-  ["agents", "agents"],
+  ["agents", "with an agent"],
   ["install", "install"],
   ["support", "support"],
 ];
 ---
 
-<Base title="self-host · run your own Apps" description={description} video jsonld={jsonld}>
+<Base title="self-host — stop renting your software" description={description} video jsonld={jsonld}>
 
       <div class="landing">
       <nav class="toc" id="toc" aria-label="On this page">
@@ -59,18 +60,26 @@ const toc = [
       <main>
         <section class="hero">
           <div>
-            <p class="eyebrow">// one Go binary · docker compose · {apps.length} Apps</p>
-            <h1>Your Apps.<br>Your home.<br><span class="accent">One binary.</span></h1>
-            <p class="lede">Installs self-hosted Apps, signs them in, and wires them to each other. A terminal Dashboard for you, <code>--json</code> for your agent.</p>
+            <h1>Stop renting<br>your software.</h1>
+            <p class="lede">Your photos, files and favourite apps, running on your own computer.</p>
+            <figure class="savings" aria-label="Illustrative monthly software subscriptions: 92 dollars to zero">
+              <s>$92<span>/mo</span></s>
+              <span class="savings-arrow" aria-hidden="true">→</span>
+              <strong>$0<span>/mo</span></strong>
+              <figcaption class="savings-note">Illustrative software subscriptions.<br>Your hardware, your storage.</figcaption>
+            </figure>
             <div class="cta">
-              <a class="btn primary" href="#play">▶ try it</a>
-              <a class="btn" href="/docs">read the docs →</a>
-              <a class="btn" href="#reel">watch · 34 s</a>
-              <a class="btn star" href={LINKS.github} target="_blank" rel="noopener"><span aria-hidden="true">★</span> star on GitHub</a>
+              <a class="btn primary" href="#play">Try it in your browser</a>
+              <a class="btn" href="#agents">Use your agent</a>
             </div>
             <div class="hero-install">
               <CodeBlock label="Install method" variants={INSTALL_METHODS} id="hero-install" />
             </div>
+            <nav class="hero-notes" aria-label="Learn more">
+              <a href="/docs">Read the docs</a>
+              <a href="#reel">Watch in 34 seconds</a>
+              <a href={LINKS.github} target="_blank" rel="noopener">Star on GitHub</a>
+            </nav>
           </div>
           <HeroLogo />
         </section>
@@ -83,10 +92,13 @@ const toc = [
         </section>
 
         <section id="play" class="play" aria-labelledby="play-title">
-          <SectionHead id="play" num="01" title="Play">A simulation in your browser. Real catalog, nothing installed. <kbd>self-host</kbd> opens the Dashboard.</SectionHead>
+          <SectionHead id="play" num="01" title="Demo">The real catalog in a simulation. Nothing gets installed.</SectionHead>
+          <div class="chips" id="chips" aria-label="Try a command">
+            <button type="button" class="btn primary" data-cmd="self-host">Open Dashboard</button>
+            <button type="button" class="demo" id="demo" aria-label="Watch walkthrough">Walkthrough</button>
+          </div>
           <div class="term" id="term">
             <div class="term-bar">
-              <span class="dots"><i></i><i></i><i></i></span>
               <span class="term-title" id="term-title">you@home: ~</span>
               <button class="reset" id="reset" type="button">reset</button>
             </div>
@@ -100,31 +112,34 @@ const toc = [
               </div>
               <div class="tui" id="tui" hidden></div>
             </div>
-            <div class="keys" id="keys" hidden>
-              <button type="button" data-key="Tab">tab</button>
-              <button type="button" data-key="ArrowUp">↑</button>
-              <button type="button" data-key="ArrowDown">↓</button>
-              <button type="button" data-key=" ">space</button>
-              <button type="button" data-key="Enter">enter</button>
-              <button type="button" data-key="i">i</button>
-              <button type="button" data-key="y">y</button>
-              <button type="button" data-key="Escape">esc</button>
-              <button type="button" data-key="q">q</button>
+            <div class="keys" id="keys" role="group" aria-label="Demo keyboard" hidden>
+              <button type="button" data-key="Tab" aria-label="Next view">Tab</button>
+              <button type="button" data-key="ArrowUp" aria-label="Move up"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 14V2M3 7l5-5 5 5" /></svg></button>
+              <button type="button" data-key="ArrowDown" aria-label="Move down"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 2v12M3 9l5 5 5-5" /></svg></button>
+              <button type="button" data-key="ArrowLeft" aria-label="Previous tab"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 8H2m5-5L2 8l5 5" /></svg></button>
+              <button type="button" data-key="ArrowRight" aria-label="Next tab"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 8h12M9 3l5 5-5 5" /></svg></button>
+              <button type="button" data-key="Backspace" aria-label="Delete search character">⌫</button>
+              <button type="button" data-key=" ">Space</button>
+              <button type="button" data-key="Enter">Enter</button>
+              <button type="button" data-key="i">Install</button>
+              <button type="button" data-key="y">Approve</button>
+              <button type="button" data-key="Escape">Back</button>
+              <button type="button" data-key="q">Exit</button>
             </div>
           </div>
-          <div class="chips" id="chips" aria-label="Try a command">
-            <button type="button" class="demo" id="demo">▶ autoplay</button>
-            <span class="muted">or try →</span>
-            <button type="button" data-cmd="self-host install media">self-host install media</button>
-            <button type="button" data-cmd="self-host">self-host</button>
-            <button type="button" data-cmd="self-host status">self-host status</button>
-            <button type="button" data-cmd="self-host doctor">self-host doctor</button>
-            <button type="button" data-cmd="help">help</button>
-          </div>
+          <details class="demo-commands">
+            <summary>Try a command</summary>
+            <div class="chips">
+              <button type="button" data-cmd="self-host install media">Try installing Apps</button>
+              <button type="button" data-cmd="self-host status">Status</button>
+              <button type="button" data-cmd="self-host doctor">Doctor</button>
+              <button type="button" data-cmd="help">Help</button>
+            </div>
+          </details>
         </section>
 
         <section id="apps" aria-labelledby="apps-title">
-          <SectionHead id="apps" num="02" title="Apps">{apps.length} Apps. Pick some, then install them in the playground or share the link.</SectionHead>
+          <SectionHead id="apps" num="02" title="Apps">Pick Apps to try together, or search the full catalog of {apps.length}.</SectionHead>
           <div class="selbar" id="selbar">
             <div class="sel-info">
               <span id="selcount">0 Apps selected</span>
@@ -141,47 +156,54 @@ const toc = [
           </div>
           <input id="q" class="filter" type="search" placeholder="/ filter apps" aria-label="Filter Apps" autocomplete="off" spellcheck="false">
           <div class="apps" id="catalog"></div>
-          <p class="more-row"><button class="btn more" id="more" type="button">show all {apps.length} apps ↓</button> <a class="btn" href="/apps">browse every App →</a></p>
+          <p class="more-row"><button class="btn more" id="more" type="button">Show all {apps.length} Apps</button> <a class="btn" href="/apps">Browse every App</a></p>
         </section>
 
         <section id="links" aria-labelledby="links-title">
-          <SectionHead id="links" num="03" title="Links">Install two Apps that know each other and they get connected: download clients, indexers, requests, dashboard tiles. {linkCount} Links across {linkingApps} Apps.</SectionHead>
+          <SectionHead id="links" num="03" title="Connections">{linkCount} Links across {linkingApps} Apps. These examples show what gets connected during Setup.</SectionHead>
           <div class="linkcards" id="linkcards"></div>
         </section>
 
         <section id="how" aria-labelledby="how-title">
-          <SectionHead id="how" num="04" title="How">Nothing changes until you say yes.</SectionHead>
+          <SectionHead id="how" num="04" title="How it works">Check the computer, review the plan, then approve the install.</SectionHead>
           <ol class="steps">
-            <li><b>inspect</b><span>Docker, ports, folders, LAN.</span></li>
-            <li><b>plan</b><span>Apps, ports, folders.</span></li>
+            <li><b>inspect</b><span>Check your computer.</span></li>
+            <li><b>plan</b><span>Choose your Apps and storage.</span></li>
             <li><b>approve</b><span>You say yes.</span></li>
-            <li><b>apply</b><span>One Compose Project in <code>~/.self-host</code>.</span></li>
-            <li><b>verify</b><span>Sign in, API keys, Links, check.</span></li>
+            <li><b>apply</b><span>Install into <code>~/.self-host</code>.</span></li>
+            <li><b>verify</b><span>Check your Apps and connections.</span></li>
           </ol>
         </section>
 
         <section id="agents" aria-labelledby="agents-title">
-          <SectionHead id="agents" num="05" title="Agents">The binary ships its own agent guide. One sentence is enough.</SectionHead>
-          <div class="split">
-            <CodeBlock lang="text" label="you, to Claude Code / Codex / OpenCode" code={AGENT_PROMPT} id="prompt-block" />
-    <CodeBlock lang="bash" label="what the agent runs" code={AGENT_RUNS} />
+          <SectionHead id="agents" num="05" title="With an agent">Use the same commands through your agent. It checks the computer and asks before making changes.</SectionHead>
+          <AgentOptions />
+          <div class="agent-install">
+            <CodeBlock lang="text" label="For your agent" code={AGENT_PROMPT} id="prompt-block" />
+            <details class="agent-reference">
+              <summary>Already installed self-host?</summary>
+              <CodeBlock lang="bash" label="Let your agents find it" code="self-host skill install" />
+              <p>Your agent needs permission to run commands on the computer hosting your Apps.</p>
+              <CodeBlock lang="bash" label="What the agent runs after approval" code={AGENT_RUNS} />
+            </details>
           </div>
+          <p class="aside"><a href="/docs/agents">Read the agent guide</a> for installation, OpenClaw and other agents.</p>
         </section>
 
         <section id="install" aria-labelledby="install-title">
-          <SectionHead id="install" num="06" title="Install">Linux, macOS, WSL. Needs Docker with Compose v2.</SectionHead>
+          <SectionHead id="install" num="06" title="Install">Linux, macOS or WSL2, with Docker Compose. The installer adds the CLI; it does not deploy Apps.</SectionHead>
           <CodeBlock label="Install method" variants={INSTALL_METHODS} id="oneliner" />
-          <p class="aside">Read it first: <a href="/install">installer</a> · <a href="/install.sh.sha256">sha256</a> · <a href={LINKS.releases}>releases</a></p>
+          <ul class="install-links" aria-label="Installer reference"><li><a href="/install">Read the installer</a></li><li><a href="/install.sh.sha256">Check its sha256</a></li><li><a href={LINKS.releases}>Browse releases</a></li></ul>
           <p class="aside">Want the YAML instead? <a href={LINKS.dcm}>DCM</a> builds a <code>docker-compose.yaml</code> for you to run yourself.</p>
         </section>
 
         <section id="support" aria-labelledby="support-title">
           <SectionHead id="support" num="07" title="Support">Free and open source. Built by one person.</SectionHead>
           <div class="links">
-            <a class="btn primary" href={LINKS.sponsor}>♥ sponsor on GitHub</a>
-            <a class="btn" href={LINKS.kofi}>☕ Ko-fi</a>
-            <a class="btn" href={LINKS.github}>★ GitHub</a>
-            <a class="btn" href={LINKS.discord}>💬 Discord</a>
+            <a class="btn" href={LINKS.sponsor}>Sponsor on GitHub</a>
+            <a class="btn" href={LINKS.kofi}>Ko-fi</a>
+            <a class="btn" href={LINKS.github}>GitHub</a>
+            <a class="btn" href={LINKS.discord}>Discord</a>
             <a class="btn" href={LINKS.issues}>report a bug</a>
           </div>
         </section>

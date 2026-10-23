@@ -1,0 +1,23 @@
+---
+import claude from "../../../video/reel/assets/agents/claude-code.svg?url";
+import codex from "../../../video/reel/assets/agents/openai.svg?url";
+import opencode from "../../../video/reel/assets/agents/opencode.svg?url";
+import pi from "../../../video/reel/assets/agents/pi.svg?url";
+import hermes from "../../../video/reel/assets/agents/hermes-agent.svg?url";
+import openclaw from "../../../video/reel/assets/agents/openclaw.svg?url";
+
+const agents = [
+  { name: "Claude Code", mark: claude },
+  { name: "Codex", mark: codex },
+  { name: "OpenCode", mark: opencode },
+  { name: "Pi", mark: pi },
+  { name: "Hermes Agent", mark: hermes },
+  { name: "OpenClaw", mark: openclaw },
+];
+---
+
+<ul class="agent-options" aria-label="Agent options">
+  {agents.map((agent) => (
+    <li><img src={agent.mark} width="24" height="24" alt="" loading="lazy" /><span>{agent.name}</span></li>
+  ))}
+</ul>

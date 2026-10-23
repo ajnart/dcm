@@ -86,3 +86,17 @@ Generated and git-ignored: `v*.html`, `variants.json`. Committed: everything in 
 | `setup-terminal` | faithful 104-column terminal, an Install / Onboarding / Approve / Running strip above |
 
 Budget: SVG 400 KB, PNG 600 KB. The base state (no animation, `prefers-reduced-motion`) is the finished Dashboard, which is what the PNG shows. README.md shows `setup-terminal.svg` under "30 seconds setup". The gallery lists it under the header variants; `section-setup.json` is generated and git-ignored.
+
+## Section: With an agent
+
+`section-agents.mjs` writes the static, square-edged 880×220 `with-an-agent.svg` and its 1760×440 PNG fallback. It uses the existing outlined Inter Tight and JetBrains Mono type, the self-host Logo, and the source marks for Claude Code, Codex, OpenCode, Pi, Hermes Agent and OpenClaw. [Logo provenance](../assets/agents/SOURCES.md) records the sources; these identify agent options, not endorsements. Both files have a 400 KB budget.
+
+To render only this section, leaving every existing README image untouched:
+
+```bash
+cd video/reel
+mise exec bun@1.4.3 -- bun readme/section-agents.mjs
+```
+
+The full `npm run readme` build also includes it.
+Set `CHROME_PATH` to reuse an existing Chromium executable for the focused render.

@@ -93,17 +93,22 @@ A **Recipe** is a pre-wired bundle: `media` is qBittorrent, Sonarr, Radarr, Prow
 
 ## With an agent
 
+<p align="center"><img src="docs/assets/readme/with-an-agent.svg" width="880" alt="With an agent. One self-host skill for Claude Code, Codex, OpenCode, Pi, Hermes Agent and OpenClaw."></p>
+
 Paste this into Claude Code, Codex, OpenCode, OpenClaw or any coding agent:
 
 ```text
-Install the self-host skill from github.com/ajnart/self-host and help me run my own movie server.
+Use https://self-host.fyi/llms.txt to help me set up my own home server. Ask what I want to run, explain the plan, and wait for my approval before installing.
 ```
 
-Or write the skill for every agent on the machine:
+Or write the shared skill and dedicated folders for supported agents installed on the machine:
 
 ```bash
 self-host skill install
 ```
+
+Your agent needs permission to run commands on the computer hosting your Apps.
+See [With an agent](https://self-host.fyi/docs/agents), including the OpenClaw section.
 
 <details>
 <summary><b>Agent reference</b></summary>

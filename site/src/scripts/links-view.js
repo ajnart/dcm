@@ -31,7 +31,7 @@ function linkCard([from, targets, text], onTry) {
 
   const names = document.createElement("p");
   names.className = "lnames";
-  names.textContent = `${appById.get(from).name} → ${targets.map((t) => appById.get(t).name).join(" · ")}`;
+  names.textContent = `${appById.get(from).name} → ${targets.map((t) => appById.get(t).name).join(", ")}`;
   const what = document.createElement("p");
   what.className = "lwhat";
   what.textContent = text;
@@ -40,7 +40,7 @@ function linkCard([from, targets, text], onTry) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "btn";
-  button.textContent = `▶ install ${ids.join(" ")}`;
+  button.textContent = "Try these Apps";
   button.addEventListener("click", () => onTry(ids));
   card.append(wire, names, what, button);
   return card;
