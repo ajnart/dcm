@@ -63,6 +63,7 @@ export default defineConfig({
             { label: "Overview", link: "/docs" },
             { label: "Getting started", link: "/docs/getting-started" },
             { label: "Access", link: "/docs/access" },
+            { label: "Apps and Links", link: "/docs/apps" },
             { label: "Agents", link: "/docs/agents" },
             { label: "Troubleshooting", link: "/docs/troubleshooting" },
             ...(changelog.enabled ? makeChangelogsSidebarLinks([{ type: "all", base: changelog.base, label: "Changelog" }]) : []),

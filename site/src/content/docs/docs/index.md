@@ -14,6 +14,7 @@ self-host
 
 - [Getting started](/docs/getting-started): install the binary, check the machine with `self-host doctor`, then go through Onboarding to the Dashboard.
 - [Access](/docs/access): how phones, TVs and laptops open your Apps, from Home network to your own web address.
+- [Apps and Links](/docs/apps): choose self-hosted Apps and understand how their Setup wires them together.
 - [Agents](/docs/agents): `self-host skill`, the one-sentence prompt and the `--json` commands an agent runs.
 - [Troubleshooting](/docs/troubleshooting): `doctor`, the Debug report, the Host report and Feedback.
 

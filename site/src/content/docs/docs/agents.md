@@ -44,6 +44,13 @@ Loading the skill conveys intent, never approval. Every change follows the same 
 4. **Apply** with `--yes`, which authorizes; it is never a preview flag.
 5. **Verify** with `self-host status --json`. A running container or an HTTP 200 is not acceptance: check that the App does its job.
 
+<figure>
+  <img src="/images/readme/links-graph.svg" width="880" height="484" alt="Links connect Sonarr and Radarr to qBittorrent, Prowlarr to Sonarr and Radarr, Seerr to Jellyfin, Sonarr and Radarr, and Cleanuparr to Sonarr, Radarr and qBittorrent; Homarr shows tiles for the Apps." loading="lazy" decoding="async" />
+  <figcaption>After approval, agents run the same Setup and Links as the Dashboard. This graph illustrates Links between Apps, not proof that an install works: verify each App's job.</figcaption>
+</figure>
+
+See [Apps and Links](/docs/apps) for how Links belong to the consuming App and how to retry unfinished Setup.
+
 ## Every conversation
 
 1. Run `self-host status --json` first. It answers "where is X?": each App's `description`, `addresses` and `state`, plus `home`, `dashboard` and `profile`. With no Project yet it exits 1 with "no Project yet"; run `self-host profile --json` instead.

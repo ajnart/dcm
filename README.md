@@ -24,14 +24,13 @@
 
 <p align="center"><a href="https://self-host.fyi/#reel"><img src="docs/assets/readme/hero-lockup.png" width="880" alt="Stop renting your software. self-host: $92 a month becomes $0 with curl -fsSL self-host.fyi/install | bash."></a></p>
 
-Run your own Apps at home without learning Docker. One binary installs and runs them, with a terminal Dashboard for you and plain commands for your agent.
+Run self-hosted Apps on your home server or homelab without learning Docker Compose. One binary installs and runs them, with a terminal Dashboard for you and plain commands for your agent.
 
 ```bash
 curl -fsSL https://self-host.fyi/install | bash
 ```
 
 That installs only the binary and deploys nothing. Needs Docker with the Compose v2 plugin on Linux, macOS or WSL2. Then run `self-host`.
-
 
 <details>
 <summary><b>Other ways to install</b> (wget, Homebrew, Docker, packages, Arch, archive, source)</summary>
@@ -63,7 +62,7 @@ To read the install script first: `curl -fsSL https://self-host.fyi/install -o i
 
 <p align="center"><img src="docs/assets/readme/replaces-meet.svg" width="600" alt="What it replaces: Netflix to Jellyfin, Spotify to Navidrome, Drive to Nextcloud, Dropbox to Syncthing, Photos to Immich, 1Password to Vaultwarden, Notion to Docmost, ChatGPT to Open WebUI. Every App is in the Catalog, with 82 more."></p>
 
-Each of these has an App you can install today, for example `self-host install immich`. Browse all 90 in the [Catalog](https://self-host.fyi/apps).
+Choose Jellyfin for your media library, Immich for photos, Nextcloud for files or Vaultwarden for passwords, for example `self-host install immich`. Browse all 90 self-hosted Apps in the [Catalog](https://self-host.fyi/apps); see [Platforms and support](#platforms-and-support) for what has been verified.
 
 <p align="center"><img src="docs/assets/readme/hero-command.svg" width="880" alt="The install command, curl -fsSL self-host.fyi/install | bash, wired to nine Apps with data pulses travelling the wires: Jellyfin, Sonarr, Radarr, Immich, Nextcloud, Homarr, Vaultwarden, Navidrome and Home Assistant."></p>
 
@@ -78,15 +77,15 @@ Each of these has an App you can install today, for example `self-host install i
 <details>
 <summary><b>The honest list</b></summary>
 
-| ✅ Does                                                                         | ❌ Doesn't                                                                              |
-| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Ships the Catalog inside the binary: 90 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                                   |
-| Runs headless Setup for each App: accounts, API keys, settings.                 | Touch anything outside its one Compose Project in `~/.self-host`.                       |
-| Wires Apps together with Links, and gives Homarr native tiles.                  | Back up media libraries or data outside App folders.                                    |
-| Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows. Use WSL2.                                                        |
-| Offers Access from the Home network to Tailscale, Cloudflare or your own proxy. | Ship indexers, trackers or content sources.                                             |
-| Backs up and restores with optional encryption.                                 | Prove safe version-to-version migration. Update checks are not migration tests.         |
-| Gives agents plain commands with `--json` output.                               | Make every App work: four are hidden ([details](#platforms-and-support)).               |
+| ✅ Does                                                                         | ❌ Doesn't                                                                      |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Ships the Catalog inside the binary: 90 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                           |
+| Runs headless Setup for each App: accounts, API keys, settings.                 | Touch anything outside its one Compose Project in `~/.self-host`.               |
+| Wires Apps together with Links, and gives Homarr native tiles.                  | Back up media libraries or data outside App folders.                            |
+| Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows. Use WSL2.                                                |
+| Offers Access from the Home network to Tailscale, Cloudflare or your own proxy. | Ship indexers, trackers or content sources.                                     |
+| Backs up and restores with optional encryption.                                 | Prove safe version-to-version migration. Update checks are not migration tests. |
+| Gives agents plain commands with `--json` output.                               | Make every App work: four are hidden ([details](#platforms-and-support)).       |
 
 A **Recipe** is a pre-wired bundle: `media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin and Seerr.
 
@@ -138,14 +137,14 @@ Home network by default. Each change needs your approval.
 <details>
 <summary><b>Access options</b></summary>
 
-| Access                   | What you get                                                                         | Status                                                                                                                                                                                                                                                                                  |
-| ------------------------ | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Home network (default)   | `http://192.168.1.20:8096`. Ports publish on all host interfaces.                    | Verified 2026-10-14 on Linux ([#499](https://github.com/ajnart/self-host/issues/499)) and 2026-10-17 on macOS with OrbStack ([#502](https://github.com/ajnart/self-host/issues/502)). Another device was not tried on macOS.                                                             |
-| This computer only       | `127.0.0.1` (`--exposure local`).                                                    | Not yet verified on a real host.                                                                                                                                                                                                                                                        |
-| Easy names at home       | `http://jellyfin.192-168-1-20.sslip.io`, through one managed Caddy.                  | Verified 2026-10-14 on Linux with rootless Docker, from a second machine ([#500](https://github.com/ajnart/self-host/issues/500)). Not yet verified on macOS ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                  |
-| From anywhere, privately | Tailscale, one HTTPS node per App.                                                   | Not yet verified on a real host, nor from another tailnet device ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                              |
-| Your own web address     | Cloudflare Tunnel plus a login page.                                                 | Not yet verified on a real host with a real domain ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                            |
-| Bring your own           | `self-host access export` for SWAG, Pangolin, Nginx Proxy Manager, Traefik or Caddy. | Not yet verified on a real host.                                                                                                                                                                                                                                                        |
+| Access                   | What you get                                                                         | Status                                                                                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Home network (default)   | `http://192.168.1.20:8096`. Ports publish on all host interfaces.                    | Verified 2026-10-14 on Linux ([#499](https://github.com/ajnart/self-host/issues/499)) and 2026-10-17 on macOS with OrbStack ([#502](https://github.com/ajnart/self-host/issues/502)). Another device was not tried on macOS. |
+| This computer only       | `127.0.0.1` (`--exposure local`).                                                    | Not yet verified on a real host.                                                                                                                                                                                             |
+| Easy names at home       | `http://jellyfin.192-168-1-20.sslip.io`, through one managed Caddy.                  | Verified 2026-10-14 on Linux with rootless Docker, from a second machine ([#500](https://github.com/ajnart/self-host/issues/500)). Not yet verified on macOS ([#502](https://github.com/ajnart/self-host/issues/502)).       |
+| From anywhere, privately | Tailscale, one HTTPS node per App.                                                   | Not yet verified on a real host, nor from another tailnet device ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                   |
+| Your own web address     | Cloudflare Tunnel plus a login page.                                                 | Not yet verified on a real host with a real domain ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                 |
+| Bring your own           | `self-host access export` for SWAG, Pangolin, Nginx Proxy Manager, Traefik or Caddy. | Not yet verified on a real host.                                                                                                                                                                                             |
 
 The `IP:port` Address is always kept as a fallback.
 
@@ -247,7 +246,7 @@ Each status below is a dated launch run on a real host or VM, linked to its issu
 | macOS with Docker Desktop    | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                                     |
 | Intel macOS                  | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                                     |
 | WSL2                         | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                                     |
-| Native Windows               | Unsupported                     | Not supported.                                                                                                                                                                                                                         |
+| Native Windows               | Unsupported                     | Not supported.                                                                                                                                                                                                                                        |
 
 Known issues from these runs, both open: a newcomer sees Nextcloud's Homarr credential-recovery inputs and Review still lists port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App leaves its network and `down` refuses ([#590](https://github.com/ajnart/self-host/issues/590)).
 
