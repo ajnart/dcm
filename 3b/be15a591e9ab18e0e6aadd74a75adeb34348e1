@@ -1,0 +1,19 @@
+site/src/components/AppIcon.astro
+  s_895048b775105e::t_2a7d9f72a4a47a 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3bbe15a591e9ab18e0e6aadd74a75adeb34348e1",
+  "prompts": {},
+  "sessions": {
+    "s_895048b775105e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80bcbf97-516e-4f18-b262-62154331b241",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
