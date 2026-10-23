@@ -1,0 +1,14 @@
+internal/apps/bookstack/bookstack_test.go
+  h_d6e478ca18e517 193-196,214-216,351
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f8894aab50ad6cadd8df09364872ac31c2c04880",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
