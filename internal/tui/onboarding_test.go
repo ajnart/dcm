@@ -436,34 +436,60 @@ func TestReviewUsesTheAllocatedPortAndWarningStyle(t *testing.T) {
 func TestNarrowMediaReviewKeepsBlockingMachineFindingVisible(t *testing.T) {
 	m, backend := freshHost(t)
 	m = update(t, m, windowSize(80, 24))
-	backend.onboardingChecks = []host.Check{
-		{ID: "disk", Title: "Disk space", Level: host.Fail, Detail: "free space could not be read: permission denied", Hint: "Fix access to the Home folder, then press r to recheck."},
-		{ID: "port", App: "homarr", Title: "Homarr port", Level: host.OK, Detail: "port 7575 TCP is free"},
-		{ID: "port", App: "jellyfin", Title: "Jellyfin port", Level: host.OK, Detail: "port 8096 TCP is free"},
+	backend.catalog = catalog.Default()
+	deps := systemtest.NewDeps(t)
+	deps.DiskUsage = func(string) (system.DiskUsage, error) {
+		return system.DiskUsage{}, syscall.EACCES
 	}
+	deps.BindUDP = func(_, address string) error {
+		if strings.HasSuffix(address, ":16900") {
+			return syscall.EADDRINUSE
+		}
+		return nil
+	}
+	backend.onboardingCheck = (ServiceBackend{Deps: deps, Apps: backend.Catalog()}).OnboardingChecks
 
-	m = drive(t, m, press("enter")) // Welcome -> What
-	m = drive(t, m, press("x"))     // Media Recipe, in addition to Homarr
-	m = drive(t, m, press("enter")) // selected App inputs
-	m = drive(t, m, press("enter")) // Jellyfin server name -> Where
-	for range 6 {                   // Host settings and two media folders
+	m = drive(t, m, press("enter"))
+	m = drive(t, m, press("space"))
+	m = drive(t, m, press("enter"))
+	for range 4 {
+		m = drive(t, m, press("backspace"))
+	}
+	m = typeText(t, m, "16900")
+	for i := 0; i < 20 && m.onboarding.step != stepReview; i++ {
 		m = drive(t, m, press("enter"))
 	}
-	m = drive(t, m, press("enter")) // Access
-	for range 2 {                   // Admin login
-		m = drive(t, m, press("enter"))
+	if m.onboarding.step != stepReview || len(m.onboarding.plan.apps) != 7 || len(m.onboarding.plan.links) < 6 {
+		t.Fatalf("expected the full media plan at Review\n%s", screen(m))
 	}
-	m = drive(t, m, press("enter")) // Look -> Review
 
 	out := screen(m)
-	for _, want := range []string{"● Review", "Disk space", "permission denied", "Fix access to the Home folder", "r  recheck"} {
-		if !strings.Contains(out, want) {
+	for _, want := range []string{"● Review", "Disk space", "permission denied", "Fix access to the Home folder",
+		"qBittorrent Torrent peer port", "selected port 16900 TCP and UDP is already in use", "Choose another port in What", "r recheck"} {
+		if !strings.Contains(flat(out), want) {
 			t.Fatalf("narrow media Review hides %q\n%s", want, out)
+		}
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if ansi.StringWidth(line) > 80 {
+			t.Fatalf("Review exceeds 80 columns: %q", line)
 		}
 	}
 	m = drive(t, m, press("enter"))
 	if len(backend.Actions()) != 0 {
 		t.Fatal("hidden or visible blocking findings must prevent approval")
+	}
+	deps.DiskUsage = func(string) (system.DiskUsage, error) {
+		return system.DiskUsage{AvailableBytes: 20 << 30}, nil
+	}
+	deps.BindUDP = func(string, string) error { return nil }
+	m = drive(t, m, press("r"))
+	if host.Worst(m.onboarding.hostChecks) == host.Fail {
+		t.Fatal("recheck must recover after fixing disk access and freeing the selected port")
+	}
+	m = drive(t, m, press("enter"))
+	if len(backend.installs()) != 1 || !slices.Contains(backend.installs()[0].Sets, "qbittorrent.torrent-port=16900") {
+		t.Fatal("recovery must approve the selected peer port")
 	}
 }
 

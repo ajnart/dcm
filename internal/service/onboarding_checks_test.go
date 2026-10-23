@@ -13,27 +13,46 @@ import (
 )
 
 func TestOnboardingChecksUsePlannedPrimaryAndProtocolPorts(t *testing.T) {
-	primary := &testApp{id: "primary"}
-	paired := &portInputApp{testApp: testApp{id: "paired"}}
-	h := newHarness(t, primary, paired)
-	h.deps.DiskUsage = func(path string) (system.DiskUsage, error) {
-		if path != h.root() {
-			t.Fatalf("disk checked at %q, want Home folder %q", path, h.root())
-		}
-		return system.DiskUsage{AvailableBytes: 20 << 30}, nil
-	}
-	h.deps.BindTCP = busyPorts(19000)
-	h.deps.BindUDP = busyPorts(16900)
+	for _, tc := range []struct {
+		name     string
+		tcp, udp []int
+		level    host.Level
+	}{
+		{name: "TCP occupied", tcp: []int{16900}, level: host.Fail},
+		{name: "UDP occupied", udp: []int{16900}, level: host.Fail},
+		{name: "both occupied", tcp: []int{16900}, udp: []int{16900}, level: host.Fail},
+		{name: "both free", level: host.OK},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			primary := &testApp{id: "primary"}
+			paired := &portInputApp{testApp: testApp{id: "paired"}}
+			h := newHarness(t, primary, paired)
+			h.deps.DiskUsage = func(path string) (system.DiskUsage, error) {
+				if path != h.root() {
+					t.Fatalf("disk checked at %q, want Home folder %q", path, h.root())
+				}
+				return system.DiskUsage{AvailableBytes: 20 << 30}, nil
+			}
+			h.deps.BindTCP = busyPorts(append(tc.tcp, 19000, 6881)...)
+			h.deps.BindUDP = busyPorts(append(tc.udp, 6881)...)
 
-	checks := h.svc.OnboardingChecks(context.Background(), InstallOptions{
-		Targets: []string{"primary", "paired"},
-		Sets:    []string{"primary.port=19000", "paired.peer-port=16900"},
-	})
-	joined := checksText(checks)
-	for _, want := range []string{"primary", "19000", "paired Peer port", "16900", "TCP and UDP"} {
-		if !strings.Contains(joined, want) {
-			t.Fatalf("checks lack %q: %+v", want, checks)
-		}
+			checks := h.svc.OnboardingChecks(context.Background(), InstallOptions{
+				Targets: []string{"primary", "paired"},
+				Sets:    []string{"primary.port=19000", "paired.peer-port=16900"},
+			})
+			joined := checksText(checks)
+			for _, want := range []string{"primary", "19000", "paired Peer port", "16900", "TCP and UDP"} {
+				if !strings.Contains(joined, want) {
+					t.Fatalf("checks lack %q: %+v", want, checks)
+				}
+			}
+			if len(checks) != 4 || checks[1].Level != host.Fail || checks[3].Level != tc.level {
+				t.Fatalf("selected port findings = %+v, want primary failure and paired %s", checks, tc.level)
+			}
+			if tc.level == host.OK && checks[3].Port != 16900 {
+				t.Fatalf("free selected port changed: %+v", checks[3])
+			}
+		})
 	}
 }
 
