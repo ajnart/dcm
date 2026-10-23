@@ -61,7 +61,7 @@ func (s *Service) Down(ctx context.Context) error {
 	return s.run(ctx, change{
 		title: "down Project",
 		targets: func(ss *session) ([]string, error) {
-			return ss.targets(nil)
+			return ss.p.AppIDs()
 		},
 		compose: composeDown,
 	})

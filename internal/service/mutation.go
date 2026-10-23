@@ -313,6 +313,9 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, purge bool) error {
 	var unlinkFailed []string
 	for _, id := range ids {
+		if err := ss.p.WriteRoot(); err != nil {
+			return err
+		}
 		unlinkFailed = append(unlinkFailed, ss.unlink(ctx, id)...)
 		if err := ss.retireNode(ctx, id); err != nil {
 			return err
@@ -327,6 +330,15 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 		dir := ss.p.AppDir(id)
 		if purge {
 			if err := ss.purgeAppDir(ctx, id, dir, services); err != nil {
+				return err
+			}
+		}
+		remaining, err := ss.p.AppIDs()
+		if err != nil {
+			return err
+		}
+		if len(remaining) == 1 {
+			if err := ss.compose.Down(ctx); err != nil {
 				return err
 			}
 		}

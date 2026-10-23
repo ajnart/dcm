@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -315,12 +316,83 @@ func TestRemoveDeletesComposeFragment(t *testing.T) {
 	if err := h.svc.Remove(context.Background(), []string{"one"}, false); err != nil {
 		t.Fatalf("remove: %v", err)
 	}
-	assertCalls(t, h.composeCalls()[before:], []string{"rm --stop --force one"})
+	assertCalls(t, h.composeCalls()[before:], []string{"rm --stop --force one", "down"})
 	if _, err := os.Stat(filepath.Join(h.root(), "apps", "one", "compose.yml")); !os.IsNotExist(err) {
 		t.Fatal("fragment still on disk after remove")
 	}
 	if strings.Contains(strings.Join(h.composeCalls(), "\n"), "apps/one") {
 		t.Fatal("removed app still in the root Compose file")
+	}
+}
+
+func TestRemoveEveryAppTakesDownOnlyItsProject(t *testing.T) {
+	for _, purge := range []bool{false, true} {
+		t.Run(fmt.Sprintf("purge=%t", purge), func(t *testing.T) {
+			h := newHarness(t,
+				&testApp{id: "one", done: map[string]bool{}},
+				&testApp{id: "two", done: map[string]bool{}},
+			)
+			systemtest.SetEnv(h.deps, map[string]string{"SELF_HOST_COMPOSE_PROJECT": "isolated-project"})
+			if err := h.install("one", "two"); err != nil {
+				t.Fatal(err)
+			}
+			before := len(h.composeCalls())
+			h.runner.OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
+				line := systemtest.Line(cmd)
+				if !strings.Contains(line, " rm ") && !strings.HasSuffix(line, " down") {
+					return system.Result{}
+				}
+				root, err := os.ReadFile(filepath.Join(h.root(), "compose.yml"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, include := range strings.Split(string(root), "\n") {
+					if fragment, ok := strings.CutPrefix(include, "  - "); ok {
+						if _, err := os.Stat(filepath.Join(h.root(), fragment)); err != nil {
+							t.Fatalf("Compose references a deleted fragment: %s", fragment)
+						}
+					}
+				}
+				if strings.HasSuffix(line, " down") {
+					want := []string{"compose", "--project-directory", h.root(), "-p", "isolated-project",
+						"--env-file", filepath.Join(h.root(), ".env"), "--env-file", filepath.Join(h.root(), "secrets.env"), "down"}
+					if cmd.Dir != h.root() || !reflect.DeepEqual(cmd.Args, want) {
+						t.Fatalf("teardown is not scoped to the Project or removes volumes: %s", line)
+					}
+					if !strings.Contains(string(root), "apps/two/compose.yml") {
+						t.Fatal("last App fragment was removed before teardown")
+					}
+				}
+				return system.Result{}
+			})
+			if err := h.svc.Remove(context.Background(), []string{"one", "two"}, purge); err != nil {
+				t.Fatal(err)
+			}
+			assertCalls(t, h.composeCalls()[before:], []string{"rm --stop --force one", "rm --stop --force two", "down"})
+		})
+	}
+}
+
+func TestLastAppTeardownFailureKeepsRemovalRetryable(t *testing.T) {
+	h := newHarness(t, &testApp{id: "one", done: map[string]bool{}})
+	if err := h.install("one"); err != nil {
+		t.Fatal(err)
+	}
+	h.runner.OnFunc("docker compose --project-directory", func(cmd system.Cmd) system.Result {
+		if strings.HasSuffix(systemtest.Line(cmd), " down") {
+			return system.Result{ExitCode: 1, Stderr: []byte("network removal failed")}
+		}
+		return system.Result{}
+	})
+	if err := h.svc.Remove(context.Background(), []string{"one"}, false); err == nil || !strings.Contains(err.Error(), "network removal failed") {
+		t.Fatalf("teardown failure was not reported: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(h.root(), "apps", "one", "compose.yml")); err != nil {
+		t.Fatalf("fragment lost after teardown failure: %v", err)
+	}
+	h.runner.On("docker compose --project-directory", system.Result{})
+	if err := h.svc.Remove(context.Background(), []string{"one"}, false); err != nil {
+		t.Fatalf("retry removal: %v", err)
 	}
 }
 

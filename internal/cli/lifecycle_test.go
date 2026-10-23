@@ -131,6 +131,25 @@ func TestRemoveKeepsDataUnlessPurged(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "apps", "two")); !os.IsNotExist(err) {
 		t.Fatal("--purge kept the data")
 	}
+	if lastCompose(deps) != "down" {
+		t.Fatalf("last App removal left Project resources: %q", lastCompose(deps))
+	}
+}
+
+func TestDownSucceedsAfterRemovingEveryApp(t *testing.T) {
+	deps, cat := installed(t, "one", "two")
+	if code, out := runWith(t, deps, cat, "remove", "one", "two", "--purge", "--yes"); code != 0 {
+		t.Fatalf("remove: %d\n%s", code, out)
+	}
+	before := len(composeCalls(deps))
+	for range 2 {
+		if code, out := runWith(t, deps, cat, "down"); code != 0 {
+			t.Fatalf("down on an empty Project: %d\n%s", code, out)
+		}
+	}
+	if calls := composeCalls(deps)[before:]; len(calls) != 0 {
+		t.Fatalf("empty Project should need no Compose work: %v", calls)
+	}
 }
 
 func TestPurgeEmptiesRootOwnedDataThroughContainer(t *testing.T) {
