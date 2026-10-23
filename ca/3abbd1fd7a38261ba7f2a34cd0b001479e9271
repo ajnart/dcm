@@ -1,0 +1,18 @@
+internal/service/onboarding_checks_test.go
+  h_d6e478ca18e517 16-37,39-55
+internal/tui/onboarding_test.go
+  h_d6e478ca18e517 439-448,450,452-456,458-459,462-464,467-469,473-477,482-493
+internal/tui/onboarding_view.go
+  h_d6e478ca18e517 201,203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca3abbd1fd7a38261ba7f2a34cd0b001479e9271",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
