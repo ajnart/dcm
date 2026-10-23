@@ -1,0 +1,32 @@
+README.md
+  h_d6e478ca18e517 27,65,80-88,140-147,249
+site/astro.config.mjs
+  h_d6e478ca18e517 66
+site/public/images/readme/hero-command.svg
+  h_d6e478ca18e517 1
+site/public/images/readme/links-graph.svg
+  h_d6e478ca18e517 1
+site/public/images/readme/replaces-meet.svg
+  h_d6e478ca18e517 1
+site/src/components/AppIcon.astro
+  h_d6e478ca18e517 14
+site/src/content/docs/docs/agents.md
+  h_d6e478ca18e517 47-53
+site/src/content/docs/docs/apps.md
+  h_d6e478ca18e517 1-42
+site/src/content/docs/docs/getting-started.md
+  h_d6e478ca18e517 8-12,25-35
+site/src/content/docs/docs/index.md
+  h_d6e478ca18e517 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "85c2e0aac27dea9cd930ede94aee43e56b81abbc",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
