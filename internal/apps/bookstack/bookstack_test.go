@@ -188,13 +188,44 @@ func TestNoLoginFormHintNamesTheCommand(t *testing.T) {
 	}
 }
 
+func TestForbiddenLoginPageStopsBeforeAdminCreation(t *testing.T) {
+	exec := &recordingExec{}
+	box := newHarness(t, exec, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Error("forbidden login page reached password submission")
+		}
+		w.WriteHeader(http.StatusForbidden)
+	}), secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "pw"})
+
+	err := (bookstack.App{}).Setup(context.Background(), box.h)
+	if err == nil || !strings.Contains(err.Error(), "HTTP 403") {
+		t.Fatalf("Setup error = %v, want fixed forbidden-login classification", err)
+	}
+	httpStep := box.step("http-readiness")
+	if httpStep.Status != stepstatus.StepFail || !strings.Contains(httpStep.Error, "phase=login-page http_status=403") {
+		t.Fatalf("HTTP readiness classification = %+v", httpStep)
+	}
+	if strings.Contains(httpStep.Error, "php_failure_path") || box.step("startup-status").Status != stepstatus.StepFail {
+		t.Fatal("HTTP classification replaced or absorbed independent startup facts")
+	}
+	if box.step("admin").Status != "" {
+		t.Fatal("forbidden login page reached administrator creation")
+	}
+	if len(exec.args) != 1 || exec.args[0][0] != "/usr/bin/with-contenv" || len(exec.envs[0]) != 0 {
+		t.Fatal("forbidden login page ran more than the non-secret startup probe")
+	}
+}
+
 func TestReadinessFailureReportsOnlyFixedBootstrapFacts(t *testing.T) {
 	for _, tc := range []struct{ output, want string }{
+		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=true source_match=true source_exec=true compiled_match=true compiled_exec=true wanted=true up=true config=true category=none path=unrecognized process_root=true target_read=unknown target_write=unknown target_owner=unknown worker_identity=nonroot worker_profile=php-fpm-enforced", "fpm_worker_identity=nonroot fpm_worker_profile=php-fpm-enforced"},
+		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=true source_match=true source_exec=true compiled_match=true compiled_exec=true wanted=true up=true config=true category=none path=unrecognized process_root=true target_read=unknown target_write=unknown target_owner=unknown worker_identity=nonroot worker_profile=php-fpm-complain", "fpm_worker_identity=nonroot fpm_worker_profile=php-fpm-complain"},
 		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=false compiled_exec=true wanted=true up=false config=false category=log_open path=php_log process_root=true target_read=false target_write=false target_owner=false", "launcher_root_mode=true php_process_present=false php_upstream_listening=false database_tcp_listening=true database_authenticated=true launcher_source_matches=true launcher_source_executable=true launcher_compiled_matches=false launcher_compiled_executable=true php_service_wanted=true php_service_up=false php_config_valid=false php_config_error=log_open php_failure_path=php_log process_uid_zero=true failure_path_readable=false failure_path_writable=false failure_path_owner_current=false"},
 		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=false source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized path=unrecognized process_root=true target_read=unknown target_write=unknown target_owner=unknown", "database_authenticated=false"},
 		{"key=true root_pool=false launcher_root=false php_process=false upstream=false database=false authenticated=unknown source_match=unknown source_exec=unknown compiled_match=unknown compiled_exec=unknown wanted=unknown up=unknown config=unknown category=unrecognized path=unrecognized process_root=true target_read=unknown target_write=unknown target_owner=unknown", "database_authenticated=unknown"},
 		{"key=synthetic-private-secret root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true", "bootstrap_metadata=unobserved"},
 		{"key=true root_pool=true launcher_root=true php_process=false upstream=false database=true authenticated=true source_match=true source_exec=true compiled_match=true compiled_exec=true wanted=true up=false config=false category=synthetic-private-secret", "bootstrap_metadata=unobserved"},
+		{"key=true root_pool=false launcher_root=false php_process=true upstream=true database=true authenticated=true source_match=true source_exec=true compiled_match=true compiled_exec=true wanted=true up=true config=true category=none path=unrecognized process_root=true target_read=unknown target_write=unknown target_owner=unknown worker_identity=nonroot worker_profile=synthetic-private-secret", "bootstrap_metadata=unobserved"},
 		{"synthetic-private-secret", "bootstrap_metadata=unobserved"},
 	} {
 		t.Run(tc.want, func(t *testing.T) {
@@ -288,6 +319,53 @@ func TestBootstrapProbeKeepsDatabaseCredentialAndExceptionsPrivate(t *testing.T)
 			}
 			if !strings.Contains(string(output), "source_match=true\nsource_exec=true\ncompiled_match=false\ncompiled_exec=true\nwanted=true\nup=false\n") || !strings.Contains(string(output), "category="+tc.category) {
 				t.Fatal("actual probe lost launcher, supervision or silent checker facts")
+			}
+		})
+	}
+}
+
+func TestBootstrapProbeReportsActualFPMWorkerContext(t *testing.T) {
+	script, dir := bootstrapProbeFixture(t)
+	procRoot := filepath.Join(dir, "proc")
+	for pid, status := range map[string]string{
+		"100": "Name:\tphp-fpm85\nPPid:\t1\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\n",
+		"200": "Name:\tphp-fpm85\nPPid:\t100\nUid:\t911\t911\t911\t911\nGid:\t911\t911\t911\t911\n",
+		"300": "Name:\tphp-fpm85\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\n",
+	} {
+		root := filepath.Join(procRoot, pid)
+		if err := os.MkdirAll(filepath.Join(root, "attr"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "status"), []byte(status), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(procRoot, "300", "attr", "current"), []byte("php-fpm (enforce)\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "pgrep"), []byte("#!/bin/sh\nprintf '300\\n\\n100\\n200\\n'\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	script = strings.ReplaceAll(script, "/proc/", procRoot+"/")
+	for _, tc := range []struct{ profile, want string }{
+		{"php-fpm (enforce)", "php-fpm-enforced"},
+		{"php-fpm (complain)", "php-fpm-complain"},
+		{"unconfined", "unconfined"},
+		{"unconfined-workload (enforce)", "other-enforced"},
+		{"other-php-fpm-helper (enforce)", "other-enforced"},
+	} {
+		t.Run(tc.want+tc.profile, func(t *testing.T) {
+			if err := os.WriteFile(filepath.Join(procRoot, "200", "attr", "current"), []byte(tc.profile+"\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			command := exec.Command("bash", "-c", script)
+			command.Env = append(os.Environ(), "PATH="+dir+":"+os.Getenv("PATH"), "FIXTURE_PHP_OUTPUT=true", "FIXTURE_FPM_EXIT=0")
+			output, err := command.CombinedOutput()
+			if err != nil || !strings.Contains(string(output), "worker_identity=nonroot\nworker_profile="+tc.want) {
+				t.Fatalf("probe omitted actual worker context: %v", err)
+			}
+			if tc.profile != tc.want && strings.Contains(string(output), tc.profile) {
+				t.Fatal("raw worker profile escaped fixed projection")
 			}
 		})
 	}

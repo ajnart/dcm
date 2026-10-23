@@ -149,9 +149,40 @@ func createAdmin(ctx context.Context, h *helpers.H) error {
 	return err
 }
 
+type httpReadinessError struct {
+	Phase  string
+	Status int
+	Cause  error
+}
+
+func (e *httpReadinessError) Error() string {
+	if e.Status > 0 {
+		return fmt.Sprintf("BookStack HTTP readiness: phase=%s http_status=%d; HTTP %d", e.Phase, e.Status, e.Status)
+	}
+	return fmt.Sprintf("BookStack HTTP readiness: phase=%s http_status=0; transport failed", e.Phase)
+}
+
+func (e *httpReadinessError) Unwrap() error { return e.Cause }
+
+func recordHTTPReadiness(ctx context.Context, h *helpers.H, status int, cause error) error {
+	return h.Step(ctx, "http-readiness", "verify the BookStack login page", helpers.StepSpec{
+		Do: func(context.Context) error {
+			return &httpReadinessError{Phase: "login-page", Status: status, Cause: cause}
+		},
+		Hint: "The BookStack login page must answer with HTTP 200 before administrator setup; inspect the independent startup facts without changing credentials.",
+	})
+}
+
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Ready(ctx, "/login"); err != nil {
 		return errors.Join(err, startupStatus(ctx, h))
+	}
+	loginPage, err := h.HTTP(ctx, helpers.Request{Path: "/login", NoRedirect: true, Header: map[string]string{"Accept": "text/html"}})
+	if err != nil {
+		return errors.Join(recordHTTPReadiness(ctx, h, 0, err), startupStatus(ctx, h))
+	}
+	if loginPage.Status != http.StatusOK {
+		return errors.Join(recordHTTPReadiness(ctx, h, loginPage.Status, nil), startupStatus(ctx, h))
 	}
 	email := (App{}).AdminEmail(h.AdminUser())
 	return firstadmin.FirstAdmin{
@@ -192,10 +223,29 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 		result, err := h.Exec(probeCtx, nil, "/usr/bin/with-contenv", "bash", "-c", strings.ReplaceAll(bootstrapProbe, "__SELFHOST_LAUNCHER_SHA__", fmt.Sprintf("%x", sha256.Sum256([]byte(phpFPMRun)))))
 		if err == nil && result.ExitCode == 0 {
 			values := strings.Fields(string(result.Stdout))
-			keys := []string{"key", "root_pool", "launcher_root", "php_process", "upstream", "database", "authenticated", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config", "category", "path", "process_root", "target_read", "target_write", "target_owner"}
+			keys := []string{"key", "root_pool", "launcher_root", "php_process", "upstream", "database", "authenticated", "source_match", "source_exec", "compiled_match", "compiled_exec", "wanted", "up", "config", "category", "path", "process_root", "target_read", "target_write", "target_owner", "worker_identity", "worker_profile"}
+			if len(values) == len(keys)-2 {
+				values = append(values, "worker_identity=unobserved", "worker_profile=unobserved")
+			}
 			valid := len(values) == len(keys)
 			if valid {
 				for i, key := range keys {
+					if key == "worker_identity" {
+						if !slices.Contains([]string{"worker_identity=root", "worker_identity=mixed", "worker_identity=nonroot", "worker_identity=unobserved"}, values[i]) {
+							valid = false
+							break
+						}
+						values[i] = strings.TrimPrefix(values[i], "worker_identity=")
+						continue
+					}
+					if key == "worker_profile" {
+						if !slices.Contains([]string{"worker_profile=unconfined", "worker_profile=php-fpm-enforced", "worker_profile=other-enforced", "worker_profile=php-fpm-complain", "worker_profile=other-complain", "worker_profile=other-mode", "worker_profile=unobserved"}, values[i]) {
+							valid = false
+							break
+						}
+						values[i] = strings.TrimPrefix(values[i], "worker_profile=")
+						continue
+					}
 					if key == "path" {
 						if !slices.Contains([]string{"path=main_config", "path=base_pool", "path=local_pool", "path=php_log", "path=proc_stderr", "path=unrecognized"}, values[i]) {
 							valid = false
@@ -224,7 +274,7 @@ func startupStatus(ctx context.Context, h *helpers.H) error {
 				if values[14] == "config_open" && values[15] == "main_config" && values[17] == "true" {
 					hint += " Ask the host administrator to review PHP-FPM confinement compatibility: its configuration appears readable but PHP-FPM cannot open it."
 				}
-				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s launcher_root_mode=%s php_process_present=%s php_upstream_listening=%s database_tcp_listening=%s database_authenticated=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s php_config_error=%s php_failure_path=%s process_uid_zero=%s failure_path_readable=%s failure_path_writable=%s failure_path_owner_current=%s", values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8], values[9], values[10], values[11], values[12], values[13], values[14], values[15], values[16], values[17], values[18], values[19])
+				facts = fmt.Sprintf("app_key_present=%s pool_identity_includes_root=%s launcher_root_mode=%s php_process_present=%s php_upstream_listening=%s database_tcp_listening=%s database_authenticated=%s launcher_source_matches=%s launcher_source_executable=%s launcher_compiled_matches=%s launcher_compiled_executable=%s php_service_wanted=%s php_service_up=%s php_config_valid=%s php_config_error=%s php_failure_path=%s process_uid_zero=%s failure_path_readable=%s failure_path_writable=%s failure_path_owner_current=%s fpm_worker_identity=%s fpm_worker_profile=%s", values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8], values[9], values[10], values[11], values[12], values[13], values[14], values[15], values[16], values[17], values[18], values[19], values[20], values[21])
 			}
 		}
 	}
@@ -338,6 +388,35 @@ if [ -n "$target" ]; then
     fi
 fi
 printf 'path=%s\nprocess_root=%s\ntarget_read=%s\ntarget_write=%s\ntarget_owner=%s\n' "$path" "$process_root" "$target_read" "$target_write" "$target_owner"
+
+worker_identity=unobserved; worker_profile=unobserved
+php_pids=$(pgrep -x php-fpm85 2>/dev/null)
+php_pid_set=" $(printf '%s\n' "$php_pids" | tr '\n' ' ')"
+for pid in $php_pids; do
+    [[ "$pid" =~ ^[0-9]+$ ]] || continue
+    ppid=$(awk '/^PPid:/ {print $2}' "/proc/$pid/status" 2>/dev/null)
+    [[ "$ppid" =~ ^[0-9]+$ ]] || continue
+    case "$php_pid_set" in *" $ppid "*) ;; *) continue ;; esac
+    euid=$(awk '/^Uid:/ {print $3}' "/proc/$pid/status" 2>/dev/null)
+    egid=$(awk '/^Gid:/ {print $3}' "/proc/$pid/status" 2>/dev/null)
+    if [[ "$euid" =~ ^[0-9]+$ && "$egid" =~ ^[0-9]+$ ]]; then
+        if [[ "$euid" = 0 && "$egid" = 0 ]]; then worker_identity=root
+        elif [[ "$euid" = 0 || "$egid" = 0 ]]; then worker_identity=mixed
+        else worker_identity=nonroot
+        fi
+    fi
+    profile=$(head -c 128 "/proc/$pid/attr/current" 2>/dev/null)
+    case "$profile" in
+        unconfined) worker_profile=unconfined ;;
+        'php-fpm (enforce)') worker_profile=php-fpm-enforced ;;
+        *' (enforce)') worker_profile=other-enforced ;;
+        'php-fpm (complain)') worker_profile=php-fpm-complain ;;
+        *' (complain)') worker_profile=other-complain ;;
+        ?*) worker_profile=other-mode ;;
+    esac
+    break
+done
+printf 'worker_identity=%s\nworker_profile=%s\n' "$worker_identity" "$worker_profile"
 `
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
