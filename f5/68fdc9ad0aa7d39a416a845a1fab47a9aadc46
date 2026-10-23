@@ -1,0 +1,18 @@
+README.md
+  h_d6e478ca18e517 104
+THIRD_PARTY_NOTICES.md
+  h_d6e478ca18e517 8-33
+site/src/styles/header.css
+  h_d6e478ca18e517 4-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f568fdc9ad0aa7d39a416a845a1fab47a9aadc46",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
