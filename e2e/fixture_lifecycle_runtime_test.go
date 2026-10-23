@@ -70,6 +70,7 @@ type fixtureRegistration struct {
 
 func fixtureRegistry() []fixtureRegistration {
 	return []fixtureRegistration{
+		{"beszel", func(r *runner, p *portReservation) { r.prepareBeszelFixture(p.primary) }, [5]int{5, 5, 5, 5, 5}},
 		{"renovate", func(r *runner, p *portReservation) { r.prepareRenovateFixture(p.primary) }, [5]int{0, 0, 2, 4, 4}},
 		{"wud", func(r *runner, p *portReservation) { r.prepareWUDFixture(p.primary) }, [5]int{4, 2, 1, 0, 0}},
 		{"netbird", (*runner).prepareNetBirdFixture, [5]int{1, 0, 3, 2, 1}},

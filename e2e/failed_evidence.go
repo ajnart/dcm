@@ -12,7 +12,7 @@ type blockerError string
 
 // Publication is deliberately last: filesystem failure must never interrupt
 // scoped teardown or registration of its retained-project blocker.
-func cleanupObservedOwned(observe func(), down func() error, remove func(), guard *sweepGuard, project string, publish func(error) error) (error, error) {
+func cleanupObservedOwned(observe func(), down func() error, remove func() error, guard *sweepGuard, project string, publish func(error) error) (error, error) {
 	observe()
 	cleanupErr := cleanupOwned(down, remove, guard, project)
 	return cleanupErr, publish(cleanupErr)

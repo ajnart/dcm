@@ -26,12 +26,15 @@ that budget and blocks queued starts. CI defaults remain serial. Do not run
 another Docker acceptance harness outside the OS lock during a sweep.
 
 Before installation and later mutation/pull/restore commands, admission measures
-available bytes and inodes on the owned temporary Project filesystem. The floor
-is 8 GiB and 100,000 inodes; `E2E_MIN_FREE_GB` accepts a positive integer GiB
-override. Low or unavailable capacity blocks new mutations and queued targets,
-retains sanitized resource evidence, and leaves scoped cleanup enabled. This
-checks the Project filesystem; a separate Docker storage filesystem needs its
-own capacity assessment.
+available bytes and inodes on both the owned temporary Project filesystem and
+the executable/helper staging filesystem. The Project floor is 8 GiB and
+100,000 inodes; `E2E_MIN_FREE_GB` accepts a positive integer GiB override. The
+independent executable-staging floor is 2 GiB and 100,000 inodes;
+`E2E_MIN_EXECUTABLE_FREE_GB` accepts its positive integer GiB override. Evidence
+records both measurements, minima and purposes. Low or unavailable capacity
+blocks new mutations and queued targets, retains sanitized resource evidence,
+and leaves scoped cleanup enabled. Docker image storage needs its own capacity
+assessment.
 
 Each target has a distinct temporary directory and Compose project. Primary
 ports are selected with live loopback socket reservations; published secondary
@@ -107,6 +110,17 @@ acceptance. Additional owned fixtures exercise these source contracts:
   must match both IDs; evidence records the observation generation and time.
   No Docker socket is mounted; remote Docker access and registry-update checks
   remain outside acceptance.
+- Beszel: with `E2E_BESZEL_ROOTLESS_STATS=1` on a rootless Docker target, an
+  owned CPU and memory load container
+  joins the same unique Compose project. The probe matches its full Docker
+  identity to exactly one Hub record by short ID, name and the exact enrolled
+  machine ID, requires
+  positive CPU and memory, verifies container list and stats GETs through the
+  loopback socket proxy, and requires POST denial. Evidence also records the
+  proxy's socket source, the matching active Unix endpoint, Docker's rootless
+  security fact and the load image's immutable identity. The load runs with one
+  CPU, 96 MiB memory and 32 PID limits, all capabilities dropped, a read-only
+  root filesystem and no-new-privileges.
 
 Manual and external prerequisite outcomes leave subsequent lifecycle stages
 `not-run`; the presence of a fixture never promotes those outcomes to a pass.

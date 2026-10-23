@@ -179,7 +179,7 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry
 		for key, value := range appInputTable[id].local {
 			inputs[key] = value
 		}
-		if key := appInputTable[id].secondary; key != "" {
+		if input, ok := hostPortInput(c, id); ok {
 			for attempts := 0; attempts < 1024; attempts++ {
 				tcp, err := net.Listen("tcp4", "127.0.0.1:0")
 				if err != nil {
@@ -197,7 +197,7 @@ func reserveTargetPorts(c *catalog.Catalog, t targetSpec, pools ...*portRegistry
 					continue
 				}
 				r.secondary[id] = candidate
-				inputs[key] = fmtPort(candidate)
+				inputs[input.Key] = fmtPort(candidate)
 				r.listeners = append(r.listeners, tcp, udp)
 				claim(tcpPort)
 				claim(udpPort)
@@ -346,7 +346,7 @@ func (g *sweepGuard) Block(project string) {
 	}
 }
 
-func cleanupOwned(down func() error, remove func(), guard *sweepGuard, project string) error {
+func cleanupOwned(down func() error, remove func() error, guard *sweepGuard, project string) error {
 	if guard.Retains(project) {
 		return errors.New("owned Project retained after teardown failure")
 	}
@@ -354,7 +354,10 @@ func cleanupOwned(down func() error, remove func(), guard *sweepGuard, project s
 		guard.Block(project)
 		return err
 	}
-	remove()
+	if err := remove(); err != nil {
+		guard.Block(project)
+		return err
+	}
 	return nil
 }
 

@@ -93,6 +93,11 @@ func (r *runner) preparePassboltFixture(reservation *portReservation) {
 		fail()
 		return
 	}
+	files.user, err = r.privateFixtureUser(files.dir)
+	if err != nil {
+		fail()
+		return
+	}
 	real, err := exec.LookPath("docker")
 	if err != nil {
 		fail()

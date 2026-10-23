@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -96,23 +97,26 @@ func moduleRoot() (string, error) {
 }
 
 type runner struct {
-	fixtures         []fixtureEntry
-	fixturePorts     map[string]int
-	evidenceOwner    *runner
-	minimumDiskBytes uint64
-	commandCtx       context.Context
-	teardownOK       bool
-	restored         *runner
-	t                *testing.T
-	root             string
-	project          string
-	name             string
-	target           string
-	env              []string
-	logDir           string
-	evidence         *targetEvidence
-	spec             targetSpec
-	guard            *sweepGuard
+	fixtures               []fixtureEntry
+	fixturePorts           map[string]int
+	evidenceOwner          *runner
+	minimumDiskBytes       uint64
+	minimumExecutableBytes uint64
+	commandCtx             context.Context
+	teardownOK             bool
+	composeCleanupFailed   bool
+	restored               *runner
+	t                      *testing.T
+	root                   string
+	storageRoot            string
+	project                string
+	name                   string
+	target                 string
+	env                    []string
+	logDir                 string
+	evidence               *targetEvidence
+	spec                   targetSpec
+	guard                  *sweepGuard
 }
 
 func newRunner(t *testing.T, guard *sweepGuard, logDirs ...string) *runner {
@@ -121,20 +125,39 @@ func newRunner(t *testing.T, guard *sweepGuard, logDirs ...string) *runner {
 	if err != nil {
 		t.Fatal(err)
 	}
+	minimumExecutableBytes, err := minimumExecutableFreeBytes(os.Getenv("E2E_MIN_EXECUTABLE_FREE_GB"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	root, err := os.MkdirTemp("", "selfhost-e2e-")
 	if err != nil {
 		t.Fatalf("temp dir: %v", err)
 	}
+	storageRoot := root
+	if configured := os.Getenv("E2E_PROJECT_TMPDIR"); configured != "" {
+		parent, validateErr := validateProjectStorageParent(configured)
+		if validateErr != nil {
+			os.RemoveAll(root)
+			t.Fatal(validateErr)
+		}
+		storageRoot, err = os.MkdirTemp(parent, "selfhost-e2e-")
+		if err != nil {
+			os.RemoveAll(root)
+			t.Fatalf("Project storage temp dir: %v", err)
+		}
+	}
 	name := "selfhost-e2e-" + randomHex(8)
 	r := &runner{
-		minimumDiskBytes: minimumDiskBytes,
-		t:                t,
-		guard:            guard,
-		root:             root,
-		project:          filepath.Join(root, "project"),
-		name:             name,
-		target:           "unnamed",
-		logDir:           os.Getenv("E2E_LOG_DIR"),
+		minimumDiskBytes:       minimumDiskBytes,
+		minimumExecutableBytes: minimumExecutableBytes,
+		t:                      t,
+		guard:                  guard,
+		root:                   root,
+		storageRoot:            storageRoot,
+		project:                filepath.Join(storageRoot, "project"),
+		name:                   name,
+		target:                 "unnamed",
+		logDir:                 os.Getenv("E2E_LOG_DIR"),
 	}
 	if len(logDirs) > 0 {
 		r.logDir = logDirs[0]
@@ -154,6 +177,28 @@ func newRunner(t *testing.T, guard *sweepGuard, logDirs ...string) *runner {
 	}
 	t.Cleanup(r.cleanup)
 	return r
+}
+
+func validateProjectStorageParent(path string) (string, error) {
+	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
+		return "", errors.New("E2E_PROJECT_TMPDIR must be an absolute clean path")
+	}
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil || resolved != path {
+		return "", errors.New("E2E_PROJECT_TMPDIR must exist without symlinks")
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.IsDir() {
+		return "", errors.New("E2E_PROJECT_TMPDIR must be an existing directory")
+	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || int(stat.Uid) != os.Geteuid() {
+		return "", errors.New("E2E_PROJECT_TMPDIR must be owned by the current user")
+	}
+	if info.Mode().Perm()&0o022 != 0 {
+		return "", errors.New("E2E_PROJECT_TMPDIR must not be writable by group or others")
+	}
+	return path, nil
 }
 
 func randomHex(n int) string {
@@ -217,20 +262,20 @@ func (r *runner) cleanup() {
 		if r.evidence != nil {
 			r.recordImages()
 		}
-	}, r.composeDown, r.removeRoot, r.guard, r.project, func(cleanupErr error) error {
+	}, r.composeDownObserved, r.removeRoot, r.guard, r.project, func(cleanupErr error) error {
 		r.teardownOK = cleanupErr == nil
 		if r.evidence == nil {
 			return nil
 		}
 		if cleanupErr != nil {
 			r.evidence.Cleanup = "failed"
-			r.evidence.RetainedProject = r.project
-			r.evidence.RetainedComposeProject = r.name
-		} else if r.restored != nil && !r.restored.teardownOK {
+			r.recordRetainedRoots(r)
+		}
+		if r.restored != nil && !r.restored.teardownOK {
 			r.evidence.Cleanup = "failed"
-			r.evidence.RetainedProject = r.restored.project
-			r.evidence.RetainedComposeProject = r.restored.name
-		} else {
+			r.recordRetainedRoots(r.restored)
+		}
+		if r.evidence.Cleanup != "failed" {
 			r.evidence.Cleanup = "pass"
 		}
 		if r.t.Failed() || r.evidence.Cleanup == "failed" {
@@ -241,10 +286,45 @@ func (r *runner) cleanup() {
 		return r.writeEvidence()
 	})
 	if cleanupErr != nil {
-		r.t.Error("owned Compose teardown failed; project retained and sweep stopped")
+		r.t.Error("owned cleanup failed; Project recovery paths retained and sweep stopped")
 	}
 	if publicationErr != nil {
 		r.t.Error("cleanup completed; sanitized evidence publication failed")
+	}
+}
+
+func (r *runner) recordRetainedRoots(source *runner) {
+	for _, retained := range source.remainingOwnedRoots() {
+		found := false
+		for _, existing := range r.evidence.RetainedOwnedRoots {
+			if existing == retained {
+				found = true
+				break
+			}
+		}
+		if !found {
+			r.evidence.RetainedOwnedRoots = append(r.evidence.RetainedOwnedRoots, retained)
+		}
+	}
+	if _, err := os.Lstat(source.project); err == nil || !os.IsNotExist(err) {
+		selector := ownedProjectEvidence{Project: source.project}
+		if source.composeCleanupFailed {
+			selector.ComposeProject = source.name
+		}
+		found := false
+		for _, existing := range r.evidence.RetainedProjects {
+			if existing == selector {
+				found = true
+				break
+			}
+		}
+		if !found {
+			r.evidence.RetainedProjects = append(r.evidence.RetainedProjects, selector)
+		}
+		if r.evidence.RetainedProject == "" {
+			r.evidence.RetainedProject = source.project
+			r.evidence.RetainedComposeProject = selector.ComposeProject
+		}
 	}
 }
 
@@ -273,19 +353,64 @@ func (r *runner) composeDown() error {
 	return nil
 }
 
-func (r *runner) removeRoot() {
-	if err := os.RemoveAll(r.root); err == nil {
-		return
+func (r *runner) composeDownObserved() error {
+	err := r.composeDown()
+	r.composeCleanupFailed = err != nil
+	return err
+}
+
+func (r *runner) removeRoot() error {
+	roots := []string{r.storageRoot}
+	if r.root != r.storageRoot {
+		roots = append(roots, r.root)
+	}
+	var cleanupErr error
+	for _, root := range roots {
+		cleanupErr = errors.Join(cleanupErr, r.removeOwnedRoot(root))
+	}
+	return cleanupErr
+}
+
+func (r *runner) remainingOwnedRoots() []ownedRootEvidence {
+	return r.remainingOwnedRootsWithStat(func(path string) error {
+		_, err := os.Lstat(path)
+		return err
+	})
+}
+
+func (r *runner) remainingOwnedRootsWithStat(stat func(string) error) []ownedRootEvidence {
+	roots := []ownedRootEvidence{{Purpose: "project-storage", Path: r.storageRoot}}
+	if r.root == r.storageRoot {
+		roots[0].Purpose = "project-storage-and-executable-staging"
+	} else {
+		roots = append(roots, ownedRootEvidence{Purpose: "executable-staging", Path: r.root})
+	}
+	remaining := roots[:0]
+	for _, root := range roots {
+		if err := stat(root.Path); err == nil || !os.IsNotExist(err) {
+			remaining = append(remaining, root)
+		}
+	}
+	return remaining
+}
+
+func (r *runner) removeOwnedRoot(root string) error {
+	if info, err := os.Lstat(root); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return errors.New("owned folder became a symlink; retained for recovery")
+	}
+	if err := os.RemoveAll(root); err == nil {
+		return nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "docker", "run", "--rm", "-v", r.root+":/x", "alpine", "sh", "-c", "rm -rf /x/* /x/.[!.]*")
+	cmd := exec.CommandContext(ctx, "docker", "run", "--rm", "-v", root+":/x", "alpine", "sh", "-c", "rm -rf /x/* /x/.[!.]*")
 	if res := executeOwnedCommand(ctx, cmd); res.code != 0 {
-		r.t.Errorf("owned folder cleanup failed")
+		return errors.New("owned folder cleanup failed")
 	}
-	if err := os.RemoveAll(r.root); err != nil {
-		r.t.Logf("removing %s: %v", r.root, err)
+	if err := os.RemoveAll(root); err != nil {
+		return errors.New("owned folder cleanup remained incomplete")
 	}
+	return nil
 }
 
 func (r *runner) dumpDiagnostics() {

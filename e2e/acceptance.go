@@ -8,6 +8,7 @@ import (
 	stepstatus "github.com/ajnart/self-host/internal/status"
 	"go.yaml.in/yaml/v3"
 	"io"
+	"net/url"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -31,6 +32,11 @@ func acceptanceInventory(c *catalog.Catalog) []targetSpec {
 		out = append(out, targetSpec{Kind: "app", ID: id, Apps: []string{id}})
 	}
 	for _, r := range c.Recipes() {
+		out = append(out, targetSpec{Kind: "recipe", ID: r.ID, Apps: r.Apps})
+	}
+	// The compatibility Recipe is intentionally hidden from people, but it is
+	// still a supported install target and must retain lifecycle evidence.
+	if r, ok := c.Recipe("homarr-control-plane"); ok {
 		out = append(out, targetSpec{Kind: "recipe", ID: r.ID, Apps: r.Apps})
 	}
 	sort.Slice(out, func(i, j int) bool { return evidenceName(out[i]) < evidenceName(out[j]) })
@@ -82,9 +88,13 @@ func classifyTarget(c *catalog.Catalog, t targetSpec) string {
 }
 
 func installArguments(t targetSpec, root string, ports map[string]int, secondary ...map[string]int) []string {
+	return installArgumentsWithCatalog(catalog.Default(), t, root, ports, secondary...)
+}
+
+func installArgumentsWithCatalog(c *catalog.Catalog, t targetSpec, root string, ports map[string]int, secondary ...map[string]int) []string {
 	args := []string{"install", t.ID}
 	baseApps := map[string]bool{t.ID: true}
-	if recipe, ok := catalog.Default().Recipe(t.ID); ok && t.Kind == "recipe" {
+	if recipe, ok := c.Recipe(t.ID); ok && t.Kind == "recipe" {
 		for _, id := range recipe.Apps {
 			baseApps[id] = true
 		}
@@ -99,8 +109,8 @@ func installArguments(t targetSpec, root string, ports map[string]int, secondary
 		if port := ports[id]; port > 0 {
 			args = append(args, "--set", fmt.Sprintf("%s.port=%d", id, port))
 		}
-		if len(secondary) > 0 && secondary[0][id] > 0 && appInputTable[id].secondary != "" {
-			args = append(args, "--set", fmt.Sprintf("%s.%s=%d", id, appInputTable[id].secondary, secondary[0][id]))
+		if input, ok := hostPortInput(c, id); ok && len(secondary) > 0 && secondary[0][id] > 0 {
+			args = append(args, "--set", fmt.Sprintf("%s.%s=%d", id, input.Key, secondary[0][id]))
 		}
 		keys := []string{}
 		for key := range appInputTable[id].local {
@@ -112,6 +122,19 @@ func installArguments(t targetSpec, root string, ports map[string]int, secondary
 		}
 	}
 	return args
+}
+
+func hostPortInput(c *catalog.Catalog, id string) (app.Input, bool) {
+	a, ok := c.App(id)
+	if !ok {
+		return app.Input{}, false
+	}
+	for _, input := range a.Inputs() {
+		if len(input.HostPortProtocols) > 0 {
+			return input, true
+		}
+	}
+	return app.Input{}, false
 }
 
 var stageNames = []string{"install", "setup-check", "idempotency", "restart", "recovery", "update", "backup", "isolated-restore", "restored-check", "sentinel"}
@@ -147,6 +170,101 @@ type ownedInventoryEvidence struct {
 	FreshWatch     bool      `json:"fresh_watch"`
 }
 
+type beszelContainerIdentity struct {
+	ContainerID string `json:"container_id"`
+	Name        string `json:"name"`
+	Project     string `json:"compose_project"`
+	Service     string `json:"service"`
+}
+
+type beszelContainerObservation struct {
+	ID      string  `json:"id"`
+	Name    string  `json:"name"`
+	System  string  `json:"system"`
+	CPU     float64 `json:"cpu"`
+	Memory  float64 `json:"memory"`
+	Updated int64   `json:"updated"`
+}
+
+type beszelWorkloadLimits struct {
+	CPU                 int64
+	Memory              int64
+	PIDs                int64
+	CapabilitiesDropAll bool
+	NoNewPrivileges     bool
+	TmpfsBound          bool
+	ReadOnlyRoot        bool
+}
+
+type beszelContainerEvidence struct {
+	beszelContainerIdentity
+	HubID            string  `json:"hub_id"`
+	SystemID         string  `json:"system_id"`
+	HubMatches       int     `json:"hub_matches"`
+	CPU              float64 `json:"cpu"`
+	Memory           float64 `json:"memory"`
+	Updated          int64   `json:"updated"`
+	ProxyListed      bool    `json:"proxy_listed"`
+	ProxyStats       bool    `json:"proxy_stats"`
+	ProxyWriteDenied bool    `json:"proxy_write_denied"`
+	DockerSocket     string  `json:"docker_socket"`
+	DockerEndpoint   string  `json:"docker_endpoint"`
+	RootlessSecurity bool    `json:"rootless_security"`
+	CPUQuota         int64   `json:"cpu_nano_quota"`
+	MemoryLimit      int64   `json:"memory_limit_bytes"`
+	PIDLimit         int64   `json:"pid_limit"`
+	CapabilitiesDrop bool    `json:"capabilities_drop_all"`
+	NoNewPrivileges  bool    `json:"no_new_privileges"`
+	TmpfsLimitBytes  int64   `json:"tmpfs_limit_bytes"`
+	ReadOnlyRoot     bool    `json:"read_only_root"`
+	ImageID          string  `json:"image_id"`
+	Platform         string  `json:"platform"`
+}
+
+func beszelContainerMatch(want beszelContainerIdentity, systemID string, got beszelContainerObservation) bool {
+	return len(want.ContainerID) >= 12 && systemID != "" && got.ID == want.ContainerID[:12] && got.Name == want.Name && got.System == systemID && got.CPU > 0 && got.Memory >= 16 && got.Updated > 0
+}
+
+func beszelRootlessSocketMatch(endpoint string, securityOptions []string, mountSource string) bool {
+	parsed, err := url.Parse(endpoint)
+	if err != nil || parsed.Scheme != "unix" || parsed.Path == "" || parsed.Path != mountSource {
+		return false
+	}
+	return slices.Contains(securityOptions, "name=rootless")
+}
+
+func beszelProxyConfiguration(projection []byte) (string, bool) {
+	var proxy struct {
+		Mounts []struct {
+			Source, Destination string
+			RW                  bool
+		}
+		Env []string
+	}
+	if json.Unmarshal(projection, &proxy) != nil {
+		return "", false
+	}
+	var socketMounts []struct {
+		Source, Destination string
+		RW                  bool
+	}
+	for _, mount := range proxy.Mounts {
+		if mount.Destination == "/var/run/docker.sock" || filepath.Base(mount.Source) == "docker.sock" {
+			socketMounts = append(socketMounts, mount)
+		}
+	}
+	if len(socketMounts) != 1 {
+		return "", false
+	}
+	mount := socketMounts[0]
+	configured := filepath.Base(mount.Source) == "docker.sock" && mount.Destination == "/var/run/docker.sock" && !mount.RW
+	return mount.Source, configured && slices.Contains(proxy.Env, "CONTAINERS=1") && slices.Contains(proxy.Env, "POST=0")
+}
+
+func beszelWorkloadLimitsMatch(limits beszelWorkloadLimits) bool {
+	return limits.CPU == 1_000_000_000 && limits.Memory == 96*1024*1024 && limits.PIDs == 32 && limits.CapabilitiesDropAll && limits.NoNewPrivileges && limits.TmpfsBound && limits.ReadOnlyRoot
+}
+
 type targetEvidence struct {
 	OwnedInventory         []ownedInventoryEvidence `json:"owned_inventory,omitempty"`
 	Resources              *resourceEvidence        `json:"resources,omitempty"`
@@ -154,6 +272,8 @@ type targetEvidence struct {
 	RetainedComposeProject string                   `json:"retained_compose_project,omitempty"`
 	Cleanup                string                   `json:"cleanup,omitempty"`
 	RetainedProject        string                   `json:"retained_project,omitempty"`
+	RetainedOwnedRoots     []ownedRootEvidence      `json:"retained_owned_roots,omitempty"`
+	RetainedProjects       []ownedProjectEvidence   `json:"retained_projects,omitempty"`
 	BinarySHA256           string                   `json:"binary_sha256,omitempty"`
 	Version                int                      `json:"version"`
 	Target                 targetSpec               `json:"target"`
@@ -168,6 +288,17 @@ type targetEvidence struct {
 	Started                time.Time                `json:"started"`
 	Finished               *time.Time               `json:"finished,omitempty"`
 	Probe                  string                   `json:"probe"`
+	BeszelContainer        *beszelContainerEvidence `json:"beszel_container,omitempty"`
+}
+
+type ownedRootEvidence struct {
+	Purpose string `json:"purpose"`
+	Path    string `json:"path"`
+}
+
+type ownedProjectEvidence struct {
+	Project        string `json:"project"`
+	ComposeProject string `json:"compose_project,omitempty"`
 }
 
 type imageEvidence struct {

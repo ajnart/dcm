@@ -23,7 +23,7 @@ func TestWUDOwnedFixtureAdmissionAndPrivateCompose(t *testing.T) {
 	if !slices.Contains(expectedServices(target), "wud-facade") || !slices.Contains(expectedServices(target), "ntfy") {
 		t.Fatal("owned containers omitted from image/readiness proof")
 	}
-	f := &wudFixtureFiles{dir: filepath.Join(t.TempDir(), "tls"), observed: filepath.Join(t.TempDir(), "observed")}
+	f := &wudFixtureFiles{dir: filepath.Join(t.TempDir(), "tls"), observed: filepath.Join(t.TempDir(), "observed"), user: "1000:1001"}
 	doc, err := f.compose("owned-test", true)
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +50,7 @@ func TestWUDOwnedFixtureAdmissionAndPrivateCompose(t *testing.T) {
 		t.Fatal("fixture health does not prove its exact owned mutual TLS inventory")
 	}
 	sidecar := parsed.Services["wud-facade"]
-	if sidecar["ports"] != nil || sidecar["network_mode"] != nil || sidecar["privileged"] != nil || sidecar["read_only"] != true || strings.Contains(doc, "docker.sock") {
+	if sidecar["ports"] != nil || sidecar["network_mode"] != nil || sidecar["privileged"] != nil || sidecar["read_only"] != true || sidecar["user"] != f.user || strings.Contains(doc, "docker.sock") {
 		t.Fatal("facade escaped private owned network")
 	}
 }

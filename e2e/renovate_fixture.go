@@ -7,11 +7,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 )
 
 // Kept only in the owned harness process, never marshalled into evidence.
@@ -25,7 +27,7 @@ type renovateForgejoUser struct {
 	ID     int64  `json:"id"`
 	Login  string `json:"login"`
 	Email  string `json:"email"`
-	Admin  bool   `json:"is_admin"`
+	Admin  *bool  `json:"is_admin"`
 	Active bool   `json:"active"`
 }
 
@@ -36,18 +38,61 @@ type renovateForgejoToken struct {
 	Scopes []string `json:"scopes"`
 }
 
+type renovateForgejoHTTPError struct{ status int }
+
+func (e renovateForgejoHTTPError) Error() string { return fmt.Sprintf("unexpected HTTP %d", e.status) }
+
+func renovateForgejoOperationError(operation string, err error) error {
+	var httpErr renovateForgejoHTTPError
+	if errors.As(err, &httpErr) {
+		return fmt.Errorf("%s returned HTTP %d", operation, httpErr.status)
+	}
+	return errors.New(operation + " failed")
+}
+
+func decodeRenovateCredentialHandoff(data []byte) (admin, password, token string, ok bool) {
+	var doc struct {
+		Admin struct {
+			Username string            `json:"username"`
+			Password string            `json:"password"`
+			Aliases  map[string]string `json:"aliases"`
+		} `json:"admin"`
+		Apps map[string]map[string]string `json:"apps"`
+	}
+	if json.Unmarshal(data, &doc) != nil {
+		return "", "", "", false
+	}
+	admin = doc.Admin.Aliases["forgejo"]
+	if admin == "" {
+		admin = doc.Admin.Username
+	}
+	return admin, doc.Admin.Password, doc.Apps["renovate"]["RENOVATE_TOKEN"], admin != "" && doc.Admin.Password != ""
+}
+
 func issueRenovateToken(ctx context.Context, client *http.Client, origin, admin, adminPassword, bot, botPassword string) (*renovateForgejoFixture, string, error) {
 	f := &renovateForgejoFixture{username: bot, password: botPassword, tokenName: "selfhost-e2e-renovate"}
-	var account renovateForgejoUser
-	err := renovateForgejoRequest(ctx, client, origin, "POST", "/api/v1/admin/users", renovateBasic(admin, adminPassword), map[string]any{
-		"username": bot, "email": bot + "@e2e.selfhost.test", "password": botPassword,
-		"must_change_password": false, "send_notify": false, "visibility": "private",
-	}, 201, &account)
+	account, err := createRenovateBot(ctx, client, origin, admin, adminPassword, bot, botPassword)
 	if err != nil {
 		return nil, "", err
 	}
-	if account.ID <= 0 || account.Login != bot || account.Email != bot+"@e2e.selfhost.test" || account.Admin || !account.Active {
-		return nil, "", errors.New("owned Forgejo bot identity was not confirmed")
+	var invalid []string
+	if account.ID <= 0 {
+		invalid = append(invalid, "id")
+	}
+	if account.Login != bot {
+		invalid = append(invalid, "login")
+	}
+	if account.Email != bot+"@e2e.selfhost.test" {
+		invalid = append(invalid, "email")
+	}
+	if account.Admin == nil || *account.Admin {
+		invalid = append(invalid, "is_admin")
+	}
+	if !account.Active {
+		invalid = append(invalid, "active")
+	}
+	if len(invalid) > 0 {
+		return nil, "", errors.New("owned Forgejo bot identity response had invalid fields: " + strings.Join(invalid, ","))
 	}
 	f.userID = account.ID
 	var issued renovateForgejoToken
@@ -55,7 +100,7 @@ func issueRenovateToken(ctx context.Context, client *http.Client, origin, admin,
 		"name": f.tokenName, "scopes": []string{"read:user", "write:repository"},
 	}, 201, &issued)
 	if err != nil {
-		return nil, "", err
+		return nil, "", errors.New("owned Forgejo token creation failed")
 	}
 	if issued.ID <= 0 || issued.Name != f.tokenName || issued.Value == "" || !renovateTokenScopes(issued.Scopes) {
 		return nil, "", errors.New("owned Forgejo token issuance was not confirmed")
@@ -67,20 +112,32 @@ func issueRenovateToken(ctx context.Context, client *http.Client, origin, admin,
 	return f, issued.Value, nil
 }
 
+func createRenovateBot(ctx context.Context, client *http.Client, origin, admin, adminPassword, bot, botPassword string) (renovateForgejoUser, error) {
+	var account renovateForgejoUser
+	err := renovateForgejoRequest(ctx, client, origin, "POST", "/api/v1/admin/users", renovateBasic(admin, adminPassword), map[string]any{
+		"username": bot, "email": bot + "@e2e.selfhost.test", "password": botPassword,
+		"must_change_password": false, "send_notify": false, "visibility": "private",
+	}, 201, &account)
+	if err != nil {
+		return account, renovateForgejoOperationError("owned Forgejo bot creation", err)
+	}
+	return account, nil
+}
+
 func (f *renovateForgejoFixture) verify(ctx context.Context, client *http.Client, origin, token string) error {
 	if sha256.Sum256([]byte(token)) != f.tokenHash {
 		return errors.New("Renovate did not retain the exact owned token")
 	}
 	var account renovateForgejoUser
 	if err := renovateForgejoRequest(ctx, client, origin, "GET", "/api/v1/user", "token "+token, nil, 200, &account); err != nil {
-		return err
+		return errors.New("owned Forgejo token authentication failed")
 	}
-	if account.ID != f.userID || account.Login != f.username || account.Email != f.username+"@e2e.selfhost.test" || account.Admin || !account.Active {
+	if account.ID != f.userID || account.Login != f.username || account.Email != f.username+"@e2e.selfhost.test" || account.Admin == nil || *account.Admin || !account.Active {
 		return errors.New("owned Forgejo PAT did not authenticate the dedicated bot")
 	}
 	var tokens []renovateForgejoToken
 	if err := renovateForgejoRequest(ctx, client, origin, "GET", "/api/v1/users/"+url.PathEscape(f.username)+"/tokens", renovateBasic(f.username, f.password), nil, 200, &tokens); err != nil {
-		return err
+		return errors.New("owned Forgejo token inventory failed")
 	}
 	for _, saved := range tokens {
 		if saved.ID == f.tokenID && saved.Name == f.tokenName && renovateTokenScopes(saved.Scopes) {
@@ -131,7 +188,10 @@ func renovateForgejoRequest(ctx context.Context, client *http.Client, origin, me
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != status {
-		return errors.New("owned Forgejo fixture API refused the expected operation")
+		return renovateForgejoHTTPError{status: resp.StatusCode}
+	}
+	if out == nil {
+		return nil
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(out); err != nil {
 		return errors.New("owned Forgejo fixture API returned an invalid response")

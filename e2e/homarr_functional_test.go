@@ -106,12 +106,12 @@ func TestHomarrFunctional(t *testing.T) {
 	var secrets map[string]string
 	var baseline hfInventory
 	hfStage(r, "install", func() error {
-		if err := hfWriteTone(filepath.Join(r.root, "media", "music", "Selfhost E2E Tone.wav")); err != nil {
+		if err := hfWriteTone(filepath.Join(r.storageRoot, "media", "music", "Selfhost E2E Tone.wav")); err != nil {
 			return err
 		}
 		reservation.release()
 		for _, id := range r.spec.Apps {
-			if err := hfCommand(r, installArguments(targetSpec{ID: id, Apps: []string{id}}, r.root, ports)...); err != nil {
+			if err := hfCommand(r, installArguments(targetSpec{ID: id, Apps: []string{id}}, r.storageRoot, ports)...); err != nil {
 				return err
 			}
 		}
@@ -278,7 +278,7 @@ func TestHomarrFunctional(t *testing.T) {
 		return hfNotifications(ctx, client, homarrURL, ntfyURL, secrets, current.integrationID("ntfy"))
 	})
 	hfStage(r, "add-remove", func() error {
-		if err := hfCommand(r, installArguments(targetSpec{ID: "gatus", Apps: []string{"gatus"}}, r.root, ports)...); err != nil {
+		if err := hfCommand(r, installArguments(targetSpec{ID: "gatus", Apps: []string{"gatus"}}, r.storageRoot, ports)...); err != nil {
 			return err
 		}
 		current, err := hfReadInventory(ctx, client, homarrURL, secrets["HOMARR_API_KEY"])
@@ -308,7 +308,7 @@ func TestHomarrFunctional(t *testing.T) {
 		if !slices.Equal(baseline.identitiesFor("jellyfin"), removed.identitiesFor("jellyfin")) {
 			return errors.New("integration removal changed unrelated Jellyfin resources")
 		}
-		if err := hfCommand(r, installArguments(targetSpec{ID: "ntfy", Apps: []string{"ntfy"}}, r.root, ports)...); err != nil {
+		if err := hfCommand(r, installArguments(targetSpec{ID: "ntfy", Apps: []string{"ntfy"}}, r.storageRoot, ports)...); err != nil {
 			return err
 		}
 		secrets, err = p.LoadSecrets()

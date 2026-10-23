@@ -121,7 +121,7 @@ func TestFixedAndSecondaryPortsAreDiscovered(t *testing.T) {
 func TestFailedTeardownRetainsProjectAndStopsSweep(t *testing.T) {
 	guard := &sweepGuard{}
 	removed := false
-	err := cleanupOwned(func() error { return errors.New("owned down failed") }, func() { removed = true }, guard, "/tmp/owned-project")
+	err := cleanupOwned(func() error { return errors.New("owned down failed") }, func() error { removed = true; return nil }, guard, "/tmp/owned-project")
 	if err == nil || removed || !guard.Blocked || guard.RetainedProject != "/tmp/owned-project" {
 		t.Fatal("failed teardown did not retain and block")
 	}
@@ -133,15 +133,25 @@ func TestFailedTeardownRetainsProjectAndStopsSweep(t *testing.T) {
 func TestSuccessfulTeardownRemovesOwnedRoot(t *testing.T) {
 	guard := &sweepGuard{}
 	removed := false
-	if err := cleanupOwned(func() error { return nil }, func() { removed = true }, guard, "/tmp/owned-project"); err != nil || !removed || !guard.CanRunNext() {
+	if err := cleanupOwned(func() error { return nil }, func() error { removed = true; return nil }, guard, "/tmp/owned-project"); err != nil || !removed || !guard.CanRunNext() {
 		t.Fatal("successful cleanup blocked")
+	}
+}
+
+func TestFailedRootRemovalRetainsProjectAndStopsSweep(t *testing.T) {
+	guard := &sweepGuard{}
+	err := cleanupOwned(func() error { return nil }, func() error {
+		return errors.New("owned roots retained")
+	}, guard, "/tmp/owned-project")
+	if err == nil || !guard.Retains("/tmp/owned-project") || guard.CanRunNext() {
+		t.Fatal("owned root cleanup uncertainty was reported as success")
 	}
 }
 
 func TestFailedProjectIsNotDeletedByCleanupRetry(t *testing.T) {
 	guard := &sweepGuard{Blocked: true, RetainedProject: "/tmp/owned-project"}
 	downCalled, removed := false, false
-	if err := cleanupOwned(func() error { downCalled = true; return nil }, func() { removed = true }, guard, "/tmp/owned-project"); err == nil || downCalled || removed {
+	if err := cleanupOwned(func() error { downCalled = true; return nil }, func() error { removed = true; return nil }, guard, "/tmp/owned-project"); err == nil || downCalled || removed {
 		t.Fatal("retained recovery project was retried or deleted")
 	}
 }

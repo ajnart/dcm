@@ -91,7 +91,12 @@ func (r *runner) prepareWUDFixture(ports map[string]int) {
 		fail()
 		return
 	}
-	f := &wudRuntimeFixture{files: &wudFixtureFiles{dir: dir, observed: observed, binary: binary, material: material}, realDocker: real, port: ports["wud"]}
+	user, err := r.privateFixtureUser(dir)
+	if err != nil {
+		fail()
+		return
+	}
+	f := &wudRuntimeFixture{files: &wudFixtureFiles{dir: dir, observed: observed, binary: binary, user: user, material: material}, realDocker: real, port: ports["wud"]}
 	if r.attachWUDFixture(f) != nil {
 		fail()
 		return
@@ -114,7 +119,7 @@ func (r *runner) prepareWUDFixture(ports map[string]int) {
 	r.evidence.Probe += "; fresh exact owned ntfy container/image inventory through private read-only mTLS Docker facade before backup and after restore; digest/tag registry checks disabled, no registry-update claim"
 }
 func (r *runner) attachWUDFixture(source *wudRuntimeFixture) error {
-	f := &wudRuntimeFixture{files: &wudFixtureFiles{dir: source.files.dir, observed: filepath.Join(r.root, "wud-observed"), material: source.files.material}, realDocker: source.realDocker, port: source.port, override: filepath.Join(r.root, "wud-override.yml")}
+	f := &wudRuntimeFixture{files: &wudFixtureFiles{dir: source.files.dir, observed: filepath.Join(r.root, "wud-observed"), user: source.files.user, material: source.files.material}, realDocker: source.realDocker, port: source.port, override: filepath.Join(r.root, "wud-override.yml")}
 	if err := os.MkdirAll(f.files.observed, 0700); err != nil {
 		return err
 	}
@@ -283,7 +288,7 @@ func (f *wudRuntimeFixture) close() {
 	}
 }
 func (f *wudRuntimeFixture) install(r *runner, args []string, ports map[string]int) result {
-	seed := installArguments(targetSpec{Kind: "app", ID: "ntfy", Apps: []string{"ntfy"}}, r.root, ports)
+	seed := installArguments(targetSpec{Kind: "app", ID: "ntfy", Apps: []string{"ntfy"}}, r.storageRoot, ports)
 	res := r.runWithTimeout(installCommandLimit(r.spec), seed...)
 	if res.code != 0 {
 		return res

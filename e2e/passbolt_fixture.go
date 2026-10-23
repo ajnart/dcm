@@ -23,6 +23,7 @@ type passboltFixtureFiles struct {
 	dir       string
 	origin    string
 	caFile    string
+	user      string
 	port      int
 	helperSHA string
 }
@@ -84,7 +85,7 @@ func (f *passboltFixtureFiles) compose() (string, error) {
 			"image":      passboltFixtureImage,
 			"entrypoint": []string{"/fixture/helper"},
 			"command":    []string{"-https", ":" + strconv.Itoa(f.port), "-smtp", ":1025", "-backend", "http://passbolt:80"},
-			"read_only":  true, "user": "0:0", "restart": "unless-stopped",
+			"read_only":  true, "user": f.user, "restart": "unless-stopped",
 			"cap_drop": []string{"ALL"}, "security_opt": []string{"no-new-privileges:true"},
 			"mem_limit": "64m", "cpus": 0.25, "pids_limit": 32,
 			"volumes":  []any{map[string]any{"type": "bind", "source": f.dir, "target": "/fixture", "read_only": true}},

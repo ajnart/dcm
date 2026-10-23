@@ -2,19 +2,26 @@
 
 package e2e
 
+func (r *runner) measureAdmission(measure func(string) (filesystemCapacity, error)) resourceEvidence {
+	return measureAdmission(r.storageRoot, r.root, r.minimumDiskBytes, r.minimumExecutableBytes, measure)
+}
+
 func (r *runner) requireLocalResources() {
+	owner := r
+	if owner.evidence == nil && r.evidenceOwner != nil {
+		owner = r.evidenceOwner
+	}
 	obs := r.guard.localResourceBlocker()
 	if obs == nil {
-		measured := measureLocalAdmission(r.root, r.minimumDiskBytes, ownedFilesystemCapacity)
+		measured := r.measureAdmission(ownedFilesystemCapacity)
 		obs = &measured
+		if owner.evidence != nil {
+			owner.evidence.Resources = obs
+		}
 		if obs.Reason == "" {
 			return
 		}
 		r.guard.blockLocalResources(*obs)
-	}
-	owner := r
-	if owner.evidence == nil && r.evidenceOwner != nil {
-		owner = r.evidenceOwner
 	}
 	if owner.evidence != nil {
 		markResourceBlocked(owner.evidence, obs)

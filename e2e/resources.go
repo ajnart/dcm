@@ -10,15 +10,45 @@ import (
 )
 
 const minimumFreeInodes = 100000
+const defaultMinimumExecutableBytes = 2 << 30
 
 type filesystemCapacity struct{ AvailableBytes, FreeInodes uint64 }
 type resourceEvidence struct {
-	Measured       bool   `json:"measured"`
-	AvailableBytes uint64 `json:"available_bytes"`
-	FreeInodes     uint64 `json:"free_inodes"`
-	MinimumBytes   uint64 `json:"minimum_bytes"`
-	MinimumInodes  uint64 `json:"minimum_inodes"`
-	Reason         string `json:"reason,omitempty"`
+	ProjectStorage    *resourceEvidence `json:"project_storage,omitempty"`
+	ExecutableStaging *resourceEvidence `json:"executable_staging,omitempty"`
+	BlockingPurpose   string            `json:"blocking_purpose,omitempty"`
+	Purpose           string            `json:"purpose,omitempty"`
+	Measured          bool              `json:"measured"`
+	AvailableBytes    uint64            `json:"available_bytes"`
+	FreeInodes        uint64            `json:"free_inodes"`
+	MinimumBytes      uint64            `json:"minimum_bytes"`
+	MinimumInodes     uint64            `json:"minimum_inodes"`
+	Reason            string            `json:"reason,omitempty"`
+}
+
+func measureAdmission(projectRoot, executableRoot string, minimumProjectBytes, minimumExecutableBytes uint64, measure func(string) (filesystemCapacity, error)) resourceEvidence {
+	project := measureLocalAdmission(projectRoot, minimumProjectBytes, measure)
+	project.Purpose = "project-storage"
+	if project.Reason != "" {
+		project.Reason = strings.Replace(project.Reason, "local disk", "Project storage", 1)
+	}
+	executable := measureLocalAdmission(executableRoot, minimumExecutableBytes, measure)
+	executable.Purpose = "executable-staging"
+	if executable.Reason != "" {
+		executable.Reason = strings.Replace(executable.Reason, "local disk", "executable staging", 1)
+	}
+	admission := project
+	admission.ProjectStorage = &project
+	admission.ExecutableStaging = &executable
+	if project.Reason != "" {
+		admission.BlockingPurpose = project.Purpose
+		return admission
+	}
+	if executable.Reason != "" {
+		admission.BlockingPurpose = executable.Purpose
+		admission.Reason = executable.Reason
+	}
+	return admission
 }
 
 func minimumFreeBytes(value string) (uint64, error) {
@@ -28,6 +58,17 @@ func minimumFreeBytes(value string) (uint64, error) {
 	gb, err := strconv.ParseUint(strings.TrimSpace(value), 10, 64)
 	if err != nil || gb == 0 || gb > math.MaxUint64/(1<<30) {
 		return 0, errors.New("E2E_MIN_FREE_GB must be a positive integer within the filesystem byte range")
+	}
+	return gb << 30, nil
+}
+
+func minimumExecutableFreeBytes(value string) (uint64, error) {
+	if strings.TrimSpace(value) == "" {
+		return defaultMinimumExecutableBytes, nil
+	}
+	gb, err := strconv.ParseUint(strings.TrimSpace(value), 10, 64)
+	if err != nil || gb == 0 || gb > math.MaxUint64/(1<<30) {
+		return 0, errors.New("E2E_MIN_EXECUTABLE_FREE_GB must be a positive integer within the filesystem byte range")
 	}
 	return gb << 30, nil
 }

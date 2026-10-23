@@ -88,7 +88,8 @@ func TestSafeBlockerReason(t *testing.T) {
 
 type isolationRefusalApp struct{ app.App }
 
-func (isolationRefusalApp) Info() app.Info { return app.Info{ID: "fixture"} }
+func (isolationRefusalApp) Info() app.Info      { return app.Info{ID: "fixture"} }
+func (isolationRefusalApp) Inputs() []app.Input { return nil }
 func (isolationRefusalApp) Compose(app.RenderContext) string {
 	return "services:\n  fixture:\n    network_mode: host\n"
 }
@@ -110,7 +111,7 @@ func TestEvidenceWriteFailureCannotPreventOwnedTeardown(t *testing.T) {
 				return errors.New("owned down failed")
 			}
 			return nil
-		}, func() { order = append(order, "remove") }, guard, "/tmp/owned-fixture", func(error) error {
+		}, func() error { order = append(order, "remove"); return nil }, guard, "/tmp/owned-fixture", func(error) error {
 			order = append(order, "publish")
 			return errors.New("evidence filesystem full")
 		})

@@ -1,9 +1,8 @@
 package e2e
 
 type appInputs struct {
-	local     map[string]string
-	runtime   map[string]string
-	secondary string
+	local   map[string]string
+	runtime map[string]string
 }
 
 // Runtime inputs name their owned prerequisite App, or need no additional App.
@@ -20,7 +19,4 @@ var appInputTable = map[string]appInputs{
 	"netbird":              {runtime: map[string]string{"NETBIRD_CANONICAL_ORIGIN": ""}},
 	"renovate":             {runtime: map[string]string{"token": "forgejo"}},
 	"passbolt":             {runtime: map[string]string{"PASSBOLT_CANONICAL_ORIGIN": "", "PASSBOLT_SMTP_HOST": ""}},
-	"qbittorrent":          {secondary: "torrent-port"},
-	"pihole":               {secondary: "dns-port"},
-	"technitium-dns":       {secondary: "dns-port"},
 }

@@ -24,6 +24,7 @@ func TestPassboltFixturePreservesTrustAndOwnsOnlyLocalPrerequisites(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
+	fixture.user = "1000:1001"
 	before, err := os.ReadFile(fixture.caFile)
 	if err != nil {
 		t.Fatal(err)
@@ -43,6 +44,7 @@ func TestPassboltFixturePreservesTrustAndOwnsOnlyLocalPrerequisites(t *testing.T
 	var doc struct {
 		Services map[string]struct {
 			Image       string
+			User        string
 			Ports       []string
 			Environment map[string]string
 			Volumes     []struct {
@@ -57,7 +59,7 @@ func TestPassboltFixturePreservesTrustAndOwnsOnlyLocalPrerequisites(t *testing.T
 		t.Fatal(err)
 	}
 	prerequisites := doc.Services["passbolt-prerequisites"]
-	if len(doc.Services) != 2 || prerequisites.Image != passboltFixtureImage || len(prerequisites.Ports) != 1 || prerequisites.Ports[0] != "127.0.0.1:34567:34567" {
+	if len(doc.Services) != 2 || prerequisites.Image != passboltFixtureImage || prerequisites.User != fixture.user || len(prerequisites.Ports) != 1 || prerequisites.Ports[0] != "127.0.0.1:34567:34567" {
 		t.Fatal("fixture scope/image/publication differs")
 	}
 	app := doc.Services["passbolt"]

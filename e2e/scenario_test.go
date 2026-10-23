@@ -100,7 +100,7 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 	payload := r.prepareBackupPayload(spec, reservation.primary)
 	proxyProbe := r.prepareHAProxyProbe()
 	r.prepareFixtures(reservation)
-	args := installArguments(spec, r.root, reservation.primary, reservation.secondary)
+	args := installArguments(spec, r.storageRoot, reservation.primary, reservation.secondary)
 	args = r.fixtureArgs(args)
 	// Release socket leases immediately before Docker binds. The process-wide
 	// lock is held until teardown, so another harness cannot reuse these ports.
@@ -168,7 +168,7 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 			r.t.Fatal("write owned backup sentinel")
 		}
 	}
-	archive := filepath.Join(r.root, "b.tar.zst")
+	archive := filepath.Join(r.storageRoot, "b.tar.zst")
 	r.stage("backup", []string{"backup", "-o", archive, "--json"}, func() result {
 		res := r.run("backup", "-o", archive, "--json")
 		if res.code != 0 {
@@ -194,7 +194,7 @@ func (r *runner) verify(spec targetSpec, reservation *portReservation) {
 			return res
 		}
 		r.closeFixtures(true)
-		if err := r.composeDown(); err != nil {
+		if err := r.composeDownObserved(); err != nil {
 			r.guard.Block(r.project)
 			r.evidence.Cleanup = "failed"
 			r.evidence.RetainedProject = r.project

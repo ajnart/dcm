@@ -54,7 +54,7 @@ func TestLocalDiskBlockStopsQueuedAdmissionButAllowsScopedCleanup(t *testing.T) 
 		t.Fatal("queued target started or lost disk blocker")
 	}
 	down, removed := false, false
-	if err := cleanupOwned(func() error { down = true; return nil }, func() { removed = true }, guard, "/owned/root"); err != nil || !down || !removed || guard.Retains("/owned/root") {
+	if err := cleanupOwned(func() error { down = true; return nil }, func() error { removed = true; return nil }, guard, "/owned/root"); err != nil || !down || !removed || guard.Retains("/owned/root") {
 		t.Fatal("disk blocker prevented owned cleanup or fabricated teardown failure")
 	}
 	lease.finish(true)
@@ -75,6 +75,19 @@ func TestLocalDiskFloorConfigurationIsPositiveAndBounded(t *testing.T) {
 		}
 		if err != nil && strings.Contains(err.Error(), tc.value) {
 			t.Fatal("invalid configuration payload entered diagnostic")
+		}
+	}
+	for _, tc := range []struct {
+		value string
+		want  uint64
+		valid bool
+	}{{"", 2 << 30, true}, {"3", 3 << 30, true}, {"0", 0, false}, {"private-value", 0, false}} {
+		got, err := minimumExecutableFreeBytes(tc.value)
+		if (err == nil) != tc.valid || got != tc.want {
+			t.Fatal("invalid executable staging floor accepted")
+		}
+		if err != nil && strings.Contains(err.Error(), tc.value) {
+			t.Fatal("invalid executable staging configuration payload entered diagnostic")
 		}
 	}
 }

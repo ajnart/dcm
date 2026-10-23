@@ -84,7 +84,7 @@ func TestFixtureRegistrationOrder(t *testing.T) {
 		}
 		r.addFixture(id, nil, hooks)
 	}
-	if got := r.fixtureArgs(nil); !reflect.DeepEqual(got, []string{"renovate", "netbird", "authelia", "passbolt", "wud"}) {
+	if got := r.fixtureArgs(nil); !reflect.DeepEqual(got, []string{"renovate", "netbird", "authelia", "passbolt", "wud", "beszel"}) {
 		t.Fatalf("input order = %v", got)
 	}
 	wantOverrides := []string{"-f", "/owned/project/compose.yml", "-f", "/owned/netbird.yml", "-f", "/owned/passbolt.yml", "-f", "/owned/wud.yml"}
@@ -99,7 +99,7 @@ func TestFixtureRegistrationOrder(t *testing.T) {
 	if err := r.reattachFixtures(&runner{}); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(calls, []string{"wud", "passbolt", "netbird", "authelia", "renovate"}) {
+	if !reflect.DeepEqual(calls, []string{"wud", "passbolt", "netbird", "authelia", "renovate", "beszel"}) {
 		t.Fatalf("restore attachment order = %v", calls)
 	}
 	calls = nil

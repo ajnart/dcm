@@ -677,6 +677,13 @@
   },
   {
     "kind": "recipe",
+    "id": "homarr-control-plane",
+    "apps": [
+      "homarr"
+    ]
+  },
+  {
+    "kind": "recipe",
     "id": "home-automation",
     "apps": [
       "home-assistant",
