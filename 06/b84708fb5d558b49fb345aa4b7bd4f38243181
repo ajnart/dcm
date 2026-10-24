@@ -1,0 +1,109 @@
+README.md
+  s_595507194c9026::t_ee82dbfacb0fe7 238
+docs/homarr-integration-contract.md
+  s_595507194c9026::t_e2cb9d8c09925c 88
+internal/apps/aria2/aria2.go
+  s_595507194c9026::t_e87508707d96be 140
+internal/apps/emby/homarr.go
+  s_595507194c9026::t_a1429c94d3dfb8 28-29
+internal/apps/frigate/frigate.go
+  s_595507194c9026::t_d4d5870626e7bf 296-297
+internal/apps/glances/glances.go
+  s_595507194c9026::t_417faa2a3d71d2 52
+internal/apps/glances/homarr.go
+  s_595507194c9026::t_699ce4b6c585b1 48,59-60
+internal/apps/homarr/compatibility.go
+  s_595507194c9026::t_d9e442a51b784d 29,101-104
+internal/apps/homarr/compatibility_test.go
+  s_595507194c9026::t_a5097fa6ed5ac8 26
+internal/apps/homarr/links.go
+  s_595507194c9026::t_92b10e99e4cc1d 168,171
+internal/apps/homarr/target_adguard.go
+  s_595507194c9026::t_668a4894c179f9 64,67
+internal/apps/homarr/target_aria2.go
+  s_595507194c9026::t_162123df66d68f 63
+internal/apps/homarr/target_frigate.go
+  s_595507194c9026::t_648755e7e1e9e7 46
+internal/apps/homarr/target_glances.go
+  s_595507194c9026::t_285dd239048b6a 57
+internal/apps/homarr/target_gluetun.go
+  s_595507194c9026::t_e7af576a436de7 12
+internal/apps/homarr/target_gluetun_test.go
+  s_595507194c9026::t_71942bbdc4478c 91
+internal/apps/homarr/target_navidrome.go
+  s_595507194c9026::t_1c5727b9804417 13
+internal/apps/homarr/target_navidrome_test.go
+  s_595507194c9026::t_302c3a61e0c5f8 282
+internal/apps/homarr/target_nzbget.go
+  s_595507194c9026::t_d7259224d2233a 27
+internal/apps/homarr/target_nzbget_test.go
+  s_595507194c9026::t_9044af07ec2185 201
+internal/apps/homarr/target_sabnzbd.go
+  s_595507194c9026::t_62b7034e5fe370 18
+internal/apps/homarr/target_sabnzbd_test.go
+  s_595507194c9026::t_20b14becaf56af 200
+internal/apps/homarr/target_slskd_test.go
+  s_595507194c9026::t_d3832be7803721 86-87
+internal/apps/homarr/target_traefik.go
+  s_595507194c9026::t_7dfcbcd4e26fcf 154-155
+internal/apps/homeassistant/homarr.go
+  s_595507194c9026::t_c455ce67b200a5 69,194-195,265-269
+internal/apps/homeassistant/homarr_auth.go
+  s_595507194c9026::t_e0eac17c6938f1 3,47-48
+internal/apps/navidrome/homarr.go
+  s_595507194c9026::t_e3e384220da806 112-113
+internal/apps/nzbget/homarr.go
+  s_595507194c9026::t_669c59da730ec3 86,101-102
+internal/apps/patchmon/homarr.go
+  s_595507194c9026::t_0502d721b27400 30
+internal/apps/peanut/peanut.go
+  s_595507194c9026::t_a6a998e11001fd 76,81,104,168
+internal/apps/pihole/homarr.go
+  s_595507194c9026::t_0c51dcc8a55bc5 157-161,189
+internal/apps/sabnzbd/api.go
+  s_595507194c9026::t_ccc0ac4b16cd19 18-19
+internal/apps/slskd/homarr.go
+  s_595507194c9026::t_c744166dc2034a 62-63,100,104-105,107-110
+internal/apps/slskd/slskd.go
+  s_595507194c9026::t_ce3d7f92d602cf 151
+internal/apps/slskd/slskd_test.go
+  s_595507194c9026::t_81d9e6cb826592 52,97,102,168
+internal/apps/tdarr/homarr.go
+  s_595507194c9026::t_1d839e36c29110 25-26
+internal/apps/tdarr/tdarr.go
+  s_595507194c9026::t_58ad3f44d385f0 23,43,186
+internal/apps/technitiumdns/technitiumdns.go
+  s_595507194c9026::t_f5eb305c8ef112 169,171,201
+internal/apps/tracearr/homarr.go
+  s_595507194c9026::t_2f3ff6ed7eff9e 162-163
+internal/apps/tracearr/homarr_test.go
+  s_595507194c9026::t_a65c9f616cf444 87-88
+internal/apps/traefik/traefik.go
+  s_595507194c9026::t_1d43b9e75ae431 114-115
+internal/apps/traefik/traefik_test.go
+  s_595507194c9026::t_8843b9dd186d08 259
+internal/apps/transmission/transmission.go
+  s_595507194c9026::t_554960bcb1df81 142-143,219-223
+internal/apps/zerotier/zerotier.go
+  s_595507194c9026::t_2e7870a94026ae 120
+internal/helpers/version.go
+  s_595507194c9026::t_656b4b20cb30fd 1-60
+site/src/data/catalog.json
+  s_595507194c9026::t_03afc92a148568 966
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "06b84708fb5d558b49fb345aa4b7bd4f38243181",
+  "prompts": {},
+  "sessions": {
+    "s_595507194c9026": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee6b2cf3-7325-4d42-98a3-3ad0c41570a6",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
