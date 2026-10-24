@@ -274,7 +274,7 @@ The easiest way to contribute is by adding new container definitions to our grow
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the GNU Affero General Public License v3.0 only (AGPL-3.0-only) - see the [LICENSE](LICENSE) file for details.
 
 ## 💖 Support
 
