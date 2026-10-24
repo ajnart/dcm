@@ -1,0 +1,33 @@
+internal/app/app.go
+  s_6a10b3ca810dda::t_85a41f4275002f 21-24,39-47
+internal/apps/qbittorrent/qbittorrent.go
+  s_6a10b3ca810dda::t_b3f07ddf79b1c8 38-45
+internal/service/access.go
+  s_6a10b3ca810dda::t_2cc3b990eaff71 104-105
+internal/service/cloudflare.go
+  s_6a10b3ca810dda::t_c1c0dc68de841a 306
+internal/service/installed_apps.go
+  s_6a10b3ca810dda::t_1c0d7556503922 43
+internal/service/names.go
+  s_6a10b3ca810dda::t_4983bbfc61b18f 240
+internal/service/service.go
+  s_6a10b3ca810dda::t_60b00ffffcc8f2 284
+internal/service/tailscale.go
+  s_6a10b3ca810dda::t_f47e9072f4bdeb 73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5a50e8e2945babf6eb4faa05453cfe95f63ac36a",
+  "prompts": {},
+  "sessions": {
+    "s_6a10b3ca810dda": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "89321fbe-8097-4083-906e-cab2ba19ed1a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
