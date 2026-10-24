@@ -1,0 +1,18 @@
+internal/apps/dockge/dockge.go
+  h_d6e478ca18e517 20
+internal/apps/portainer/portainer.go
+  h_d6e478ca18e517 23
+site/src/data/catalog.json
+  h_d6e478ca18e517 179,748
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0ffba7d283642c71cc2dda2bb918c97d96428261",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
