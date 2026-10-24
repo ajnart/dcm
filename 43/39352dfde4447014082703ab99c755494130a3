@@ -1,0 +1,14 @@
+internal/skill/guide.md
+  h_d6e478ca18e517 187-190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4339352dfde4447014082703ab99c755494130a3",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
