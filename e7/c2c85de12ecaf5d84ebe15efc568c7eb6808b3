@@ -1,0 +1,19 @@
+docs/catalog/traps/tdarr.md
+  s_62c23498e44f2e::t_d6435384bbd7a2 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e7c2c85de12ecaf5d84ebe15efc568c7eb6808b3",
+  "prompts": {},
+  "sessions": {
+    "s_62c23498e44f2e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05b3dc3c-1637-4312-99a1-c8f87c24e1f5",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
