@@ -1,0 +1,19 @@
+internal/service/fragments.go
+  s_fa13558b6162bb::t_753d72c9be3a7e 63-76,78-83,85-89,91-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d140712a286868550d163db4ff51f0559cbf66b1",
+  "prompts": {},
+  "sessions": {
+    "s_fa13558b6162bb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d815b824-8d19-4731-9a12-05e230978d09",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
