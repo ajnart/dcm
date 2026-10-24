@@ -1,0 +1,19 @@
+internal/apps/tdarr/tdarr.go
+  s_fa13558b6162bb::t_927b91fba652cb 237-240,243-265,269-275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8770f08d7da98178b83d45871486abf533ef3e49",
+  "prompts": {},
+  "sessions": {
+    "s_fa13558b6162bb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d815b824-8d19-4731-9a12-05e230978d09",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
