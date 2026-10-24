@@ -1,0 +1,32 @@
+internal/intro/render.go
+  h_d6e478ca18e517 245
+internal/intro/testdata/hold-3-120x30-false.golden
+  h_d6e478ca18e517 30
+internal/intro/testdata/hold-3-120x30-true.golden
+  h_d6e478ca18e517 30
+internal/intro/testdata/hold-3-70x20-false.golden
+  h_d6e478ca18e517 20
+internal/intro/testdata/hold-3-70x20-true.golden
+  h_d6e478ca18e517 20
+internal/intro/testdata/hold-3-80x24-false.golden
+  h_d6e478ca18e517 24
+internal/intro/testdata/hold-3-80x24-true.golden
+  h_d6e478ca18e517 24
+internal/tui/install.go
+  h_d6e478ca18e517 495
+internal/tui/intro.go
+  h_d6e478ca18e517 66-71
+internal/tui/intro_test.go
+  h_d6e478ca18e517 188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3277f8f9c3c2957f4d694acf461d95fb098b8e1e",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
