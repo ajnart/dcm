@@ -157,6 +157,25 @@ export const management: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "cloudflared-web",
+    name: "Cloudflared WEB",
+    description:
+      "Manage remotely-managed Cloudflare tunnels with a simple web UI for configuring tokens and starting or stopping cloudflared. Uses host networking; access the Web UI at http://localhost:14333.",
+    category: "Networking",
+    tags: ["Network", "Cloudflare", "Tunnel", "UI"],
+    githubUrl: "https://github.com/WisdomSky/Cloudflared-web",
+    composeContent: `services:
+  cloudflared-web:
+    image: wisdomsky/cloudflared-web:latest
+    container_name: \${CONTAINER_PREFIX}cloudflared-web
+    network_mode: host
+    environment:
+      - WEBUI_PORT=14333
+    volumes:
+      - \${CONFIG_PATH}/cloudflared-web:/config
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "dockge",
     name: "Dockge",
     description:
