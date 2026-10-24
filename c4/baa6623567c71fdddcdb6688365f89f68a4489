@@ -1,0 +1,21 @@
+internal/apps/authentik/authentik.go
+  s_07a6d8b6311d6e::t_6e6bd4503a33d2 39,71,84
+site/src/data/catalog.json
+  s_07a6d8b6311d6e::t_a66410bb80040a 74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c4baa6623567c71fdddcdb6688365f89f68a4489",
+  "prompts": {},
+  "sessions": {
+    "s_07a6d8b6311d6e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8499f2a-1040-4262-ba4a-1d187873f161",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
