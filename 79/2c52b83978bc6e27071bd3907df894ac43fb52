@@ -1,0 +1,91 @@
+internal/apps/audiobookshelf/audiobookshelf.go
+  s_472773397f3d65::t_9058de6796a6bc 119-122,134
+internal/apps/audiobookshelf/audiobookshelf_test.go
+  s_472773397f3d65::t_791284b5fb4558 164-165,210,217
+internal/apps/emby/emby.go
+  s_472773397f3d65::t_8a9bde9828803a 142-145,168
+internal/apps/emby/emby_test.go
+  s_472773397f3d65::t_5bee39282c543e 112-113,156
+internal/apps/gotify/gotify.go
+  s_472773397f3d65::t_8ceba4e2a37868 109-112,138
+internal/apps/homarr/target_home_assistant.go
+  s_472773397f3d65::t_3f31ae63744094 33-34
+internal/apps/homeassistant/homeassistant.go
+  s_472773397f3d65::t_043f35dd2514ef 176-179,191
+internal/apps/homeassistant/homeassistant_test.go
+  s_472773397f3d65::t_95f59f8ec88097 118-119
+internal/apps/immich/homarr.go
+  s_472773397f3d65::t_a220eb2f56107b 142-153
+internal/apps/immich/immich.go
+  s_472773397f3d65::t_3fa3c260c78ed7 191-194
+internal/apps/linkwarden/linkwarden.go
+  s_472773397f3d65::t_a57033f2894778 148-151,169
+internal/apps/linkwarden/linkwarden_test.go
+  s_472773397f3d65::t_81c741d213f68f 144-145
+internal/apps/navidrome/navidrome.go
+  s_472773397f3d65::t_22e0d8a38fde3c 90-92,106-109,122
+internal/apps/navidrome/navidrome_test.go
+  s_472773397f3d65::t_515b120773b353 266-267,290,294,316,322-323,325,331,338,344,347,391,438
+internal/apps/nextcloud/nextcloud.go
+  s_472773397f3d65::t_8cbea88acc773a 206-209,262,425-436,438,472-480
+internal/apps/nextcloud/nextcloud_test.go
+  s_38f0540eac7a4a::t_c5b00df9259cba 23-35,88-89,140,142,196-197,199-200,202,258,273-276
+internal/apps/nzbget/nzbget.go
+  s_472773397f3d65::t_5112ea09f90ec7 106-108,207
+internal/apps/nzbget/nzbget_test.go
+  s_472773397f3d65::t_069423accdabd5 83-84,334-335
+internal/apps/paperlessngx/paperlessngx.go
+  s_472773397f3d65::t_4e50ad28837d77 161-164
+internal/apps/paperlessngx/token.go
+  s_619b22b4903da2::t_fa3c2facbaceca 151-153,230-232,278-361
+internal/apps/pihole/pihole.go
+  s_472773397f3d65::t_6f3cd715f90a8e 186-189
+internal/apps/pihole/pihole_test.go
+  s_472773397f3d65::t_6a73e57825be07 137-138
+internal/apps/porttest/porttest.go
+  s_38f0540eac7a4a::t_c0b5eab1cad244 55-56,63,68-77
+internal/apps/speedtesttracker/speedtesttracker.go
+  s_472773397f3d65::t_64bbb92e7e1720 147-150,342
+internal/apps/tdarr/tdarr.go
+  s_472773397f3d65::t_d6df0f8860d047 193-196,229-231
+internal/apps/tdarr/tdarr_test.go
+  s_38f0540eac7a4a::t_beae629c801086 95,116,134
+internal/apps/umami/umami.go
+  s_472773397f3d65::t_fff91bbba95e78 181-184,203
+internal/apps/wud/wud.go
+  s_472773397f3d65::t_e4801de6ce88c9 240-242,244
+internal/service/mutation.go
+  s_472773397f3d65::t_61b14f389322d6 424-426,455-473
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "792c52b83978bc6e27071bd3907df894ac43fb52",
+  "prompts": {},
+  "sessions": {
+    "s_38f0540eac7a4a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1fbf1147-9d48-4d58-8fe0-b666970ca399",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_472773397f3d65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fdb878ab-add4-408c-aeb5-f846f85e9cfb",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_619b22b4903da2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a31464ed-991f-45ac-a2e2-a7d67a393fc6",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
