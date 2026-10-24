@@ -1,0 +1,20 @@
+internal/tui/dashboard.go
+  h_d6e478ca18e517 293-302
+internal/tui/onboarding_plan.go
+  h_d6e478ca18e517 106,108,115-120,129,134-135,142
+internal/tui/onboarding_view.go
+  h_d6e478ca18e517 208
+internal/tui/tailscale_test.go
+  h_d6e478ca18e517 79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "657379b04566e58fb9fb234a429768838c8b1329",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
