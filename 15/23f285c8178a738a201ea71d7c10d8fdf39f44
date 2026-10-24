@@ -1,0 +1,21 @@
+e2e/resources.go
+  s_07a6d8b6311d6e::t_e5bf6bc9977ed8 15-18,27,85,96,99
+e2e/wud_fixture.go
+  s_07a6d8b6311d6e::t_6d27820f12fbad 55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1523f285c8178a738a201ea71d7c10d8fdf39f44",
+  "prompts": {},
+  "sessions": {
+    "s_07a6d8b6311d6e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8499f2a-1040-4262-ba4a-1d187873f161",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
