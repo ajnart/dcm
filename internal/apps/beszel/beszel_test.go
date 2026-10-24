@@ -747,11 +747,11 @@ func TestSocketProxyMountsTheActiveDaemonSocket(t *testing.T) {
 	}
 }
 
-func TestAgentRunsTheHubsVersion(t *testing.T) {
+func TestAgentTracksTheHubsTag(t *testing.T) {
 	_, services := fragment(t)
 	hub, agent := services["beszel"].Image, services["beszel-agent"].Image
-	if hub != "henrygd/beszel:0.20.0" || agent != "henrygd/beszel-agent:0.20.0" {
-		t.Errorf("hub %q and agent %q should both be 0.20.0", hub, agent)
+	if hub != "henrygd/beszel:latest" || agent != "henrygd/beszel-agent:latest" {
+		t.Errorf("hub %q and agent %q should both track latest", hub, agent)
 	}
 }
 

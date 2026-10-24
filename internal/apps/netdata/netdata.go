@@ -17,7 +17,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "netdata", Name: "Netdata", Category: "Monitoring",
 		Description:   "Watch local monitoring data and active alerts",
-		Image:         "netdata/netdata:v2.11.0",
+		Image:         "netdata/netdata:latest",
 		Docs:          "https://learn.netdata.cloud/docs/netdata-agent/installation/docker",
 		Port:          19999,
 		ContainerPort: 19999,
@@ -31,7 +31,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   netdata:
-    image: netdata/netdata:v2.11.0
+    image: netdata/netdata:latest
     restart: unless-stopped
     init: true
     entrypoint: ["/bin/sh", "/run/selfhost/netdata-start.sh"]

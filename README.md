@@ -12,7 +12,7 @@
 
 <p align="center">
   <!-- Static while the repo is private; switch back to https://img.shields.io/github/v/release/ajnart/self-host?style=flat-square&labelColor=14121e&color=7a57d3 once it is public. -->
-  <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Release v0.5.11" src="https://img.shields.io/badge/release-v0.5.11-7a57d3?style=flat-square&labelColor=14121e"></a>
+  <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Release v0.6.0" src="https://img.shields.io/badge/release-v0.6.0-7a57d3?style=flat-square&labelColor=14121e"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-7a57d3?style=flat-square&labelColor=14121e"></a>
   <img alt="Platforms: Linux, macOS, WSL2" src="https://img.shields.io/badge/platforms-Linux%20%C2%B7%20macOS%20%C2%B7%20WSL2-7a57d3?style=flat-square&labelColor=14121e">
   <a href="https://self-host.fyi/apps"><img alt="90 Apps in the Catalog" src="https://img.shields.io/badge/Apps-90-00d787?style=flat-square&labelColor=14121e"></a>
@@ -31,6 +31,8 @@ curl -fsSL https://self-host.fyi/install | bash
 ```
 
 That installs only the binary and deploys nothing. Needs Docker with the Compose v2 plugin on Linux, macOS or WSL2. Then run `self-host`.
+
+<p align="center"><img src="docs/assets/readme/dashboard.png" width="880" alt="The self-host Dashboard right after Onboarding installed the Media Recipe: Pull, Start, Setup, Credentials, Links and Check all done, seven Apps running and nothing needs attention."></p>
 
 <details>
 <summary><b>Other ways to install</b> (wget, Homebrew, Docker, packages, Arch, archive, source)</summary>
@@ -126,7 +128,7 @@ self-host status --json
 ```
 
 - Pass secrets with `--set-file app.key=/path`, never as arguments. They land only in the Project's `secrets.env`.
-- Exit codes: `0` success, `1` error, `2` incomplete Setup.
+- Exit codes: `0` success, `1` error, `2` incomplete Setup, `3` only Manual steps remain.
 - A running container or HTTP 200 is not acceptance. Check that the App does its job.
 
 All flags, events and the isolated Project setup are in the [agent docs](https://self-host.fyi/docs/agents).
@@ -203,6 +205,11 @@ Prefix with `self-host`. `--verbose` (`-v`) adds detail. `--yes` authorizes an a
 | `apps list`, `apps info <app>`                       | Browse the Catalog.                                                                       |
 | `apps request <name> [--url URL]`                    | For agents: report an App the Catalog lacks.                                              |
 | `feedback [-m text] [--app app]`                     | Send a report to the maintainers after you see the masked text and agree.                 |
+| `credentials`                                        | Print the Admin login and per-App API keys.                                               |
+| `share`                                              | Print a postable install line and site link for the Apps you run.                         |
+| `profile`, `profile set experience`                  | Show or change what self-host remembers about you, such as your Experience level.         |
+| `skill`, `skill install\|remove`                     | Print the agent guide; make the skill discoverable by your agents, or remove it.          |
+| `cloudflare plan\|publish\|remove`                   | Publish Apps on your domain behind a login; `plan` previews.                              |
 | `self-update`                                        | Replace the binary with the latest checksummed release.                                   |
 
 A Compose folder you add by hand under `~/.self-host/extra/<name>/` is an Unmanaged app: it gets lifecycle, Address listing and Backup, but no Setup.
@@ -228,7 +235,7 @@ Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link
 | Cleanuparr     | Sonarr, Radarr, qBittorrent                       |
 | Homarr         | native tiles and widgets for the Apps it supports |
 
-A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links need Homarr **2.4.1** or newer; NZBGet and SABnzbd Links need **2.5.1** or **2.5.2**. Other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
+A failing Link marks the consuming App as needing attention, not its target. Browser-only steps are reported as **Manual steps** with a hint and stay retryable: `self-host setup <app>`. Homarr Links need Homarr **2.4.1** or newer; NZBGet and SABnzbd Links need **2.5.1** or newer. Other versions stop with a recovery hint (back up first). See the [Homarr contracts](docs/homarr-integration-contract.md) and [proof](docs/homarr-proof.md).
 
 </details>
 
@@ -253,7 +260,7 @@ Each status below is a dated launch run on a real host or VM, linked to its issu
 | WSL2                         | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                                     |
 | Native Windows               | Unsupported                     | Not supported.                                                                                                                                                                                                                                        |
 
-Known issues from these runs, both fixed on main after v0.5.11: a newcomer saw Nextcloud's Homarr credential-recovery inputs and Review listed port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App left its network and `down` refused ([#590](https://github.com/ajnart/self-host/issues/590)).
+Known issues from these runs, both fixed in v0.6.0: a newcomer saw Nextcloud's Homarr credential-recovery inputs and Review listed port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App left its network and `down` refused ([#590](https://github.com/ajnart/self-host/issues/590)).
 
 Four Apps failed on real hosts and are hidden from new installs until each passes on a VM: BookStack ([#416](https://github.com/ajnart/self-host/issues/416)), LLDAP ([#452](https://github.com/ajnart/self-host/issues/452)), Passbolt ([#456](https://github.com/ajnart/self-host/issues/456)) and Speedtest Tracker ([#66](https://github.com/ajnart/self-host/issues/66)). Existing installs keep working ([#493](https://github.com/ajnart/self-host/issues/493)). Apps beyond those in the runs above have no launch run, so the older [runtime matrix](docs/runtime-matrix.md), a 2026-10-07 snapshot, is a pre-launch record, not a promise.
 
@@ -292,12 +299,12 @@ Anonymous, on by default, and easy to turn off.
 <details>
 <summary><b>What is sent, what is not, and how to turn it off</b></summary>
 
-| Sent                                                                        | Never sent                                 |
-| --------------------------------------------------------------------------- | ------------------------------------------ |
-| A summary when you approve Onboarding's plan (your choices, not your data). | Host names, file paths or typed input.     |
-| Errors: which command failed, which step, and where in the code.            | Secrets, App data or raw error text.       |
-| The name of an App an agent asks for that the Catalog lacks.                | IP addresses or locations.                 |
-| Feedback you wrote, only after you see the text and agree.                  | An ID that identifies you or your machine. |
+| Sent                                                                           | Never sent                                 |
+| ------------------------------------------------------------------------------ | ------------------------------------------ |
+| A summary when you approve Onboarding's plan (your choices, not your data).    | Your machine's host names or file paths.   |
+| Errors: which command failed, which step, and where in the code.               | Secrets, App data or raw error text.       |
+| The name and homepage host of an App an agent asks for that the Catalog lacks. | IP addresses or locations.                 |
+| Feedback you wrote, only after you see the text and agree.                     | An ID that identifies you or your machine. |
 
 Nothing is stored to link one run to another. The maintainers use it to see which Apps people install and where Setup breaks. It is never sold or shared.
 

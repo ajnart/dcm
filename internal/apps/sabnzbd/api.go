@@ -15,8 +15,8 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
-	if version != "5.1.3" {
-		return errors.New("SABnzbd version is unsupported by the Homarr Link; back up the App and use version 5.1.3, then retry self-host setup homarr")
+	if !helpers.VersionCompatible(version, "5.1.3") {
+		return errors.New("SABnzbd version is unsupported by the Homarr Link; back up the App and use SABnzbd 5.1.3 or newer 5.x, then retry self-host setup homarr")
 	}
 	return nil
 }

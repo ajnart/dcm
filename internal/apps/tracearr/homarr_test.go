@@ -84,9 +84,9 @@ func TestHealthVersionRequiresSupportedRelease(t *testing.T) {
 		pass    bool
 	}{
 		{name: "unprefixed release", version: "2.6.0", pass: true},
-		{name: "different release", version: "v2.6.1"},
+		{name: "later release", version: "v2.6.1", pass: true},
+		{name: "older release", version: "v2.5.9"},
 		{name: "repeated prefix", version: "vv2.6.0"},
-		{name: "prerelease", version: "v2.6.0-rc.1"},
 		{name: "missing version"},
 	} {
 		t.Run(test.name, func(t *testing.T) {

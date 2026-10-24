@@ -34,7 +34,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "firefly-iii", Name: "Firefly III", Category: "Productivity",
 		Description:   "Track your income, expenses and budgets in one private place",
-		Image:         "fireflyiii/core:version-6.7.2",
+		Image:         "fireflyiii/core:latest",
 		Docs:          "https://docs.firefly-iii.org/how-to/firefly-iii/installation/docker/",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -56,7 +56,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   firefly-iii:
-    image: fireflyiii/core:version-6.7.2
+    image: fireflyiii/core:latest
     restart: always
     environment:
       APP_ENV: production

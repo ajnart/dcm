@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 	"slices"
 	"strings"
 
@@ -303,6 +304,7 @@ func (s *Service) runCompose(ctx context.Context, ss *session, c change, ids []s
 		if err := ss.compose.Restart(ctx, services...); err != nil {
 			return err
 		}
+		ss.clearStartFailure(ids, "restarted "+strings.Join(ids, ", "))
 		s.Log.Emit(events.Event{Event: events.StepOK, Step: "restart", Msg: "restarted " + strings.Join(ids, ", ")})
 	}
 	return nil
@@ -315,6 +317,13 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 	for _, id := range ids {
 		if err := ss.p.WriteRoot(); err != nil {
 			return err
+		}
+		if purge && ss.leftover(id) {
+			if err := ss.purgeLeftover(id); err != nil {
+				return err
+			}
+			s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "remove", Msg: "deleted the data kept for " + id})
+			continue
 		}
 		unlinkFailed = append(unlinkFailed, ss.unlink(ctx, id)...)
 		if err := ss.retireNode(ctx, id); err != nil {
@@ -362,6 +371,26 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 	if len(unlinkFailed) > 0 {
 		return fmt.Errorf("%w: removed, but %s still point at it; fix them using the hints above, then run: self-host setup %s",
 			ErrIncomplete, strings.Join(unlinkFailed, ", "), strings.Join(unlinkFailed, " "))
+	}
+	return nil
+}
+
+// leftover reports whether id is a catalog App that is no longer installed
+// but whose folder, kept by an earlier remove, is still there.
+func (ss *session) leftover(id string) bool {
+	if _, found := ss.s.Catalog.App(id); !found || ss.state.Apps[id] != nil || ss.p.IsExtra(id) || ss.p.HasAppFile(id, "compose.yml") {
+		return false
+	}
+	info, err := os.Stat(ss.p.AppDir(id))
+	return err == nil && info.IsDir()
+}
+
+func (ss *session) purgeLeftover(id string) error {
+	if err := ss.p.RemoveAppDir(ss.p.AppDir(id)); err != nil {
+		if errors.Is(err, fs.ErrPermission) {
+			return fmt.Errorf("%w: %s's data is owned by root; rerun with: sudo \"$(command -v self-host)\" remove %s --purge", err, id, id)
+		}
+		return err
 	}
 	return nil
 }
@@ -476,6 +505,16 @@ func (ss *session) reconcileDashboard(ctx context.Context) error {
 	return nil
 }
 
+// clearStartFailure overwrites a start failure left by an earlier run once the
+// Apps are running again.
+func (ss *session) clearStartFailure(ids []string, msg string) {
+	for _, id := range ids {
+		if st := ss.state.Apps[id]; st != nil && st.Steps[StageStart].Status == stepstatus.StepFail {
+			ss.recorder(id)(helpers.StepResult{ID: StageStart, Status: stepstatus.StepOK, Msg: msg})
+		}
+	}
+}
+
 // recordStage saves completed stages before the next external operation.
 func (ss *session) recordStage(ids []string, e events.Event) error {
 	for _, id := range ids {
@@ -528,6 +567,9 @@ func (ss *session) emitStage(ids []string, e events.Event) {
 func (ss *session) pull(ctx context.Context, ids, services []string) error {
 	ss.emitStage(ids, events.Event{Event: events.StepStart, Step: StagePull, Msg: fmt.Sprintf("pull %d images", len(services))})
 	if err := ss.compose.PullProgress(ctx, services...); err != nil {
+		if ctx.Err() != nil {
+			return errors.Join(err, ss.recordStage(ids, events.Event{Event: events.StepFail, Step: StagePull, Msg: "pull cancelled", Error: "cancelled", Hint: "Run self-host to resume the install."}))
+		}
 		image := pullImageName(ss, ids, err)
 		hint := fmt.Sprintf("Run `docker pull %s`, then check the network and the registry, and retry.", image)
 		return errors.Join(err, ss.recordStage(ids, events.Event{Event: events.StepFail, Step: StagePull, Msg: "could not pull " + image, Error: err.Error(), Hint: hint}))

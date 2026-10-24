@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "plex", Name: "Plex", Category: "Media",
 		Description:   "Stream your movies and shows to any TV, phone or tablet, signed in with Plex",
-		Image:         "plexinc/pms-docker:1.43.4.10903-e5521bd8c",
+		Image:         "plexinc/pms-docker:latest",
 		Docs:          "https://support.plex.tv/articles/200288586-installation/",
 		Port:          32400,
 		ContainerPort: 32400,
@@ -51,7 +51,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   plex:
-    image: plexinc/pms-docker:1.43.4.10903-e5521bd8c
+    image: plexinc/pms-docker:latest
     restart: unless-stopped
     environment:
       DEBUG: "false"

@@ -11,10 +11,15 @@ import (
 
 func (a *program) cloudflareCmd() *cobra.Command {
 	root := &cobra.Command{Use: "cloudflare", Short: "Your own web address, with a login page"}
+	shorts := map[string]string{
+		"plan":    "Show what publishing would expose, and the risk. Changes nothing",
+		"publish": "Put the chosen Apps on your domain behind a Cloudflare login",
+		"remove":  "Take the published Addresses off the internet",
+	}
 	for _, operation := range []string{"plan", "publish", "remove"} {
 		var opts service.CloudflareOptions
 		var files []string
-		cmd := &cobra.Command{Use: operation, Args: cobra.NoArgs}
+		cmd := &cobra.Command{Use: operation, Short: shorts[operation], Args: cobra.NoArgs}
 		cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 			for _, ref := range files {
 				key, path, ok := strings.Cut(ref, "=")

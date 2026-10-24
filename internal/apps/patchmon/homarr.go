@@ -27,7 +27,7 @@ func HomarrReadiness(ctx context.Context, h *helpers.H) error {
 	if resp.Decode(&settings) != nil || settings.Version == "" || settings.HasAdminUsers == nil {
 		return errors.New("PatchMon did not return its version and account readiness; run self-host setup patchmon")
 	}
-	if settings.Version != "2.1.3" {
+	if !helpers.VersionCompatible(settings.Version, "2.1.3") {
 		return errors.New("PatchMon version is unsupported for this Link; review its read-only credential contract before retrying Setup")
 	}
 	if !*settings.HasAdminUsers {

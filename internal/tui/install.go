@@ -492,7 +492,7 @@ func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
 }
 
 func (v *installView) renderReview(ctx *viewContext, width int) string {
-	body := renderPlan(ctx.theme, v.plan, "enter install · esc back")
+	body := renderPlan(ctx.theme, v.plan, "install · esc back", width)
 	if len(v.reqInputs) > 0 {
 		t := ctx.theme
 		fields := []string{"", "  " + t.heading().Render("Required inputs")}

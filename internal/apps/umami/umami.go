@@ -27,7 +27,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "umami", Name: "Umami", Category: "Analytics",
 		Description:   "See how many people visit your websites, without tracking them",
-		Image:         "ghcr.io/umami-software/umami:3.4.0",
+		Image:         "ghcr.io/umami-software/umami:latest",
 		Docs:          "https://umami.is/docs/install",
 		Port:          3000,
 		ContainerPort: 3000,
@@ -49,7 +49,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   umami:
-    image: ghcr.io/umami-software/umami:3.4.0
+    image: ghcr.io/umami-software/umami:latest
     init: true
     restart: always
     environment:

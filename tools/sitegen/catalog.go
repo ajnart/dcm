@@ -62,6 +62,9 @@ func writeCatalog() error {
 		info := ap.Info()
 		out := appJSON{ID: info.ID, Name: info.Name, Description: info.Description, Category: info.Category, Image: info.Image, Port: info.Port, Links: []string{}, LinkTitles: []string{}, Icon: icon(info.ID)}
 		for _, link := range ap.Links() {
+			if catalog.Unavailable(link.Target) != "" {
+				continue
+			}
 			out.Links = append(out.Links, link.Target)
 			out.LinkTitles = append(out.LinkTitles, link.Title)
 		}
@@ -69,7 +72,13 @@ func writeCatalog() error {
 	}
 	recipes := []recipeJSON{}
 	for _, r := range cat.Recipes() {
-		recipes = append(recipes, recipeJSON{ID: r.ID, Name: r.Name, Description: r.Description, Apps: r.Apps})
+		offered := []string{}
+		for _, id := range r.Apps {
+			if catalog.Unavailable(id) == "" {
+				offered = append(offered, id)
+			}
+		}
+		recipes = append(recipes, recipeJSON{ID: r.ID, Name: r.Name, Description: r.Description, Apps: offered})
 	}
 	doc, err := json.MarshalIndent(struct {
 		Apps    []appJSON    `json:"apps"`

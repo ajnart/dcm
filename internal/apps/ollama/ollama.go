@@ -18,7 +18,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "ollama", Name: "Ollama", Category: "Local AI",
 		Description:   "Run AI chat models on your own computer, with nothing sent to the cloud",
-		Image:         "ollama/ollama:0.34.1",
+		Image:         "ollama/ollama:latest",
 		Docs:          "https://github.com/ollama/ollama/blob/main/docs/docker.md",
 		Port:          11434,
 		ContainerPort: 11434,
@@ -32,7 +32,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   ollama:
-    image: ollama/ollama:0.34.1
+    image: ollama/ollama:latest
     restart: unless-stopped
     environment:
       OLLAMA_MODELS: /models

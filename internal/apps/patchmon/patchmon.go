@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "patchmon", Name: "PatchMon", Category: "Monitoring",
 		Description:   "See which of your computers are waiting for software updates",
-		Image:         "ghcr.io/patchmon/patchmon-server:2.1.3",
+		Image:         "ghcr.io/patchmon/patchmon-server:latest",
 		Docs:          "https://docs.patchmon.net/",
 		Port:          3000,
 		ContainerPort: 3000,
@@ -55,7 +55,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   patchmon:
-    image: ghcr.io/patchmon/patchmon-server:2.1.3
+    image: ghcr.io/patchmon/patchmon-server:latest
     restart: unless-stopped
     environment:
       APP_ENV: production
@@ -93,7 +93,7 @@ func (App) Compose(rc app.RenderContext) string {
       start_period: 0s
       retries: 7
   patchmon-redis:
-    image: redis:7.4-alpine
+    image: redis:alpine
     user: ${PUID}:${PGID}
     # Keep the selected user: the image entrypoint drops container 0 to redis.
     entrypoint: ["/bin/sh", "-c", "umask 077; exec \"$$@\"", "--"]

@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "kopia", Name: "Kopia", Category: "Backups",
 		Description:   "Back up your files with encryption and check on them from a web page",
-		Image:         "docker.io/kopia/kopia:0.23.1",
+		Image:         "docker.io/kopia/kopia:latest",
 		Docs:          "https://kopia.io/docs/getting-started/",
 		Port:          51515,
 		ContainerPort: 51515,
@@ -43,7 +43,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   kopia:
-    image: docker.io/kopia/kopia:0.23.1
+    image: docker.io/kopia/kopia:latest
     restart: unless-stopped
     command:
       - server

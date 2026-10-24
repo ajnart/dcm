@@ -17,7 +17,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "restic", Name: "restic", Category: "Backups",
 		Description:   "Back up your files with encryption, and restore them when you need them",
-		Image:         "ghcr.io/restic/restic:0.19.1",
+		Image:         "ghcr.io/restic/restic:latest",
 		Docs:          "https://restic.readthedocs.io/en/stable/",
 		Port:          0,
 		ContainerPort: 0,
@@ -49,7 +49,7 @@ func (App) Compose(rc app.RenderContext) string {
 	}
 	return `services:
   restic:
-    image: ghcr.io/restic/restic:0.19.1
+    image: ghcr.io/restic/restic:latest
     restart: "no"
     hostname: self-host-restic
     command: ["version"]

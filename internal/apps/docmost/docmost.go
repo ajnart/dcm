@@ -32,7 +32,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "docmost", Name: "Docmost", Category: "Productivity",
 		Description:   "Write and share notes and documents with your family or team",
-		Image:         "docker.io/docmost/docmost:0.96.0",
+		Image:         "docker.io/docmost/docmost:latest",
 		Docs:          "https://docmost.com/docs/installation",
 		Port:          3000,
 		ContainerPort: 3000,
@@ -53,7 +53,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   docmost:
-    image: docker.io/docmost/docmost:0.96.0
+    image: docker.io/docmost/docmost:latest
     restart: unless-stopped
     environment:
       REDIS_URL: redis://docmost-redis:6379
@@ -77,7 +77,7 @@ func (App) Compose(rc app.RenderContext) string {
     volumes:
       - ./database:/var/lib/postgresql
   docmost-redis:
-    image: docker.io/library/redis:8
+    image: docker.io/library/redis:latest
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     volumes:

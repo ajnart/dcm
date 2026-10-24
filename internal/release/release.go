@@ -13,7 +13,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -48,6 +50,9 @@ const (
 	checksumsName = "checksums.txt"
 	maxArchive    = 200 << 20
 	maxChecksums  = 1 << 20
+	maxListing    = 8 << 20
+	pageSize      = 100
+	maxPages      = 10
 
 	lookupTimeout   = 15 * time.Second
 	downloadTimeout = 5 * time.Minute
@@ -150,23 +155,42 @@ func (c Client) validate() error {
 	return nil
 }
 
-func (c Client) do(ctx context.Context, method, url, accept string, timeout time.Duration) (*http.Response, context.CancelFunc, error) {
+func loopbackHTTP(u *url.URL) bool {
+	if u.Scheme != "http" {
+		return false
+	}
+	host := u.Hostname()
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func (c Client) do(ctx context.Context, method, target, accept string, timeout time.Duration) (*http.Response, context.CancelFunc, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
+	req, err := http.NewRequestWithContext(ctx, method, target, nil)
 	if err != nil {
 		cancel()
 		return nil, nil, err
+	}
+	if req.URL.Scheme != "https" && !loopbackHTTP(req.URL) {
+		cancel()
+		return nil, nil, fmt.Errorf("refusing %s: release downloads must use https", target)
 	}
 	req.Header.Set("User-Agent", "self-host")
 	if accept != "" {
 		req.Header.Set("Accept", accept)
 	}
-	if c.Token != "" && strings.HasPrefix(url, c.api()+"/") {
+	if c.Token != "" && strings.HasPrefix(target, c.api()+"/") {
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
 	httpClient := *c.HTTP
 	previousRedirect := httpClient.CheckRedirect
 	httpClient.CheckRedirect = func(next *http.Request, via []*http.Request) error {
+		if next.URL.Scheme != "https" && !(loopbackHTTP(req.URL) && loopbackHTTP(next.URL)) {
+			return fmt.Errorf("refusing redirect to %s: release downloads must use https", next.URL.Redacted())
+		}
 		if next.URL.Scheme != req.URL.Scheme || next.URL.Host != req.URL.Host {
 			next.Header.Del("Authorization")
 		}
@@ -186,22 +210,22 @@ func (c Client) do(ctx context.Context, method, url, accept string, timeout time
 	return resp, cancel, nil
 }
 
-func (c Client) get(ctx context.Context, url, accept string, limit int64, timeout time.Duration) ([]byte, error) {
-	resp, cancel, err := c.do(ctx, http.MethodGet, url, accept, timeout)
+func (c Client) get(ctx context.Context, target, accept string, limit int64, timeout time.Duration) ([]byte, error) {
+	resp, cancel, err := c.do(ctx, http.MethodGet, target, accept, timeout)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GET %s: %s", url, resp.Status)
+		return nil, fmt.Errorf("GET %s: %s", target, resp.Status)
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
 	if err != nil {
 		return nil, err
 	}
 	if int64(len(body)) > limit {
-		return nil, fmt.Errorf("GET %s: response larger than %d bytes", url, limit)
+		return nil, fmt.Errorf("GET %s: response larger than %d bytes", target, limit)
 	}
 	return body, nil
 }
@@ -214,8 +238,8 @@ func (c Client) Latest(ctx context.Context) (Release, error) {
 		return Release{}, err
 	}
 	var latest Release
-	for page := 1; page <= 10; page++ {
-		body, err := c.get(ctx, fmt.Sprintf("%s/releases?per_page=100&page=%d", c.api(), page), "application/vnd.github+json", maxChecksums, lookupTimeout)
+	for page := 1; page <= maxPages; page++ {
+		body, err := c.get(ctx, fmt.Sprintf("%s/releases?per_page=%d&page=%d", c.api(), pageSize, page), "application/vnd.github+json", maxListing, lookupTimeout)
 		if err != nil {
 			return Release{}, fmt.Errorf("look up CLI releases: %w", err)
 		}
@@ -232,7 +256,7 @@ func (c Client) Latest(ctx context.Context) (Release, error) {
 				latest = rel
 			}
 		}
-		if len(releases) < 100 {
+		if len(releases) < pageSize {
 			if latest.Tag == "" {
 				return Release{}, errors.New("no CLI release is published (a vX.Y.Z tag with the self-host archives and checksums.txt)")
 			}
@@ -320,7 +344,7 @@ func (c Client) Install(ctx context.Context, rel Release, goos, goarch, exe stri
 		return fmt.Errorf("unsupported platform %s/%s", goos, goarch)
 	}
 	if c.Token != "" {
-		body, err := c.get(ctx, c.api()+"/releases/tags/"+rel.Tag, "application/vnd.github+json", maxChecksums, lookupTimeout)
+		body, err := c.get(ctx, c.api()+"/releases/tags/"+rel.Tag, "application/vnd.github+json", maxListing, lookupTimeout)
 		if err != nil {
 			return err
 		}

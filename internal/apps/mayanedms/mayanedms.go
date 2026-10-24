@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "mayan-edms", Name: "Mayan EDMS", Category: "Documents",
 		Description:   "Store scanned paper documents, make them searchable and route them for review",
-		Image:         "mayanedms/mayanedms:v4.12.2",
+		Image:         "mayanedms/mayanedms:latest",
 		Docs:          "https://docs.mayan-edms.com/",
 		Port:          8080,
 		ContainerPort: 8000,
@@ -53,7 +53,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   mayan-edms:
-    image: mayanedms/mayanedms:v4.12.2
+    image: mayanedms/mayanedms:latest
     command: ["run_all"]
     restart: unless-stopped
     environment:
@@ -109,7 +109,7 @@ func (App) Compose(rc app.RenderContext) string {
       start_period: 20s
       retries: 5
   mayan-edms-redis:
-    image: redis:7.4.8
+    image: redis:latest
     user: ${PUID}:${PGID}
     entrypoint: ["sh", "-c", "umask 0077; exec redis-server \"$$@\"", "selfhost-redis"]
     command: ["/run/secrets/redis-config"]

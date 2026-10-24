@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "pihole", Name: "Pi-hole", Category: "DNS",
 		Description:   "Stop ads and trackers on all your devices at home, with a simple admin page",
-		Image:         "pihole/pihole:2026.09.0",
+		Image:         "pihole/pihole:latest",
 		Docs:          "https://docs.pi-hole.net/docker/",
 		Port:          8080,
 		ContainerPort: 80,
@@ -53,7 +53,7 @@ func (App) Compose(rc app.RenderContext) string {
 	}
 	return `services:
   pihole:
-    image: pihole/pihole:2026.09.0
+    image: pihole/pihole:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}

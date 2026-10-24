@@ -103,17 +103,21 @@ func targetName(cat *catalog.Catalog, id string) string {
 }
 
 // renderPlan is the Catalog's review of an install.
-func renderPlan(t theme, p *plan, keys string) string {
+func renderPlan(t theme, p *plan, keys string, width int) string {
 	lines := []string{"", "  " + t.title().Render("Review") + t.dim().Render("  nothing has been written yet")}
-	lines = append(lines, planLines(t, p)...)
+	lines = append(lines, planLines(t, p, width)...)
 	lines = append(lines, "", "  "+t.button("enter")+t.dim().Render(" "+keys))
 	return strings.Join(lines, "\n")
 }
 
 // planLines are the plan as a table: the Apps with image and port, then
 // Access, settings, folders, the Admin login and the Links.
-func planLines(t theme, p *plan) []string {
-	lines := []string{"", "  " + t.dim().Bold(true).Render(pad("APP", 20)+pad("IMAGE", 46)+"PORT")}
+func planLines(t theme, p *plan, width int) []string {
+	imageW := 46
+	if width > 0 {
+		imageW = max(min(imageW, width-2-20-6), 8)
+	}
+	lines := []string{"", "  " + t.dim().Bold(true).Render(pad("APP", 20)+pad("IMAGE", imageW)+"PORT")}
 	for _, a := range p.apps {
 		info := a.Info()
 		port := strconv.Itoa(info.Port)
@@ -122,19 +126,20 @@ func planLines(t theme, p *plan) []string {
 				port = value
 			}
 		}
-		lines = append(lines, "  "+t.dot("ok")+" "+pad(info.Name, 18)+pad(info.Image, 46)+port)
+		lines = append(lines, "  "+t.dot("ok")+" "+pad(info.Name, 18)+pad(truncate(info.Image, imageW-1), imageW)+port)
 	}
 	lines = append(lines, "")
 	row := func(k, v string) string { return "  " + t.dim().Render(pad(k, 10)) + t.body().Render(v) }
 	access := "Home network — addresses use " + p.settings["LAN_IP"]
-	if p.opts.EasyNames {
+	easy := p.opts.EasyNames || p.settings["EASY_NAMES"] == "on"
+	if easy {
 		access = "Easy names at home · addresses with numbers kept"
 	}
 	if p.settings["EXPOSURE"] == service.ExposureLocal {
 		access = "This computer only — other devices cannot connect"
 	}
 	lines = append(lines, row("Access", access))
-	if !p.opts.EasyNames && p.settings["EXPOSURE"] != service.ExposureLocal {
+	if !easy && p.settings["EXPOSURE"] != service.ExposureLocal {
 		lines = append(lines, row("", "Reachability is not verified; check from another device."))
 	}
 	if slices.Contains(p.opts.Targets, "tailscale") {

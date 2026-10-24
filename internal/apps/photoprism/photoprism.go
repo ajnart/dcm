@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "photoprism", Name: "PhotoPrism", Category: "Photos",
 		Description:   "Browse, organize and search your photo collection privately",
-		Image:         "docker.io/photoprism/photoprism:260728",
+		Image:         "docker.io/photoprism/photoprism:latest",
 		Docs:          "https://docs.photoprism.app/getting-started/docker-compose/",
 		Port:          2342,
 		ContainerPort: 2342,
@@ -35,7 +35,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   photoprism:
-    image: docker.io/photoprism/photoprism:260728
+    image: docker.io/photoprism/photoprism:latest
     restart: unless-stopped
     environment:
       PHOTOPRISM_ADMIN_USER: ${ADMIN_USER}

@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "emby", Name: "Emby", Category: "Media",
 		Description:   "Watch your own movies and shows on any TV, phone or computer",
-		Image:         "emby/embyserver:4.10.0.40",
+		Image:         "emby/embyserver:latest",
 		Docs:          "https://emby.media/support/articles/Installation.html",
 		Port:          8096,
 		ContainerPort: 8096,
@@ -40,7 +40,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   emby:
-    image: emby/embyserver:4.10.0.40
+    image: emby/embyserver:latest
     restart: unless-stopped
     volumes:
       - ./config:/config

@@ -18,7 +18,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "victoria-metrics", Name: "VictoriaMetrics", Category: "Observability",
 		Description:   "Keep long histories of numbers about your computers and apps, stored compactly",
-		Image:         "victoriametrics/victoria-metrics:v1.153.0",
+		Image:         "victoriametrics/victoria-metrics:latest",
 		Docs:          "https://docs.victoriametrics.com/quick-start/",
 		Port:          8428,
 		ContainerPort: 8428,
@@ -32,7 +32,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   victoria-metrics:
-    image: victoriametrics/victoria-metrics:v1.153.0
+    image: victoriametrics/victoria-metrics:latest
     command: ["-storageDataPath=/victoria-metrics-data", "-selfScrapeInterval=5s"]
     restart: unless-stopped
     volumes:

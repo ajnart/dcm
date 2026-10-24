@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"strings"
 
 	"github.com/ajnart/self-host/internal/apps/frigate"
 	"github.com/ajnart/self-host/internal/helpers"
@@ -44,7 +43,7 @@ func verifyFrigateStats(sample statsSample) error {
 	if sample.units["uptime"] != "seconds" || !uptimeOK || uptime < 0 || math.IsNaN(uptime) || math.IsInf(uptime, 0) {
 		return errors.New("Homarr returned invalid Frigate uptime Stats; retry self-host setup homarr")
 	}
-	if sample.units["version"] != "text" || !versionOK || version != "0.18.0" && !strings.HasPrefix(version, "0.18.0-") {
+	if sample.units["version"] != "text" || !versionOK || !helpers.VersionCompatible(version, "0.18.0") {
 		return errors.New("Homarr returned unsupported Frigate version Stats; retry self-host setup homarr")
 	}
 	return nil

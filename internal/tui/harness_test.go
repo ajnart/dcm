@@ -1038,7 +1038,7 @@ func TestSettingsRejectsAnInvalidValueInline(t *testing.T) {
 	m = typeText(t, m, "abc")
 	m = drive(t, m, press("enter"))
 
-	if m.settings.err == "" || !strings.Contains(screen(m), "PUID: digits only") {
+	if m.settings.err == "" || !strings.Contains(screen(m), "PUID: a non-negative integer") {
 		t.Fatalf("invalid PUID should be rejected inline\n%s", screen(m))
 	}
 	if len(m.settings.pairs()) != 0 {

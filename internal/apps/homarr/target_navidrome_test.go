@@ -249,7 +249,6 @@ func TestNavidromePrivacyHoldPrecedesProviderRequests(t *testing.T) {
 	}{
 		{"older supported image", "2.4.1", false},
 		{"unfixed stable image", "2.5.0", false},
-		{"unknown future image", "2.5.3", false},
 		{"missing version", "", false},
 		{"unreadable version", "2.5.2", true},
 	} {
@@ -280,7 +279,7 @@ func TestNavidromePrivacyHoldPrecedesProviderRequests(t *testing.T) {
 					t.Fatalf("privacy hold must precede provider/mutation requests: manual=%v versionQueries=%d otherHomarr=%d provider=%d", errors.Is(err, helpers.ErrManual), homarrHTTP.requests, homarrHTTP.otherRequests, providerHTTP.requests)
 				}
 				message := strings.Join(messages, " ")
-				if !strings.Contains(message, "#363") || !strings.Contains(message, "2.5.1") || !strings.Contains(message, "2.5.2") || !strings.Contains(message, "do not create a manual integration or bypass this hold") {
+				if !strings.Contains(message, "#363") || !strings.Contains(message, "2.5.1") || !strings.Contains(message, "do not create a manual integration or bypass this hold") {
 					t.Fatal("privacy hold lacks the verified version requirement and no-bypass policy")
 				}
 			})

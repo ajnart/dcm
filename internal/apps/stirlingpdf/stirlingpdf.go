@@ -18,7 +18,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "stirling-pdf", Name: "Stirling PDF", Category: "Documents",
 		Description:   "Edit, merge, convert and sign PDF files without uploading them anywhere",
-		Image:         "ghcr.io/stirling-tools/stirling-pdf:3.0.0",
+		Image:         "ghcr.io/stirling-tools/stirling-pdf:latest",
 		Docs:          "https://docs.stirlingpdf.com/",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -32,7 +32,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   stirling-pdf:
-    image: ghcr.io/stirling-tools/stirling-pdf:3.0.0
+    image: ghcr.io/stirling-tools/stirling-pdf:latest
     restart: unless-stopped
     environment:
       SECURITY_ENABLELOGIN: "false"

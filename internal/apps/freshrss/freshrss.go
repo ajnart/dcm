@@ -20,7 +20,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "freshrss", Name: "FreshRSS", Category: "Productivity",
 		Description:   "Read news from all your favorite websites in one place",
-		Image:         "ghcr.io/freshrss/freshrss:1.30.0",
+		Image:         "ghcr.io/freshrss/freshrss:latest",
 		Docs:          "https://github.com/FreshRSS/FreshRSS/tree/edge/Docker",
 		Port:          8080,
 		ContainerPort: 80,
@@ -35,7 +35,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   freshrss:
-    image: ghcr.io/freshrss/freshrss:1.30.0
+    image: ghcr.io/freshrss/freshrss:latest
     restart: unless-stopped
     environment:
       CRON_MIN: "1,31"

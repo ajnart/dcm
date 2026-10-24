@@ -20,7 +20,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "caddy", Name: "Caddy", Category: "Ingress",
 		Description:   "Give your apps their own web addresses, with the secure padlock set up for you",
-		Image:         "caddy:2.11.4",
+		Image:         "caddy:latest",
 		Docs:          "https://caddyserver.com/docs/",
 		Port:          2015,
 		ContainerPort: 2015,
@@ -56,7 +56,7 @@ func (App) Files(app.RenderContext, func(string) string) []app.File {
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   caddy:
-    image: caddy:2.11.4
+    image: caddy:latest
     restart: unless-stopped
     volumes:
       - ./caddyfile:/etc/caddy/Caddyfile

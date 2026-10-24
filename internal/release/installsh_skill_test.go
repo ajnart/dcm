@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-const skillSentence = "Install the self-host skill from github.com/ajnart/self-host and help me run my own movie server."
+const skillSentence = "Install the self-host skill from github.com/ajnart/self-host and help me set up my own home server."
 
 // skillTools is every program install.sh needs, linked into one directory so a
 // test controls whether bunx and npx exist without touching the real PATH.

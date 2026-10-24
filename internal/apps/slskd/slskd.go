@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "slskd", Name: "Slskd", Category: "Downloads",
 		Description:   "Share and find music with others on the Soulseek network, from a web page",
-		Image:         "ghcr.io/slskd/slskd:0.26.1",
+		Image:         "ghcr.io/slskd/slskd:latest",
 		Docs:          "https://github.com/slskd/slskd/tree/master/docs",
 		Port:          5030,
 		ContainerPort: 5030,
@@ -47,7 +47,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   slskd:
-    image: ghcr.io/slskd/slskd:0.26.1
+    image: ghcr.io/slskd/slskd:latest
     restart: unless-stopped
     user: ${PUID}:${PGID}
     environment:
@@ -148,7 +148,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return err == nil, err
 		},
 		Do:         func(ctx context.Context) error { return VerifyHomarr(ctx, h) },
-		Hint:       "Back up Slskd, then run self-host update slskd to apply version 0.26.1 and its read-only primary API key. Restore a lost key through the Project secret boundary; never paste it into chat. Then retry self-host setup slskd.",
+		Hint:       "Back up Slskd, then run self-host update slskd to apply Slskd 0.26.1 or newer 0.x and its read-only primary API key. Restore a lost key through the Project secret boundary; never paste it into chat. Then retry self-host setup slskd.",
 		Credential: "admin",
 	}); err != nil {
 		return err

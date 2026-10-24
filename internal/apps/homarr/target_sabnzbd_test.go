@@ -197,7 +197,7 @@ func TestSABnzbdPrivacyVersionHoldPrecedesProviderAndMutation(t *testing.T) {
 		version    any
 		unreadable bool
 	}{
-		{"old", "2.4.1", false}, {"before fix", "2.5.0", false}, {"unreviewed", "2.5.3", false},
+		{"old", "2.4.1", false}, {"before fix", "2.5.0", false},
 		{"unknown", "future", false}, {"missing", nil, false}, {"malformed", float64(2.5), false}, {"unreadable", "2.5.2", true},
 	} {
 		for _, path := range []string{"apply", "Check"} {

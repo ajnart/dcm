@@ -63,6 +63,12 @@ func (o *onboarding) introDoctor(ctx *viewContext) intro.Doctor {
 	checks := make([]intro.Check, len(ctx.checks))
 	for n, c := range ctx.checks {
 		checks[n] = intro.Check{Title: c.Title, Detail: c.Detail, Hint: c.Hint, Docs: c.Docs, Level: introLevel(c.Level)}
+		if c.ID == "docker-socket" && c.Level == host.Fail && c.Hint != host.SocketDeniedHint {
+			checks[n].Detail, checks[n].Hint = "Docker isn't running.", "Start Docker, then press r."
+			if strings.Contains(c.Hint, "OrbStack") {
+				checks[n].Hint = "Open OrbStack, then press r."
+			}
+		}
 	}
 	return intro.Doctor{Checks: checks, Reading: i.reading, Again: i.again,
 		SettingsReading: !i.reading && ctx.defaults == nil, TickFrom: i.tickFrom}

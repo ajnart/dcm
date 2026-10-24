@@ -31,7 +31,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "pangolin", Name: "Pangolin", Category: "Remote access",
 		Description:   "Reach your apps from outside your home by name, behind a login page",
-		Image:         "traefik:v3.7",
+		Image:         "traefik:latest",
 		Docs:          "https://docs.pangolin.net/",
 		Port:          18086,
 		ContainerPort: 8080,
@@ -87,7 +87,7 @@ func host(origin string) string {
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   pangolin:
-    image: traefik:v3.7
+    image: traefik:latest
     restart: unless-stopped
     command: ["--entryPoints.web.address=:8080", "--entryPoints.web.forwardedHeaders.insecure=true", "--providers.file.filename=/etc/traefik/dynamic.yml", "--api=false"]
     volumes:
@@ -97,7 +97,7 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:8080
   pangolin-server:
-    image: fosrl/pangolin:1.24.0
+    image: fosrl/pangolin:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,6 +30,7 @@ type task struct {
 	err       string
 	events    []events.Event
 	persisted bool
+	exited    bool
 }
 
 func (t *task) append(e events.Event) {
@@ -156,4 +158,62 @@ func (m *taskManager) cancelAll() {
 	for _, t := range m.tasks {
 		t.cancel()
 	}
+}
+
+// quitGrace is how long quitting waits for cancelled Actions to exit.
+const quitGrace = 10 * time.Second
+
+func (m *taskManager) markExited(id int) {
+	if t := m.get(id); t != nil {
+		t.mu.Lock()
+		t.exited = true
+		t.mu.Unlock()
+	}
+}
+
+func (m *taskManager) active() int {
+	m.mu.Lock()
+	tasks := append([]*task(nil), m.tasks...)
+	m.mu.Unlock()
+	n := 0
+	for _, t := range tasks {
+		t.mu.Lock()
+		if !t.exited {
+			n++
+		}
+		t.mu.Unlock()
+	}
+	return n
+}
+
+// waitExited blocks until every Action has returned, or the timeout passes.
+func (m *taskManager) waitExited(timeout time.Duration) {
+	deadline := time.Now().Add(timeout)
+	for m.active() > 0 && time.Now().Before(deadline) {
+		time.Sleep(25 * time.Millisecond)
+	}
+}
+
+func (m *taskManager) runningTitle() string {
+	for _, s := range m.snapshots() {
+		if s.state == taskRunning {
+			return s.title
+		}
+	}
+	return "The Action"
+}
+
+// interruptedLine is the line printed on exit after running Actions were
+// cancelled, or empty when none were.
+func (m *taskManager) interruptedLine() string {
+	for _, s := range m.snapshots() {
+		if s.state != taskRunning {
+			continue
+		}
+		if strings.HasPrefix(s.title, "install") {
+			return "Install interrupted; run self-host to resume."
+		}
+		return "Interrupted: " + s.title + ". Run self-host to check the Project."
+	}
+	return ""
 }

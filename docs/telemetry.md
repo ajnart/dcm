@@ -93,7 +93,7 @@ points to [GitHub Issues](https://github.com/ajnart/self-host/issues).
 
 ## Technical sources
 
-- [PostHog Go exception fields](https://github.com/posthog/posthog-go/blob/main/_autodocs/api-reference/error-tracking.md).
+- [PostHog Go library](https://posthog.com/docs/libraries/go).
 - [PostHog OTLP/HTTP logs endpoint and project-token authentication](https://posthog.com/docs/logs/installation/other).
 - [PostHog reverse proxies](https://posthog.com/docs/advanced/proxy).
 

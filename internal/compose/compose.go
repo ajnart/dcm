@@ -94,6 +94,9 @@ func (c *Compose) Down(ctx context.Context) error {
 }
 
 func (c *Compose) Stop(ctx context.Context, services ...string) error {
+	if len(services) == 0 {
+		return nil
+	}
 	_, err := c.Run(ctx, nil, append([]string{"stop"}, services...)...)
 	return err
 }
@@ -104,11 +107,17 @@ func (c *Compose) Start(ctx context.Context, services ...string) error {
 }
 
 func (c *Compose) Restart(ctx context.Context, services ...string) error {
+	if len(services) == 0 {
+		return nil
+	}
 	_, err := c.Run(ctx, nil, append([]string{"restart"}, services...)...)
 	return err
 }
 
 func (c *Compose) Pull(ctx context.Context, services ...string) error {
+	if len(services) == 0 {
+		return nil
+	}
 	_, err := c.Run(ctx, nil, append([]string{"pull"}, services...)...)
 	return err
 }
@@ -116,6 +125,9 @@ func (c *Compose) Pull(ctx context.Context, services ...string) error {
 // PullProgress reports JSON progress when supported. Older Compose versions
 // fall back to plain output if they reject JSON before starting the pull.
 func (c *Compose) PullProgress(ctx context.Context, services ...string) error {
+	if len(services) == 0 {
+		return nil
+	}
 	err := c.pullProgress(ctx, "json", services...)
 	var pullErr *PullError
 	if ctx.Err() == nil && errors.As(err, &pullErr) && pullErr.Output == `unsupported --progress value "json"` {
@@ -253,6 +265,9 @@ func (w *lineWriter) flush() {
 
 // Remove stops and deletes the containers of services; volumes are kept.
 func (c *Compose) Remove(ctx context.Context, services ...string) error {
+	if len(services) == 0 {
+		return nil
+	}
 	_, err := c.Run(ctx, nil, append([]string{"rm", "--stop", "--force"}, services...)...)
 	return err
 }

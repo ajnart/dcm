@@ -23,7 +23,7 @@ func TestOnboardingChoosesEasyNamesAndKeepsHomeNetwork(t *testing.T) {
 	}
 }
 
-func TestOnboardingDefaultsToEasyNamesOnlyAfterSuccessfulInspection(t *testing.T) {
+func TestOnboardingNeverPreselectsEasyNames(t *testing.T) {
 	for _, enabled := range []bool{false, true} {
 		m, _ := freshHost(t)
 		defaults := map[string]string{"LAN_IP": "192.168.1.20"}
@@ -31,7 +31,7 @@ func TestOnboardingDefaultsToEasyNamesOnlyAfterSuccessfulInspection(t *testing.T
 			defaults["EASY_NAMES"] = "on"
 		}
 		m = drive(t, m, defaultsMsg{settings: defaults})
-		if got := planFromAnswers(m.backend, m.onboarding.answers).opts.EasyNames; got != enabled {
+		if got := planFromAnswers(m.backend, m.onboarding.answers).opts.EasyNames; got {
 			t.Fatalf("inspection %v: EasyNames %v", enabled, got)
 		}
 	}

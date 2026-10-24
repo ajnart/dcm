@@ -34,6 +34,21 @@ func inputFor(apps []app.App, id, key string) (app.Input, bool) {
 	return app.Input{}, false
 }
 
+func privateInputKeys(apps []app.App) string {
+	var keys []string
+	for _, a := range apps {
+		for _, input := range a.Inputs() {
+			if input.Private {
+				keys = append(keys, a.Info().ID+"."+input.Key)
+			}
+		}
+	}
+	if len(keys) == 0 {
+		return "none"
+	}
+	return strings.Join(keys, ", ")
+}
+
 // privateReferences validates references without reading their payloads.
 func privateReferences(apps []app.App, opts InstallOptions) (map[string]map[string]string, error) {
 	files := map[string]map[string]string{}
@@ -43,7 +58,7 @@ func privateReferences(apps []app.App, opts InstallOptions) (map[string]map[stri
 		id, name, scoped := strings.Cut(key, ".")
 		input, found := inputFor(apps, id, name)
 		if !ok || !scoped || file == "" || !found || !input.Private {
-			return nil, fmt.Errorf("--set-file requires a selected private input as app.key=PATH")
+			return nil, fmt.Errorf("--set-file requires a selected private input as app.key=PATH; private inputs: %s", privateInputKeys(apps))
 		}
 		if file == "-" {
 			if stdin {

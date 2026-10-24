@@ -24,7 +24,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "sabnzbd", Name: "SABnzbd", Category: "Downloads",
 		Description:   "Automatically fetch files from Usenet, a paid file-sharing service",
-		Image:         "linuxserver/sabnzbd:version-5.1.3",
+		Image:         "linuxserver/sabnzbd:latest",
 		Docs:          "https://sabnzbd.org/wiki/",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -38,7 +38,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   sabnzbd:
-    image: linuxserver/sabnzbd:version-5.1.3
+    image: linuxserver/sabnzbd:latest
     restart: unless-stopped
     environment:
       PUID: ${PUID}

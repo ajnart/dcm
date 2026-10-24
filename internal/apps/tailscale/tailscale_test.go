@@ -146,7 +146,7 @@ var jellyfin = app.WebTarget{ID: "jellyfin", Service: "jellyfin", ContainerPort:
 func TestComposeGivesAWebAppItsOwnTailscaleNode(t *testing.T) {
 	fragment := (tailscale.App{}).Compose(app.RenderContext{Web: []app.WebTarget{jellyfin}})
 	want := `  tailscale-jellyfin:
-    image: ghcr.io/tailscale/tailscale:v1.102.4
+    image: ghcr.io/tailscale/tailscale:latest
     hostname: jellyfin
     restart: unless-stopped
     environment:

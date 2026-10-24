@@ -19,7 +19,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "scrypted", Name: "Scrypted", Category: "Cameras",
 		Description:   "Bring your security cameras into Apple Home and other smart home apps",
-		Image:         "ghcr.io/koush/scrypted:v0.147.0-noble-lite",
+		Image:         "ghcr.io/koush/scrypted:lite",
 		Docs:          "https://docs.scrypted.app/",
 		Port:          11080,
 		ContainerPort: 11080,
@@ -33,7 +33,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   scrypted:
-    image: ghcr.io/koush/scrypted:v0.147.0-noble-lite
+    image: ghcr.io/koush/scrypted:lite
     restart: unless-stopped
     volumes:
       - ./data:/server/volume

@@ -54,7 +54,7 @@ func verifyGlances(ctx context.Context, from, to *helpers.H, integrationID strin
 		return errors.New(failure)
 	}
 	var version string
-	if json.Unmarshal([]byte(stringField(health, "version")), &version) != nil || version != glances.SupportedVersion {
+	if json.Unmarshal([]byte(stringField(health, "version")), &version) != nil || !helpers.VersionCompatible(version, glances.SupportedVersion) {
 		return errors.New(failure)
 	}
 	for _, key := range []string{"cpuUtilization", "memUsedInBytes", "memAvailableInBytes", "uptime"} {

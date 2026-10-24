@@ -60,7 +60,7 @@ func aria2Target() target {
 					body["jsonrpc"] != "2.0" || body["id"] != float64(1) || body["error"] != nil || result == nil {
 					return errors.New("Homarr's saved Aria2 RPC credential did not authenticate; run self-host setup aria2, then self-host setup homarr")
 				}
-				if method == "getVersion" && stringField(result, "version") != "1.37.0" ||
+				if method == "getVersion" && !helpers.VersionCompatible(stringField(result, "version"), "1.37.0") ||
 					method == "getGlobalOption" && stringField(result, "dir") != "/var/lib/aria2/downloads" {
 					return errors.New("Homarr's saved Aria2 connection reports a different version or download directory")
 				}

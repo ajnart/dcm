@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "bazarr", Name: "Bazarr", Category: "Requests",
 		Description:   "Automatically find subtitles for your movies and shows",
-		Image:         "lscr.io/linuxserver/bazarr:version-v1.6.0",
+		Image:         "lscr.io/linuxserver/bazarr:latest",
 		Docs:          "https://wiki.bazarr.media/",
 		Port:          6767,
 		ContainerPort: 6767,
@@ -40,7 +40,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   bazarr:
-    image: lscr.io/linuxserver/bazarr:version-v1.6.0
+    image: lscr.io/linuxserver/bazarr:latest
     restart: unless-stopped
     environment:
       PUID: ${PUID}

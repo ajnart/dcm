@@ -23,7 +23,7 @@ func TestRequireCredentialSafeHomarr(t *testing.T) {
 		{name: "fixed 2.5.2", result: `{"version":"2.5.2"}`, admit: true},
 		{name: "legacy version", result: `{"version":"2.4.1"}`},
 		{name: "unfixed version", result: `{"version":"2.5.0"}`},
-		{name: "unreviewed patch", result: `{"version":"2.5.3"}`},
+		{name: "later patch", result: `{"version":"2.5.3"}`, admit: true},
 		{name: "unknown version", result: `{"version":"private-fixture-marker"}`},
 		{name: "missing version", result: `{}`},
 		{name: "numeric version", result: `{"version":2.51}`},

@@ -20,7 +20,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "aria2", Name: "Aria2", Category: "Downloads",
 		Description:   "Download files and torrents in the background, controlled by other tools",
-		Image:         "snowdreamtech/aria2:1.37.0-debian",
+		Image:         "snowdreamtech/aria2:debian",
 		Docs:          "https://aria2.github.io/manual/en/html/",
 		Port:          6800,
 		ContainerPort: 6800,
@@ -54,7 +54,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   aria2:
-    image: snowdreamtech/aria2:1.37.0-debian
+    image: snowdreamtech/aria2:debian
     entrypoint: ["/usr/bin/aria2c"]
     command: ["--conf-path=/run/secrets/rpc-config"]
     restart: unless-stopped
@@ -137,7 +137,7 @@ func tokenWorks(ctx context.Context, h *helpers.H, token string) (bool, error) {
 	if err := rpcResult(authorized, &installed); err != nil {
 		return false, err
 	}
-	if installed.Version != version {
+	if !helpers.VersionCompatible(installed.Version, version) {
 		return false, nil
 	}
 	options, err := call(ctx, h, "aria2.getGlobalOption", token)

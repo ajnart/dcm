@@ -45,6 +45,14 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 					}
 				}
 			}
+			explicit := out != ""
+			if explicit {
+				if _, err := os.Lstat(out); err == nil {
+					return fmt.Errorf("%s already exists; choose another --output or remove it first", out)
+				} else if !errors.Is(err, os.ErrNotExist) {
+					return err
+				}
+			}
 			if out == "" {
 				ext := ".tar.zst"
 				if passphrase != "" {
@@ -52,8 +60,18 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 				}
 				out = filepath.Join(BackupDir(ss.p), "selfhost-"+s.Deps.Now().Format("20060102-150405")+ext)
 			}
-			if err := os.MkdirAll(filepath.Dir(out), 0o700); err != nil {
-				return err
+			if explicit {
+				if err := os.MkdirAll(filepath.Dir(out), 0o700); err != nil {
+					return err
+				}
+			} else {
+				dir := filepath.Dir(out)
+				if err := os.MkdirAll(dir, 0o700); err != nil {
+					return err
+				}
+				if err := ss.p.Chown(dir); err != nil {
+					return err
+				}
 			}
 			if passphrase == "" {
 				s.Log.Emit(events.Event{Event: events.StepWarn, Step: "unencrypted",
@@ -123,7 +141,13 @@ func (s *Service) Backup(ctx context.Context, ids []string, out, passphrase stri
 			if err := os.Rename(tmp, out); err != nil {
 				return err
 			}
-			info, _ := os.Stat(out)
+			if err := ss.p.Chown(out); err != nil {
+				return err
+			}
+			info, err := os.Stat(out)
+			if err != nil {
+				return err
+			}
 			written = out
 			s.Log.Emit(events.Event{Event: events.StepOK, Step: "backup",
 				Msg: fmt.Sprintf("wrote %s (%s)", out, HumanSize(info.Size()))})
@@ -156,6 +180,7 @@ func (ss *session) archiveApp(ctx context.Context, w *backup.Writer, id string, 
 				result = errors.Join(result, fmt.Errorf("restart %s after backup: %w", id, err))
 				return
 			}
+			ss.clearStartFailure([]string{id}, "started again")
 			log.Emit(events.Event{Event: events.StepOK, App: id, Step: StageStart, Msg: "started again"})
 		}()
 		if err := ss.compose.Stop(ctx, running...); err != nil {

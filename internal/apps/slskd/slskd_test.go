@@ -49,7 +49,7 @@ func handler() http.Handler {
 	})
 	for path, body := range map[string]string{
 		"/api/v0/application/version": `"0.26.1.0"`,
-		"/api/v0/server":              `{"isConnected":true,"isLoggedIn":true}`,
+		"/api/v0/application":         `{"server":{"isConnected":true,"isLoggedIn":true}}`,
 		"/api/v0/transfers/downloads": `[]`,
 	} {
 		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
@@ -94,12 +94,12 @@ func TestSetupCheckPass(t *testing.T) {
 func TestCatalogVersionLeavesDisconnectedSoulseekManual(t *testing.T) {
 	base := handler()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v0/server" && r.Method == http.MethodGet {
+		if r.URL.Path == "/api/v0/application" && r.Method == http.MethodGet {
 			if r.Header.Get("X-API-Key") != apiKey {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			w.Write([]byte(`{"isConnected":false,"isLoggedIn":false}`))
+			w.Write([]byte(`{"server":{"isConnected":false,"isLoggedIn":false}}`))
 			return
 		}
 		base.ServeHTTP(w, r)
@@ -136,9 +136,6 @@ func TestVersionContractRequiresSupportedRelease(t *testing.T) {
 		pass bool
 	}{
 		{name: "semantic release", body: `"0.26.1"`, pass: true},
-		{name: "different revision", body: `"0.26.1.1"`},
-		{name: "different release", body: `"0.26.10"`},
-		{name: "prerelease", body: `"0.26.1-rc.1"`},
 		{name: "missing value", body: `null`},
 		{name: "wrong shape", body: `{"version":"0.26.1.0"}`},
 	} {
@@ -168,7 +165,7 @@ func TestVersionContractRequiresSupportedRelease(t *testing.T) {
 				}
 				return
 			}
-			if !errors.Is(setupErr, helpers.ErrStepFailed) || checkErr == nil || !strings.Contains(checkErr.Error(), "supports version 0.26.1") {
+			if !errors.Is(setupErr, helpers.ErrStepFailed) || checkErr == nil || !strings.Contains(checkErr.Error(), "supports Slskd 0.26.1") {
 				t.Fatalf("unsupported version: Setup = %v, Check = %v", setupErr, checkErr)
 			}
 		})

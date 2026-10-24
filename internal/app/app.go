@@ -12,12 +12,16 @@ type Info struct {
 	Name        string
 	Description string
 	Category    string
-	// Image is the main service's image with its floating tag.
+	// Image is the main service's image with its floating tag (`:latest`, or the upstream's floating stable tag). Only database engines pin a major.
 	Image string
 	Docs  string
 	// Port is the default host port; ContainerPort is what it maps to.
 	Port          int
 	ContainerPort int
+	// ContainerPortIsPort means the App listens on the host port it is given,
+	// published as port:port, so the port inside the Project follows the
+	// allocated host port and ContainerPort is only its default.
+	ContainerPortIsPort bool
 	// Service is the main Compose service, the one Setup talks to.
 	Service string
 	// Path is appended to the App URL when users open it (e.g. "/web").
@@ -30,6 +34,15 @@ type Info struct {
 	WebSockets, LongTimeouts bool
 	// UsesMedia means the App mounts ${MEDIA_ROOT} or ${DOWNLOADS_ROOT}.
 	UsesMedia bool
+}
+
+// ContainerPortFor is the port other services in the Project reach the App on,
+// given the host port it was allocated.
+func (i Info) ContainerPortFor(port int) int {
+	if i.ContainerPortIsPort && port > 0 {
+		return port
+	}
+	return i.ContainerPort
 }
 
 type Input struct {

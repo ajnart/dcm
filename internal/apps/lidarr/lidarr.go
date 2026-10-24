@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "lidarr", Name: "Lidarr", Category: "Requests",
 		Description:   "Find, download and organize your music automatically",
-		Image:         "lscr.io/linuxserver/lidarr:version-3.1.0.4875",
+		Image:         "lscr.io/linuxserver/lidarr:latest",
 		Docs:          "https://wiki.servarr.com/lidarr",
 		Port:          8686,
 		ContainerPort: 8686,
@@ -41,7 +41,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   lidarr:
-    image: lscr.io/linuxserver/lidarr:version-3.1.0.4875
+    image: lscr.io/linuxserver/lidarr:latest
     restart: unless-stopped
     environment:
       PUID: ${PUID}

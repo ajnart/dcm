@@ -50,7 +50,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "bookstack", Name: "BookStack", Category: "Productivity",
 		Description:   "Keep notes and how-to guides organized in books, chapters and pages",
-		Image:         "lscr.io/linuxserver/bookstack:v26.05.3-ls277",
+		Image:         "lscr.io/linuxserver/bookstack:latest",
 		Docs:          "https://www.bookstackapp.com/docs/admin/installation/",
 		Port:          8080,
 		ContainerPort: 80,
@@ -72,7 +72,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   bookstack:
-    image: lscr.io/linuxserver/bookstack:v26.05.3-ls277
+    image: lscr.io/linuxserver/bookstack:latest
     restart: unless-stopped
     environment:
       PUID: ${PUID}

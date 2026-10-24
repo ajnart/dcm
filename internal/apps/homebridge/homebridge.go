@@ -19,7 +19,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "homebridge", Name: "Homebridge", Category: "Home automation",
 		Description:   "Make smart home gadgets work with Apple Home",
-		Image:         "homebridge/homebridge:2026-09-25",
+		Image:         "homebridge/homebridge:latest",
 		Docs:          "https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Docker",
 		Port:          8581,
 		ContainerPort: 8581,
@@ -36,7 +36,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   homebridge:
-    image: homebridge/homebridge:2026-09-25
+    image: homebridge/homebridge:latest
     restart: unless-stopped
     environment:
       ENABLE_AVAHI: "0"

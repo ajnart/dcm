@@ -17,14 +17,14 @@ import (
 
 const password = "admin-password-123"
 
-func TestPublishedImagePin(t *testing.T) {
+func TestFloatingImageTag(t *testing.T) {
 	a := peanut.App{}
-	const image = "brandawg93/peanut:6.0.0"
+	const image = "brandawg93/peanut:latest"
 	if got := a.Info().Image; got != image {
-		t.Fatalf("image = %q, want published tag %q", got, image)
+		t.Fatalf("image = %q, want floating tag %q", got, image)
 	}
 	if compose := a.Compose(app.RenderContext{Port: 8080}); !strings.Contains(compose, "image: "+image+"\n") {
-		t.Fatalf("Compose does not use the published pinned image %q", image)
+		t.Fatalf("Compose does not use the floating image %q", image)
 	}
 }
 

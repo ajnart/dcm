@@ -303,7 +303,7 @@ func (s *Service) CloudflarePlan(ctx context.Context, opts CloudflareOptions) (C
 		}
 		name := id + "." + domain
 		plan.Publish = append(plan.Publish, CloudflareApp{App: id, Name: name, Address: "https://" + name + info.Path, Warning: warning})
-		plan.hosts = append(plan.hosts, cloudflare.Host{App: id, Name: name, Origin: "http://" + helpers.InternalAddress(info.Service, info.ContainerPort)})
+		plan.hosts = append(plan.hosts, cloudflare.Host{App: id, Name: name, Origin: "http://" + helpers.InternalAddress(info.Service, info.ContainerPortFor(ss.state.Apps[id].Port))})
 	}
 	for _, name := range rec.names() {
 		if !slices.ContainsFunc(plan.Publish, func(a CloudflareApp) bool { return a.Name == name }) {

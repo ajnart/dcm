@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "peanut", Name: "PeaNUT", Category: "Monitoring",
 		Description:   "Check on your battery backup (UPS) with a live dashboard",
-		Image:         "brandawg93/peanut:6.0.0",
+		Image:         "brandawg93/peanut:latest",
 		Docs:          "https://github.com/Brandawg93/PeaNUT#readme",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -36,7 +36,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   peanut:
-    image: brandawg93/peanut:6.0.0
+    image: brandawg93/peanut:latest
     restart: unless-stopped
     environment:
       WEB_HOST: 0.0.0.0
@@ -73,12 +73,12 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 		return false, err
 	}
 	var info struct{ Version string }
-	return resp.Status == http.StatusOK && resp.Decode(&info) == nil && info.Version == "6.0.0", nil
+	return resp.Status == http.StatusOK && resp.Decode(&info) == nil && helpers.VersionCompatible(info.Version, "6.0.0"), nil
 }
 
 func VerifyAPI(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); err != nil || !ok {
-		return errors.New("PeaNUT 6.0.0 must accept the Project Admin login and reject anonymous and incorrect credentials; keep authentication enabled, repair its WEB_USERNAME/WEB_PASSWORD through the Project and retry self-host setup peanut")
+		return errors.New("PeaNUT 6.0.0 or newer 6.x must accept the Project Admin login and reject anonymous and incorrect credentials; keep authentication enabled, repair its WEB_USERNAME/WEB_PASSWORD through the Project and retry self-host setup peanut")
 	}
 	return nil
 }
@@ -101,7 +101,7 @@ func Devices(ctx context.Context, h *helpers.H) ([]Device, error) {
 	}
 	var raw []map[string]any
 	if resp.Decode(&raw) != nil || raw == nil {
-		return nil, errors.New("PeaNUT did not return a device array; use PeaNUT 6.0.0 and retry self-host setup peanut")
+		return nil, errors.New("PeaNUT did not return a device array; use PeaNUT 6.0.0 or newer 6.x and retry self-host setup peanut")
 	}
 	if len(raw) == 0 {
 		return nil, fmt.Errorf("%w: PeaNUT has no UPS readings; connect an owner-selected existing NUT server and retry self-host setup peanut", helpers.ErrManual)
@@ -165,7 +165,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 		Do: func(ctx context.Context) error {
 			return VerifyAPI(ctx, h)
 		},
-		Hint: "Keep PeaNUT 6.0.0 authenticated with the Project Admin login from `self-host credentials`. " +
+		Hint: "Keep PeaNUT 6.0.0 or newer 6.x authenticated with the Project Admin login from `self-host credentials`. " +
 			"Repair its Project WEB_USERNAME/WEB_PASSWORD settings, then run self-host setup peanut. API verification does not prove the stored browser account matches.",
 		Credential: "admin",
 	}); err != nil {

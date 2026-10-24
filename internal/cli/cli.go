@@ -135,6 +135,12 @@ func (a *program) human(w io.Writer, verbose bool) events.Sink {
 	return a.terminal
 }
 
+// colour reports whether w is an interactive terminal that may show colour.
+func (a *program) colour(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	return a.deps.Interactive && ok && term.IsTerminal(f.Fd()) && a.deps.Getenv("NO_COLOR") == ""
+}
+
 // glyphs is the Project's glyph set, or Simple when there is no Project or
 // its appearance cannot be read.
 func (a *program) glyphs() activity.Glyphs {

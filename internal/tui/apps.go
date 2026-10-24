@@ -281,6 +281,10 @@ func (v *appsView) open(ctx *viewContext) tea.Cmd {
 	if !found {
 		return nil
 	}
+	return openApp(ctx, app)
+}
+
+func openApp(ctx *viewContext, app service.AppStatus) tea.Cmd {
 	if app.URL == "" {
 		ctx.setFlash(app.Name+" has no URL", levelWarn)
 		return nil

@@ -104,7 +104,6 @@ func newOnboarding(ctx *viewContext) *onboarding {
 	o := &onboarding{answers: &answers{exposure: service.ExposureLAN, adminUser: "admin", inputs: map[string]*string{}},
 		folders: newFolderPicker(ctx.backend), opened: ctx.opts.Now(), react: welcomeReaction{focusAge: -1, selectAge: -1}}
 	o.answers.fill(ctx.defaults)
-	o.answers.easyNames = ctx.defaults["EASY_NAMES"] == "on"
 	o.openStep(ctx, stepWelcome)
 	o.intro = newIntroScreen(ctx)
 	return o
@@ -135,7 +134,6 @@ func (o *onboarding) Update(ctx *viewContext, msg tea.Msg) (tea.Cmd, onboardingA
 func (o *onboarding) detected(defaults map[string]string) {
 	o.answers.fill(defaults)
 	if !o.answers.accessChosen {
-		o.answers.easyNames = defaults["EASY_NAMES"] == "on"
 		o.answers.accessChoice = ""
 	}
 }

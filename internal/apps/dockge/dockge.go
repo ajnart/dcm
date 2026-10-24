@@ -17,8 +17,8 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "dockge", Name: "Dockge", Category: "Containers",
-		Description:   "Start, stop and edit your apps from a simple web page",
-		Image:         "docker.io/louislam/dockge:1.5.0",
+		Description:   "A web page for organising app setups; you give it access to your apps yourself",
+		Image:         "docker.io/louislam/dockge:latest",
 		Docs:          "https://github.com/louislam/dockge#how-to-install",
 		Port:          5001,
 		ContainerPort: 5001,
@@ -33,7 +33,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   dockge:
-    image: docker.io/louislam/dockge:1.5.0
+    image: docker.io/louislam/dockge:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}

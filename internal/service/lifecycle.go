@@ -137,7 +137,23 @@ func (s *Service) Remove(ctx context.Context, ids []string, purge bool) error {
 			}
 			return nil
 		},
-		targets: func(ss *session) ([]string, error) { return ss.targets(ids) },
+		targets: func(ss *session) ([]string, error) {
+			if !purge {
+				return ss.targets(ids)
+			}
+			var installed []string
+			for _, id := range ids {
+				if !ss.leftover(id) {
+					installed = append(installed, id)
+				}
+			}
+			if len(installed) > 0 {
+				if _, err := ss.targets(installed); err != nil {
+					return nil, err
+				}
+			}
+			return ids, nil
+		},
 		compose: composeRemove,
 		after:   afterDashboard,
 		purge:   purge,
@@ -203,6 +219,9 @@ func (s *Service) ConfigSet(ctx context.Context, pairs []string) error {
 		}
 		if err := project.ValidEnvValue(value); err != nil {
 			return fmt.Errorf("%s: %w", key, err)
+		}
+		if err := project.ValidSetting(key, value); err != nil {
+			return fmt.Errorf("%s must be %w", key, err)
 		}
 		if key == "EXPOSURE" {
 			if value != ExposureLAN && value != ExposureLocal {

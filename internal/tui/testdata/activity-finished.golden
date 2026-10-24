@@ -8,6 +8,7 @@
   │ ● Sonarr          ready                                │ │     add Jellyfin as a connection                        │
   ╰────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────────────────────╯
     All 2 Apps are ready
+  Open Jellyfin: http://192.168.1.20:8096 — press o
 
   > ▸ Jellyfin
     ▾ Sonarr
@@ -19,7 +20,6 @@
       ✓ link-jellyfin → jellyfin · add Jellyfin as a connection
       ✓ check · verify Sonarr works
     ▾ whoami · added by hand, no Setup
-
 
 
 

@@ -16,7 +16,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "glances", Name: "Glances", Category: "Monitoring",
 		Description:   "See the workload visible to Glances without extra access to your computer",
-		Image:         "nicolargo/glances:4.5.6",
+		Image:         "nicolargo/glances:latest",
 		Docs:          "https://glances.readthedocs.io/en/latest/docker.html",
 		Port:          61208,
 		ContainerPort: 61208,
@@ -30,7 +30,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   glances:
-    image: nicolargo/glances:4.5.6
+    image: nicolargo/glances:latest
     restart: unless-stopped
     environment:
       GLANCES_OPT: -w
@@ -49,7 +49,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return err == nil, err
 		},
 		Do:   func(ctx context.Context) error { return VerifyHomarr(ctx, h) },
-		Hint: "Use Glances 4.5.6 with API v4 and the CPU, memory, network, filesystem and uptime plugins, then run self-host setup glances. Keep existing authentication enabled; Homarr 2.4.1 cannot connect to authenticated Glances. No extra host or device access is required.",
+		Hint: "Use Glances 4.5.6 or newer 4.x with API v4 and the CPU, memory, network, filesystem and uptime plugins, then run self-host setup glances. Keep existing authentication enabled; Homarr 2.4.1 cannot connect to authenticated Glances. No extra host or device access is required.",
 	})
 }
 

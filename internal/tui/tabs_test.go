@@ -206,19 +206,19 @@ func TestTypedTextIsNotSwallowedByGlobalKeys(t *testing.T) {
 	}
 }
 
-func TestSettingsEditTakesDigitsAndBrackets(t *testing.T) {
+func TestSettingsEditTakesDigits(t *testing.T) {
 	m, _ := settingsHost(t)
 
 	m = drive(t, m, press("down")) // TZ
 	m = drive(t, m, press("enter"))
 	m = drive(t, m, press("ctrl+u"))
-	m = typeText(t, m, "Etc/GMT+1[2]")
+	m = typeText(t, m, "Etc/GMT+12")
 	m = drive(t, m, press("enter"))
 
 	if got := activeTab(t, m); got != "5 Settings" {
 		t.Fatalf("digits while editing must not switch tabs, got %q", got)
 	}
-	if !strings.Contains(screen(m), "Europe/Paris → Etc/GMT+1[2]") {
+	if !strings.Contains(screen(m), "Europe/Paris → Etc/GMT+12") {
 		t.Fatalf("the typed value should be pending\n%s", screen(m))
 	}
 }

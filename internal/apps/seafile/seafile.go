@@ -33,7 +33,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "seafile", Name: "Seafile", Category: "Files",
 		Description:   "Sync and share your files across all your devices",
-		Image:         "seafileltd/seafile-mc:13.0.28",
+		Image:         "seafileltd/seafile-mc:13.0-latest",
 		Docs:          "https://manual.seafile.com/13.0/setup/setup_ce_by_docker/",
 		Port:          8080,
 		ContainerPort: 80,
@@ -55,7 +55,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   seafile:
-    image: seafileltd/seafile-mc:13.0.28
+    image: seafileltd/seafile-mc:13.0-latest
     restart: unless-stopped
     environment:
       SEAFILE_MYSQL_DB_HOST: seafile-db
@@ -101,7 +101,7 @@ func (App) Compose(rc app.RenderContext) string {
       start_period: 30s
       retries: 10
   seafile-redis:
-    image: redis:8.2.9-alpine3.22
+    image: redis:alpine
     restart: unless-stopped
 `
 }

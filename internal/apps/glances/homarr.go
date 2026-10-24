@@ -45,7 +45,7 @@ func apiResponse(ctx context.Context, h *helpers.H, path string) (helpers.Respon
 		return response, fmt.Errorf("%w: Glances requires authentication; keep it enabled. Homarr 2.4.1's native Glances adapter supports no credentials, so this Link must wait for a supported authenticated adapter", helpers.ErrManual)
 	}
 	if response.Status != http.StatusOK {
-		return response, fmt.Errorf("Glances API v4 returned HTTP %d; use Glances 4.5.6 and retry self-host setup glances", response.Status)
+		return response, fmt.Errorf("Glances API v4 returned HTTP %d; use Glances 4.5.6 or newer 4.x and retry self-host setup glances", response.Status)
 	}
 	return response, nil
 }
@@ -56,8 +56,8 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	var version string
-	if response.Decode(&version) != nil || version != SupportedVersion {
-		return errors.New("unsupported Glances version; use Glances 4.5.6 with API v4, then retry self-host setup glances")
+	if response.Decode(&version) != nil || !helpers.VersionCompatible(version, SupportedVersion) {
+		return errors.New("unsupported Glances version; use Glances 4.5.6 or newer 4.x with API v4, then retry self-host setup glances")
 	}
 	response, err = apiResponse(ctx, h, "/api/4/all")
 	if err != nil {

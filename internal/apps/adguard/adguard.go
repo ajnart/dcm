@@ -24,7 +24,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "adguard-home", Name: "AdGuard Home", Category: "DNS",
 		Description:   "Block ads and trackers on every device at home, with a simple control page",
-		Image:         "adguard/adguardhome:v0.107.79",
+		Image:         "adguard/adguardhome:latest",
 		Docs:          "https://github.com/AdguardTeam/AdGuardHome/wiki/Docker",
 		Port:          3000,
 		ContainerPort: 3000,
@@ -41,7 +41,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   adguard-home:
-    image: adguard/adguardhome:v0.107.79
+    image: adguard/adguardhome:latest
     restart: unless-stopped
     volumes:
       - ./work:/opt/adguardhome/work

@@ -92,7 +92,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	status := Status{Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings, Home: ss.p.Root}
+	status := Status{Apps: []AppStatus{}, Project: ss.p.Root, Exposure: ss.settings["EXPOSURE"], Access: accessIDs(ss.settings["EXPOSURE"]), LANIP: ss.settings["LAN_IP"], Settings: ss.settings, Home: ss.p.Root}
 	rec, cleanup, err := loadCloudflareRecord(ss.p)
 	if err != nil {
 		return Status{}, err

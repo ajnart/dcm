@@ -124,6 +124,34 @@ func (s *Service) recipeOf(targets []string) map[string]string {
 	return out
 }
 
+// checkInputKey rejects a --set key that names no input of the selected Apps.
+func checkInputKey(apps []app.App, key string) error {
+	appID, name, scoped := strings.Cut(key, ".")
+	var known []string
+	for _, a := range apps {
+		id := a.Info().ID
+		if scoped && id != appID {
+			continue
+		}
+		keys := []string{"port"}
+		for _, input := range a.Inputs() {
+			if !input.Private {
+				keys = append(keys, input.Key)
+			}
+		}
+		if slices.Contains(keys, key) || scoped && slices.Contains(keys, name) {
+			return nil
+		}
+		for _, k := range keys {
+			known = append(known, id+"."+k)
+		}
+	}
+	if scoped && len(known) == 0 {
+		return nil
+	}
+	return fmt.Errorf("--set %s: unknown input; known inputs: %s", key, strings.Join(known, ", "))
+}
+
 // resolveInputs applies sets and defaults and reports missing required inputs.
 func resolveInputs(apps []app.App, sets []string, previous map[string]map[string]string) (map[string]map[string]string, error) {
 	scoped := map[string]map[string]string{}
@@ -139,6 +167,9 @@ func resolveInputs(apps []app.App, sets []string, previous map[string]map[string
 					return nil, fmt.Errorf("private input %s.%s must use --set-file %s.%s=PATH", a.Info().ID, input.Key, a.Info().ID, input.Key)
 				}
 			}
+		}
+		if err := checkInputKey(apps, key); err != nil {
+			return nil, err
 		}
 		if appID, name, ok := strings.Cut(key, "."); ok {
 			if scoped[appID] == nil {

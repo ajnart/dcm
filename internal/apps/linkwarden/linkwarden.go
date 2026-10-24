@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "linkwarden", Name: "Linkwarden", Category: "Productivity",
 		Description:   "Save web pages you care about and search them later",
-		Image:         "ghcr.io/linkwarden/linkwarden:v2.16.3",
+		Image:         "ghcr.io/linkwarden/linkwarden:latest",
 		Docs:          "https://docs.linkwarden.app/self-hosting/setup",
 		Port:          3000,
 		ContainerPort: 3000,
@@ -51,7 +51,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   linkwarden:
-    image: ghcr.io/linkwarden/linkwarden:v2.16.3
+    image: ghcr.io/linkwarden/linkwarden:latest
     restart: unless-stopped
     environment:
       MEILI_HOST: http://linkwarden-meilisearch:7700

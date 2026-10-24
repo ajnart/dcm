@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "transmission", Name: "Transmission", Category: "Downloads",
 		Description:   "Download torrents in the background, light on your computer's resources",
-		Image:         "linuxserver/transmission:version-4.1.3-r0",
+		Image:         "linuxserver/transmission:latest",
 		Docs:          "https://github.com/transmission/transmission/tree/main/docs",
 		Port:          9091,
 		ContainerPort: 9091,
@@ -36,7 +36,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   transmission:
-    image: linuxserver/transmission:version-4.1.3-r0
+    image: linuxserver/transmission:latest
     restart: unless-stopped
     environment:
       PUID: ${PUID}
@@ -139,8 +139,8 @@ func rpcSession(ctx context.Context, h *helpers.H, user, password string) (bool,
 		return false, err
 	}
 	version, _ := session["version"].(string)
-	if version != "4.1.3" && !strings.HasPrefix(version, "4.1.3 (") || session["rpc-version-semver"] != "6.0.1" {
-		return false, errors.New("Transmission's version or RPC contract is unsupported; back up Transmission before using 4.1.3, then retry self-host setup transmission")
+	if !helpers.VersionCompatible(version, "4.1.3") || !rpcSemverCompatible(session["rpc-version-semver"]) {
+		return false, errors.New("Transmission's version or RPC contract is unsupported; back up Transmission before using Transmission 4.1.3 or newer 4.x, then retry self-host setup transmission")
 	}
 	statistics, err := rpcRead(ctx, h, user, password, "session-stats", map[string]any{})
 	if err != nil {
@@ -216,3 +216,8 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error { return setup().Check(ctx, h) }
+
+func rpcSemverCompatible(value any) bool {
+	semver, _ := value.(string)
+	return helpers.VersionCompatible(semver, "6.0.1")
+}

@@ -17,7 +17,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "dashdot", Name: "Dash.", Category: "Monitoring",
 		Description:   "See kernel-visible processor and memory use",
-		Image:         "mauricenino/dashdot:6.3.4",
+		Image:         "mauricenino/dashdot:latest",
 		Docs:          "https://getdashdot.com/docs/",
 		Port:          3001,
 		ContainerPort: 3001,
@@ -31,7 +31,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   dashdot:
-    image: mauricenino/dashdot:6.3.4
+    image: mauricenino/dashdot:latest
     restart: unless-stopped
     read_only: true
     environment:

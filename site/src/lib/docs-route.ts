@@ -35,6 +35,7 @@ export const onRequest = defineRouteMiddleware((context) => {
   if (route.pagination.next) route.pagination.next.href = clean(route.pagination.next.href);
 
   const slug = pageSlug(context.url.pathname);
+  if (slug.startsWith("docs/changelog")) Object.assign(route.entry.data, { pageActions: false });
   const canonical = `https://self-host.fyi/${slug}`;
   const title = route.entry.data.title;
   const description = route.entry.data.description ?? "";

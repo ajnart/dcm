@@ -59,8 +59,8 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	var version string
-	if response.Decode(&version) != nil || version != "0.26.1" && version != "0.26.1.0" {
-		return errors.New("this Slskd Link supports version 0.26.1; back up Slskd, run self-host update slskd, then retry self-host setup slskd")
+	if response.Decode(&version) != nil || !helpers.VersionCompatible(version, "0.26.1") {
+		return errors.New("this Slskd Link supports Slskd 0.26.1 or newer 0.x; back up Slskd, run self-host update slskd, then retry self-host setup slskd")
 	}
 	if _, err := readServer(ctx, h); err != nil {
 		return err
@@ -97,15 +97,17 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 }
 
 func readServer(ctx context.Context, h *helpers.H) (serverState, error) {
-	response, err := apiRead(ctx, h, "/api/v0/server")
+	response, err := apiRead(ctx, h, "/api/v0/application")
 	if err != nil {
 		return serverState{}, err
 	}
-	var state serverState
-	if response.Decode(&state) != nil || state.IsConnected == nil || state.IsLoggedIn == nil {
-		return state, errors.New("Slskd did not return its Soulseek connection state; retry self-host setup slskd")
+	var application struct {
+		Server serverState `json:"server"`
 	}
-	return state, nil
+	if response.Decode(&application) != nil || application.Server.IsConnected == nil || application.Server.IsLoggedIn == nil {
+		return application.Server, errors.New("Slskd did not return its Soulseek connection state; retry self-host setup slskd")
+	}
+	return application.Server, nil
 }
 
 func soulseekReady(ctx context.Context, h *helpers.H) (bool, error) {

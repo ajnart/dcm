@@ -290,7 +290,16 @@ func (v *dashboardView) appRow(ctx *viewContext, a service.AppStatus, width int)
 	category := t.dim().Render(pad(appCategory(ctx, a.ID), 10)) + " "
 	// The address without its scheme: o opens it.
 	address := strings.TrimPrefix(strings.TrimPrefix(a.URL, "http://"), "https://")
-	urlWidth := min(width-40, 22)
+	longest := 0
+	for _, other := range ctx.status.Apps {
+		longest = max(longest, lipgloss.Width(strings.TrimPrefix(strings.TrimPrefix(other.URL, "http://"), "https://")))
+	}
+	// The address outranks the category: the category goes first when the
+	// longest address does not fit beside it.
+	urlWidth := min(width-40, max(longest, 22))
+	if longest > width-40 && width-29 >= 12 {
+		category, urlWidth = "", min(longest, width-29)
+	}
 	url := ""
 	shown := ""
 	if urlWidth >= 12 {

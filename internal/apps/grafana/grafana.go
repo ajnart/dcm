@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "grafana", Name: "Grafana", Category: "Observability",
 		Description:   "Turn numbers about your computers and apps into charts and alerts",
-		Image:         "grafana/grafana:13.2.2",
+		Image:         "grafana/grafana:latest",
 		Docs:          "https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/",
 		Port:          3000,
 		ContainerPort: 3000,
@@ -41,7 +41,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   grafana:
-    image: grafana/grafana:13.2.2
+    image: grafana/grafana:latest
     restart: unless-stopped
     user: ${PUID}:${PGID}
     environment:

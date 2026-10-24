@@ -256,7 +256,7 @@ func TestCheckReportsFixedStatusAndContractFailures(t *testing.T) {
 	}{
 		{"wrong-credential", http.StatusUnauthorized, "synthetic-secret-response", "HTTP 401"},
 		{"invalid-json", http.StatusOK, "synthetic-secret-response", "version JSON"},
-		{"wrong-version", http.StatusOK, `{"Version":"synthetic-secret-response"}`, "pinned"},
+		{"wrong-version", http.StatusOK, `{"Version":"synthetic-secret-response"}`, "Traefik 3.6.22 or newer"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

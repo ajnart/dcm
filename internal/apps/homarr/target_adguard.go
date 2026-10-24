@@ -61,10 +61,10 @@ func adguardNativeReady(ctx context.Context, from, h *helpers.H) error {
 		if err != nil {
 			return errors.New("cannot verify Homarr's null DNS-filter support; preserve the current DNS settings and retry self-host setup homarr")
 		}
-		if version == "2.5.1" || version == "2.5.2" {
+		if credentialSafeHomarrVersion(version) {
 			return nil
 		}
-		return errors.New("AdGuard Home has a valid null filters list, which this Link supports only with authenticated Homarr 2.5.1 or 2.5.2; preserve the current DNS settings and review the supported Homarr version before retrying self-host setup homarr")
+		return errors.New("AdGuard Home has a valid null filters list, which this Link supports only with authenticated Homarr 2.5.1 or newer; preserve the current DNS settings and review the supported Homarr version before retrying self-host setup homarr")
 	}
 	for _, filter := range filters {
 		if filter.URL == nil || filter.Name == nil || filter.Enabled == nil || filter.ID == nil || filter.RulesCount == nil ||

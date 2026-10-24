@@ -18,7 +18,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "archive-team-warrior", Name: "ArchiveTeam Warrior", Category: "Downloads",
 		Description:   "Lend your spare internet time to help save websites before they disappear",
-		Image:         "atdr.meo.ws/archiveteam/warrior-dockerfile@sha256:19337aa9157e04f6cdb8f7c6f8c98e27d14efb0d9525334995fbdb036b95e1ca",
+		Image:         "atdr.meo.ws/archiveteam/warrior-dockerfile:latest",
 		Docs:          "https://wiki.archiveteam.org/index.php/ArchiveTeam_Warrior",
 		Port:          8001,
 		ContainerPort: 8001,
@@ -48,7 +48,7 @@ func (App) Compose(rc app.RenderContext) string {
 	// paths and saved config are retained, and backup containment stays strict.
 	return `services:
   archive-team-warrior-init:
-    image: atdr.meo.ws/archiveteam/warrior-dockerfile@sha256:19337aa9157e04f6cdb8f7c6f8c98e27d14efb0d9525334995fbdb036b95e1ca
+    image: atdr.meo.ws/archiveteam/warrior-dockerfile:latest
     user: "0:0"
     network_mode: none
     read_only: true
@@ -64,7 +64,7 @@ func (App) Compose(rc app.RenderContext) string {
       - ./projects:/owned/projects
       - ./data:/owned/data
   archive-team-warrior:
-    image: atdr.meo.ws/archiveteam/warrior-dockerfile@sha256:19337aa9157e04f6cdb8f7c6f8c98e27d14efb0d9525334995fbdb036b95e1ca
+    image: atdr.meo.ws/archiveteam/warrior-dockerfile:latest
     restart: unless-stopped
     user: "1000:1000"
     depends_on:

@@ -55,7 +55,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "speedtest-tracker", Name: "Speedtest Tracker", Category: "Monitoring",
 		Description:   "Check your internet speed on a schedule and keep the history",
-		Image:         "lscr.io/linuxserver/speedtest-tracker:v1.14.7-ls165",
+		Image:         "lscr.io/linuxserver/speedtest-tracker:latest",
 		Docs:          "https://docs.speedtest-tracker.dev/getting-started/installation/using-docker-compose",
 		Port:          8080,
 		ContainerPort: 80,
@@ -75,7 +75,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   speedtest-tracker:
-    image: lscr.io/linuxserver/speedtest-tracker:v1.14.7-ls165
+    image: lscr.io/linuxserver/speedtest-tracker:latest
     restart: unless-stopped
     environment:
       PUID: ${PUID}

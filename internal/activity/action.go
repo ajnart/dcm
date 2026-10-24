@@ -8,6 +8,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 // Action is the running or most recent Action: the events since the last
@@ -161,11 +162,23 @@ func buildAction(status service.Status, evs []events.Event, pull Pull) Action {
 			app.Steps = append(app.Steps, step)
 		}
 	}
+	removing := strings.HasPrefix(out.Title, "remove ")
+	setups := map[string]stepstatus.Setup{}
+	for _, app := range status.Apps {
+		setups[app.ID] = app.Setup
+	}
 	for _, app := range apps {
+		setup, known := setups[app.ID]
+		if removing && out.Finished && status.Project != "" && !known {
+			continue
+		}
 		app.State = appState(*app, started[app.ID], app.ID == current && out.Running, out.Finished)
 		app.Ready = app.State == Done && (out.Finished || slices.ContainsFunc(app.Steps, func(s Step) bool {
 			return s.ID == "check" && (s.State == Done || s.State == Skipped)
 		}))
+		if app.Ready && out.Finished && len(app.Steps) == 0 && (setup == stepstatus.SetupPending || setup == stepstatus.SetupIncomplete) {
+			app.Ready = false
+		}
 		if app.Ready {
 			out.Counts.AppsSetUp++
 		}
@@ -395,6 +408,15 @@ func narrative(a Action, running events.Event, pull Pull, name func(string) stri
 		}
 		if msg := needsYou(a); msg != "" {
 			return msg
+		}
+		var waiting []string
+		for _, app := range a.Apps {
+			if !app.Ready {
+				waiting = append(waiting, app.Name)
+			}
+		}
+		if len(waiting) > 0 {
+			return "Setup is not finished for " + strings.Join(waiting, ", ") + "; run self-host to resume"
 		}
 		switch len(a.Apps) {
 		case 0:

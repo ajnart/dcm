@@ -19,7 +19,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "gotify", Name: "Gotify", Category: "Communication",
 		Description:   "Collect notifications from your apps and send them to your phone",
-		Image:         "gotify/server:3.1.1",
+		Image:         "gotify/server:latest",
 		Docs:          "https://gotify.net/docs/install",
 		Port:          8080,
 		ContainerPort: 80,
@@ -33,7 +33,7 @@ func (App) Inputs() []app.Input { return nil }
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   gotify:
-    image: gotify/server:3.1.1
+    image: gotify/server:latest
     restart: unless-stopped
     environment:
       GOTIFY_DEFAULTUSER_NAME: ${ADMIN_USER}

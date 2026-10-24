@@ -34,7 +34,7 @@ Each status is a dated launch run on a real host or VM, linked to its issue. Not
 | WSL2                         | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                                     |
 | Native Windows               | Unsupported                     | Not supported.                                                                                                                                                                                                                                        |
 
-Known issues from these runs, both fixed on main after v0.5.11: a newcomer saw Nextcloud's Homarr credential-recovery inputs and Review listed port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App left its network and `down` refused ([#590](https://github.com/ajnart/self-host/issues/590)). Four Apps that failed on real hosts are hidden from new installs: BookStack, LLDAP, Passbolt and Speedtest Tracker ([#493](https://github.com/ajnart/self-host/issues/493)).
+Known issues from these runs, both fixed in v0.6.0: a newcomer saw Nextcloud's Homarr credential-recovery inputs and Review listed port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App left its network and `down` refused ([#590](https://github.com/ajnart/self-host/issues/590)). Four Apps that failed on real hosts are hidden from new installs: BookStack, LLDAP, Passbolt and Speedtest Tracker ([#493](https://github.com/ajnart/self-host/issues/493)).
 
 ## Install
 

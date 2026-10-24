@@ -23,7 +23,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "headscale", Name: "Headscale", Category: "Remote access",
 		Description:   "Connect your devices into one private network, without a Tailscale account",
-		Image:         "docker.io/headscale/headscale:0.29.4",
+		Image:         "docker.io/headscale/headscale:latest",
 		Docs:          "https://headscale.net/stable/setup/install/container/",
 		Port:          18082,
 		ContainerPort: 8080,
@@ -53,7 +53,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   headscale:
-    image: docker.io/headscale/headscale:0.29.4
+    image: docker.io/headscale/headscale:latest
     restart: unless-stopped
     command: ["serve"]
     read_only: true

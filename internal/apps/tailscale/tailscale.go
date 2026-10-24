@@ -25,7 +25,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "tailscale", Name: "Tailscale", Category: "Remote access",
 		Description:   "Reach your home apps privately from anywhere, on any of your devices",
-		Image:         "ghcr.io/tailscale/tailscale:v1.102.4",
+		Image:         "ghcr.io/tailscale/tailscale:latest",
 		Docs:          "https://tailscale.com/docs/",
 		Port:          0,
 		ContainerPort: 0,
@@ -60,7 +60,7 @@ func (App) Compose(rc app.RenderContext) string {
 	var b strings.Builder
 	b.WriteString(`services:
   tailscale:
-    image: ghcr.io/tailscale/tailscale:v1.102.4
+    image: ghcr.io/tailscale/tailscale:latest
     hostname: self-host
     entrypoint: ["/usr/local/bin/tailscaled"]
     command: ["--tun=userspace-networking", "--state=/var/lib/tailscale/tailscaled.state", "--socket=/tmp/tailscaled.sock"]

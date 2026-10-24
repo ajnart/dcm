@@ -72,7 +72,7 @@ func (a *program) recap(cmd *cobra.Command) {
 		return
 	}
 	fmt.Fprintln(a.deps.Out)
-	printStatus(a.deps.Out, status)
+	printStatus(a.deps.Out, status, a.colour(a.deps.Out))
 }
 
 func (a *program) statusCmd() *cobra.Command {
@@ -95,7 +95,7 @@ func (a *program) statusCmd() *cobra.Command {
 			}
 			printSummary(a.deps.Out, status)
 			fmt.Fprintln(a.deps.Out)
-			printStatus(a.deps.Out, status)
+			printStatus(a.deps.Out, status, a.colour(a.deps.Out))
 			return nil
 		},
 	}
@@ -143,7 +143,7 @@ func printSummary(w io.Writer, s service.Status) {
 	fmt.Fprintf(w, "Everything lives in %s.\n", s.Home)
 }
 
-func printStatus(w io.Writer, s service.Status) {
+func printStatus(w io.Writer, s service.Status, colour bool) {
 	fmt.Fprintf(w, "Project   %s\n", s.Project)
 	access := "Home network (other devices can connect)"
 	if s.Exposure == service.ExposureLocal {
@@ -177,7 +177,7 @@ func printStatus(w io.Writer, s service.Status) {
 		if health == "" {
 			health = "-"
 		}
-		fmt.Fprintf(tw, "%s %s\t%s\t%s\t%s\t%s\t%s\n", dot(app), app.ID, app.URL, app.State, health, app.Setup, app.Update)
+		fmt.Fprintf(tw, "%s %s\t%s\t%s\t%s\t%s\t%s\n", dot(app, colour), app.ID, app.URL, app.State, health, app.Setup, app.Update)
 	}
 	tw.Flush()
 	for _, app := range s.Apps {
@@ -197,8 +197,11 @@ func printStatus(w io.Writer, s service.Status) {
 	}
 }
 
-// dot is the coloured status marker used by status and the dashboard.
-func dot(app service.AppStatus) string {
+// dot is the status marker used by status; coloured only on a colour terminal.
+func dot(app service.AppStatus, colour bool) string {
+	if !colour {
+		return "●"
+	}
 	switch service.Level(app) {
 	case "ok":
 		return "\x1b[32m●\x1b[0m"

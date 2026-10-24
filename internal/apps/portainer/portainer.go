@@ -20,8 +20,8 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "portainer", Name: "Portainer", Category: "Containers",
-		Description:   "See and manage your running apps from one web page",
-		Image:         "docker.io/portainer/portainer-ce:2.45.1",
+		Description:   "A web page for managing apps; you give it access to your apps yourself",
+		Image:         "docker.io/portainer/portainer-ce:latest",
 		Docs:          "https://docs.portainer.io/start/install-ce/server/docker/linux",
 		Port:          9000,
 		ContainerPort: 9000,
@@ -43,7 +43,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   portainer:
-    image: docker.io/portainer/portainer-ce:2.45.1
+    image: docker.io/portainer/portainer-ce:latest
     command: ["--http-enabled", "--bind", ":9000", "--admin-password-file=/run/secrets/admin-bootstrap"]
     restart: unless-stopped
     volumes:

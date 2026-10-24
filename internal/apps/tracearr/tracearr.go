@@ -24,7 +24,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "tracearr", Name: "Tracearr", Category: "Media",
 		Description:   "See who watches what on your media server, and when",
-		Image:         "ghcr.io/connorgallopo/tracearr:2.6.0",
+		Image:         "ghcr.io/connorgallopo/tracearr:latest",
 		Docs:          "https://docs.tracearr.com/getting-started/installation",
 		Port:          3000,
 		ContainerPort: 3000,
@@ -49,7 +49,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   tracearr:
-    image: ghcr.io/connorgallopo/tracearr:2.6.0
+    image: ghcr.io/connorgallopo/tracearr:latest
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -106,7 +106,7 @@ func (App) Compose(rc app.RenderContext) string {
       start_period: 0s
       retries: 5
   tracearr-redis:
-    image: redis:8-alpine
+    image: redis:alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     volumes:

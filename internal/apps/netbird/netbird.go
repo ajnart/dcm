@@ -28,7 +28,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "netbird", Name: "NetBird", Category: "Remote access",
 		Description:   "Connect your devices into one private network, wherever they are",
-		Image:         "netbirdio/dashboard:v2.94.0",
+		Image:         "netbirdio/dashboard:latest",
 		Docs:          "https://docs.netbird.io/selfhosted/selfhosted-quickstart",
 		Port:          18080,
 		ContainerPort: 80,
@@ -66,7 +66,7 @@ func (App) Compose(rc app.RenderContext) string {
 	base := origin(rc)
 	return `services:
   netbird:
-    image: netbirdio/dashboard:v2.94.0
+    image: netbirdio/dashboard:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}
@@ -86,7 +86,7 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + fmt.Sprint(rc.Port) + `:80
   netbird-server:
-    image: netbirdio/netbird-server:0.80.0
+    image: netbirdio/netbird-server:latest
     restart: unless-stopped
     command: ["--config", "/run/secrets/server-config"]
     environment:

@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "node-red", Name: "Node-RED", Category: "Home automation",
 		Description:   "Connect devices and services with simple drag-and-drop automations",
-		Image:         "nodered/node-red:5.0.7",
+		Image:         "nodered/node-red:latest",
 		Docs:          "https://nodered.org/docs/getting-started/docker",
 		Port:          1880,
 		ContainerPort: 1880,
@@ -37,7 +37,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   node-red:
-    image: nodered/node-red:5.0.7
+    image: nodered/node-red:latest
     restart: unless-stopped
     user: ${PUID}:${PGID}
     environment:

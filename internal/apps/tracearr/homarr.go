@@ -159,8 +159,8 @@ func readHomarrHealth(ctx context.Context, h *helpers.H) (homarrHealth, error) {
 	if resp.Decode(&health) != nil || health.Status != "ok" || health.Servers == nil || health.Timestamp.IsZero() {
 		return health, errors.New("Tracearr returned incomplete authenticated health data")
 	}
-	if health.Version != "2.6.0" && health.Version != "v2.6.0" {
-		return health, errors.New("Tracearr Homarr Link requires Tracearr 2.6.0; back up the App before changing versions")
+	if !helpers.VersionCompatible(health.Version, "2.6.0") {
+		return health, errors.New("Tracearr Homarr Link requires Tracearr 2.6.0 or newer 2.x; back up the App before changing versions")
 	}
 	age := h.Now().Sub(health.Timestamp)
 	if age < -5*time.Second || age > 30*time.Second {

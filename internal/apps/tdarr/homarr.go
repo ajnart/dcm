@@ -22,8 +22,8 @@ func verifyVersion(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	var version struct{ Status, Version string }
-	if response.Status != 200 || response.Decode(&version) != nil || version.Status != "good" || version.Version != "2.92.01" {
-		return errors.New("Tdarr's API version is unsupported or unavailable; use 2.92.01 and retry self-host setup tdarr")
+	if response.Status != 200 || response.Decode(&version) != nil || version.Status != "good" || !helpers.VersionCompatible(version.Version, "2.92.01") {
+		return errors.New("Tdarr's API version is unsupported or unavailable; use Tdarr 2.92.01 or newer 2.x and retry self-host setup tdarr")
 	}
 	return nil
 }

@@ -28,7 +28,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "immich", Name: "Immich", Category: "Photos",
 		Description:   "Back up your phone's photos and find any of them by searching",
-		Image:         "ghcr.io/immich-app/immich-server:v3.2.2",
+		Image:         "ghcr.io/immich-app/immich-server:release",
 		Docs:          "https://docs.immich.app/install/docker-compose/",
 		Port:          2283,
 		ContainerPort: 2283,
@@ -48,7 +48,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   immich:
-    image: ghcr.io/immich-app/immich-server:v3.2.2
+    image: ghcr.io/immich-app/immich-server:release
     restart: unless-stopped
     environment:
       DB_DATABASE_NAME: immich
@@ -71,7 +71,7 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 30s
       retries: 3
   immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:v3.2.2
+    image: ghcr.io/immich-app/immich-machine-learning:release
     restart: unless-stopped
     volumes:
       - ./model-cache:/cache
@@ -81,7 +81,7 @@ func (App) Compose(rc app.RenderContext) string {
       timeout: 30s
       retries: 3
   immich-redis:
-    image: docker.io/valkey/valkey:9
+    image: docker.io/valkey/valkey:latest
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]

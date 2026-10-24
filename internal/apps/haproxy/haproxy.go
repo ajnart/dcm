@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "haproxy", Name: "HAProxy", Category: "Ingress",
 		Description:   "Give your apps one shared front door, with a page of usage statistics",
-		Image:         "haproxy:3.2.25",
+		Image:         "haproxy:latest",
 		Docs:          "https://docs.haproxy.org/",
 		Port:          18081,
 		ContainerPort: 8080,
@@ -40,7 +40,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   haproxy:
-    image: haproxy:3.2.25
+    image: haproxy:latest
     restart: unless-stopped
     read_only: true
     environment:

@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "authelia", Name: "Authelia", Category: "Identity",
 		Description:   "Add a login page with a second security step in front of your other apps",
-		Image:         "docker.io/authelia/authelia:4.39.25",
+		Image:         "docker.io/authelia/authelia:latest",
 		Docs:          "https://www.authelia.com/integration/deployment/docker/",
 		Port:          9091,
 		ContainerPort: 9091,
@@ -49,7 +49,7 @@ func (App) Secrets() []app.SecretSpec {
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   authelia:
-    image: docker.io/authelia/authelia:4.39.25
+    image: docker.io/authelia/authelia:latest
     restart: unless-stopped
     command: ["--config", "/config/configuration.yml"]
     environment:

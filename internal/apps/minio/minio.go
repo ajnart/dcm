@@ -21,7 +21,7 @@ import (
 // App is MinIO AIStor (licensed). Traps: docs/catalog/traps/minio.md.
 type App struct{}
 
-const image = "quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z.hotfix.4ef74f03d6f2"
+const image = "quay.io/minio/aistor/minio:latest"
 
 func (App) Info() app.Info {
 	return app.Info{
@@ -52,7 +52,7 @@ func (App) Compose(rc app.RenderContext) string {
 	license := rc.Inputs["MINIO_LICENSE_FILE"]
 	return `services:
   minio:
-    image: quay.io/minio/aistor/minio:RELEASE.2026-09-19T17-05-25Z.hotfix.4ef74f03d6f2
+    image: quay.io/minio/aistor/minio:latest
     restart: unless-stopped
     command: ["minio", "server", "/mnt/data", "--console-address", ":9001"]
     environment:

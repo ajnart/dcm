@@ -35,13 +35,14 @@ type App struct{}
 func (App) Info() app.Info {
 	return app.Info{
 		ID: "qbittorrent", Name: "qBittorrent", Category: "Downloads",
-		Description:   "Download and share torrents from a clean web page",
-		Image:         "lscr.io/linuxserver/qbittorrent:latest",
-		Docs:          "https://github.com/qbittorrent/qBittorrent/wiki",
-		Port:          8080,
-		ContainerPort: 8080,
-		Service:       "qbittorrent",
-		UsesMedia:     true,
+		Description:         "Download and share torrents from a clean web page",
+		Image:               "lscr.io/linuxserver/qbittorrent:latest",
+		Docs:                "https://github.com/qbittorrent/qBittorrent/wiki",
+		Port:                8080,
+		ContainerPort:       8080,
+		ContainerPortIsPort: true,
+		Service:             "qbittorrent",
+		UsesMedia:           true,
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/ajnart/self-host/internal/service"
+	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
 // askKind is what a start-up question is about, asked at most once a session.
@@ -15,8 +16,11 @@ type askKind int
 
 const (
 	askNetwork askKind = iota
+	askResume
+	askSetup
 	askStopped
 	askUpdates
+	askQuit
 )
 
 // askPrompt is a yes/no question the Dashboard asks once it is idle, about
@@ -41,7 +45,7 @@ func (m Model) offerAsk() Model {
 	if m.ask != nil || m.upgrade != nil || m.quitting || m.opts.NoStartupPrompts || !m.statusFresh || !m.idle() || m.status.DockerError != "" {
 		return m
 	}
-	for _, kind := range []askKind{askNetwork, askStopped, askUpdates} {
+	for _, kind := range []askKind{askNetwork, askResume, askSetup, askStopped, askUpdates} {
 		if m.asked[kind] {
 			continue
 		}
@@ -76,9 +80,36 @@ func startQuestion(kind askKind, status service.Status) *askPrompt {
 			req:   Request{Action: ActionConfig, Pairs: []string{"LAN_IP=" + now}},
 			task:  "config LAN_IP=" + now,
 		}
+	case askResume, askSetup:
+		want := stepstatus.SetupPending
+		if kind == askSetup {
+			want = stepstatus.SetupIncomplete
+		}
+		var ids, names []string
+		for _, a := range status.Apps {
+			if a.Managed && a.Setup == want {
+				ids, names = append(ids, a.ID), append(names, a.Name)
+			}
+		}
+		if len(ids) == 0 {
+			return nil
+		}
+		list := strings.Join(names, ", ")
+		if kind == askSetup {
+			return &askPrompt{kind: kind, title: "Setup needs another try",
+				body:  []string{"Setup did not finish for " + list + "."},
+				query: "Retry Setup?", req: Request{Action: ActionSetup, IDs: ids}, task: "setup " + strings.Join(ids, " ")}
+		}
+		return &askPrompt{kind: kind, title: "An install did not finish",
+			body:  []string{list + " was not fully installed. Resuming pulls its images, starts it and runs Setup; steps already done are skipped."},
+			query: "Resume the install?",
+			req:   Request{Action: ActionInstall, Install: &service.InstallOptions{Targets: ids}}, task: "install " + strings.Join(ids, " ")}
 	case askStopped:
 		var names []string
 		for _, a := range status.Apps {
+			if a.Managed && (a.Setup == stepstatus.SetupPending || a.Setup == stepstatus.SetupIncomplete) {
+				continue
+			}
 			if a.State == "exited" || a.Managed && a.State == "missing" {
 				names = append(names, a.Name)
 			}
@@ -125,6 +156,9 @@ func (m Model) handleAskKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case msg.String() == "ctrl+c":
 		return m.quit()
 	case key.Matches(msg, askYes):
+		if prompt.kind == askQuit {
+			return m.stopAndQuit()
+		}
 		m.ask = nil
 		return m.run(prompt.req, prompt.task)
 	case key.Matches(msg, askNo):

@@ -18,7 +18,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "vector", Name: "Vector", Category: "Observability",
 		Description:   "Collect your apps' activity messages and send them where you choose",
-		Image:         "ghcr.io/vectordotdev/vector:0.58.0-debian",
+		Image:         "ghcr.io/vectordotdev/vector:latest-debian",
 		Docs:          "https://vector.dev/docs/setup/installation/platforms/docker/",
 		Port:          8686,
 		ContainerPort: 8686,
@@ -51,7 +51,7 @@ func (App) Files(app.RenderContext, func(string) string) []app.File {
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   vector:
-    image: ghcr.io/vectordotdev/vector:0.58.0-debian
+    image: ghcr.io/vectordotdev/vector:latest-debian
     restart: unless-stopped
     volumes:
       - ./config:/etc/vector/vector.yaml

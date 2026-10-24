@@ -42,6 +42,32 @@ func (v *activityView) Keys() []key.Binding {
 	return activityKeys
 }
 
+// nextApp is the App to open after an install that finished cleanly:
+// Homarr when it is among the installed Apps, else the first one with an Address.
+func nextApp(ctx *viewContext, s activity.Snapshot) (service.AppStatus, bool) {
+	a := s.Action
+	if !a.Finished || a.Error != "" || len(a.Apps) == 0 || !strings.HasPrefix(a.Title, "install") {
+		return service.AppStatus{}, false
+	}
+	var first service.AppStatus
+	for _, done := range a.Apps {
+		if !done.Ready {
+			return service.AppStatus{}, false
+		}
+		app, found := appStatus(ctx, done.ID)
+		if !found || app.URL == "" {
+			continue
+		}
+		if app.ID == "homarr" {
+			return app, true
+		}
+		if first.ID == "" {
+			first = app
+		}
+	}
+	return first, first.ID != ""
+}
+
 func (v *activityView) Panes() []pane {
 	return []pane{{"Steps", activityKeys}, {"Errors", errorKeys}, {"Search", activitySearchKeys}}
 }
@@ -189,6 +215,10 @@ func (v *activityView) key(ctx *viewContext, press tea.KeyPressMsg) (view, tea.C
 		return v, nil, nav{kind: navBack}
 	case key.Matches(press, ctx.keys.Search):
 		v.searching = true
+	case key.Matches(press, ctx.keys.Open):
+		if app, found := nextApp(ctx, ctx.snapshot()); found {
+			return v, openApp(ctx, app), nav{}
+		}
 	case press.String() == "space":
 		v.toggle(ctx)
 	case press.String() == "enter":
@@ -224,6 +254,9 @@ func (v *activityView) View(ctx *viewContext, width, height int) string {
 		}
 		for _, line := range block {
 			lines = append(lines, "  "+line)
+		}
+		if app, found := nextApp(ctx, s); found {
+			lines = append(lines, "  "+t.title().Render("Open "+app.Name+": ")+t.body().Render(app.URL)+t.dim().Render(" — press o"))
 		}
 		lines = append(lines, "")
 	}

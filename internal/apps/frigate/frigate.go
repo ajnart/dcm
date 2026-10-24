@@ -24,7 +24,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "frigate", Name: "Frigate", Category: "Cameras",
 		Description:   "Record your security cameras and get alerts when people or cars appear",
-		Image:         "ghcr.io/blakeblackshear/frigate:0.18.0",
+		Image:         "ghcr.io/blakeblackshear/frigate:stable",
 		Docs:          "https://docs.frigate.video/guides/getting_started/",
 		Port:          8971,
 		ContainerPort: 8971,
@@ -60,7 +60,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   frigate:
-    image: ghcr.io/blakeblackshear/frigate:0.18.0
+    image: ghcr.io/blakeblackshear/frigate:stable
     restart: unless-stopped
     shm_size: "64mb"
     environment:
@@ -293,8 +293,8 @@ func ReadStatistics(ctx context.Context, h *helpers.H) (Statistics, error) {
 	if err := response.Decode(&snapshot); err != nil || snapshot.Cameras == nil || snapshot.Service.Uptime == nil || *snapshot.Service.Uptime < 0 || snapshot.Service.Version == "" {
 		return Statistics{}, errors.New("Frigate returned incomplete server statistics; retry self-host setup frigate")
 	}
-	if snapshot.Service.Version != "0.18.0" && !strings.HasPrefix(snapshot.Service.Version, "0.18.0-") {
-		return Statistics{}, errors.New("this Frigate API contract supports version 0.18.0; back up Frigate before changing its version, then retry Setup")
+	if !helpers.VersionCompatible(snapshot.Service.Version, "0.18.0") {
+		return Statistics{}, errors.New("this Frigate API contract supports Frigate 0.18.0 or newer 0.x; back up Frigate before changing its version, then retry Setup")
 	}
 	return Statistics{Cameras: len(snapshot.Cameras), Uptime: *snapshot.Service.Uptime, Version: snapshot.Service.Version}, nil
 }

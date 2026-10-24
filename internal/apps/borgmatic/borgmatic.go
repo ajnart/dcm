@@ -17,7 +17,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "borgmatic", Name: "Borgmatic", Category: "Backups",
 		Description:   "Back up your files on a schedule, safely encrypted",
-		Image:         "ghcr.io/borgmatic-collective/borgmatic:2.1.8",
+		Image:         "ghcr.io/borgmatic-collective/borgmatic:latest",
 		Docs:          "https://torsion.org/borgmatic/docs/",
 		Port:          0,
 		ContainerPort: 0,
@@ -54,7 +54,7 @@ func (App) Files(rc app.RenderContext, secret func(string) string) []app.File {
 func (App) Compose(app.RenderContext) string {
 	return `services:
   borgmatic:
-    image: ghcr.io/borgmatic-collective/borgmatic:2.1.8
+    image: ghcr.io/borgmatic-collective/borgmatic:latest
     restart: "no"
     hostname: self-host-borgmatic
     command: ["borgmatic", "--version"]

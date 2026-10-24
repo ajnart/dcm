@@ -25,7 +25,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "traefik", Name: "Traefik", Category: "Ingress",
 		Description:   "Send web visitors to the right app automatically, with a read-only status page",
-		Image:         "traefik:v3.6.22",
+		Image:         "traefik:latest",
 		Docs:          "https://doc.traefik.io/traefik/",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -39,7 +39,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   traefik:
-    image: traefik:v3.6.22
+    image: traefik:latest
     restart: unless-stopped
     command:
       - --entryPoints.health.address=:8080
@@ -111,8 +111,8 @@ func adminWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if err := version.Decode(&info); err != nil {
 		return false, errors.New("authenticated management API returned invalid version JSON")
 	}
-	if info.Version != "3.6.22" {
-		return false, errors.New("management API version does not match pinned 3.6.22")
+	if !helpers.VersionCompatible(info.Version, "3.6.22") {
+		return false, errors.New("management API version is not Traefik 3.6.22 or newer 3.x")
 	}
 	routers, err := h.HTTP(ctx, helpers.Request{Path: "/api/http/routers", User: h.AdminUser(), Password: h.AdminPassword(), NoRedirect: true})
 	if err != nil {

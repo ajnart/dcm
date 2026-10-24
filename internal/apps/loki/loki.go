@@ -18,7 +18,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "loki", Name: "Loki", Category: "Observability",
 		Description:   "Gather your apps' activity messages in one place to search through",
-		Image:         "grafana/loki:3.7.0",
+		Image:         "grafana/loki:latest",
 		Docs:          "https://grafana.com/docs/loki/latest/setup/install/docker/",
 		Port:          3100,
 		ContainerPort: 3100,
@@ -36,7 +36,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   loki:
-    image: grafana/loki:3.7.0
+    image: grafana/loki:latest
     restart: unless-stopped
     user: ${PUID}:${PGID}
     volumes:

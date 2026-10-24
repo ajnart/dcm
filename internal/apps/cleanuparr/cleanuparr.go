@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "cleanuparr", Name: "Cleanuparr", Category: "Requests",
 		Description:   "Remove stuck, fake or unwanted downloads for your movie and show apps",
-		Image:         "ghcr.io/cleanuparr/cleanuparr:2.10.10",
+		Image:         "ghcr.io/cleanuparr/cleanuparr:latest",
 		Docs:          "https://cleanuparr.github.io/docs/installation/detailed",
 		Port:          11011,
 		ContainerPort: 11011,
@@ -40,7 +40,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   cleanuparr:
-    image: ghcr.io/cleanuparr/cleanuparr:2.10.10
+    image: ghcr.io/cleanuparr/cleanuparr:latest
     restart: unless-stopped
     environment:
       PORT: "11011"

@@ -29,9 +29,11 @@ type stubApp struct {
 	links  []app.Link
 }
 
-func (s stubApp) Info() app.Info                          { return s.info }
-func (s stubApp) Inputs() []app.Input                     { return s.inputs }
-func (s stubApp) Compose(app.RenderContext) string        { return "" }
+func (s stubApp) Info() app.Info      { return s.info }
+func (s stubApp) Inputs() []app.Input { return s.inputs }
+func (s stubApp) Compose(app.RenderContext) string {
+	return "services:\n  " + s.info.ID + ":\n    image: " + s.info.Image + "\n"
+}
 func (s stubApp) Setup(context.Context, *helpers.H) error { return nil }
 func (s stubApp) Check(context.Context, *helpers.H) error { return nil }
 func (s stubApp) Links() []app.Link                       { return s.links }

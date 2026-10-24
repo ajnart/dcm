@@ -3,10 +3,7 @@ package tui
 import (
 	"cmp"
 	"context"
-	"errors"
 	"fmt"
-	"net"
-	"path/filepath"
 	"runtime"
 	"slices"
 	"strconv"
@@ -17,6 +14,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/ajnart/self-host/internal/activity"
+	"github.com/ajnart/self-host/internal/project"
 	"github.com/ajnart/self-host/internal/service"
 )
 
@@ -290,36 +288,6 @@ func (v *settingsView) hasKey(key string) bool {
 	return false
 }
 
-func validateSetting(key, value string) error {
-	switch key {
-	case "PUID", "PGID":
-		if _, err := strconv.Atoi(value); err != nil {
-			return errors.New("digits only")
-		}
-	case "UMASK":
-		if len(value) != 3 {
-			return errors.New("3 octal digits")
-		}
-		if _, err := strconv.ParseUint(value, 8, 16); err != nil {
-			return errors.New("3 octal digits")
-		}
-	case "MEDIA_ROOT", "DOWNLOADS_ROOT":
-		if !filepath.IsAbs(value) {
-			return errors.New("an absolute path")
-		}
-	case "LAN_IP":
-		ip := net.ParseIP(value)
-		if ip == nil || ip.To4() == nil {
-			return errors.New("an IPv4 address")
-		}
-	case "TZ":
-		if strings.TrimSpace(value) == "" {
-			return errors.New("a time zone")
-		}
-	}
-	return nil
-}
-
 func (v *settingsView) Update(ctx *viewContext, msg tea.Msg) (view, tea.Cmd, nav) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
@@ -383,7 +351,7 @@ func (v *settingsView) handleKey(ctx *viewContext, msg tea.KeyPressMsg) (view, t
 			if v.folders != nil {
 				value = v.folders.expand(value)
 			}
-			if err := validateSetting(v.key, value); err != nil {
+			if err := project.ValidSetting(v.key, value); err != nil {
 				v.err = v.key + ": " + err.Error()
 				return v, nil, nav{}
 			}

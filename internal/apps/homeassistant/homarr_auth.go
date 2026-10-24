@@ -1,6 +1,6 @@
 package homeassistant
 
-const homarrAuthScript = `import asyncio, json, os
+const homarrAuthScript = `import asyncio, json, os, re
 import aiohttp
 
 base = "http://127.0.0.1:8123"
@@ -44,7 +44,8 @@ async def connect(session, token):
     ws = await session.ws_connect(base + "/api/websocket")
     try:
         welcome = await ws.receive_json()
-        if welcome.get("ha_version") != "2026.9.3":
+        found = re.match(r"(\d+)\.(\d+)\.(\d+)", str(welcome.get("ha_version")))
+        if not found or tuple(int(part) for part in found.groups()) < (2026, 9, 3):
             raise Unsupported()
         if welcome.get("type") != "auth_required":
             raise Manual()

@@ -154,6 +154,11 @@ func applicationHash(ctx context.Context, h *helpers.H, header map[string]string
 	return *config.Config.Webserver.API.Hash, nil
 }
 
+// redactedHash is what newer Pi-hole releases return for app_pwhash to an
+// application-password session; the successful login with the saved password
+// already proves the slot holds this Project's credential.
+const redactedHash = "********"
+
 func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 	password := h.Secret(h.Key("homarr_app_password"))
 	if password == "" || h.Secret(h.Key("homarr_app_password_hash")) == "" {
@@ -181,7 +186,7 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
-	if hash == "" || hash != h.Secret(h.Key("homarr_app_password_hash")) {
+	if hash != redactedHash && hash != h.Secret(h.Key("homarr_app_password_hash")) || hash == "" {
 		return errors.New("Pi-hole's application password no longer matches this Project's owned credential; restore it through the Project secret boundary, then retry Setup")
 	}
 	var statistics struct {

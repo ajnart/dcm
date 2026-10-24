@@ -70,7 +70,7 @@ func (ss *session) webTargets() []app.WebTarget {
 		if info.NoWebUI || st.Port <= 0 || info.ContainerPort <= 0 {
 			continue
 		}
-		targets = append(targets, app.WebTarget{ID: id, Service: info.Service, ContainerPort: info.ContainerPort, Path: info.Path})
+		targets = append(targets, app.WebTarget{ID: id, Service: info.Service, ContainerPort: info.ContainerPortFor(st.Port), Path: info.Path})
 	}
 	sort.Slice(targets, func(i, j int) bool { return targets[i].ID < targets[j].ID })
 	return targets

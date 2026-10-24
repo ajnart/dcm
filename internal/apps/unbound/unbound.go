@@ -20,7 +20,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "unbound", Name: "Unbound", Category: "DNS",
 		Description:   "Look up website addresses for your whole network, privately and quickly",
-		Image:         "madnuttah/unbound:1.26.0-0",
+		Image:         "madnuttah/unbound:latest",
 		Docs:          "https://unbound.docs.nlnetlabs.nl/",
 		Port:          5335,
 		ContainerPort: 5335,
@@ -34,7 +34,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   unbound:
-    image: madnuttah/unbound:1.26.0-0
+    image: madnuttah/unbound:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}

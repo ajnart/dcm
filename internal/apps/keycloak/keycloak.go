@@ -24,7 +24,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "keycloak", Name: "Keycloak", Category: "Identity",
 		Description:   "Manage logins in one place, so people sign in once to reach many apps",
-		Image:         "quay.io/keycloak/keycloak:26.7.4",
+		Image:         "quay.io/keycloak/keycloak:latest",
 		Docs:          "https://www.keycloak.org/server/configuration-production",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -42,7 +42,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.4
+    image: quay.io/keycloak/keycloak:latest
     command: ["start", "--http-enabled=true", "--hostname-strict=false", "--db=postgres", "--db-url-host=keycloak-db", "--db-username=keycloak"]
     restart: unless-stopped
     environment:

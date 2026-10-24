@@ -101,8 +101,8 @@ func (s *Service) AccessExport(ctx context.Context) (AccessExport, error) {
 		}
 		item := ExportApp{
 			ID: id, Name: info.Name, Hostname: id + ExportHostnameSuffix,
-			Service: info.Service, ContainerPort: info.ContainerPort,
-			Upstream: helpers.InternalAddress(info.Service, info.ContainerPort),
+			Service: info.Service, ContainerPort: info.ContainerPortFor(st.Port),
+			Upstream: helpers.InternalAddress(info.Service, info.ContainerPortFor(st.Port)),
 			Host:     host, HostPort: st.Port, HostUpstream: fmt.Sprintf("%s:%d", host, st.Port),
 		}
 		if info.WebSockets {

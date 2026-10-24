@@ -10,7 +10,7 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
-const navidromePrivacyHoldHint = "Homarr Navidrome credential-safety hold #363: this Link requires verified Homarr 2.5.1 or 2.5.2, which include the diagnostic Address fix from PR #7170. Back up Homarr before changing its version, then run self-host setup homarr. Older, unknown or unreadable versions stay inactive; do not create a manual integration or bypass this hold. Standalone Navidrome Setup and owned Link removal remain separate."
+const navidromePrivacyHoldHint = "Homarr Navidrome credential-safety hold #363: this Link requires verified Homarr 2.5.1 or newer 2.x, which include the diagnostic Address fix from PR #7170. Back up Homarr before changing its version, then run self-host setup homarr. Older, unknown or unreadable versions stay inactive; do not create a manual integration or bypass this hold. Standalone Navidrome Setup and owned Link removal remain separate."
 
 func navidromeTarget() target {
 	return target{

@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "home-assistant", Name: "Home Assistant", Category: "Home automation",
 		Description:   "Control and automate your lights, sensors and smart home devices",
-		Image:         "ghcr.io/home-assistant/home-assistant:2026.9.3",
+		Image:         "ghcr.io/home-assistant/home-assistant:latest",
 		Docs:          "https://www.home-assistant.io/installation/",
 		Port:          8123,
 		ContainerPort: 8123,
@@ -49,7 +49,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:2026.9.3
+    image: ghcr.io/home-assistant/home-assistant:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}

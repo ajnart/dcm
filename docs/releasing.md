@@ -15,10 +15,10 @@ PKGBUILD
 
 The installer and `self-host self-update` pick the highest semver among
 non-draft, non-prerelease releases that carry `checksums.txt` and a
-`self-host_<version>_*.tar.gz`. Releases without them (the legacy skill-pack
-releases `v1.0.0`, `v1.1.1`, `v1.1.2`) are never chosen. The CLI does not read
-GitHub's "Latest" badge, but GitHub would give it to the legacy `v1.1.2` by
-version, so publish every `vX.Y.Z` release with `--latest`.
+`self-host_<version>_*.tar.gz`; releases without them are never chosen. The
+legacy skill-pack releases `v1.0.0`, `v1.1.1` and `v1.1.2` and their tags were
+deleted on October 24, 2026. The CLI does not read GitHub's "Latest" badge;
+publish every `vX.Y.Z` release with `--latest` anyway.
 
 Releases up to 0.2.0 were tagged `new-cli-vX.Y.Z`, from when the Go CLI lived
 in a `new-cli/` folder next to the TypeScript product, and CLI 0.2.x and older
@@ -30,9 +30,9 @@ old versions keep installing.
 
 ## Prepare
 
-1. Work from a clean `main` that passes the gate:
-   `gofmt -l .`, `go vet ./... && go vet -tags e2e ./e2e/`, `go test ./...`,
-   `go test -race ./internal/release ./internal/cli ./internal/tui`, `bash -n install.sh`.
+1. Work from a clean `main` that passes the gate in CLAUDE.md ("Local gate"):
+   `gofmt -l .` prints nothing, `go build ./... && go vet ./... && go vet -tags e2e ./e2e/`,
+   `go test ./...`, `go test -race ./internal/tui/ ./internal/activity/`, `bash -n install.sh`.
 2. Pick the next version. Tags are plain `vX.Y.Z` with no leading zeros.
 
 The Telemetry project key (public; ADR 0006) is set at build time from
@@ -61,7 +61,7 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 
 ## Release locally (when CI is unavailable)
 
-Build the same archives with the same pinned goreleaser:
+Build the same archives with the same pinned goreleaser (v2.18.3 needs Go 1.27.1 or newer; Go downloads that toolchain on first use):
 
 ```bash
 SELF_HOST_RELEASE_VERSION=X.Y.Z go run github.com/goreleaser/goreleaser/v2@v2.18.3 release --snapshot --clean
@@ -74,15 +74,16 @@ cp dist/aur/self-host-bin.pkgbuild dist/PKGBUILD
 cd dist
 assets=(self-host_X.Y.Z_linux_amd64.tar.gz self-host_X.Y.Z_linux_arm64.tar.gz self-host_X.Y.Z_darwin_amd64.tar.gz self-host_X.Y.Z_darwin_arm64.tar.gz self-host_X.Y.Z_linux_{amd64,arm64}.{deb,rpm,apk,pkg.tar.zst} PKGBUILD checksums.txt)
 shasum -a 256 -c checksums.txt
-gh release create vX.Y.Z "${assets[@]}" --target main --draft --title "self-host X.Y.Z" \
+gh release create vX.Y.Z "${assets[@]}" --target "$(git rev-parse HEAD)" --draft --title "self-host X.Y.Z" \
   --notes "Linux and macOS amd64/arm64 CLI. WSL2 uses Linux binaries. Native Windows is unsupported."
 mkdir -p /tmp/self-host-release-check && gh release download vX.Y.Z --dir /tmp/self-host-release-check --clobber
 for a in "${assets[@]}"; do cmp "$a" "/tmp/self-host-release-check/$a"; done
 gh release edit vX.Y.Z --draft=false --latest
 ```
 
-`gh release create` of a draft with `--target main` makes the tag when the
-release is published; no separate `git tag` is needed.
+`gh release create` of a draft with `--target` makes the tag when the release is
+published; no separate `git tag` is needed. The target is the full commit sha
+the `dist/` was built from, never `main`, which may have moved on.
 
 ## Publish the channels
 
@@ -185,8 +186,8 @@ scripts/verify-install.sh                                              # public 
 It runs the documented `curl | bash` install in a throwaway `HOME` and checks
 `--version`, `self-host skill` and a pinned-old-version `self-update`.
 
-Then redeploy the site (see [Installer site](#installer-site)) so self-host.fyi
-shows the new version.
+`scripts/publish-channels.sh` already ends with `publish-site.sh`, so self-host.fyi
+shows the new version once it succeeds; redeploy by hand only if you skipped it.
 
 ## Tag triggers
 
@@ -204,10 +205,10 @@ agent guide and the site builder all default to `ajnart/self-host`.
 
 ## Installer site
 
-Cloudflare Pages serves the site at `https://self-host.fyi` (apex and `www`
-are proxied CNAMEs in the `self-host.fyi` zone). Deploying changes no Project
-and publishes no release archives. Use managed Wrangler authentication
-(`wrangler whoami`), never extract tokens.
+Cloudflare Pages serves the site at `https://self-host.fyi` from the Git-connected
+project `self-host-fyi` (apex and `www` are proxied CNAMEs in the `self-host.fyi`
+zone). Deploying changes no Project and publishes no release archives. Use managed
+Wrangler authentication (`wrangler whoami`), never extract tokens.
 
 ### Automatic deploys (Git integration)
 
@@ -231,10 +232,6 @@ version: `scripts/publish-channels.sh` ends with `scripts/publish-site.sh X.Y.Z`
 which builds the site, checks it shows the new version and deploys it to the
 same project with Wrangler. The apex is the project's only custom domain;
 `www` is a zone redirect rule to the apex.
-
-The original `selfhost` project was created by Direct Upload, which Cloudflare
-cannot convert to Git integration; the Git project replaces it, and the custom
-domains move to it.
 
 ### Manual deploy (Direct Upload)
 
@@ -330,62 +327,10 @@ Source merge does not close the remaining release acceptance in
 [#194](https://github.com/ajnart/self-host/issues/194) or
 [#295](https://github.com/ajnart/self-host/issues/295). Anonymous archive
 installation, self-update and any required live rename redirect remain external
-verification gates. The evidence below describes the earlier deployed version;
-this source update does not redeploy it or publish a new CLI release.
+verification gates.
 
 References: [Direct Upload](https://developers.cloudflare.com/pages/get-started/direct-upload/),
 [headers](https://developers.cloudflare.com/pages/configuration/headers/) and
 [custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/).
 
-### Deployment evidence, October 11, 2026 (former Cloudflare Worker)
-
-- Worker `selfhost-installer`, version `5fd5421a-313a-4c5b-9b1d-145791dd4920`,
-  serves only the allowlisted assets at `https://selfhost.ajnart.dev`.
-- The active zone and exact hostname had no record or Worker binding before
-  deployment. The custom domain created one owned proxied record. No other
-  hostname, repository visibility or Project changed.
-- Public Cloudflare and Google DNS resolved the hostname. This machine's
-  normal HTTPS resolver retained a negative lookup; anonymous HTTPS checks used
-  `curl --resolve` with the returned public address and normal TLS verification.
-- Landing, installer and installer checksum returned 200. The downloaded script
-  matched the staged script byte-for-byte; `shasum -a 256 -c` and `bash -n` passed.
-  `/AGENTS.md`, `/go.mod` and an unpublished release checksum path returned 404.
-- Token-free `scripts/verify-install.sh` against the live installer failed at
-  private GitHub release lookup. For this check a temporary curl wrapper used
-  the public DNS address; `VERIFY_EXPECTED_VERSION=0.2.0` skipped only discovery
-  of the expected version. Latest and pinned installation failed and no binary
-  was installed. A locally built versioned binary's isolated `self-update` also
-  returned the private release API's 404; this is not a published-artifact test.
-- [Artifact distribution blocker #295](https://github.com/ajnart/self-host/issues/295)
-  tracks that failure separately. No archives or release metadata were published.
-  Issue #194's token-free acceptance and live old-name redirect remain unmet.
-
-### Normal-client follow-up, October 11, 2026
-
-The parent session independently repeated the anonymous reads with normal-host
-`curl --disable`, no authorization and valid TLS, without `--resolve`:
-
-| Address                                         | HTTP status | Body bytes |
-| ----------------------------------------------- | ----------- | ---------- |
-| `https://selfhost.ajnart.dev/`                  | 200         | 1604       |
-| `https://selfhost.ajnart.dev/install.sh`        | 200         | 15983      |
-| `https://selfhost.ajnart.dev/install.sh.sha256` | 200         | 77         |
-| `https://selfhost.ajnart.dev/AGENTS.md`         | 404         | 0          |
-| `https://selfhost.ajnart.dev/go.mod`            | 404         | 0          |
-
-The served installer SHA256 matched the served checksum:
-`d4e064cbc5d1df531697a03bf303d8bf241f3c8246e1f6382f1aa5c9214398fe`.
-This resolves only the initial normal-client DNS observation; the earlier
-negative lookup and `--resolve` evidence above remain historical facts.
-
-Both `https://api.github.com/repos/ajnart/self-host/releases/latest` and
-`https://api.github.com/repos/ajnart/self-host/releases/latest` returned anonymous 404. Authenticated metadata still identified `ajnart/self-host` as private
-with default branch `main`; the intended `ajnart/self-host` returned 404. The
-parent recorded this follow-up on #295.
-
-These were transport and script-checksum reads, not installer execution or
-anonymous release-archive acceptance. Artifact distribution, rename, token-free
-install, self-update and publication holds remain. No deployment, installer,
-binary, build, runtime or source changes accompany this documentation refresh.
-The reviewed production commit remains
-`d3d3e78c48c7b5004372c396f5483faaf40c2bed`.
+Earlier deployment evidence (October 11, 2026) lives in git history.

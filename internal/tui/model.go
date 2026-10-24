@@ -56,7 +56,10 @@ type (
 	}
 	tickMsg time.Time
 	// frameMsg advances the animation by one frame.
-	frameMsg    struct{}
+	frameMsg struct{}
+	// quitNowMsg ends the Dashboard once cancelled Actions have exited, or
+	// when waiting for them took too long.
+	quitNowMsg  struct{}
 	taskDoneMsg struct {
 		id     int
 		title  string
@@ -167,16 +170,19 @@ type Model struct {
 	// running Action's progress until the next key.
 	flashHeld bool
 
-	surface   surface
-	showHelp  bool
-	quitting  bool
-	dashboard *dashboardView
-	install   *installView
-	settings  *settingsView
-	apps      *appsView
-	activity  *activityView
-	helpView  *helpView
-	menu      *actionMenu
+	surface  surface
+	showHelp bool
+	quitting bool
+	stopping bool
+	// interrupted is what the Dashboard says on exit after cancelling an Action.
+	interrupted string
+	dashboard   *dashboardView
+	install     *installView
+	settings    *settingsView
+	apps        *appsView
+	activity    *activityView
+	helpView    *helpView
+	menu        *actionMenu
 
 	// onboarding is set from the first run until the Project exists.
 	onboarding             *onboarding
@@ -511,6 +517,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case taskDoneMsg:
 		return m.handleTaskDone(msg)
+
+	case quitNowMsg:
+		return m.finalQuit()
 
 	case logChunkMsg, composeMsg, usageMsg:
 		return m.dispatchApps(msg)
@@ -860,7 +869,38 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m.dispatchActive(msg)
 }
 
+// quit leaves the Dashboard. While an Action runs it asks first, and then
+// waits a moment for the cancelled Action to stop its children.
 func (m Model) quit() (tea.Model, tea.Cmd) {
+	if m.stopping {
+		return m.finalQuit()
+	}
+	if m.tasks.running() == 0 {
+		return m.finalQuit()
+	}
+	if m.ask == nil || m.ask.kind != askQuit {
+		m.ask = &askPrompt{kind: askQuit, title: "An Action is running",
+			body:  []string{m.tasks.runningTitle() + " is still running."},
+			query: "Stop it and quit?"}
+		return m, nil
+	}
+	return m.stopAndQuit()
+}
+
+func (m Model) stopAndQuit() (tea.Model, tea.Cmd) {
+	m.ask, m.stopping = nil, true
+	m.interrupted = m.tasks.interruptedLine()
+	m.cancelFrames()
+	m.tasks.cancelAll()
+	m.setFlash("Stopping "+m.tasks.runningTitle()+"…", levelWarn)
+	tasks := m.tasks
+	return m, func() tea.Msg {
+		tasks.waitExited(quitGrace)
+		return quitNowMsg{}
+	}
+}
+
+func (m Model) finalQuit() (tea.Model, tea.Cmd) {
 	m.quitting = true
 	m.cancelFrames()
 	m.tasks.cancelAll()

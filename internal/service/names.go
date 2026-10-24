@@ -237,7 +237,7 @@ func (ss *session) syncNames(ctx context.Context, start bool, configured []strin
 			}
 		}
 		if host, ok := names.Host(id, ss.settings["LAN_IP"]); ok {
-			routes = append(routes, names.Route{Host: host, Upstream: helpers.InternalAddress(info.Service, info.ContainerPort)})
+			routes = append(routes, names.Route{Host: host, Upstream: helpers.InternalAddress(info.Service, info.ContainerPortFor(ss.state.Apps[id].Port))})
 		}
 	}
 	content := names.Caddyfile(routes)

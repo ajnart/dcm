@@ -335,9 +335,18 @@ func TestQuitsFromPreboot(t *testing.T) {
 	m, _, _ := approved(t, 120, 30)
 	pending := m.frameTick()
 
-	next, cmd := m.Update(press("q"))
+	next, _ := m.Update(press("q"))
 	m = next.(Model)
-
+	if m.ask == nil || m.ask.kind != askQuit || m.quitting {
+		t.Fatal("q should ask before stopping the running install")
+	}
+	next, cmd := m.Update(press("y"))
+	m = next.(Model)
+	if !m.stopping || cmd == nil || m.interrupted == "" {
+		t.Fatal("y should cancel the install and wait for it")
+	}
+	next, cmd = m.Update(quitNowMsg{})
+	m = next.(Model)
 	if !m.quitting || cmd == nil {
 		t.Fatal("q should quit as on the Dashboard")
 	}
@@ -348,9 +357,10 @@ func TestQuitsFromPreboot(t *testing.T) {
 		t.Fatal("a queued frame after quitting must not schedule another")
 	}
 	m, _, _ = approved(t, 120, 30)
-	next, cmd = m.Update(press("ctrl+c"))
-	if !next.(Model).quitting || cmd == nil {
-		t.Fatal("ctrl+c must quit during the entrance")
+	next, _ = m.Update(press("ctrl+c"))
+	next, cmd = next.(Model).Update(press("ctrl+c"))
+	if !next.(Model).stopping || cmd == nil {
+		t.Fatal("ctrl+c twice must stop the install and quit during the entrance")
 	}
 }
 

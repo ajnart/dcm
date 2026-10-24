@@ -23,7 +23,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "paperless-ngx", Name: "Paperless-ngx", Category: "Documents",
 		Description:   "Scan paper and files into a searchable, tagged filing cabinet",
-		Image:         "ghcr.io/paperless-ngx/paperless-ngx:3.2.1",
+		Image:         "ghcr.io/paperless-ngx/paperless-ngx:latest",
 		Docs:          "https://docs.paperless-ngx.com/setup/",
 		Port:          8000,
 		ContainerPort: 8000,
@@ -58,7 +58,7 @@ func (App) Compose(rc app.RenderContext) string {
 	}
 	return `services:
   paperless-ngx:
-    image: ghcr.io/paperless-ngx/paperless-ngx:3.2.1
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
     restart: unless-stopped
     environment:
 ` + origin + `      PAPERLESS_REDIS: redis://paperless-ngx-broker:6379
@@ -84,7 +84,7 @@ func (App) Compose(rc app.RenderContext) string {
       - paperless-ngx-broker
       - paperless-ngx-db
   paperless-ngx-broker:
-    image: valkey/valkey:9-alpine
+    image: valkey/valkey:alpine
     restart: unless-stopped
     volumes:
       - ./broker:/data

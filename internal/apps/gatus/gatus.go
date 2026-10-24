@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "gatus", Name: "Gatus", Category: "Monitoring",
 		Description:   "Check that your apps are working and see them on a status page",
-		Image:         "ghcr.io/twin/gatus:v5.37.0",
+		Image:         "ghcr.io/twin/gatus:latest",
 		Docs:          "https://github.com/TwiN/gatus/blob/v5.37.0/README.md",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -51,7 +51,7 @@ func (App) Files(app.RenderContext, func(string) string) []app.File {
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   gatus:
-    image: ghcr.io/twin/gatus:v5.37.0
+    image: ghcr.io/twin/gatus:latest
     restart: unless-stopped
     volumes:
       - ./config:/config/config.yaml

@@ -22,7 +22,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "zerotier", Name: "ZeroTier", Category: "Remote access",
 		Description:   "Connect your devices into one private network, as if on the same Wi-Fi",
-		Image:         "zerotier/zerotier:1.14.2",
+		Image:         "zerotier/zerotier:latest",
 		Docs:          "https://docs.zerotier.com/",
 		Port:          0,
 		ContainerPort: 0,
@@ -51,7 +51,7 @@ const version = "1.14.2"
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   zerotier:
-    image: zerotier/zerotier:1.14.2
+    image: zerotier/zerotier:latest
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
@@ -117,7 +117,7 @@ func identityWorks(ctx context.Context, h *helpers.H, token string) (bool, error
 	if err := json.Unmarshal(body, &node); err != nil {
 		return false, err
 	}
-	if node.Version != version || !addressPattern.MatchString(node.Address) ||
+	if !helpers.VersionCompatible(node.Version, version) || !addressPattern.MatchString(node.Address) ||
 		!strings.HasPrefix(node.PublicIdentity, node.Address+":0:") {
 		return false, nil
 	}

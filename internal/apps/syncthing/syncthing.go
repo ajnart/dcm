@@ -23,7 +23,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "syncthing", Name: "Syncthing", Category: "Files",
 		Description:   "Keep folders identical across your devices, with no cloud in between",
-		Image:         "syncthing/syncthing:2.1.4",
+		Image:         "syncthing/syncthing:latest",
 		Docs:          "https://docs.syncthing.net/",
 		Port:          8384,
 		ContainerPort: 8384,
@@ -37,7 +37,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   syncthing:
-    image: syncthing/syncthing:2.1.4
+    image: syncthing/syncthing:latest
     restart: unless-stopped
     environment:
       PUID: ${PUID}

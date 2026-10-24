@@ -25,8 +25,8 @@ func verifyServer(ctx context.Context, h *helpers.H, key string) error {
 		return errAPIKeyRejected
 	}
 	var info struct{ ID, Version string }
-	if resp.Status != http.StatusOK || resp.Decode(&info) != nil || info.ID == "" || info.Version != "4.10.0.40" {
-		return errors.New("Emby must return authenticated server information for version 4.10.0.40; run self-host setup emby")
+	if resp.Status != http.StatusOK || resp.Decode(&info) != nil || info.ID == "" || !helpers.VersionCompatible(info.Version, "4.10.0.40") {
+		return errors.New("Emby must return authenticated server information for Emby 4.10.0.40 or newer 4.x; run self-host setup emby")
 	}
 	return nil
 }

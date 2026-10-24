@@ -66,7 +66,7 @@ func authResultError(result authResult) error {
 	case "manual":
 		return fmt.Errorf("%w: review the dedicated Homarr identity and token in Home Assistant; no account, password or token was replaced", helpers.ErrManual)
 	case "unsupported":
-		return fmt.Errorf("Home Assistant is unsupported; use %s, then retry Setup after a Backup", supportedVersion)
+		return fmt.Errorf("Home Assistant is unsupported; use %s or newer in the same year series, then retry Setup after a Backup", supportedVersion)
 	default:
 		return errors.New("Home Assistant authentication API verification failed; retry Setup after checking the App")
 	}
@@ -191,8 +191,8 @@ func homarrRead(ctx context.Context, h *helpers.H, path string, value any) (help
 	}
 	if path == "/api/config" {
 		config, ok := value.(*map[string]any)
-		if !ok || (*config)["version"] != supportedVersion {
-			return response, fmt.Errorf("Home Assistant is unsupported; use %s after a Backup and retry Setup", supportedVersion)
+		if !ok || !compatibleVersion(*config) {
+			return response, fmt.Errorf("Home Assistant is unsupported; use %s or newer after a Backup and retry Setup", supportedVersion)
 		}
 	}
 	return response, nil
@@ -261,4 +261,9 @@ func onboarding(ctx context.Context, h *helpers.H) error {
 		Do:    func(ctx context.Context) error { return onboardingComplete(ctx, h) },
 		Hint:  "Open " + h.URL + " and review the remaining core_config, analytics and integration choices. Core-config completion starts upstream provider flows; do not approve hardware, network discovery or external accounts implicitly. Then run self-host setup home-assistant and self-host setup homarr.",
 	})
+}
+
+func compatibleVersion(config map[string]any) bool {
+	version, _ := config["version"].(string)
+	return helpers.VersionAtLeast(version, supportedVersion)
 }

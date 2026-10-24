@@ -40,7 +40,7 @@ func (ss *session) installedApps(ctx context.Context) ([]helpers.InstalledApp, e
 		item := helpers.InstalledApp{ID: id, Name: id}
 		if a, found := ss.s.Catalog.App(id); found && ss.state.Apps[id] != nil {
 			info := a.Info()
-			item.Name, item.Service, item.ContainerPort = info.Name, info.Service, info.ContainerPort
+			item.Name, item.Service, item.ContainerPort = info.Name, info.Service, info.ContainerPortFor(ss.state.Apps[id].Port)
 			if !info.NoWebUI && ss.state.Apps[id].Port > 0 && info.ContainerPort > 0 {
 				item.URL = ss.browserAddresses(id, AppURL(ss.settings, ss.state.Apps[id].Port, info.Path))[0]
 			}

@@ -151,8 +151,8 @@ func verifyTraefik(ctx context.Context, from, to *helpers.H, integrationID strin
 		return errors.New("Homarr returned a failed or mismatched Traefik dashboard")
 	}
 	dashboard, ok := source["dashboard"].(map[string]any)
-	if !ok || stringField(dashboard, "version") != "3.6.22" {
-		return errors.New("Homarr did not return the pinned Traefik 3.6.22 dashboard")
+	if !ok || !helpers.VersionCompatible(stringField(dashboard, "version"), "3.6.22") {
+		return errors.New("Homarr did not return a Traefik 3.6.22 or newer 3.x dashboard")
 	}
 	failed, ok := dashboard["failedEndpoints"].([]any)
 	if !ok || len(failed) != 0 {

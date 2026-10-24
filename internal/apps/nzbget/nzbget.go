@@ -25,7 +25,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "nzbget", Name: "NZBGet", Category: "Downloads",
 		Description:   "Download files from your Usenet provider, a paid file-sharing service",
-		Image:         "ghcr.io/nzbgetcom/nzbget:v26.3",
+		Image:         "ghcr.io/nzbgetcom/nzbget:latest",
 		Docs:          "https://nzbget.com/documentation/",
 		Port:          6789,
 		ContainerPort: 6789,
@@ -40,7 +40,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   nzbget:
-    image: ghcr.io/nzbgetcom/nzbget:v26.3
+    image: ghcr.io/nzbgetcom/nzbget:latest
     restart: unless-stopped
     environment:
       NZBGET_USER: ${ADMIN_USER}

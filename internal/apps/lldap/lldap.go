@@ -19,7 +19,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "lldap", Name: "LLDAP", Category: "Identity",
 		Description:   "Keep one list of users and passwords that your apps can share",
-		Image:         "lldap/lldap:2026-08-28",
+		Image:         "lldap/lldap:latest",
 		Docs:          "https://github.com/lldap/lldap/blob/main/docs/install.md",
 		Port:          17170,
 		ContainerPort: 17170,
@@ -47,7 +47,7 @@ func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   lldap:
-    image: lldap/lldap:2026-08-28
+    image: lldap/lldap:latest
     restart: unless-stopped
     environment:
       UID: ${PUID}

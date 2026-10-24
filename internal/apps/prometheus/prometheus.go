@@ -18,7 +18,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "prometheus", Name: "Prometheus", Category: "Observability",
 		Description:   "Record numbers about how your computers and apps are doing over time",
-		Image:         "prom/prometheus:v3.15.0",
+		Image:         "prom/prometheus:latest",
 		Docs:          "https://prometheus.io/docs/prometheus/latest/installation/",
 		Port:          9090,
 		ContainerPort: 9090,
@@ -41,7 +41,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   prometheus:
-    image: prom/prometheus:v3.15.0
+    image: prom/prometheus:latest
     restart: unless-stopped
     user: ${PUID}:${PGID}
     volumes:

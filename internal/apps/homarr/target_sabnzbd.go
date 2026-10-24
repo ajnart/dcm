@@ -15,7 +15,7 @@ func sabnzbdTarget() target {
 		secrets: apiKeySecret,
 		widgets: []widget{plain("downloads"), statWidget("download", "paused")},
 		preflight: func(ctx context.Context, from, to *helpers.H) error {
-			if err := requireCredentialSafeHomarr(ctx, from, "SABnzbd credential-safety hold #363: use exactly Homarr 2.5.1 or 2.5.2 with the shipped privacy fix. Back up Homarr before changing its version, then retry self-host setup homarr. Older, unreadable or unreviewed versions remain Manual; do not bypass the hold or create a manual integration."); err != nil {
+			if err := requireCredentialSafeHomarr(ctx, from, "SABnzbd credential-safety hold #363: use Homarr 2.5.1 or newer 2.x with the shipped privacy fix. Back up Homarr before changing its version, then retry self-host setup homarr. Older, unreadable or unreviewed versions remain Manual; do not bypass the hold or create a manual integration."); err != nil {
 				return err
 			}
 			return sabnzbd.VerifyHomarr(ctx, to)

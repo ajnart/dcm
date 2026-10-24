@@ -29,7 +29,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "wud", Name: "What's Up Docker", Category: "Containers",
 		Description:   "Tell you when new versions of your apps are available",
-		Image:         "getwud/wud:9.1.0",
+		Image:         "getwud/wud:latest",
 		Docs:          "https://getwud.app/docs/",
 		Port:          18083,
 		ContainerPort: 3000,
@@ -76,7 +76,7 @@ func (App) Compose(rc app.RenderContext) string {
 	}
 	return `services:
   wud:
-    image: getwud/wud:9.1.0
+    image: getwud/wud:latest
     restart: unless-stopped
     read_only: true
     environment:

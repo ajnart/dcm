@@ -28,7 +28,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "passbolt", Name: "Passbolt", Category: "Passwords",
 		Description:   "Share passwords safely with your team, with a browser add-on",
-		Image:         "passbolt/passbolt:5.16.0-1-ce",
+		Image:         "passbolt/passbolt:latest",
 		Docs:          "https://www.passbolt.com/docs/hosting/install/ce/docker/",
 		Port:          18085,
 		ContainerPort: 80,
@@ -87,7 +87,7 @@ func (App) Compose(rc app.RenderContext) string {
 	// entrypoint exports its server keys there as www-data before starting nginx.
 	return `services:
   passbolt:
-    image: passbolt/passbolt:5.16.0-1-ce
+    image: passbolt/passbolt:latest
     restart: unless-stopped
     command: ["/bin/sh", "-c", "chown www-data:www-data /etc/passbolt/gpg && chmod 0700 /etc/passbolt/gpg && exec /usr/bin/wait-for.sh -t 0 passbolt-db:3306 -- /docker-entrypoint.sh"]
     environment:

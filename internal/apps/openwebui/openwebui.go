@@ -32,7 +32,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "open-webui", Name: "Open WebUI", Category: "Local AI",
 		Description:   "Chat with AI models running on your own computer, in your browser",
-		Image:         "ghcr.io/open-webui/open-webui:v0.11.4",
+		Image:         "ghcr.io/open-webui/open-webui:latest",
 		Docs:          "https://docs.openwebui.com/getting-started/quick-start/",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -52,12 +52,13 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   open-webui:
-    image: ghcr.io/open-webui/open-webui:v0.11.4
+    image: ghcr.io/open-webui/open-webui:latest
     restart: unless-stopped
     environment:
       WEBUI_ADMIN_EMAIL: ${ADMIN_USER}@selfhost.local
       WEBUI_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       WEBUI_SECRET_KEY: ${OPEN_WEBUI_SECRET_KEY}
+      OLLAMA_BASE_URL: http://ollama:11434
     volumes:
       - ./appdata:/app/backend/data
     ports:

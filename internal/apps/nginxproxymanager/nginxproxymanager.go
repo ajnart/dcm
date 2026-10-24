@@ -27,7 +27,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "nginx-proxy-manager", Name: "Nginx Proxy Manager", Category: "Ingress",
 		Description:   "Give your apps easy web addresses and secure padlocks from a web page",
-		Image:         "jc21/nginx-proxy-manager:2.16.0",
+		Image:         "jc21/nginx-proxy-manager:latest",
 		Docs:          "https://nginxproxymanager.com/guide/",
 		Port:          8181,
 		ContainerPort: 81,
@@ -41,7 +41,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager:2.16.0
+    image: jc21/nginx-proxy-manager:latest
     restart: unless-stopped
     volumes:
       - ./data:/data

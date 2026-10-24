@@ -85,7 +85,7 @@ owned cleanup. It is not an Address resolver or a TLS bypass.
 Privacy-sensitive leaf preflights can call
 `requireCredentialSafeHomarr(ctx, from, hint)` before provider requests or
 mutation. The helper performs one authenticated `info.getInfo` read and admits
-exactly the verified safe versions `2.5.1` and `2.5.2`. Older, unknown or malformed
+the verified safe version `2.5.1` and any later `2.x` release. Older, unknown or malformed
 versions and failed reads emit only the caller's fixed App-specific recovery
 hint through `from.Info`, then return `helpers.ErrManual`; no provider request,
 mutation, cache or raw response/error output is added. Normal Apps retain the

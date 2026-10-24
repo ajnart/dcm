@@ -242,7 +242,7 @@ func (c *sctx) drawFooter(cv *scene.Canvas) {
 	case Worst(d) == Fail:
 		for _, check := range d.Checks {
 			if check.Level == Fail {
-				left = "✗ " + check.Title + " failed. Fix it, then press r to check again."
+				left = "✗ " + check.Title + " failed. Press r to retry."
 				break
 			}
 		}

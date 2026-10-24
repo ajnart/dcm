@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"sort"
@@ -17,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/ajnart/self-host/internal/status"
 	"github.com/ajnart/self-host/internal/system"
@@ -77,6 +79,9 @@ func (p *Project) mkdirAll(dir string) error {
 	}
 	return nil
 }
+
+// Chown hands path to the Project owner when running as root.
+func (p *Project) Chown(path string) error { return p.chown(path) }
 
 func (p *Project) chown(path string) error {
 	if os.Geteuid() != 0 || p.Owner.UID == 0 {
@@ -161,6 +166,39 @@ func formatEnv(header string, values map[string]string, order []string) []byte {
 		write(key)
 	}
 	return []byte(b.String())
+}
+
+// ValidSetting reports whether a value is acceptable for a Host setting.
+func ValidSetting(key, value string) error {
+	switch key {
+	case "PUID", "PGID":
+		if n, err := strconv.Atoi(value); err != nil || n < 0 {
+			return errors.New("a non-negative integer")
+		}
+	case "UMASK":
+		if len(value) < 3 || len(value) > 4 {
+			return errors.New("3 or 4 octal digits")
+		}
+		if _, err := strconv.ParseUint(value, 8, 16); err != nil {
+			return errors.New("3 or 4 octal digits")
+		}
+	case "MEDIA_ROOT", "DOWNLOADS_ROOT":
+		if !filepath.IsAbs(value) {
+			return errors.New("an absolute path")
+		}
+	case "LAN_IP":
+		if _, err := netip.ParseAddr(value); err != nil {
+			return errors.New("an IP address")
+		}
+	case "TZ":
+		if value == "" {
+			return errors.New("a time zone such as Europe/Paris")
+		}
+		if _, err := time.LoadLocation(value); err != nil {
+			return errors.New("a time zone such as Europe/Paris")
+		}
+	}
+	return nil
 }
 
 // ValidEnvValue reports whether a value can be stored in an env file.

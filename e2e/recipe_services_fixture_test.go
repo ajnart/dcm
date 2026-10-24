@@ -33,8 +33,8 @@ func TestRecipeServiceInventoryHasDistinctAppDependencies(t *testing.T) {
 
 func TestPhotoAndFileRedisReferencesUseTheirOwnedSidecar(t *testing.T) {
 	for _, tc := range []struct{ id, env, cache, image string }{
-		{"immich", "REDIS_HOSTNAME", "immich-redis", "docker.io/valkey/valkey:9"},
-		{"nextcloud", "REDIS_HOST", "nextcloud-redis", "redis:8.10.2-alpine3.23"},
+		{"immich", "REDIS_HOSTNAME", "immich-redis", "docker.io/valkey/valkey:latest"},
+		{"nextcloud", "REDIS_HOST", "nextcloud-redis", "redis:alpine"},
 	} {
 		t.Run(tc.id, func(t *testing.T) {
 			a, _ := catalog.Default().App(tc.id)

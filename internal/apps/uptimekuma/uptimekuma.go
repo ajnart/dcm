@@ -20,7 +20,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "uptime-kuma", Name: "Uptime Kuma", Category: "Monitoring",
 		Description:   "Get an alert when one of your websites or apps stops working",
-		Image:         "louislam/uptime-kuma:2.5.5",
+		Image:         "louislam/uptime-kuma:latest",
 		Docs:          "https://github.com/louislam/uptime-kuma/wiki/%F0%9F%94%A7-How-to-Install",
 		Port:          3001,
 		ContainerPort: 3001,
@@ -54,7 +54,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   uptime-kuma:
-    image: louislam/uptime-kuma:2.5.5
+    image: louislam/uptime-kuma:latest
     restart: unless-stopped
     environment:
       UPTIME_KUMA_DB_TYPE: sqlite

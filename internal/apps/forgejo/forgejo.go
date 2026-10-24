@@ -20,7 +20,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "forgejo", Name: "Forgejo", Category: "Developer tools",
 		Description:   "Store and track your software code privately, like a private GitHub",
-		Image:         "codeberg.org/forgejo/forgejo:16.0.5",
+		Image:         "codeberg.org/forgejo/forgejo:16",
 		Docs:          "https://forgejo.org/docs/latest/admin/installation-docker/",
 		Port:          3000,
 		ContainerPort: 3000,
@@ -35,7 +35,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   forgejo:
-    image: codeberg.org/forgejo/forgejo:16.0.5
+    image: codeberg.org/forgejo/forgejo:16
     restart: unless-stopped
     environment:
       FORGEJO__database__DB_TYPE: sqlite3

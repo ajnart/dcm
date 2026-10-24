@@ -19,7 +19,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "audiobookshelf", Name: "Audiobookshelf", Category: "Media",
 		Description:   "Listen to your audiobooks and podcasts on your phone or in a browser",
-		Image:         "ghcr.io/advplyr/audiobookshelf:2.37.0",
+		Image:         "ghcr.io/advplyr/audiobookshelf:latest",
 		Docs:          "https://www.audiobookshelf.org/docs",
 		Port:          13378,
 		ContainerPort: 80,
@@ -34,7 +34,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   audiobookshelf:
-    image: ghcr.io/advplyr/audiobookshelf:2.37.0
+    image: ghcr.io/advplyr/audiobookshelf:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}

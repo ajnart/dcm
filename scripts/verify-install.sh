@@ -175,7 +175,7 @@ if [ -x "$latest_dir/self-host" ]; then
   if sandboxed "$latest_dir/self-host" skill 2>/dev/null | grep -q .; then pass "self-host skill prints the guide"; else fail "self-host skill printed nothing or failed"; fi
   case "$output" in
     *"y/n"*) fail "the installer prompted without a terminal" ;;
-    *"Install the self-host skill from github.com/${REPO} and help me run my own movie server."*) pass "no terminal: the installer did not prompt and printed the skill hint" ;;
+    *"Install the self-host skill from github.com/${REPO} and help me set up my own home server."*) pass "no terminal: the installer did not prompt and printed the skill hint" ;;
     *) fail "no terminal: the installer printed no skill hint" ;;
   esac
   case "$output" in

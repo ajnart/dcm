@@ -9,7 +9,7 @@
 #   SELF_HOST_INSTALL_DIR  install here instead of the default directory
 #   SELF_HOST_GITHUB_TOKEN GitHub token to lift the anonymous API rate limit; defaults to `gh auth token` when gh is logged in
 #   SELF_HOST_RELEASE_REPO owner/name of the repository that publishes releases (default below)
-#   SELF_HOST_RELEASES_URL, SELF_HOST_WEB_URL  alternative API and github.com roots
+#   SELF_HOST_RELEASES_URL, SELF_HOST_WEB_URL  alternative API and github.com roots (https, or http for localhost)
 #   SELF_HOST_SKIP_SKILL_PROMPT=1  never offer to add the skill to an AI agent
 #   SELF_HOST_TTY          file to ask the skill question on instead of /dev/tty (tests)
 #
@@ -24,8 +24,10 @@ DEFAULT_REPO="ajnart/self-host"
 
 REPO=""
 TOKEN=""
+TOKEN_IMPLICIT=0
 API_URL=""
 WEB_URL=""
+HTTPS_ONLY=1
 tmp=""
 staging=""
 
@@ -36,10 +38,19 @@ configure() {
   TOKEN="${SELF_HOST_GITHUB_TOKEN:-}"
   if [ -z "$TOKEN" ] && [ -z "${SELF_HOST_RELEASES_URL:-}" ] && command -v gh >/dev/null 2>&1; then
     TOKEN="$(gh auth token 2>/dev/null || true)"
+    if [ -n "$TOKEN" ]; then TOKEN_IMPLICIT=1; fi
   fi
   case "$TOKEN" in *[!a-zA-Z0-9_.-]*) die "invalid token format" ;; esac
   API_URL="${SELF_HOST_RELEASES_URL:-https://api.github.com/repos/${REPO}}"
   WEB_URL="${SELF_HOST_WEB_URL:-https://github.com/${REPO}}"
+  local url
+  for url in "$API_URL" "$WEB_URL"; do
+    case "$url" in
+      https://*) ;;
+      http://localhost | http://localhost[:/]* | http://127.0.0.1 | http://127.0.0.1[:/]*) HTTPS_ONLY=0 ;;
+      *) die "SELF_HOST_RELEASES_URL and SELF_HOST_WEB_URL must be https URLs (http is allowed only for localhost)" ;;
+    esac
+  done
 }
 
 cleanup() {
@@ -93,18 +104,18 @@ install_dir() {
 json_values() {
   env LC_ALL=C awk -v wanted="${1:-}" -v mode="${2:-tags}" '
     function fail() { invalid=1; exit 1 }
-    function ws() { while (substr(input,pos,1) ~ /[[:space:]]/) pos++ }
+    function ws() { while (pos<=len && ch[pos] ~ /[[:space:]]/) pos++ }
     function string_value( value,c,escape) {
-      if (substr(input,pos++,1) != "\"") fail()
+      if (ch[pos++] != "\"") fail()
       value=""
-      while (pos<=length(input)) {
-        c=substr(input,pos++,1)
+      while (pos<=len) {
+        c=ch[pos++]
         if (c == "\"") return value
         if (c == "\\") {
-          escape=substr(input,pos++,1)
+          escape=ch[pos++]
           if (escape == "u") {
-            c=substr(input,pos,4)
-            if (length(c)!=4 || c ~ /[^0-9a-fA-F]/) fail()
+            c=ch[pos] ch[pos+1] ch[pos+2] ch[pos+3]
+            if (pos+3>len || c ~ /[^0-9a-fA-F]/) fail()
             pos+=4; value=value "\\u" c
           } else if (escape ~ /^["\\\/bfnrt]$/) value=value escape
           else fail()
@@ -125,13 +136,13 @@ json_values() {
     }
     function object_value( field,value,tag) {
       pos++; depth++; ws()
-      if (substr(input,pos,1) != "}") {
+      if (ch[pos] != "}") {
         while (1) {
           ws(); field=string_value(); ws()
-          if (substr(input,pos++,1) != ":") fail()
+          if (ch[pos++] != ":") fail()
           value=parse_value(); values[depth,field]=value; ws()
-          if (substr(input,pos,1) == "}") break
-          if (substr(input,pos++,1) != ",") fail()
+          if (ch[pos] == "}") break
+          if (ch[pos++] != ",") fail()
         }
       }
       pos++
@@ -154,52 +165,89 @@ json_values() {
     }
     function array_value() {
       pos++; ws()
-      if (substr(input,pos,1) != "]") {
+      if (ch[pos] != "]") {
         while (1) {
           parse_value(); ws()
-          if (substr(input,pos,1) == "]") break
-          if (substr(input,pos++,1) != ",") fail()
+          if (ch[pos] == "]") break
+          if (ch[pos++] != ",") fail()
         }
       }
       pos++; return ""
     }
     function parse_value( c,value) {
-      ws(); c=substr(input,pos,1)
+      ws(); c=ch[pos]
       if (c == "{") return object_value()
       if (c == "[") return array_value()
       if (c == "\"") return string_value()
       value=""
-      while (pos<=length(input) && substr(input,pos,1) !~ /[][:space:],}]/) value=value substr(input,pos++,1)
+      while (pos<=len && !index("[],} \t\n\r\f\v", ch[pos])) value=value ch[pos++]
       if (value !~ /^(true|false|null)$/ && value !~ /^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$/) fail()
       return value
     }
     { input=input $0 "\n" }
     END {
       if (invalid) exit 1
+      len=split(input, ch, "")
       pos=1; ws()
-      if ((mode=="tags" || mode=="count") && substr(input,pos,1)!="[") fail()
-      if ((mode=="asset" || mode=="assetname" || mode=="tag") && substr(input,pos,1)!="{") fail()
+      if (mode=="tags" && ch[pos]!="[") fail()
+      if ((mode=="asset" || mode=="assetname" || mode=="tag") && ch[pos]!="{") fail()
       parse_value(); ws()
-      if (pos<=length(input) || invalid) exit 1
-      if (mode=="count") print count+0
-      else printf "%s",output
+      if (pos<=len || invalid) exit 1
+      printf "%s",output
+      if (mode=="tags") print "#" count+0
     }'
 }
 
-api_get() {
-  if command -v curl >/dev/null 2>&1; then
-    if [ -n "$TOKEN" ]; then
-      printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" |
-        curl --config - -fsSL -H "Accept: $2" "$1"
-    else
-      curl -fsSL -H "Accept: $2" "$1"
-    fi
-  elif [ -n "$TOKEN" ]; then
-    (umask 077 && printf 'header = Authorization: Bearer %s\n' "$TOKEN" > "${tmp}/wgetrc")
-    WGETRC="${tmp}/wgetrc" wget -qO- --header="Accept: $2" "$1"
-  else
-    wget -qO- --header="Accept: $2" "$1"
+# with_token is true while requests carry the token: not set, or dropped after
+# GitHub refused an implicitly adopted gh token (the flag file survives the
+# subshells that capture responses).
+with_token() {
+  [ -n "$TOKEN" ] && [ ! -e "${tmp}/anonymous" ]
+}
+
+api_fetch() {
+  local proto=(--proto '=https' --proto-redir '=https' --tlsv1.2) wget_proto=(--https-only)
+  if [ "$HTTPS_ONLY" != 1 ]; then
+    proto=(--proto '=http,https' --proto-redir '=http,https')
+    wget_proto=(--max-redirect=10)
+  elif ! wget --help 2>&1 | grep -q -- --https-only; then
+    wget_proto=(--max-redirect=10)
   fi
+  if command -v curl >/dev/null 2>&1; then
+    if with_token; then
+      printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" |
+        curl --config - "${proto[@]}" -fsSL -H "Accept: $2" "$1"
+    else
+      curl "${proto[@]}" -fsSL -H "Accept: $2" "$1"
+    fi
+  elif with_token; then
+    (umask 077 && printf 'header = Authorization: Bearer %s\n' "$TOKEN" > "${tmp}/wgetrc")
+    WGETRC="${tmp}/wgetrc" wget "${wget_proto[@]}" -nv -O- --header="Accept: $2" "$1"
+  else
+    wget "${wget_proto[@]}" -nv -O- --header="Accept: $2" "$1"
+  fi
+}
+
+# http_error is true when the last failed request was refused with one of the
+# given HTTP statuses (curl, GNU wget and busybox all print the number).
+http_error() {
+  local status
+  for status in "$@"; do
+    grep -Eq "(^|[^0-9])${status}([^0-9]|\$)" "${tmp}/error" 2>/dev/null && return 0
+  done
+  return 1
+}
+
+api_get() {
+  local status=0
+  api_fetch "$@" 2>"${tmp}/error" || status=$?
+  if [ "$status" -ne 0 ] && [ "$TOKEN_IMPLICIT" = 1 ] && with_token && http_error 401 403; then
+    : > "${tmp}/anonymous"
+    status=0
+    api_fetch "$@" 2>"${tmp}/error" || status=$?
+  fi
+  if [ "$status" -ne 0 ]; then cat "${tmp}/error" >&2; fi
+  return "$status"
 }
 
 valid_version() {
@@ -210,16 +258,22 @@ valid_version() {
 # archives and checksums.txt (json_values filters on that), which keeps the
 # legacy skill-pack releases out whatever their version.
 latest_tag() {
-  local body page count candidates="" tag version
+  local body listing page count line candidates="" tag version per_page=100
   for page in {1..10}; do
-    body="$(api_get "${API_URL}/releases?per_page=100&page=${page}" application/vnd.github+json)" ||
-      die "could not look up CLI releases from ${API_URL} (403 is GitHub's anonymous limit of 60 requests an hour: wait, or set SELF_HOST_GITHUB_TOKEN)"
-    while IFS= read -r tag; do
-      case "$tag" in new-cli-v*) version="${tag#new-cli-v}" ;; v*) version="${tag#v}" ;; *) continue ;; esac
+    body="$(api_get "${API_URL}/releases?per_page=${per_page}&page=${page}" application/vnd.github+json)" ||
+      die "could not look up CLI releases from ${API_URL} (a 403 means GitHub's rate limit of 60 anonymous requests an hour, or a token it refused: wait, or set SELF_HOST_GITHUB_TOKEN)"
+    listing="$(printf '%s' "$body" | json_values)" || die "invalid release-list JSON"
+    count=0
+    while IFS= read -r line; do
+      case "$line" in
+        "#"*) count="${line#"#"}"; continue ;;
+        new-cli-v*) tag="$line"; version="${tag#new-cli-v}" ;;
+        v*) tag="$line"; version="${tag#v}" ;;
+        *) continue ;;
+      esac
       if valid_version "$version"; then candidates="${candidates}${version} ${tag}"$'\n'; fi
-    done < <(printf '%s' "$body" | json_values)
-    count="$(printf '%s' "$body" | json_values "" count)" || die "invalid release-list JSON"
-    if [ "$count" -lt 100 ]; then
+    done <<< "$listing"
+    if [ "$count" -lt "$per_page" ]; then
       tag="$(printf '%s' "$candidates" | sed '/^$/d' | sort -t . -k1,1n -k2,2n -k3,3n | tail -n 1 | cut -d ' ' -f 2)"
       [ -n "$tag" ] || die "no CLI release is published (a vX.Y.Z tag with the self-host archives and checksums.txt)"
       printf '%s\n' "$tag"
@@ -281,14 +335,21 @@ resolve_release() {
   if [ -n "$found" ]; then
     die "release ${found} is not a CLI release: it does not list ${archive}"
   fi
-  die "could not read release metadata for $* from ${API_URL} (404 means no such release; 403 is GitHub's anonymous rate limit, set SELF_HOST_GITHUB_TOKEN)"
+  die "could not read release metadata for $* from ${API_URL} (404 means no such release; 403 means GitHub's rate limit of 60 anonymous requests an hour, or a token it refused: wait, or set SELF_HOST_GITHUB_TOKEN)"
+}
+
+download_failed() {
+  if http_error 403; then
+    die "could not download $1 from $2 (a 403 means GitHub's rate limit; wait, or set SELF_HOST_GITHUB_TOKEN)"
+  fi
+  die "could not download $1 from $2"
 }
 
 skill_hint() {
   say "To make the self-host skill discoverable by your AI agents, run:"
   say "  self-host skill install"
   say "or paste this into your AI:"
-  say "  Install the self-host skill from github.com/${REPO} and help me run my own movie server."
+  say "  Install the self-host skill from github.com/${REPO} and help me set up my own home server."
 }
 
 # offer_skill asks over the terminal, never over stdin (which is the download
@@ -369,12 +430,12 @@ main() {
 
   say "Downloading self-host ${version} for ${os}/${arch}"
   for name in "$archive" checksums.txt; do
-    if [ -n "$TOKEN" ]; then
+    if with_token; then
       asset_id="$(printf '%s' "$metadata" | json_values "$name" asset)"
       [[ "$asset_id" =~ ^[1-9][0-9]*$ ]] || die "release ${tag} does not list ${name}"
-      api_get "${API_URL}/releases/assets/${asset_id}" application/octet-stream > "${tmp}/${name}" || die "could not download ${name} from ${API_URL}/releases/assets/${asset_id}"
+      api_get "${API_URL}/releases/assets/${asset_id}" application/octet-stream > "${tmp}/${name}" || download_failed "$name" "${API_URL}/releases/assets/${asset_id}"
     else
-      api_get "${WEB_URL}/releases/download/${tag}/${name}" application/octet-stream > "${tmp}/${name}" || die "could not download ${name} from ${WEB_URL}/releases/download/${tag}/${name}"
+      api_get "${WEB_URL}/releases/download/${tag}/${name}" application/octet-stream > "${tmp}/${name}" || download_failed "$name" "${WEB_URL}/releases/download/${tag}/${name}"
     fi
     [ -s "${tmp}/${name}" ] || die "downloaded ${name} is empty; nothing was installed"
   done

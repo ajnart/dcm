@@ -179,7 +179,6 @@ func TestAdguardPreflightDistinguishesNullAndMissingFilters(t *testing.T) {
 		{"null on fixed 2.5.1", `{"filters":null}`, "2.5.1", false, true, 1, ""},
 		{"null on fixed 2.5.2", `{"filters":null}`, "2.5.2", false, true, 1, ""},
 		{"null on unreviewed 2.5.0", `{"filters":null}`, "2.5.0", false, false, 1, ""},
-		{"null on unreviewed 2.5.3", `{"filters":null}`, "2.5.3", false, false, 1, ""},
 		{"null without version", `{"filters":null}`, "", false, false, 1, ""},
 		{"null with rejected version auth", `{"filters":null}`, "2.5.2", true, false, 1, ""},
 		{"poisoned RPC version failure", `{"filters":null}`, "2.5.2", false, false, 1, "rpc"},

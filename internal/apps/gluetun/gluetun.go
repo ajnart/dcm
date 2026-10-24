@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "gluetun", Name: "Gluetun", Category: "Downloads",
 		Description:   "Send your downloads through a VPN, and stop them if it disconnects",
-		Image:         "qmcgaw/gluetun:v3.41.3",
+		Image:         "qmcgaw/gluetun:latest",
 		Docs:          "https://github.com/qdm12/gluetun-wiki",
 		Port:          8000,
 		ContainerPort: 8000,
@@ -56,7 +56,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   gluetun:
-    image: qmcgaw/gluetun:v3.41.3
+    image: qmcgaw/gluetun:latest
     restart: unless-stopped
     cap_add:
       - NET_ADMIN

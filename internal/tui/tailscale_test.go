@@ -76,7 +76,7 @@ func TestInstallReviewNamesPrivateAccessBeforeApproval(t *testing.T) {
 	v := newInstallView(ctx)
 	v.picked = picks{"ntfy": true}
 	v.planPicked(ctx)
-	if !strings.Contains(renderPlan(m.theme, v.plan, "approve"), "Private: ntfy (only missing nodes while Tailscale is on)") {
+	if !strings.Contains(renderPlan(m.theme, v.plan, "approve", 0), "Private: ntfy (only missing nodes while Tailscale is on)") {
 		t.Fatal("review must name the App whose private Access may start")
 	}
 	if len(backend.Actions()) != 0 {

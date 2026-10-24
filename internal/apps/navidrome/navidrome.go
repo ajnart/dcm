@@ -18,7 +18,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "navidrome", Name: "Navidrome", Category: "Media",
 		Description:   "Stream your music collection to your phone or computer",
-		Image:         "deluan/navidrome:0.64.0",
+		Image:         "deluan/navidrome:latest",
 		Docs:          "https://www.navidrome.org/docs/installation/docker/",
 		Port:          4533,
 		ContainerPort: 4533,
@@ -32,7 +32,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   navidrome:
-    image: deluan/navidrome:0.64.0
+    image: deluan/navidrome:latest
     restart: unless-stopped
     volumes:
       - ./data:/data

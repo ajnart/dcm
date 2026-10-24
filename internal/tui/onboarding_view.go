@@ -205,7 +205,7 @@ func (o *onboarding) renderReview(ctx *viewContext) []string {
 			}
 		}
 	}
-	lines = append(lines, planLines(t, o.plan)...)
+	lines = append(lines, planLines(t, o.plan, ctx.width)...)
 	if o.answers.cloudflare {
 		lines = append(lines, "", "  "+t.body().Render("Your own web address: choose Apps in Settings after install; nothing public yet"))
 	}

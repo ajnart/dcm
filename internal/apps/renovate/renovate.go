@@ -17,7 +17,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "renovate", Name: "Renovate", Category: "Developer tools",
 		Description:   "Automatically suggest updates for the software your code projects depend on",
-		Image:         "ghcr.io/renovatebot/renovate:44.132.2",
+		Image:         "ghcr.io/renovatebot/renovate:latest",
 		Docs:          "https://docs.renovatebot.com/",
 		Port:          0,
 		ContainerPort: 0,
@@ -38,7 +38,7 @@ func (App) Inputs() []app.Input {
 func (App) Compose(app.RenderContext) string {
 	return `services:
   renovate:
-    image: ghcr.io/renovatebot/renovate:44.132.2
+    image: ghcr.io/renovatebot/renovate:latest
     restart: "no"
     command: ["renovate", "--version"]
     environment:

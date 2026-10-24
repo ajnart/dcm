@@ -20,7 +20,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "valkey", Name: "Valkey", Category: "Databases",
 		Description:   "A fast short-term memory that your other apps use to run quicker",
-		Image:         "valkey/valkey:9.1.2",
+		Image:         "valkey/valkey:latest",
 		Docs:          "https://valkey.io/topics/installation/",
 		Port:          6379,
 		ContainerPort: 6379,
@@ -46,7 +46,7 @@ func (App) Files(_ app.RenderContext, secret func(string) string) []app.File {
 func (App) Compose(rc app.RenderContext) string {
 	return `services:
   valkey:
-    image: valkey/valkey:9.1.2
+    image: valkey/valkey:latest
     entrypoint: ["tini", "--", "sh", "-c", "umask 0077; exec /usr/local/bin/valkey-server \"$$@\"", "selfhost-valkey"]
     command: ["/usr/local/etc/valkey/valkey.conf"]
     restart: unless-stopped

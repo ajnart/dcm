@@ -18,7 +18,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "stalwart-mail", Name: "Stalwart Mail Server", Category: "Communication",
 		Description:   "Run your own email service, managed from a private admin page",
-		Image:         "stalwartlabs/stalwart:v0.16.24",
+		Image:         "stalwartlabs/stalwart:latest",
 		Docs:          "https://stalw.art/docs/install/platform/docker",
 		Port:          8080,
 		ContainerPort: 8080,
@@ -56,7 +56,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   stalwart-mail:
-    image: stalwartlabs/stalwart:v0.16.24
+    image: stalwartlabs/stalwart:latest
     restart: unless-stopped
     environment:
       TZ: ${TZ}

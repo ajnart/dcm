@@ -21,7 +21,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "deluge", Name: "Deluge", Category: "Downloads",
 		Description:   "Download torrents in the background, with a simple web page to manage them",
-		Image:         "lscr.io/linuxserver/deluge:2.2.0-ls381",
+		Image:         "lscr.io/linuxserver/deluge:latest",
 		Docs:          "https://deluge.readthedocs.io/en/latest/",
 		Port:          8112,
 		ContainerPort: 8112,
@@ -35,7 +35,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   deluge:
-    image: lscr.io/linuxserver/deluge:2.2.0-ls381
+    image: lscr.io/linuxserver/deluge:latest
     restart: unless-stopped
     environment:
       PUID: ${PUID}

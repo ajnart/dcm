@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	Image = "ghcr.io/tailscale/tailscale:v1.102.4"
+	Image = "ghcr.io/tailscale/tailscale:latest"
 	// ServicePrefix starts the Compose service of every node, so each is owned by the Tailscale App.
 	ServicePrefix = "tailscale-"
 	// Tag is the tag an OAuth client secret gives every node.

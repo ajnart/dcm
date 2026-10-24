@@ -27,4 +27,4 @@
                   │ Onboarding cannot continue while a check fails.                                  │
                   ╰──────────────────────────────────────────────────────────────────────────────────╯
 
- ✗ Docker daemon failed. Fix it, then press r to check again.                                    r check again · q quit
+ ✗ Docker daemon failed. Press r to retry.                                                       r check again · q quit

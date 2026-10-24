@@ -109,8 +109,8 @@ func subsonicRequest(ctx context.Context, h *helpers.H, endpoint string, params 
 	}
 	value := envelope.Response
 	version, _, _ := strings.Cut(value.ServerVersion, " ")
-	if value.Version != "1.16.1" || value.Type != "navidrome" || version != "0.64.0" {
-		return nil, resp, errors.New("Navidrome API compatibility is unverified; use Navidrome 0.64.0 and retry Setup")
+	if !helpers.VersionCompatible(value.Version, "1.16.1") || value.Type != "navidrome" || !helpers.VersionCompatible(version, "0.64.0") {
+		return nil, resp, errors.New("Navidrome API compatibility is unverified; use Navidrome 0.64.0 or newer 0.x with Subsonic API 1.16.1 or newer and retry Setup")
 	}
 	if value.Status == "failed" {
 		if endpoint == "getArtists" && value.Error != nil && value.Error.Code == 70 && value.Error.Message == "Library not found or empty" {

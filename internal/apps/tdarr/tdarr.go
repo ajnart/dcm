@@ -183,7 +183,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return err == nil, err
 		},
 		Do:   func(ctx context.Context) error { return verifyVersion(ctx, h) },
-		Hint: "Back up Tdarr before changing versions; this Link supports 2.92.01.",
+		Hint: "Back up Tdarr before changing versions; this Link supports Tdarr 2.92.01 or newer 2.x.",
 	}); err != nil {
 		return err
 	}

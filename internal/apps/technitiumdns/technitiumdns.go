@@ -23,7 +23,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "technitium-dns", Name: "Technitium DNS Server", Category: "DNS",
 		Description:   "Run your home network's address book (DNS), blocking ads and unwanted sites",
-		Image:         "technitium/dns-server:15.5.1",
+		Image:         "technitium/dns-server:latest",
 		Docs:          "https://github.com/TechnitiumSoftware/DnsServer/blob/master/docker-compose.yml",
 		Port:          5380,
 		ContainerPort: 5380,
@@ -54,7 +54,7 @@ func (App) Compose(rc app.RenderContext) string {
 	}
 	return `services:
   technitium-dns:
-    image: technitium/dns-server:15.5.1
+    image: technitium/dns-server:latest
     restart: unless-stopped
     environment:
       DNS_SERVER_DOMAIN: dns-server
@@ -166,9 +166,9 @@ func adminSession(ctx context.Context, h *helpers.H) (string, error) {
 		logout(ctx, h, login.Token)
 		return "", errors.New("Technitium did not authenticate the Project administrator")
 	}
-	if login.Info.Version != supportedVersion {
+	if !helpers.VersionCompatible(login.Info.Version, supportedVersion) {
 		logout(ctx, h, login.Token)
-		return "", fmt.Errorf("Technitium version is unsupported; this Setup supports %s; back up the App before changing versions", supportedVersion)
+		return "", fmt.Errorf("Technitium version is unsupported; this Setup supports %s or newer in the same major version; back up the App before changing versions", supportedVersion)
 	}
 	admin := login.Info.Permissions["Administration"]
 	if admin.View == nil || admin.Modify == nil || !*admin.View || !*admin.Modify {
@@ -198,7 +198,7 @@ func homarrUserDetails(ctx context.Context, h *helpers.H, token string) error {
 }
 
 func readOnlySession(current session) error {
-	if current.Info.Version != supportedVersion {
+	if !helpers.VersionCompatible(current.Info.Version, supportedVersion) {
 		return errors.New("Technitium Homarr token returned an unsupported version; back up the App before changing versions")
 	}
 	sections := []string{"Dashboard", "Zones", "Cache", "Allowed", "Blocked", "Apps", "DnsClient", "Settings", "DhcpServer", "Administration", "Logs"}

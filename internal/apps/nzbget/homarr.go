@@ -83,7 +83,7 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 		return errors.New("NZBGet Homarr access must use a separate restricted login; review its saved credential through the Project secret boundary")
 	}
 	if ok, err := adminWorks(ctx, h); err != nil || !ok {
-		return errors.New("NZBGet must reject anonymous RPC and accept the Admin login on version 26.3; run self-host setup nzbget")
+		return errors.New("NZBGet must reject anonymous RPC and accept the Admin login on NZBGet 26.3 or newer; run self-host setup nzbget")
 	}
 	for _, method := range []string{"config", "loadconfig"} {
 		account, err := restrictedLogin(ctx, h, method)
@@ -98,8 +98,8 @@ func VerifyHomarr(ctx context.Context, h *helpers.H) error {
 	if err := callRPC(ctx, h, username, password, "version", &currentVersion); err != nil {
 		return err
 	}
-	if currentVersion != version {
-		return errors.New("NZBGet Homarr access requires version 26.3; back up NZBGet before changing its version, then retry Setup")
+	if !helpers.VersionCompatible(currentVersion, version) {
+		return errors.New("NZBGet Homarr access requires NZBGet 26.3 or newer; back up NZBGet before changing its version, then retry Setup")
 	}
 	var status struct {
 		DownloadPaused *bool

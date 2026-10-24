@@ -27,9 +27,6 @@ func (App) AdminEmail(username string) string {
 }
 
 const (
-	// version is the Hub's version; the agent runs the same one.
-	version = "0.20.0"
-
 	AgentService       = "beszel-agent"
 	SocketProxyService = "beszel-socket-proxy"
 	// SystemName is how this machine appears in the Hub.
@@ -61,7 +58,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "beszel", Name: "Beszel", Category: "Monitoring",
 		Description:   "See how busy your computers are: processor, memory and disk space",
-		Image:         "henrygd/beszel:" + version,
+		Image:         "henrygd/beszel:latest",
 		Docs:          "https://www.beszel.dev/guide/hub-installation",
 		Port:          8090,
 		ContainerPort: 8090,
@@ -76,7 +73,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   beszel:
-    image: henrygd/beszel:` + version + `
+    image: henrygd/beszel:latest
     restart: unless-stopped
     environment:
       APP_URL: http://${LAN_IP}:` + port + `
@@ -85,7 +82,7 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + port + `:8090
   ` + AgentService + `:
-    image: henrygd/beszel-agent:` + version + `
+    image: henrygd/beszel-agent:latest
     restart: unless-stopped
     network_mode: host
     depends_on:
@@ -100,7 +97,7 @@ func (App) Compose(rc app.RenderContext) string {
     volumes:
       - ./agent:/var/lib/beszel-agent
   ` + SocketProxyService + `:
-    image: lscr.io/linuxserver/socket-proxy:3.4.6
+    image: lscr.io/linuxserver/socket-proxy:latest
     restart: unless-stopped
     read_only: true
     tmpfs:

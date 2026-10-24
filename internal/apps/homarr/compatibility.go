@@ -26,7 +26,7 @@ func readHomarrVersion(ctx context.Context, h *helpers.H) (string, error) {
 // probes or mutation. The caller supplies a fixed App-specific recovery hint.
 func requireCredentialSafeHomarr(ctx context.Context, h *helpers.H, hint string) error {
 	version, err := readHomarrVersion(ctx, h)
-	if err == nil && (version == "2.5.1" || version == "2.5.2") {
+	if err == nil && (credentialSafeHomarrVersion(version)) {
 		return nil
 	}
 	h.Info(hint)
@@ -97,4 +97,8 @@ func (t target) compatible(ctx context.Context, from, to *helpers.H) error {
 		return fmt.Errorf("Homarr %s credential shape is unsupported; use the supported Homarr %s and retry Setup", t.kind, supportedHomarrVersions)
 	}
 	return fmt.Errorf("Homarr does not support %s; use Homarr %s and retry Setup", t.kind, supportedHomarrVersions)
+}
+
+func credentialSafeHomarrVersion(version string) bool {
+	return release.IsRelease(version) && helpers.VersionCompatible(version, "2.5.1")
 }

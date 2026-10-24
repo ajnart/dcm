@@ -83,8 +83,8 @@ func TestSlskdDescriptorUsesOneStatsSample(t *testing.T) {
 					switch r.URL.Path {
 					case "/api/v0/application/version":
 						value = "0.26.1.0"
-					case "/api/v0/server":
-						value = provider
+					case "/api/v0/application":
+						value = map[string]any{"server": provider}
 					case "/api/v0/transfers/downloads":
 						value = []any{}
 					default:

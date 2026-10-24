@@ -88,7 +88,7 @@ func (f *gluetunFixture) helpers(t *testing.T) (*helpers.H, *helpers.H) {
 }
 
 func TestGluetunUnsafeVersionsHoldBeforeProviderOrMutation(t *testing.T) {
-	for _, version := range []string{"2.4.1", "2.5.0", "2.5.3", "", "2.5.2-preview", "unreadable"} {
+	for _, version := range []string{"2.4.1", "2.5.0", "", "2.5.2-preview", "unreadable"} {
 		t.Run(version, func(t *testing.T) {
 			f := newGluetunFixture()
 			f.version = version

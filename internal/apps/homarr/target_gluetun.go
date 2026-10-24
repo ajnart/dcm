@@ -9,7 +9,7 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
-const gluetunPrivacyHint = "Use audited Homarr 2.5.1 or 2.5.2 for the credential-safe Gluetun summary. Older, unknown or unreadable versions remain paused before provider requests or Homarr changes. Back up Homarr before updating, retain the existing read-only control role, then retry self-host setup gluetun and self-host setup homarr."
+const gluetunPrivacyHint = "Use audited Homarr 2.5.1 or newer 2.x for the credential-safe Gluetun summary. Older, unknown or unreadable versions remain paused before provider requests or Homarr changes. Back up Homarr before updating, retain the existing read-only control role, then retry self-host setup gluetun and self-host setup homarr."
 const gluetunReadinessHint = "Gluetun's saved read-only control key and running VPN with a public IP must pass its Setup first. Confirm your provider account, country and privately supplied OpenVPN credentials, then retry self-host setup gluetun and self-host setup homarr. Keep the firewall enabled; NET_ADMIN, /dev/net/tun and a real tunnel-break fail-closed test remain separate runtime prerequisites."
 
 func gluetunTarget() target {

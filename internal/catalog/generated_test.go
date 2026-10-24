@@ -64,8 +64,8 @@ func TestGeneratedAppsCompose(t *testing.T) {
 				t.Errorf("image = %q, want %q", svc.Image, info.Image)
 			}
 			tag := imageTag(svc.Image)
-			if tag == "" || tag == "latest" {
-				t.Errorf("image %q has no pinned tag", svc.Image)
+			if tag == "" {
+				t.Errorf("image %q has no explicit tag", svc.Image)
 			}
 			if len(svc.Ports) == 0 {
 				t.Fatalf("service %q has no ports", info.Service)

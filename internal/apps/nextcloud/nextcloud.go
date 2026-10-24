@@ -28,7 +28,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "nextcloud", Name: "Nextcloud", Category: "Files",
 		Description:   "Keep your files, calendars and contacts in sync across your devices",
-		Image:         "nextcloud:35.0.1-apache",
+		Image:         "nextcloud:latest",
 		Docs:          "https://github.com/nextcloud/docker",
 		Port:          8080,
 		ContainerPort: 80,
@@ -67,7 +67,7 @@ func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
   nextcloud:
-    image: nextcloud:35.0.1-apache
+    image: nextcloud:latest
     restart: unless-stopped
     environment:
       MYSQL_HOST: nextcloud-db
@@ -101,10 +101,10 @@ func (App) Compose(rc app.RenderContext) string {
       - ./secrets/db_password:/run/secrets/db_password:ro
       - ./secrets/db_root_password:/run/secrets/db_root_password:ro
   nextcloud-redis:
-    image: redis:8.10.2-alpine3.23
+    image: redis:alpine
     restart: unless-stopped
   nextcloud-cron:
-    image: nextcloud:35.0.1-apache
+    image: nextcloud:latest
     restart: unless-stopped
     entrypoint: ["/cron.sh"]
     environment:

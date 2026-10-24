@@ -185,7 +185,7 @@ func TestFailureHoldsRechecksAndRecovers(t *testing.T) {
 	m = update(t, m, doctorMsg{checks: failedChecks})
 	m = frames(t, m, 300)
 	out := screen(m)
-	for _, want := range []string{"✗ Docker daemon", "→ Start Docker.", "Onboarding cannot continue while a check fails.", "r check again · q quit"} {
+	for _, want := range []string{"✗ Docker daemon", "→ Start Docker, then press r.", "Onboarding cannot continue while a check fails.", "r check again · q quit"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("the held failure shows %q\n%s", want, out)
 		}
