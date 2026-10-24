@@ -1,0 +1,19 @@
+internal/compose/compose.go
+  s_fffcac84c335e5::t_00e9e760b12c1b 97-99,110-112,118-120,128-130,268-270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "33f1d3c7564600264f46640c91e907bdbc017f98",
+  "prompts": {},
+  "sessions": {
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
