@@ -1,0 +1,26 @@
+internal/activity/action.go
+  h_d6e478ca18e517 11,165-169,171-174,179-181,412-420
+internal/service/mutation.go
+  h_d6e478ca18e517 531-533
+internal/tui/model.go
+  h_d6e478ca18e517 59-62,173-185,521-523,872-873,875-903
+internal/tui/preboot_test.go
+  h_d6e478ca18e517 338-348,360-363
+internal/tui/run.go
+  h_d6e478ca18e517 5-6,17-18,23-25
+internal/tui/startprompt.go
+  h_d6e478ca18e517 11,19-20,23,48,83-106,110-112,159-161
+internal/tui/tasks.go
+  h_d6e478ca18e517 5,33,162-219
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "98906c8bd13d6361d75c1ed0c8ad21f5737ed19a",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
