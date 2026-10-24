@@ -2,6 +2,22 @@ import type { DockerTool } from "@/lib/docker-tools"
 
 export const other: DockerTool[] = [
   {
+    id: "it-tools",
+    name: "IT-Tools",
+    description:
+      "A collection of handy online tools for developers and people working in IT.",
+    category: "Development",
+    tags: ["Development", "Utilities"],
+    githubUrl: "https://github.com/corentinth/it-tools",
+    composeContent: `services:
+  it-tools:
+    image: corentinth/it-tools:latest
+    container_name: \${CONTAINER_PREFIX}it-tools
+    ports:
+      - "8080:80"
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "nextcloud",
     name: "Nextcloud",
     description: "A safe home for all your data.",
