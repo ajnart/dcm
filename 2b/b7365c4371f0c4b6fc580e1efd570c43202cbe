@@ -1,0 +1,41 @@
+internal/apps/speedtesttracker/homarr.go
+  s_38f0540eac7a4a::t_987ce4d6617de6 48-49,274,289
+internal/apps/speedtesttracker/speedtesttracker.go
+  s_38f0540eac7a4a::t_4e665536d7e16a 338-341
+internal/catalog/catalog.go
+  s_38f0540eac7a4a::t_25ad9e06e9661f 43
+internal/catalog/unavailable_test.go
+  s_38f0540eac7a4a::t_3e78d4270d30d5 11-12,20,23
+internal/tui/testdata/onboarding-what-default-focus-narrow.golden
+  s_19ce619941ba72::t_9dc391142a9dfc 16
+internal/tui/testdata/onboarding-what-default-focus.golden
+  s_19ce619941ba72::t_5d6b384b5d4b36 22
+site/src/content/docs/docs/getting-started.md
+  s_38f0540eac7a4a::t_eaafbccf5b6a77 37
+site/src/data/catalog.json
+  s_38f0540eac7a4a::t_c92cb85ba7b3c6 102-112,379,429,536-546,941-950
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2bb7365c4371f0c4b6fc580e1efd570c43202cbe",
+  "prompts": {},
+  "sessions": {
+    "s_19ce619941ba72": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0c88857b-834e-43b5-945c-24e7af937454",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_38f0540eac7a4a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1fbf1147-9d48-4d58-8fe0-b666970ca399",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
