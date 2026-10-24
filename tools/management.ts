@@ -225,6 +225,30 @@ export const management: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "cloudflare-ddns",
+    name: "Cloudflare DDNS",
+    description:
+      "A lightweight Cloudflare dynamic DNS updater that detects your public IP addresses and updates DNS records through the Cloudflare API. Requires a Cloudflare API token with Zone DNS Edit permission and comma-separated domains. Proxy settings apply to new records; existing records keep their proxy status.",
+    category: "Networking",
+    tags: ["Network", "DNS", "DDNS", "Cloudflare"],
+    githubUrl: "https://github.com/favonia/cloudflare-ddns",
+    composeContent: `services:
+  cloudflare-ddns:
+    image: favonia/cloudflare-ddns:1
+    container_name: \${CONTAINER_PREFIX}cloudflare-ddns
+    network_mode: host
+    user: "\${PUID}:\${PGID}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      - CLOUDFLARE_API_TOKEN=\${CLOUDFLARE_API_TOKEN:-}
+      - DOMAINS=\${CLOUDFLARE_DDNS_DOMAINS:-example.org}
+      - PROXIED=\${CLOUDFLARE_DDNS_PROXIED:-true}
+      - TZ=\${TZ}
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "panelio",
     name: "Panelio",
     description:
