@@ -2,6 +2,36 @@ import type { DockerTool } from "@/lib/docker-tools"
 
 export const management: DockerTool[] = [
   {
+    id: "wg-easy",
+    name: "WireGuard Easy",
+    description:
+      "Manage a WireGuard VPN with a web UI. Uses IPv4-only networking and requires a Linux host with WireGuard support. Secure the localhost-bound web UI with an HTTPS reverse proxy, then complete the setup wizard to configure credentials and the public VPN endpoint.",
+    category: "Networking",
+    tags: ["VPN", "WireGuard", "Security", "Network"],
+    githubUrl: "https://github.com/wg-easy/wg-easy",
+    composeContent: `services:
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:15
+    container_name: \${CONTAINER_PREFIX}wg-easy
+    environment:
+      - TZ=\${TZ}
+      - DISABLE_IPV6=true
+      - INSECURE=false
+    volumes:
+      - \${CONFIG_PATH}/wg-easy:/etc/wireguard
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp"
+      - "127.0.0.1:51821:51821/tcp"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "portainer",
     name: "Portainer",
     description:
@@ -157,6 +187,26 @@ export const management: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "cloudflared-web",
+    name: "Cloudflared WEB",
+    description:
+      "Manage remotely-managed Cloudflare tunnels with a simple web UI for configuring tokens and starting or stopping cloudflared. Uses host networking; access the Web UI at http://localhost:14333.",
+    category: "Networking",
+    tags: ["Network", "Cloudflare", "Tunnel", "UI"],
+    githubUrl: "https://github.com/WisdomSky/Cloudflared-web",
+    composeContent: `services:
+  cloudflared-web:
+    image: wisdomsky/cloudflared-web:latest
+    container_name: \${CONTAINER_PREFIX}cloudflared-web
+    network_mode: host
+    environment:
+      - WEBUI_HOST=127.0.0.1
+      - WEBUI_PORT=14333
+    volumes:
+      - \${CONFIG_PATH}/cloudflared-web:/config
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "dockge",
     name: "Dockge",
     description:
@@ -203,6 +253,30 @@ export const management: DockerTool[] = [
       - FULL_SYNC=true
       - RUN_GRAVITY=true
       - CRON=0 * * * *
+    restart: \${RESTART_POLICY}`,
+  },
+  {
+    id: "cloudflare-ddns",
+    name: "Cloudflare DDNS",
+    description:
+      "A lightweight Cloudflare dynamic DNS updater that detects your public IP addresses and updates DNS records through the Cloudflare API. Requires a Cloudflare API token with Zone DNS Edit permission and comma-separated domains. Proxy settings apply to new records; existing records keep their proxy status.",
+    category: "Networking",
+    tags: ["Network", "DNS", "DDNS", "Cloudflare"],
+    githubUrl: "https://github.com/favonia/cloudflare-ddns",
+    composeContent: `services:
+  cloudflare-ddns:
+    image: favonia/cloudflare-ddns:1
+    container_name: \${CONTAINER_PREFIX}cloudflare-ddns
+    network_mode: host
+    user: "\${PUID}:\${PGID}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      - CLOUDFLARE_API_TOKEN=\${CLOUDFLARE_API_TOKEN:-}
+      - DOMAINS=\${CLOUDFLARE_DDNS_DOMAINS:-example.org}
+      - PROXIED=\${CLOUDFLARE_DDNS_PROXIED:-true}
+      - TZ=\${TZ}
     restart: \${RESTART_POLICY}`,
   },
   {

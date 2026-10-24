@@ -68,15 +68,18 @@ Using Docker Compose Maker is simple and intuitive:
 Once you have your docker-compose configuration, you have several ways to deploy it:
 
 #### Copy & Paste
+
 Simply copy the generated docker-compose.yaml and .env content, save them locally, and run `docker-compose up -d` to start your containers.
 
 #### Download Files
+
 Download the generated docker-compose.yaml and .env files directly from the interface, then use them with your preferred Docker management tool.
 
 > [!NOTE]
 > The downloaded .env file contains all the environment variables referenced in your docker-compose.yaml. Keep both files in the same directory when deploying.
 
 #### Portainer Stacks
+
 If you're already using [Portainer](https://github.com/portainer/portainer) to manage your Docker environment, you can easily deploy your configuration as a stack:
 
 1. Navigate to your Portainer dashboard and select **Stacks** from the sidebar
@@ -92,6 +95,7 @@ If you're already using [Portainer](https://github.com/portainer/portainer) to m
 Using Portainer provides a user-friendly web interface to manage, update, and monitor your containers without needing command-line tools.
 
 #### Other Docker Management Tools
+
 The generated compose file works with any tool that supports docker-compose syntax, such as Docker Desktop, Rancher, Yacht, or command-line tools.
 
 ## 🚀 Quick Start
@@ -116,6 +120,7 @@ docker run -p 7576:7576 --name dcm --rm ghcr.io/ajnart/dcm
 Then visit `http://localhost:7576` in your browser.
 
 The Docker image is available for multiple platforms:
+
 - linux/amd64
 - linux/arm64
 - linux/arm/v7
@@ -149,6 +154,7 @@ docker-compose up -d
 ### 🛠️ Build from Source
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/ajnart/dcm.git
 cd dcm
@@ -157,6 +163,7 @@ cd dcm
 2. Install dependencies:
 
 First install [Bun](https://bun.sh/) if you haven't already, then run:
+
 ```bash
 bun install --linker hoisted
 ```
@@ -170,38 +177,91 @@ bun install --linker hoisted
 > Using npm instead of Bun may result in longer installation times and potential compatibility issues. We strongly recommend using Bun for development.
 
 3. Build and start:
+
 ```bash
 bun run build
 bun start
 ```
 
+### Community upvotes on Cloudflare Pages
+
+The gallery supports anonymous community upvotes through Pages Functions and Workers KV. No accounts, traditional database, or Next.js server are required. Docker, `bun start`, `bun dev`, and other static hosts remain fully usable without an API: upvote buttons show an unavailable state rather than inventing counts. Nothing contacts the public DCM instance.
+
+Voting is opt-in. The default `wrangler.toml` has no KV binding and voting stays disabled until both bindings below exist:
+
+1. Create a Workers KV namespace for votes in your Cloudflare account. Add its binding to `wrangler.toml`, replacing the namespace ID with your own. Use a separate namespace for preview deployments so previews cannot change production votes:
+
+```toml
+[[kv_namespaces]]
+binding = "UPVOTES"
+id = "YOUR_PRODUCTION_NAMESPACE_ID"
+
+[[env.preview.kv_namespaces]]
+binding = "UPVOTES"
+id = "YOUR_PREVIEW_NAMESPACE_ID"
+```
+
+2. In the Pages project's **Settings → Variables and Secrets**, add an encrypted runtime secret named `VOTE_IP_SECRET`, independently for production and preview. Generate a random value of at least 32 bytes and keep it stable. Never use a `NEXT_PUBLIC_` variable or commit the secret. Wrangler configuration is the source of truth for KV bindings; do not rely on a dashboard-only KV binding when deploying with this file.
+3. Build and deploy from the repository root with `bun run deploy`. Wrangler includes `functions/` alongside `out/`; uploading only `out/` to a static host does not deploy the API. `public/_routes.json` limits Function invocation to `/api/*`, leaving the gallery and other assets static.
+
+For local-only development, put `VOTE_IP_SECRET="local-development-only"` in `.dev.vars` (gitignored), build the static export, and run:
+
+```bash
+bun run build
+bunx wrangler pages dev out --kv=UPVOTES
+```
+
+Wrangler uses local KV storage by default; this does not create or deploy cloud resources. Test the API and gallery through Wrangler's URL, not `next dev`. API calls without Cloudflare's `CF-Connecting-IP` header cannot vote. For manual local requests, provide a test IP in that header and an `Origin` matching the local URL.
+
+#### API and storage
+
+- `GET /api/stats` returns `{ "counts": { "jellyfin": 0, ... } }` for the current merged catalog, including self-host-only entries. One gallery request loads all counts. Responses are cached for 60 seconds in the browser and per Cloudflare edge location; query strings do not bypass the edge cache.
+- `POST /api/vote` accepts `{ "containerId": "jellyfin" }` as JSON, with a same-origin `Origin` header and a body of at most 1 KiB. IDs must exist in the same catalog used by the gallery. It returns `{ "accepted": true }`, or `{ "accepted": false }` if that network has already voted for the container. Votes cannot be removed.
+- Each vote writes `vote:{containerId}:{HMAC}`. HMAC-SHA-256 uses the server secret, container ID, and Cloudflare-provided IP. Raw IPs are not stored, sent back, or logged by voting code. A separate `rate:{HMAC}` key expires after 60 seconds and limits new votes across containers from the same IP; rejected votes return `429` with `Retry-After`. Changing forwarded-IP headers does not select the voting identity.
+- Browser storage remembers successful votes only as a UX hint; clearing it does not bypass server deduplication. Failed writes do not show a successful vote. Missing bindings, unavailable KV, or exhausted quotas return `503`, without breaking compose generation.
+
+#### Limitations and costs
+
+KV has no atomic increments or transactions. Counting durable, deterministic ballot keys avoids losing distinct votes during concurrent counter updates, and repeated writes for the same IP/container still count once. However, KV reads and listings are eventually consistent: counts can lag by 60 seconds or more, plus the response cache. The UI increments after acknowledgement, so a refreshed page can temporarily show an older count. Parallel reads can miss a recent ballot or throttle marker; the throttle is best-effort, not a strict abuse-prevention boundary. A failed ballot write after the throttle write can require waiting 60 seconds before retrying.
+
+This is a community signal, not verified ratings or a guarantee that a container works. Shared public IPs share a vote; changing IP/VPN can evade deduplication. Rotating `VOTE_IP_SECRET` permits new votes from previously seen networks, while existing votes remain counted. Ballots do not expire and contain pseudonymous identifiers; restrict namespace access and consider your privacy/retention obligations.
+
+An accepted vote normally uses two KV reads and two writes. A cold stats response lists every ballot in pages of 1,000, with no per-ballot reads; costs grow with total votes and active edge locations. The API fails unavailable rather than returning partial counts if listing exceeds 50 pages (about 50,000 ballots). Monitor KV **list**, read, write, storage, and Pages Functions quotas: free-tier operation is not guaranteed, and listing quotas can be reached before read quotas. For higher traffic or strict throttling/count consistency, move aggregation and coordination to a Durable Object rather than adding non-atomic counters.
+
+Cloudflare references: [Pages bindings and secrets](https://developers.cloudflare.com/pages/functions/bindings/), [Wrangler Pages configuration](https://developers.cloudflare.com/pages/functions/wrangler-configuration/), [KV listing and pagination](https://developers.cloudflare.com/kv/api/list-keys/), and [KV consistency](https://developers.cloudflare.com/kv/concepts/how-kv-works/).
+
 ## 🧰 Supported Tools
 
 DCM includes configuration for many popular self-hosted applications, including:
 
-📺 **Media Management**: 
-  - **Media Servers**: [Jellyfin](https://github.com/jellyfin/jellyfin), [Plex](https://github.com/plexinc/pms-docker), [Emby](https://github.com/MediaBrowser/Emby)
-  - **Media Automation**: [Sonarr](https://github.com/Sonarr/Sonarr), [Radarr](https://github.com/Radarr/Radarr), [Lidarr](https://github.com/lidarr/Lidarr), [Readarr](https://github.com/Readarr/Readarr), [Prowlarr](https://github.com/Prowlarr/Prowlarr), [Bazarr](https://github.com/morpheus65535/bazarr), [Whisparr](https://github.com/whisparr/whisparr)
-  - **Media Requests**: [Jellyseerr](https://github.com/Fallenbagel/jellyseerr), [Overseerr](https://github.com/sct/overseerr), [Doplarr](https://github.com/kiranshila/Doplarr), [Requestrr](https://github.com/darkalfx/requestrr)
+📺 **Media Management**:
 
-🔍 **Dashboards & Management**: 
-  - **Dashboards**: [Homarr](https://github.com/homarr-labs/homarr), [Heimdall](https://github.com/linuxserver/Heimdall)
-  - **Container Management**: [Portainer](https://github.com/portainer/portainer)
-  - **Media Analytics**: [Tautulli](https://github.com/Tautulli/Tautulli)
+- **Media Servers**: [Jellyfin](https://github.com/jellyfin/jellyfin), [Plex](https://github.com/plexinc/pms-docker), [Emby](https://github.com/MediaBrowser/Emby)
+- **Media Automation**: [Sonarr](https://github.com/Sonarr/Sonarr), [Radarr](https://github.com/Radarr/Radarr), [Lidarr](https://github.com/lidarr/Lidarr), [Readarr](https://github.com/Readarr/Readarr), [Prowlarr](https://github.com/Prowlarr/Prowlarr), [Bazarr](https://github.com/morpheus65535/bazarr), [Whisparr](https://github.com/whisparr/whisparr)
+- **Media Requests**: [Jellyseerr](https://github.com/Fallenbagel/jellyseerr), [Overseerr](https://github.com/sct/overseerr), [Doplarr](https://github.com/kiranshila/Doplarr), [Requestrr](https://github.com/darkalfx/requestrr)
+
+🔍 **Dashboards & Management**:
+
+- **Dashboards**: [Homarr](https://github.com/homarr-labs/homarr), [Heimdall](https://github.com/linuxserver/Heimdall)
+- **Container Management**: [Portainer](https://github.com/portainer/portainer)
+- **Media Analytics**: [Tautulli](https://github.com/Tautulli/Tautulli)
 
 📥 **Download Management**:
-  - **Torrent**: [qBittorrent](https://github.com/qbittorrent/qBittorrent)
-  - **Usenet**: [NZBGet](https://github.com/nzbget/nzbget), [NZBHydra 2](https://github.com/theotherp/nzbhydra2)
-  - **Indexers**: [Jackett](https://github.com/Jackett/Jackett), [Prowlarr](https://github.com/Prowlarr/Prowlarr)
 
-🗄️ **Databases**: 
-  - **SQL**: [MariaDB](https://github.com/MariaDB/server), [MySQL](https://github.com/mysql/mysql-server), [PostgreSQL](https://github.com/postgres/postgres)
-  - **NoSQL**: [MongoDB](https://github.com/mongodb/mongo), [Redis](https://github.com/redis/redis)
+- **Torrent**: [qBittorrent](https://github.com/qbittorrent/qBittorrent)
+- **Usenet**: [NZBGet](https://github.com/nzbget/nzbget), [NZBHydra 2](https://github.com/theotherp/nzbhydra2)
+- **Indexers**: [Jackett](https://github.com/Jackett/Jackett), [Prowlarr](https://github.com/Prowlarr/Prowlarr)
 
-📊 **Monitoring & Automation**: 
-  - **Monitoring**: [Grafana](https://github.com/grafana/grafana), [Prometheus](https://github.com/prometheus/prometheus)
-  - **Updates**: [Watchtower](https://github.com/containrrr/watchtower)
-  - **Home Automation**: [Home Assistant](https://github.com/home-assistant/core)
+🗄️ **Databases**:
+
+- **SQL**: [MariaDB](https://github.com/MariaDB/server), [MySQL](https://github.com/mysql/mysql-server), [PostgreSQL](https://github.com/postgres/postgres)
+- **NoSQL**: [MongoDB](https://github.com/mongodb/mongo), [Redis](https://github.com/redis/redis)
+
+📊 **Monitoring & Automation**:
+
+- **Monitoring**: [Grafana](https://github.com/grafana/grafana), [Prometheus](https://github.com/prometheus/prometheus)
+- **Updates**: [Watchtower](https://github.com/containrrr/watchtower)
+- **Home Automation**: [Home Assistant](https://github.com/home-assistant/core)
 
 🔐 **Security**: [Vaultwarden](https://github.com/dani-garcia/vaultwarden)
 
@@ -245,6 +305,7 @@ DCM includes a Template Gallery that allows you to quickly add predefined stacks
 - **And more!**: Smart home hubs, personal cloud solutions, and other useful templates
 
 To use the Template Gallery:
+
 1. Click the "Template Gallery" button at the top of the main page
 2. Browse or search for templates that match your needs
 3. Click "Use Template" to add all containers from that template to your selection
@@ -255,9 +316,11 @@ You can combine multiple templates to create your perfect self-hosted environmen
 ## 🖼️ Screenshots
 
 ### User Interface
+
 ![UI Screenshot](/public/ui-demo.png)
 
 ### Generated docker compose file
+
 ![Generated docker-compose file](/public/compose-output.png)
 
 ## 🤝 Contributing
@@ -265,6 +328,7 @@ You can combine multiple templates to create your perfect self-hosted environmen
 We welcome contributions to DCM! Whether you want to add new container definitions, improve documentation, or fix bugs, your help is appreciated.
 
 Please check our [CONTRIBUTING.md](CONTRIBUTING.md) guide for detailed instructions on:
+
 - How to add new container definitions
 - Code style guidelines
 - Testing requirements
@@ -274,7 +338,7 @@ The easiest way to contribute is by adding new container definitions to our grow
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the GNU Affero General Public License v3.0 only (AGPL-3.0-only) - see the [LICENSE](LICENSE) file for details.
 
 ## 💖 Support
 
@@ -290,4 +354,4 @@ If you find this tool useful, consider supporting the project by:
 
 ---
 
-Made with ❤️ by [ajnart](https://github.com/ajnart) 
+Made with ❤️ by [ajnart](https://github.com/ajnart)
