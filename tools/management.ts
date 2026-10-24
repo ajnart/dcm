@@ -2,6 +2,36 @@ import type { DockerTool } from "@/lib/docker-tools"
 
 export const management: DockerTool[] = [
   {
+    id: "wg-easy",
+    name: "WireGuard Easy",
+    description:
+      "Manage a WireGuard VPN with a web UI. Uses IPv4-only networking and requires a Linux host with WireGuard support. Secure the localhost-bound web UI with an HTTPS reverse proxy, then complete the setup wizard to configure credentials and the public VPN endpoint.",
+    category: "Networking",
+    tags: ["VPN", "WireGuard", "Security", "Network"],
+    githubUrl: "https://github.com/wg-easy/wg-easy",
+    composeContent: `services:
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:15
+    container_name: \${CONTAINER_PREFIX}wg-easy
+    environment:
+      - TZ=\${TZ}
+      - DISABLE_IPV6=true
+      - INSECURE=false
+    volumes:
+      - \${CONFIG_PATH}/wg-easy:/etc/wireguard
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp"
+      - "127.0.0.1:51821:51821/tcp"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "portainer",
     name: "Portainer",
     description:
