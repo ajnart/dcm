@@ -1,0 +1,16 @@
+internal/service/fragments.go
+  h_d6e478ca18e517 7,117-123,153-159,161-162,166
+internal/service/lifecycle.go
+  h_d6e478ca18e517 320,323-327
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "af222042511c033a06b6b462822cdc2b2890adb8",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
