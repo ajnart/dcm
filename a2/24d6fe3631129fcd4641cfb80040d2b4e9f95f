@@ -1,0 +1,25 @@
+internal/apps/stalwartmail/bootstrap.go
+  s_c7f9644bf5da14::t_8833e78f6e11a2 9-10,76-78
+internal/compose/compose.go
+  s_c7f9644bf5da14::t_d69bee047d78fd 283-290
+internal/service/fragments.go
+  s_c7f9644bf5da14::t_e5bd81ec727bfa 138
+internal/service/install.go
+  s_c7f9644bf5da14::t_e966525adffe37 7,547-554
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a224d6fe3631129fcd4641cfb80040d2b4e9f95f",
+  "prompts": {},
+  "sessions": {
+    "s_c7f9644bf5da14": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4222f03-ea4a-4cc8-b1de-4d5efab39245",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
