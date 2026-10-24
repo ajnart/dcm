@@ -18,6 +18,30 @@ export const other: DockerTool[] = [
     restart: \${RESTART_POLICY}`,
   },
   {
+    id: "candlr",
+    name: "Candlr",
+    description:
+      "Self-hosted birthday calendar with reminders and SQLite storage in a single container. Set CANDLR_SECRET_KEY to a stable secret generated with openssl rand -hex 32 before starting.",
+    category: "Other",
+    tags: ["Social", "Birthday", "Calendar", "Reminders"],
+    githubUrl: "https://github.com/ellite/candlr",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/candlr.png",
+    composeContent: `services:
+  candlr:
+    image: bellamy/candlr:latest
+    container_name: \${CONTAINER_PREFIX}candlr
+    ports:
+      - "4258:4258"
+    environment:
+      - PUID=\${PUID}
+      - PGID=\${PGID}
+      - SECRET_KEY=\${CANDLR_SECRET_KEY}
+      - TIMEZONE=\${TZ}
+    volumes:
+      - \${DATA_PATH}/candlr:/app/backend/data
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "nextcloud",
     name: "Nextcloud",
     description: "A safe home for all your data.",
