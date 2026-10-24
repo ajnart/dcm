@@ -1,0 +1,70 @@
+internal/apps/audiobookshelf/audiobookshelf.go
+  h_d6e478ca18e517 119-122,134
+internal/apps/audiobookshelf/audiobookshelf_test.go
+  h_d6e478ca18e517 164-165,210,217
+internal/apps/emby/emby.go
+  h_d6e478ca18e517 142-145,168
+internal/apps/emby/emby_test.go
+  h_d6e478ca18e517 112-113,156
+internal/apps/gotify/gotify.go
+  h_d6e478ca18e517 109-112,138
+internal/apps/homarr/target_home_assistant.go
+  h_d6e478ca18e517 33-34
+internal/apps/homeassistant/homeassistant.go
+  h_d6e478ca18e517 176-179,191
+internal/apps/homeassistant/homeassistant_test.go
+  h_d6e478ca18e517 118-119
+internal/apps/immich/homarr.go
+  h_d6e478ca18e517 142-153
+internal/apps/immich/immich.go
+  h_d6e478ca18e517 191-194
+internal/apps/linkwarden/linkwarden.go
+  h_d6e478ca18e517 148-151,169
+internal/apps/linkwarden/linkwarden_test.go
+  h_d6e478ca18e517 144-145
+internal/apps/navidrome/navidrome.go
+  h_d6e478ca18e517 90-92,106-109,122
+internal/apps/navidrome/navidrome_test.go
+  h_d6e478ca18e517 266-267,290,294,316,322-323,325,331,338,344,347,391,438
+internal/apps/nextcloud/nextcloud.go
+  h_d6e478ca18e517 206-209,262,425-436,438,472-480
+internal/apps/nextcloud/nextcloud_test.go
+  h_d6e478ca18e517 23-35,88-89,140,142,196-197,199-200,202,258,273-276
+internal/apps/nzbget/nzbget.go
+  h_d6e478ca18e517 106-108,207
+internal/apps/nzbget/nzbget_test.go
+  h_d6e478ca18e517 83-84,334-335
+internal/apps/paperlessngx/paperlessngx.go
+  h_d6e478ca18e517 161-164
+internal/apps/paperlessngx/token.go
+  h_d6e478ca18e517 151-153,230-232,278-361
+internal/apps/pihole/pihole.go
+  h_d6e478ca18e517 186-189
+internal/apps/pihole/pihole_test.go
+  h_d6e478ca18e517 137-138
+internal/apps/porttest/porttest.go
+  h_d6e478ca18e517 55-56,63,68-77
+internal/apps/speedtesttracker/speedtesttracker.go
+  h_d6e478ca18e517 147-150
+internal/apps/tdarr/tdarr.go
+  h_d6e478ca18e517 290-293,326-328
+internal/apps/tdarr/tdarr_test.go
+  h_d6e478ca18e517 95,116,134
+internal/apps/umami/umami.go
+  h_d6e478ca18e517 181-184,203
+internal/apps/wud/wud.go
+  h_d6e478ca18e517 240-242,244
+internal/service/mutation.go
+  h_d6e478ca18e517 429-431,471-489
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "947adb55b337192620e51c14fa0c49c4287928b0",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
