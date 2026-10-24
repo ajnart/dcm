@@ -1,0 +1,16 @@
+internal/service/backup.go
+  h_d6e478ca18e517 159
+internal/service/mutation.go
+  h_d6e478ca18e517 307,539-548
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b491de44ffa4daf9e6649e3c5ed9aded01d0f376",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
