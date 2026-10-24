@@ -1,0 +1,21 @@
+internal/project/staging.go
+  s_fa13558b6162bb::t_5ca30cf841c92f 36-38,43,46-47,50
+internal/service/restore.go
+  s_fa13558b6162bb::t_73b5ddff299f83 77-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4e8be8664cdfe9d8efc99d220b1996337aaba32e",
+  "prompts": {},
+  "sessions": {
+    "s_fa13558b6162bb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d815b824-8d19-4731-9a12-05e230978d09",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
