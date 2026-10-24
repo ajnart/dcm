@@ -1,0 +1,16 @@
+internal/project/project.go
+  h_d6e478ca18e517 81-83
+internal/service/backup.go
+  h_d6e478ca18e517 48-55,63-74,144-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5c346166fc683006b88b30d41c434a0c31838d22",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
