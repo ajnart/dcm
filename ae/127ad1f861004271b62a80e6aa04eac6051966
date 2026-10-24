@@ -1,0 +1,19 @@
+internal/cli/lifecycle.go
+  s_fa13558b6162bb::t_9d2045810ebe3c 28-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ae127ad1f861004271b62a80e6aa04eac6051966",
+  "prompts": {},
+  "sessions": {
+    "s_fa13558b6162bb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d815b824-8d19-4731-9a12-05e230978d09",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
