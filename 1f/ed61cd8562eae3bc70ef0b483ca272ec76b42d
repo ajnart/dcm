@@ -1,0 +1,27 @@
+internal/apps/arr/links.go
+  s_fffcac84c335e5::t_31566b2be5bc63 120,133
+internal/apps/homarr/homarr_test.go
+  s_fffcac84c335e5::t_5a0a829dc56da5 622
+internal/apps/homarr/links.go
+  s_fffcac84c335e5::t_790a5bf30ef36e 121
+internal/apps/qbittorrent/qbittorrent.go
+  s_fffcac84c335e5::t_917476003ec765 27-28,44,60-62,65,79,85,89
+internal/apps/qbittorrent/qbittorrent_test.go
+  s_fffcac84c335e5::t_f85ce37d721bbb 65-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1fed61cd8562eae3bc70ef0b483ca272ec76b42d",
+  "prompts": {},
+  "sessions": {
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
