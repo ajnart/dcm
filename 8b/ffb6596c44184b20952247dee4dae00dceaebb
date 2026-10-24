@@ -1,0 +1,20 @@
+site/src/lib/docs-route.ts
+  h_d6e478ca18e517 38
+site/src/lib/recipe-md.ts
+  h_d6e478ca18e517 1-49
+site/src/pages/docs/recipes.md.ts
+  h_d6e478ca18e517 1-4
+site/src/pages/docs/recipes/[id].md.ts
+  h_d6e478ca18e517 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8bffb6596c44184b20952247dee4dae00dceaebb",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
