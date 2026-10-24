@@ -1,0 +1,19 @@
+internal/apps/tdarr/homarr.go
+  s_619b22b4903da2::t_b8582b0ed83705 25-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3d2687b6e2b9ed662b9179275d577d5a11d7d5c1",
+  "prompts": {},
+  "sessions": {
+    "s_619b22b4903da2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a31464ed-991f-45ac-a2e2-a7d67a393fc6",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
