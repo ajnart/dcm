@@ -1,0 +1,14 @@
+tools/other.ts
+  h_d6e478ca18e517 4-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e503b4864a775dedf473a0fe0f2ea550b876ed2c",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
