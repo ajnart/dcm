@@ -1,0 +1,31 @@
+internal/project/project.go
+  s_19ce619941ba72::t_975d2b9c1265ee 295-297,413-418
+internal/service/fragments.go
+  s_19ce619941ba72::t_c7d7643bebbcca 1-157
+internal/service/install.go
+  s_19ce619941ba72::t_10e3cbd80a98fb 406
+internal/service/lifecycle.go
+  s_19ce619941ba72::t_43175b46a0dfa3 82-89,303,318
+internal/service/mutation.go
+  s_19ce619941ba72::t_f29fab264c88b5 430-440
+internal/service/service.go
+  s_19ce619941ba72::t_257087aea08e2c 207
+internal/service/tailscale.go
+  s_19ce619941ba72::t_6a264c659c9b2f 104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "88073511f3b2a74157d18f2f6042d8c9ba8f4f21",
+  "prompts": {},
+  "sessions": {
+    "s_19ce619941ba72": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0c88857b-834e-43b5-945c-24e7af937454",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
