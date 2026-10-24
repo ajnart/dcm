@@ -1,0 +1,16 @@
+internal/service/install.go
+  h_d6e478ca18e517 127-154,171-173
+internal/service/private_inputs.go
+  h_d6e478ca18e517 37-51,61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7c3969696a25d1cc3b914d19545ac4c90ed637f",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
