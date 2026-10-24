@@ -1,0 +1,16 @@
+internal/service/lifecycle.go
+  h_d6e478ca18e517 140-156
+internal/service/mutation.go
+  h_d6e478ca18e517 8,320-326,364-366,380-427
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87288e1a474b1b425369eabf3425a73edaf4df05",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
