@@ -1,0 +1,19 @@
+internal/apps/minio/minio.go
+  s_8e29d5ab6976e4::t_2e3bd17db16832 46-58,64-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9efa52cfa68adbc082ee1764403775f95f45a0c1",
+  "prompts": {},
+  "sessions": {
+    "s_8e29d5ab6976e4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0c3d9173-a935-45ef-a544-fc36670c7764",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
