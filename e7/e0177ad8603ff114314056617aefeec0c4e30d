@@ -1,0 +1,23 @@
+install.sh
+  s_2bace2d6ae2062::t_02a9b5fd43de16 12,27,30,41,46-53,107,109,111-112,115,117-118,139,142,144-145,168,171-172,178,183,190,192-193,195-197,201-215,217,219,221,223,225,227-247,249-250,261-273,275-276,338-345,352,433,436,438
+internal/release/installsh_skill_test.go
+  s_2bace2d6ae2062::t_cbfc549f68ad6a 11
+scripts/verify-install.sh
+  s_2bace2d6ae2062::t_1a533472e0d11a 178
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e7e0177ad8603ff114314056617aefeec0c4e30d",
+  "prompts": {},
+  "sessions": {
+    "s_2bace2d6ae2062": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e423c321-6aec-49a7-a135-4295785d6b11",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
