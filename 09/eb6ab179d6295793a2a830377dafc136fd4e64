@@ -1,0 +1,29 @@
+README.md
+  s_07a6d8b6311d6e::t_7e979da9aae43e 311
+docs/telemetry.md
+  s_07a6d8b6311d6e::t_8177c197904c2f 77
+internal/skill/guide.md
+  s_07a6d8b6311d6e::t_2db528fbee21e6 674
+internal/telemetry/telemetry.go
+  s_07a6d8b6311d6e::t_a87d93428af8bf 40,171-176
+internal/telemetry/telemetry_test.go
+  s_07a6d8b6311d6e::t_0dc169191609b4 62
+site/src/content/docs/docs/getting-started.md
+  s_07a6d8b6311d6e::t_393c4539273e80 213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "09eb6ab179d6295793a2a830377dafc136fd4e64",
+  "prompts": {},
+  "sessions": {
+    "s_07a6d8b6311d6e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8499f2a-1040-4262-ba4a-1d187873f161",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
