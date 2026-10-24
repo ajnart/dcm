@@ -1,0 +1,19 @@
+docs/releasing.md
+  s_2bace2d6ae2062::t_35153f4ef7d05b 33-35,64,77,84-86,189-190,208-211,330,336
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b5ec63ee1cdb8e44c7f3795abbe19b22b7163263",
+  "prompts": {},
+  "sessions": {
+    "s_2bace2d6ae2062": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e423c321-6aec-49a7-a135-4295785d6b11",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
