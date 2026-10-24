@@ -1,0 +1,55 @@
+docs/catalog/traps/uptime-kuma.md
+  s_38f0540eac7a4a::t_d82204d0503a26 19
+internal/apps/dockge/dockge.go
+  s_07a6d8b6311d6e::t_102806ba3a40e2 49-61,63,66-68
+internal/apps/dockge/dockge_test.go
+  s_619b22b4903da2::t_9b06fbdf995069 9,13-19,21-31,33-44,46-47
+internal/apps/porttest/socketio.go
+  s_dce3e167e7ab6d::t_e81e6c2f7b7bc9 1-95
+internal/apps/uptimekuma/uptimekuma.go
+  s_07a6d8b6311d6e::t_d705a3a46fd30c 73-84
+internal/apps/uptimekuma/uptimekuma_test.go
+  s_dce3e167e7ab6d::t_9fe80b8f7e3423 14-16,25-27,34,49,58-59
+internal/helpers/socketio.go
+  s_619b22b4903da2::t_badf00a1e4a35d 1-266
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5d5c084fa90fd01025473fae97733d9613b0c030",
+  "prompts": {},
+  "sessions": {
+    "s_07a6d8b6311d6e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8499f2a-1040-4262-ba4a-1d187873f161",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_38f0540eac7a4a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1fbf1147-9d48-4d58-8fe0-b666970ca399",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_619b22b4903da2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a31464ed-991f-45ac-a2e2-a7d67a393fc6",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_dce3e167e7ab6d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1a5c88b3-fc95-4b1f-b974-464208129fa1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
