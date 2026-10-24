@@ -1,0 +1,14 @@
+internal/apps/ollama/ollama.go
+  h_d6e478ca18e517 1-2,47,51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ee09eb7e10842fe880b29140cfcedd91a07d7dd1",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
