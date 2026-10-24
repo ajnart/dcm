@@ -1,0 +1,19 @@
+internal/apps/homarr/homarr.go
+  s_5abd6dd8b724e0::t_6ec170e6597945 146-147,177,180-182,197,206-207,210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "65185be921a2161eec5004801226f0e6960dedac",
+  "prompts": {},
+  "sessions": {
+    "s_5abd6dd8b724e0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "40dcfd41-6921-40af-b217-1ac17cbf6a0b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
