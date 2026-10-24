@@ -1,0 +1,14 @@
+internal/service/mutation.go
+  h_d6e478ca18e517 395
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a42faa99c031197ad892a0e8e15cd10c255e9fc9",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
