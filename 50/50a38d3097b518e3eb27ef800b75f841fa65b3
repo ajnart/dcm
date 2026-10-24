@@ -1,0 +1,18 @@
+internal/cli/cli.go
+  h_d6e478ca18e517 138-143
+internal/cli/install.go
+  h_d6e478ca18e517 75,98,146,180,200-204
+internal/service/status.go
+  h_d6e478ca18e517 95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5050a38d3097b518e3eb27ef800b75f841fa65b3",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
