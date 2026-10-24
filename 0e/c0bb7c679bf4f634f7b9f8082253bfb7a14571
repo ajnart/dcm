@@ -1,0 +1,19 @@
+internal/release/release.go
+  s_2bace2d6ae2062::t_ed961f87f6489f 16,18,53-55,158-170,172,177-180,185,191-193,213-214,221,228,241-242,259,347
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0ec0bb7c679bf4f634f7b9f8082253bfb7a14571",
+  "prompts": {},
+  "sessions": {
+    "s_2bace2d6ae2062": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e423c321-6aec-49a7-a135-4295785d6b11",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
