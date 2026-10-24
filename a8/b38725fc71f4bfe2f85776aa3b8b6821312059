@@ -1,0 +1,40 @@
+internal/tui/tabs_test.go
+  s_59ffa5bfdcd3ba::t_a3fb243b3e9bc6 209,215,221
+internal/project/project.go
+  h_d6e478ca18e517 13,21,168-200
+internal/tui/harness_test.go
+  s_a2fd509a765bab::t_653172fa5ed0e1 1041
+internal/service/lifecycle.go
+  h_d6e478ca18e517 207-209
+internal/tui/settings.go
+  h_d6e478ca18e517 17,354
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a8b38725fc71f4bfe2f85776aa3b8b6821312059",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  },
+  "sessions": {
+    "s_59ffa5bfdcd3ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0fbb8-1651-7d42-8527-b8ebdc368014",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a2fd509a765bab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9def6a79-035a-4b62-9398-9f612b23fb95",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
