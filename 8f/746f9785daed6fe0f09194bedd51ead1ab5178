@@ -1,0 +1,41 @@
+.goreleaser.yaml
+  s_472773397f3d65::t_0593a8c3a7f12f 63,78-87
+README.md
+  s_619b22b4903da2::t_e2c9064a49d51a 45
+docs/releasing.md
+  s_07a6d8b6311d6e::t_4eee2b483ad542 163
+site/src/content/docs/docs/getting-started.md
+  s_07a6d8b6311d6e::t_73fdbb5d3d9c7a 57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f746f9785daed6fe0f09194bedd51ead1ab5178",
+  "prompts": {},
+  "sessions": {
+    "s_07a6d8b6311d6e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8499f2a-1040-4262-ba4a-1d187873f161",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_472773397f3d65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fdb878ab-add4-408c-aeb5-f846f85e9cfb",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_619b22b4903da2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a31464ed-991f-45ac-a2e2-a7d67a393fc6",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
