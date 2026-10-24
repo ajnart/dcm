@@ -200,6 +200,7 @@ export const management: DockerTool[] = [
     container_name: \${CONTAINER_PREFIX}cloudflared-web
     network_mode: host
     environment:
+      - WEBUI_HOST=127.0.0.1
       - WEBUI_PORT=14333
     volumes:
       - \${CONFIG_PATH}/cloudflared-web:/config
