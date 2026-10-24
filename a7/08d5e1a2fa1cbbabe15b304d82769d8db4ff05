@@ -1,0 +1,49 @@
+docs/catalog/traps/home-assistant.md
+  s_472773397f3d65::t_043609b1b697ce 8
+docs/catalog/traps/stalwart-mail.md
+  s_472773397f3d65::t_d5bf9606509300 7
+internal/apps/homeassistant/homarr.go
+  s_8e29d5ab6976e4::t_950f28c726cbd2 261-267
+internal/apps/homeassistant/homeassistant.go
+  s_8e29d5ab6976e4::t_7d7c880758838a 115-121,128,135,138,145,148,151,153-162,165-169,171
+internal/apps/homeassistant/onboarding.go
+  s_8e29d5ab6976e4::t_df60125891a5aa 1-95
+internal/apps/stalwartmail/bootstrap.go
+  s_d656ac6ee2d9bd::t_209f9fa4354451 1-131
+internal/apps/stalwartmail/stalwartmail.go
+  s_d656ac6ee2d9bd::t_c4b58af57e3e13 11,56-69,76,80,111,114-126,152
+internal/apps/stalwartmail/stalwartmail_test.go
+  s_d656ac6ee2d9bd::t_5a214338083da0 22,27-33,50,59-60,81,100-101,106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a708d5e1a2fa1cbbabe15b304d82769d8db4ff05",
+  "prompts": {},
+  "sessions": {
+    "s_472773397f3d65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fdb878ab-add4-408c-aeb5-f846f85e9cfb",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_8e29d5ab6976e4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0c3d9173-a935-45ef-a544-fc36670c7764",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_d656ac6ee2d9bd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "34c91449-6ce7-4afe-a3cc-c74350d0e92a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
