@@ -1,0 +1,131 @@
+internal/activity/action.go
+  s_07a6d8b6311d6e::t_8bc87900f5c7dd 149-151
+internal/tui/apps_test.go
+  s_07a6d8b6311d6e::t_7f255e846826e1 170
+internal/tui/copy_modal_test.go
+  s_07a6d8b6311d6e::t_63c0b2f55db6c2 23
+internal/tui/dashboard.go
+  s_07a6d8b6311d6e::t_ab779d188ff3a2 238,252-278
+internal/tui/folderpicker.go
+  s_07a6d8b6311d6e::t_1df882118b33bb 10,191-192
+internal/tui/harness_test.go
+  s_07a6d8b6311d6e::t_0d1364f2cb3059 808,829
+internal/tui/install.go
+  s_62c23498e44f2e::t_7071c4c839ef9f 404-410,417,429,435-438,505
+internal/tui/intro.go
+  s_07a6d8b6311d6e::t_635a5b1313311e 61-74,79
+internal/tui/model.go
+  s_07a6d8b6311d6e::t_8bca02e3b56332 478-481,750,755,757-759
+internal/tui/onboarding.go
+  s_07a6d8b6311d6e::t_42d425a2cadf56 447-449
+internal/tui/onboarding_form.go
+  s_07a6d8b6311d6e::t_67b2b8df60c47f 118-121
+internal/tui/onboarding_plan.go
+  s_07a6d8b6311d6e::t_f1065829df7079 109-111
+internal/tui/onboarding_view.go
+  s_07a6d8b6311d6e::t_411f52b79192ac 248-256,297-298
+internal/tui/overview_test.go
+  s_07a6d8b6311d6e::t_292bba43dd0623 29
+internal/tui/recipes_test.go
+  s_07a6d8b6311d6e::t_8ff41ae94a3a02 48,197,221,269
+internal/tui/tabs_test.go
+  s_07a6d8b6311d6e::t_51d7f0f6a07446 249,275,284,312,321
+internal/tui/testdata/glyphs-nerd-font-overview-narrow.golden
+  s_fffcac84c335e5::t_5f4cd9c89f0e2f 3
+internal/tui/testdata/glyphs-nerd-font-overview.golden
+  s_fffcac84c335e5::t_5d0f8dbfe7c6bc 3
+internal/tui/testdata/glyphs-simple-overview-narrow.golden
+  s_fffcac84c335e5::t_5120aeff626a66 3
+internal/tui/testdata/glyphs-simple-overview.golden
+  s_fffcac84c335e5::t_7c40b4256dd321 3
+internal/tui/testdata/install-private-access-review-narrow.golden
+  s_cbd3ff00e11910::t_36540177c25401 12
+internal/tui/testdata/install-private-access-review.golden
+  s_cbd3ff00e11910::t_2187e70e7bcb56 12
+internal/tui/testdata/menu-app-narrow.golden
+  s_cbd3ff00e11910::t_ef04ad34246f0e 3
+internal/tui/testdata/menu-app-qr-local-narrow.golden
+  s_5abd6dd8b724e0::t_21a7987a6b955a 3
+internal/tui/testdata/menu-app-qr-local.golden
+  s_5abd6dd8b724e0::t_2661f15413ef48 3
+internal/tui/testdata/menu-app.golden
+  s_cbd3ff00e11910::t_771abc8a23ad51 3
+internal/tui/testdata/menu-project-narrow.golden
+  s_cbd3ff00e11910::t_274d090f996e5d 3
+internal/tui/testdata/menu-project.golden
+  s_cbd3ff00e11910::t_059771aec89332 3
+internal/tui/testdata/overview-tailscale-expiry-narrow.golden
+  s_cbd3ff00e11910::t_f82790cc186e24 3
+internal/tui/testdata/overview-tailscale-expiry.golden
+  s_cbd3ff00e11910::t_e312ee52929b70 3
+internal/tui/testdata/overview-tailscale-unknown-narrow.golden
+  s_cbd3ff00e11910::t_b1defbdf6f0662 3
+internal/tui/testdata/overview-tailscale-unknown.golden
+  s_cbd3ff00e11910::t_8812c953603b1a 3
+internal/tui/testdata/settings-tailscale-review-narrow.golden
+  s_cbd3ff00e11910::t_d11cf42f1727aa 22-23
+internal/tui/testdata/settings-tailscale-review.golden
+  s_cbd3ff00e11910::t_68730e3647baa6 28-29
+internal/tui/testdata/tab-catalog-narrow.golden
+  s_cbd3ff00e11910::t_10201e11f552b7 5,7,9,11
+internal/tui/testdata/tab-catalog-recipe-narrow.golden
+  s_fffcac84c335e5::t_b751533e74e4c6 5,7-8,10
+internal/tui/testdata/tab-catalog-recipe.golden
+  s_fffcac84c335e5::t_981c033656675a 5,7-8,10
+internal/tui/testdata/tab-catalog.golden
+  s_cbd3ff00e11910::t_f953e9c51b554b 5,11
+internal/tui/testdata/tab-overview-narrow.golden
+  s_cbd3ff00e11910::t_6e7b8a05d31428 3
+internal/tui/testdata/tab-overview.golden
+  s_cbd3ff00e11910::t_57d3b480e71179 3
+internal/tui/what.go
+  s_07a6d8b6311d6e::t_88b0420a00e33e 138,175-176
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "01717bf776a3db83367e12b6ebfd1b1630e28d0f",
+  "prompts": {},
+  "sessions": {
+    "s_07a6d8b6311d6e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8499f2a-1040-4262-ba4a-1d187873f161",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_5abd6dd8b724e0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "40dcfd41-6921-40af-b217-1ac17cbf6a0b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_62c23498e44f2e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "05b3dc3c-1637-4312-99a1-c8f87c24e1f5",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_cbd3ff00e11910": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "193f36cd-6c13-4ab8-aa5b-571e50d6faa8",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
