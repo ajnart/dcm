@@ -2,6 +2,78 @@ import type { DockerTool } from "@/lib/docker-tools"
 
 export const media: DockerTool[] = [
   {
+    id: "mediacms",
+    name: "MediaCMS",
+    description:
+      "A self-hosted video and media platform with uploading, transcoding, and streaming. Set FRONTEND_HOST and change the database password before remote access. The initial admin password is printed in the container logs.",
+    category: "Media",
+    tags: ["Streaming", "Self-hosted", "Transcoding"],
+    githubUrl: "https://github.com/mediacms-io/mediacms",
+    composeContent: `services:
+  mediacms:
+    image: mediacms/mediacms:latest
+    container_name: \${CONTAINER_PREFIX}mediacms
+    environment:
+      - TZ=\${TZ}
+      - FRONTEND_HOST=http://localhost
+      - POSTGRES_HOST=mediacms-db
+      - POSTGRES_NAME=mediacms
+      - POSTGRES_USER=mediacms
+      - POSTGRES_PASSWORD=mediacms
+      - REDIS_LOCATION=redis://mediacms-redis:6379/1
+      - SECRET_KEY_FILE=/home/mediacms.io/mediacms/state/secret_key
+      - ADMIN_USER=admin
+      - ADMIN_EMAIL=admin@localhost
+      - ENABLE_MIGRATIONS=yes
+      - ENABLE_UWSGI=yes
+      - ENABLE_NGINX=yes
+      - ENABLE_CELERY_SHORT=yes
+      - ENABLE_CELERY_LONG=yes
+      - ENABLE_CELERY_BEAT=yes
+    volumes:
+      - \${CONFIG_PATH}/mediacms/state:/home/mediacms.io/mediacms/state
+      - \${CONFIG_PATH}/mediacms/logs:/home/mediacms.io/mediacms/logs
+      - \${DATA_PATH}/mediacms/media:/home/mediacms.io/mediacms/media_files
+    ports:
+      - 80:80
+    depends_on:
+      mediacms-db:
+        condition: service_healthy
+      mediacms-redis:
+        condition: service_healthy
+    restart: \${RESTART_POLICY}
+
+  mediacms-db:
+    image: postgres:17.2-alpine
+    container_name: \${CONTAINER_PREFIX}mediacms-db
+    environment:
+      - POSTGRES_DB=mediacms
+      - POSTGRES_USER=mediacms
+      - POSTGRES_PASSWORD=mediacms
+      - TZ=\${TZ}
+    volumes:
+      - \${CONFIG_PATH}/mediacms/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "mediacms", "-U", "mediacms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: \${RESTART_POLICY}
+
+  mediacms-redis:
+    image: redis:alpine
+    container_name: \${CONTAINER_PREFIX}mediacms-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - \${DATA_PATH}/mediacms/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: \${RESTART_POLICY}`,
+  },
+  {
     id: "jellyfin",
     name: "Jellyfin",
     description:
