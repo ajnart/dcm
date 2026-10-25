@@ -1,0 +1,21 @@
+internal/firstadmin/firstadmin.go
+  s_0c3a0bacd03dd3::t_fdd42e92fd69d5 229-234
+internal/service/lifecycle.go
+  s_0c3a0bacd03dd3::t_cb80ddb7fbef3b 120-121,123-126,129-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "091e2839c22ebbf652ca5d7dcf9fd95195ce29eb",
+  "prompts": {},
+  "sessions": {
+    "s_0c3a0bacd03dd3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "00619aa4-db9b-4b1f-8087-cf570581bbcd",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
