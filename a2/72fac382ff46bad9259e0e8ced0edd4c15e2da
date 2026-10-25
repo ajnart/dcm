@@ -1,0 +1,23 @@
+docs/catalog/traps/emby.md
+  s_5d53e91e5bb725::t_a70493acb6bef8 6
+internal/apps/emby/emby.go
+  s_5d53e91e5bb725::t_64ed63588a24d0 36,126-161,166
+internal/apps/plex/plex.go
+  s_5d53e91e5bb725::t_f872a2773c96c7 265-274,276,311-314,322,329-331
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a272fac382ff46bad9259e0e8ced0edd4c15e2da",
+  "prompts": {},
+  "sessions": {
+    "s_5d53e91e5bb725": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "73573ce5-006f-47ea-ac81-3728d081174e",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
