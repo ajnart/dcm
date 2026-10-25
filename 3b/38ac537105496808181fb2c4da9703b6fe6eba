@@ -1,0 +1,25 @@
+e2e/passbolt_fixture.go
+  s_6057f1825e8f1e::t_85c3bbaa566d16 87,115,129
+e2e/passboltfixture/server.go
+  s_6057f1825e8f1e::t_a23557d6b56c0c 67,73-76
+internal/apps/passbolt/passbolt.go
+  s_6057f1825e8f1e::t_b7dd1dab2aad16 7,143-146,148,153-154
+internal/apps/passbolt/passbolt_test.go
+  s_6057f1825e8f1e::t_a1337fc7349135 6,16,25-41,45,50,55,73,104,121,124,135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3b38ac537105496808181fb2c4da9703b6fe6eba",
+  "prompts": {},
+  "sessions": {
+    "s_6057f1825e8f1e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b116f654-7399-414a-b65e-5777b6a22d5b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
