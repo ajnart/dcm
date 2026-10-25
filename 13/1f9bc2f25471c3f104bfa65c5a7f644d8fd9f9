@@ -1,0 +1,23 @@
+e2e/passbolt_fixture.go
+  s_6057f1825e8f1e::t_357da65055ec8b 115
+internal/apps/passbolt/passbolt.go
+  s_6057f1825e8f1e::t_cc9c248fd23031 88-89,94
+internal/apps/passbolt/startup_test.go
+  s_6057f1825e8f1e::t_774bcb108966c0 31,64-67,77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "131f9bc2f25471c3f104bfa65c5a7f644d8fd9f9",
+  "prompts": {},
+  "sessions": {
+    "s_6057f1825e8f1e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b116f654-7399-414a-b65e-5777b6a22d5b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
