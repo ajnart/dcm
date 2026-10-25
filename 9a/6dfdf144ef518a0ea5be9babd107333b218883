@@ -1,0 +1,19 @@
+internal/apps/slskd/slskd.go
+  s_fffcac84c335e5::t_f1bfbbaf575a91 179-180,182-185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9a6dfdf144ef518a0ea5be9babd107333b218883",
+  "prompts": {},
+  "sessions": {
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
