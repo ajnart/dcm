@@ -1,0 +1,19 @@
+internal/cli/lifecycle_test.go
+  s_a17adc3d45409a::t_3bd75c29e18f94 179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "af466249138fa021d8fbdfe46bcce4a0ca1aff10",
+  "prompts": {},
+  "sessions": {
+    "s_a17adc3d45409a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "724f567c-2cf7-490e-aaeb-0dd573ca4a8b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
