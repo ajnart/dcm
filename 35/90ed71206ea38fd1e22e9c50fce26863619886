@@ -1,0 +1,19 @@
+internal/compose/compose.go
+  s_0c3a0bacd03dd3::t_27b81e6a314bfd 280-295,303-306
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3590ed71206ea38fd1e22e9c50fce26863619886",
+  "prompts": {},
+  "sessions": {
+    "s_0c3a0bacd03dd3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "00619aa4-db9b-4b1f-8087-cf570581bbcd",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
