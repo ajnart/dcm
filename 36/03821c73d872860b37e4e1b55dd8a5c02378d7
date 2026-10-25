@@ -1,0 +1,21 @@
+internal/cli/lifecycle_test.go
+  s_c203f2c4bd5d95::t_ef30c067aaf3e4 9,180
+internal/service/mutation.go
+  s_c203f2c4bd5d95::t_cf86b26275e548 415-417
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3603821c73d872860b37e4e1b55dd8a5c02378d7",
+  "prompts": {},
+  "sessions": {
+    "s_c203f2c4bd5d95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09417bb3-1a13-4817-81ff-71cd3fdbee7f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
