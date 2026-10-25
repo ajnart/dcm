@@ -1,0 +1,19 @@
+internal/service/mutation.go
+  s_c203f2c4bd5d95::t_4a6c0a84162edd 442-449,454,456-458,471
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ca78ecb9332a1a659871d1fea065dd9b239c0f3a",
+  "prompts": {},
+  "sessions": {
+    "s_c203f2c4bd5d95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09417bb3-1a13-4817-81ff-71cd3fdbee7f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
