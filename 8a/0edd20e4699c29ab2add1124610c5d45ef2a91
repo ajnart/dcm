@@ -1,0 +1,23 @@
+internal/apps/homeassistant/homeassistant.go
+  s_77c6394e668637::t_8d61ae519fe36c 39
+internal/apps/linkwarden/linkwarden.go
+  s_77c6394e668637::t_ccda49522e64ee 35,37
+internal/service/mutation.go
+  s_77c6394e668637::t_93764607fbee46 331-333,375-379,391-439
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8a0edd20e4699c29ab2add1124610c5d45ef2a91",
+  "prompts": {},
+  "sessions": {
+    "s_77c6394e668637": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "677aea62-d9b9-4fb4-84b0-b5c8f9e7bffe",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
