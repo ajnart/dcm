@@ -1,0 +1,19 @@
+internal/apps/patchmon/patchmon.go
+  s_0c3a0bacd03dd3::t_0f5c5d77880638 12,122-126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c47256d107d01d9ae1bf075b476530535d0a7a53",
+  "prompts": {},
+  "sessions": {
+    "s_0c3a0bacd03dd3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "00619aa4-db9b-4b1f-8087-cf570581bbcd",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
