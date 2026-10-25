@@ -1,0 +1,21 @@
+internal/apps/vaultwarden/vaultwarden.go
+  s_54d82db40bad8c::t_2a1e5704350870 82,85-90,93-96,116-118,129-139,149
+internal/apps/vaultwarden/vaultwarden_test.go
+  s_54d82db40bad8c::t_800bab35fb2606 32-33,71,257-258,266,270-271,274-275,281
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7b170099469a3faba441fb99d342330c16b8bb5",
+  "prompts": {},
+  "sessions": {
+    "s_54d82db40bad8c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fdeab8d8-bc85-46b2-b59f-14da46ebce0f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
