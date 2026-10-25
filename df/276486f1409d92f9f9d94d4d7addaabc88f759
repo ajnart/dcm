@@ -1,0 +1,21 @@
+internal/apps/pangolin/pangolin.go
+  s_6d7810af40958a::t_76226fdccec226 234
+internal/apps/syncthing/syncthing.go
+  s_6d7810af40958a::t_8715fac78d43d3 108-115,122,145-155
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df276486f1409d92f9f9d94d4d7addaabc88f759",
+  "prompts": {},
+  "sessions": {
+    "s_6d7810af40958a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ed76e9b-444e-4b00-8e44-35b270080ec7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
