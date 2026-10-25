@@ -1,0 +1,21 @@
+e2e/homarr_functional_test.go
+  s_a17adc3d45409a::t_3b1b2b50e6b5aa 8,10,233-234,245-253,256-258,1527-1529,1591,1594,1600-1602,1604,1607-1615,1665-1675,1677,1680,1682-1684,1689,1692-1706
+e2e/homarr_inventory_fixture_test.go
+  s_a17adc3d45409a::t_0c87c1f2005133 43,65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3999dc0a475e671a0c90f65706d513646a148fdc",
+  "prompts": {},
+  "sessions": {
+    "s_a17adc3d45409a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "724f567c-2cf7-490e-aaeb-0dd573ca4a8b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
