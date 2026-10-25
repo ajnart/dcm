@@ -1,0 +1,35 @@
+docs/catalog/traps/sabnzbd.md
+  s_c203f2c4bd5d95::t_f58d348bbad4a0 6
+internal/apps/nzbget/nzbget.go
+  s_f2017540d3f86e::t_5da6f466bb3b6e 118-122,126-127
+internal/apps/nzbget/nzbget_test.go
+  s_f2017540d3f86e::t_3cf3d35edb33a3 78-85,114-119,207-208,210-211,227-228,231,235,240,250,255,265,272
+internal/apps/sabnzbd/sabnzbd.go
+  s_f2017540d3f86e::t_9b26c3a1559adc 206-210,214-215,217,229-230
+internal/apps/sabnzbd/sabnzbd_test.go
+  s_f2017540d3f86e::t_7e51d26143b1ab 146-147,149,152-153,158-159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0d6b3b1ee937e5eb0104d242e4fb125d20e62c8e",
+  "prompts": {},
+  "sessions": {
+    "s_c203f2c4bd5d95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09417bb3-1a13-4817-81ff-71cd3fdbee7f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_f2017540d3f86e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d4da9cb9-7e88-45e3-ab0e-6e12ff5347b3",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
