@@ -1,0 +1,24 @@
+docs/catalog/traps/peanut.md
+  h_d6e478ca18e517 16
+docs/catalog/traps/slskd.md
+  h_d6e478ca18e517 8
+internal/apps/homarr/target_peanut.go
+  h_d6e478ca18e517 22-26
+internal/apps/peanut/peanut.go
+  h_d6e478ca18e517 174-187,194
+internal/apps/slskd/slskd.go
+  h_d6e478ca18e517 34-41,55-60,71,169-182,194
+internal/apps/slskd/slskd_test.go
+  h_d6e478ca18e517 94,112-113,116-117,120-121,123-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "83eb773af300fb684785457b8fd0cfce965fa646",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
