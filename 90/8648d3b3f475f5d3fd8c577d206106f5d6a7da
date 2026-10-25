@@ -1,0 +1,19 @@
+internal/apps/postgresql/postgresql.go
+  s_b5cd9412e53624::t_95cf9d03f8ecb6 50,62-64,66,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "908648d3b3f475f5d3fd8c577d206106f5d6a7da",
+  "prompts": {},
+  "sessions": {
+    "s_b5cd9412e53624": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a53280b4-e321-4be4-9be4-004207427492",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
