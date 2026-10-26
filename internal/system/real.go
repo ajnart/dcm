@@ -70,6 +70,28 @@ func command(ctx context.Context, cmd Cmd) *exec.Cmd {
 	return c
 }
 
+// publicHTTP resolves names through Cloudflare's public resolver, so a check
+// right after a DNS change is not answered from a local negative cache. It
+// falls back to the system resolver when 1.1.1.1 cannot be reached.
+func publicHTTP() *http.Client {
+	public := &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+		var d net.Dialer
+		return d.DialContext(ctx, network, "1.1.1.1:53")
+	}}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		d := net.Dialer{Timeout: 10 * time.Second, Resolver: public}
+		conn, err := d.DialContext(ctx, network, addr)
+		var dnsErr *net.DNSError
+		if errors.As(err, &dnsErr) && !dnsErr.IsNotFound {
+			var fallback net.Dialer
+			return fallback.DialContext(ctx, network, addr)
+		}
+		return conn, err
+	}
+	return &http.Client{Timeout: 30 * time.Second, Transport: transport}
+}
+
 // Real returns production dependencies.
 func Real(version string) *Deps {
 	dirs := userDirs{goos: runtime.GOOS, getenv: os.Getenv, current: currentUser, lookup: lookupUser}
@@ -79,6 +101,7 @@ func Real(version string) *Deps {
 		GOARCH:           runtime.GOARCH,
 		Runner:           execRunner{},
 		HTTP:             &http.Client{Timeout: 30 * time.Second},
+		PublicHTTP:       publicHTTP(),
 		LookPath:         exec.LookPath,
 		Executable:       os.Executable,
 		Exec:             func(path string, argv []string) error { return syscall.Exec(path, argv, os.Environ()) },

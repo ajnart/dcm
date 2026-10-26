@@ -141,7 +141,8 @@ When registration reopens:
 ## Linux packages
 
 Every goreleaser run also builds `.deb`, `.rpm`, `.apk` and Arch `.pkg.tar.zst` packages (nfpm) that
-install `/usr/bin/self-host` and recommend, but do not require, `docker`. They are
+install `/usr/bin/self-host`. The `.deb` and `.apk` recommend `docker`, the `.rpm` suggests it, and the
+Arch package depends on `docker` and `docker-compose` (nfpm cannot write optdepends). They are
 release assets listed in `checksums.txt`; the installer and `self-update` only read
 the `.tar.gz` lines and ignore them.
 

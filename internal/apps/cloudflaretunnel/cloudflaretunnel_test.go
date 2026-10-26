@@ -23,7 +23,7 @@ func TestConnectorFragmentUsesOnlyRunTokenEnvironmentAndNoPublishedPorts(t *test
 		t.Fatal(err)
 	}
 	c := doc.Services["cloudflare-tunnel"]
-	if len(doc.Services) != 1 || len(c.Ports) != 0 || c.Environment["TUNNEL_TOKEN"] != "${CLOUDFLARE_TUNNEL_TOKEN}" || strings.Join(c.Command, " ") != "tunnel --no-autoupdate run" || strings.Contains(fragment, "never-in-compose") {
+	if len(doc.Services) != 1 || len(c.Ports) != 0 || c.Environment["TUNNEL_TOKEN"] != "${CLOUDFLARE_TUNNEL_TOKEN}" || strings.Join(c.Command, " ") != "tunnel --no-autoupdate --metrics 127.0.0.1:2000 run" || strings.Contains(fragment, "never-in-compose") {
 		t.Fatal(fragment)
 	}
 	if !a.Info().NoWebUI {

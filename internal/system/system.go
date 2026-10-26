@@ -78,12 +78,15 @@ type User struct {
 }
 
 type Deps struct {
-	Version  string
-	GOOS     string
-	GOARCH   string
-	Runner   Runner
-	HTTP     *http.Client
-	LookPath func(name string) (string, error)
+	Version string
+	GOOS    string
+	GOARCH  string
+	Runner  Runner
+	HTTP    *http.Client
+	// PublicHTTP checks a just-published address the way a stranger would,
+	// resolving names through a public resolver; nil uses HTTP.
+	PublicHTTP *http.Client
+	LookPath   func(name string) (string, error)
 	// Executable returns the path of the running binary.
 	Executable func() (string, error)
 	// Exec replaces this process with path run as argv. It returns only on

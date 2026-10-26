@@ -325,8 +325,12 @@ func cloudflareRisk(plan CloudflarePlan) string {
 	for _, a := range plan.Publish {
 		addresses = append(addresses, a.Address)
 	}
+	verb := "get"
+	if len(plan.Emails) == 1 {
+		verb = "gets"
+	}
 	return "This puts " + strings.Join(addresses, ", ") + " on the internet. Anyone in the world can reach the login page and try to get in; " +
-		"only " + strings.Join(plan.Emails, ", ") + " get past it, with a code sent to their email. If the login page or an App has a flaw, " +
+		"only " + strings.Join(plan.Emails, ", ") + " " + verb + " past it, with a code sent to their email. If the login page or an App has a flaw, " +
 		"strangers could get in, and everything that passes through is visible to Cloudflare."
 }
 
@@ -509,7 +513,7 @@ func (s *Service) startCloudflareConnector(ctx context.Context, runToken string,
 }
 
 const (
-	probeAttempts = 5
+	probeAttempts = 20
 	probeWait     = 3 * time.Second
 )
 
@@ -519,6 +523,9 @@ func (s *Service) probeLoginPage(ctx context.Context, name string) (cloudflare.P
 	client := http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	if s.Deps.HTTP != nil {
 		client.Transport = s.Deps.HTTP.Transport
+	}
+	if s.Deps.PublicHTTP != nil {
+		client.Transport = s.Deps.PublicHTTP.Transport
 	}
 	var last cloudflare.Probe
 	var lastErr error

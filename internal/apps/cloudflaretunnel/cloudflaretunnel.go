@@ -42,7 +42,7 @@ func (App) Compose(app.RenderContext) string {
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: ["tunnel", "--no-autoupdate", "run"]
+    command: ["tunnel", "--no-autoupdate", "--metrics", "127.0.0.1:2000", "run"]
     environment:
       TZ: ${TZ}
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
