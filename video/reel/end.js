@@ -12,7 +12,7 @@ export const END_REPO = "github.com/ajnart/self-host";
 // still from SETTLED but for the caret and a slow push
 const T = { logo: A, cmd: A + b(1), type: [A + b(1) + 0.15, A + b(1) + 0.75], agents: A + b(2), stats: A + b(3) };
 export const SETTLED = T.stats + 0.6;
-const COUNTS = [89, 7, 1];
+const COUNTS = [93, 7, 1];
 // "your agent" morphs through each agent the skill runs in, then settles back
 const SLOT = [
   { name: "your agent" },
@@ -49,7 +49,7 @@ export function build(tl) {
     <canvas class="e-intro" id="e-intro"></canvas>
     <div class="e-cmd"><div class="e-cmdin" id="e-cmd"><span class="pr">$</span><span id="e-cmd-t"></span><span class="caret" id="e-caret"></span></div></div>
     <div class="e-ag" id="e-ag"><span class="e-cli" id="e-cli">CLI</span><i>+</i><span class="e-slot"><span class="e-lg">${SLOT.filter((s) => s.logo).map((s) => `<img src="${agentLogo(s.logo)}" data-n="${s.name}">`).join("")}</span><span id="e-ag-t"></span></span></div>
-    <div class="e-stats" id="e-stats"><span><b id="e-n0">89</b> Apps</span><i>·</i><span><b id="e-n1">19</b> Recipes</span><i>·</i><span><b id="e-n2">1</b> binary</span></div>
+    <div class="e-stats" id="e-stats"><span><b id="e-n0">93</b> Apps</span><i>·</i><span><b id="e-n1">7</b> Recipes</span><i>·</i><span><b id="e-n2">1</b> binary</span></div>
     <div class="e-repo" id="e-repo">${END_REPO}</div>`;
   const film = mountIntro($("#e-intro"), INTRO, { cw: 12, base: "#09080f", font: '"JetBrains Mono Variable", monospace', crop: CROP });
   proc((t) => film.paint(Math.floor(Math.max(0, t - A) * RATE) + SKIP));

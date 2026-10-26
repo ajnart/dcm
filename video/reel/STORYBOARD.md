@@ -26,7 +26,7 @@ drift, while checking opacity, overlap, text size, layout stability and bounds.
 | 19.5–22 s   | CLI question | “Don’t want to learn the CLI?” lands over moving command lines.                                                                                                                                                                                         |
 | 22–28 s     | Agents       | A request types into the chat. Six agent headers switch while the plan, approval, install and result unfold. “One skill. Every agent.” uses the same sans-serif family as other prose.                                                                  |
 | 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “Your data.” expands into place; “No rent.” enters from the right. Each keeps moving gently through its reading hold. No progress bar.           |
-| 30–34 s     | End          | The CLI Intro plays on the final hit, cropped to its logo, horizon and wordmark: the four containers drop with the CLI’s skew, squash and hop, their lights spark on and “self-host” morphs in from cipher glyphs. `curl -fsSL https://self-host.fyi/install \| bash` types, “CLI + your agent” appears and “your agent” glyph-morphs through Claude Code, Codex, OpenChamber, Hermes, OpenCode and Pi (each with its logo) before settling back, and the counts resolve to 89 Apps · 7 Recipes · 1 binary with `github.com/ajnart/self-host`. A slow push and caret keep the card alive.                         |
+| 30–34 s     | End          | The CLI Intro plays on the final hit, cropped to its logo, horizon and wordmark: the four containers drop with the CLI’s skew, squash and hop, their lights spark on and “self-host” morphs in from cipher glyphs. `curl -fsSL https://self-host.fyi/install \| bash` types, “CLI + your agent” appears and “your agent” glyph-morphs through Claude Code, Codex, OpenChamber, Hermes, OpenCode and Pi (each with its logo) before settling back, and the counts resolve to 93 Apps · 7 Recipes · 1 binary with `github.com/ajnart/self-host`. A slow push and caret keep the card alive.                         |
 
 ## Music and UI sound
 
@@ -56,7 +56,7 @@ integrated and a true peak below −1 dBTP.
 - The agent example follows `internal/skill/guide.md`, “Every conversation”: pick the Recipe or
   Apps from `apps list`, show the plan in goals and Apps, get approval, then install. The example
   uses the Jellyfin App plus Homarr, with Access shown as “Home network.”
-- 89 Apps and 7 Recipes match the Catalog on `main`; the agent's `apps list` result and the
+- 93 Apps and 7 Recipes match the Catalog on `main` (2026-10-26); the agent's `apps list` result and the
   end-card counts say 7 Recipes.
 - Subscription prices are illustrative inherited examples, totalling $92. The $0 comparison
   concerns software subscriptions, not hardware, electricity or hosting costs.
