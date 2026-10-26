@@ -353,13 +353,15 @@ skill_hint() {
 }
 
 # offer_skill asks over the terminal, never over stdin (which is the download
-# when piped), and only when a terminal can be opened. Without one it prints
-# the hint. A failure here never fails an install that already succeeded.
+# when piped), and only when a terminal can be opened. Without one, or with no
+# answer within a minute (a scheduled task can have a terminal and nobody at
+# it), it prints the hint. A failure here never fails an install that already
+# succeeded.
 offer_skill() {
   local tty="${SELF_HOST_TTY:-/dev/tty}" answer="" installed_binary="$1"
   if [ -z "${SELF_HOST_SKIP_SKILL_PROMPT:-}" ] && { exec 3<"$tty"; } 2>/dev/null; then
     printf 'Add the self-host skill to your AI agent too? y/n '
-    read -r answer <&3 || answer=""
+    read -r -t 60 answer <&3 || answer=""
     say
     case "$answer" in y | Y | yes | YES | Yes)
       say "Running: ${installed_binary} skill install"
