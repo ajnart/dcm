@@ -1,0 +1,23 @@
+internal/service/cloudflare.go
+  s_fffcac84c335e5::t_76dc89e1bcd0b4 328-331,333,516,527-529
+internal/system/real.go
+  s_fffcac84c335e5::t_26b6d2b7bd5fec 73-94,104
+internal/system/system.go
+  s_fffcac84c335e5::t_cd0888ed1485d4 81-89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ebd3f03ffaef9e9c1d337bc08a444ae8d8106e2d",
+  "prompts": {},
+  "sessions": {
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
