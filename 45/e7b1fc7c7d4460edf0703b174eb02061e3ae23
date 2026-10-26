@@ -1,0 +1,21 @@
+video/reel/STORYBOARD.md
+  s_fffcac84c335e5::t_d95c13b3560c4e 29,59
+video/reel/end.js
+  s_fffcac84c335e5::t_9c3d919636720f 15,52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "45e7b1fc7c7d4460edf0703b174eb02061e3ae23",
+  "prompts": {},
+  "sessions": {
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
