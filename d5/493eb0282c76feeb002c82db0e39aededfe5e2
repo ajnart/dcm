@@ -1,0 +1,25 @@
+.github/workflows/release.yml
+  s_fffcac84c335e5::t_9aed66e454d7bc 6-10,16,25-27,32,41,43,49-78,81-82,84,90,95,98,111,113,124,130
+README.md
+  s_fffcac84c335e5::t_67601885f01d24 36-37,318
+docs/releasing.md
+  s_fffcac84c335e5::t_59b800baa652e9 40-41,45-55,73,124-127
+internal/skill/guide.md
+  s_fffcac84c335e5::t_4167005c6ee7eb 81-83,86-89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d5493eb0282c76feeb002c82db0e39aededfe5e2",
+  "prompts": {},
+  "sessions": {
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
