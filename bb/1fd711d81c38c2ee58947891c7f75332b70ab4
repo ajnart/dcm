@@ -1,0 +1,37 @@
+docs/assets/brand/lockup/lockup-horizontal-dark.svg
+  s_b6d02ba1a601ad::t_992af2f43e29a7 1
+docs/assets/brand/lockup/lockup-horizontal-light.svg
+  s_b6d02ba1a601ad::t_c0af91da5112fb 1
+docs/assets/brand/lockup/lockup-stacked-dark.svg
+  s_b6d02ba1a601ad::t_0e8a7dee392851 1
+docs/assets/brand/lockup/lockup-stacked-light.svg
+  s_b6d02ba1a601ad::t_3d81506a6dfd37 1
+docs/assets/brand/wordmark/wordmark-dark.svg
+  s_b6d02ba1a601ad::t_d4055feca4effc 1
+docs/assets/brand/wordmark/wordmark-light.svg
+  s_b6d02ba1a601ad::t_c1b9bc8e3bfe98 1
+video/reel/brand/README.md
+  s_b6d02ba1a601ad::t_8a7206a45944cd 25-26,32-33
+video/reel/brand/build.mjs
+  s_b6d02ba1a601ad::t_33f0f19affb56f 8,48-62
+video/reel/brand/index.html
+  s_b6d02ba1a601ad::t_abcca269051a69 30-31,61-62
+video/reel/brand/wordmark.mjs
+  s_b6d02ba1a601ad::t_da311eed7eb59d 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bb1fd711d81c38c2ee58947891c7f75332b70ab4",
+  "prompts": {},
+  "sessions": {
+    "s_b6d02ba1a601ad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6d5ad39a-23a9-49ec-810f-12795f9f9bf7",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
