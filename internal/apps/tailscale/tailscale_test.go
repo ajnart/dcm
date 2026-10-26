@@ -147,7 +147,6 @@ func TestComposeGivesAWebAppItsOwnTailscaleNode(t *testing.T) {
 	fragment := (tailscale.App{}).Compose(app.RenderContext{Web: []app.WebTarget{jellyfin}})
 	want := `  tailscale-jellyfin:
     image: ghcr.io/tailscale/tailscale:latest
-    hostname: jellyfin
     restart: unless-stopped
     environment:
       TS_HOSTNAME: jellyfin

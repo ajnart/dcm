@@ -133,7 +133,8 @@ func (ss *session) renderApp(ctx context.Context, a app.App, st *project.AppStat
 }
 
 // refreshFragments rewrites the generated, unmodified compose.yml of each
-// targeted catalog App whose render changed with this self-host version.
+// targeted catalog App whose render changed with this self-host version, and
+// the Tailscale App's, which install and remove always rewrite.
 func (ss *session) refreshFragments(ctx context.Context, ids []string) error {
 	ss.refreshed = nil
 	type pending struct {
@@ -189,6 +190,17 @@ func (ss *session) refreshFragments(ctx context.Context, ids []string) error {
 		ss.refreshed = append(ss.refreshed, id)
 		ss.s.Log.Emit(events.Event{Event: events.Info, App: id, Step: "refresh",
 			Msg: "refreshed " + next.a.Info().Name + "'s Compose for this self-host version"})
+	}
+	if slices.Contains(ids, tailscaleID) {
+		changed, err := ss.renderTailscale()
+		if err != nil {
+			return errors.Join(err, ss.p.SaveState(ss.state))
+		}
+		if changed {
+			ss.refreshed = append(ss.refreshed, tailscaleID)
+			ss.s.Log.Emit(events.Event{Event: events.Info, App: tailscaleID, Step: "refresh",
+				Msg: "refreshed Tailscale's Compose for this self-host version"})
+		}
 	}
 	slices.Sort(ss.refreshed)
 	return nil

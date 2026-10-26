@@ -75,7 +75,6 @@ func Sidecar(t app.WebTarget, oauth bool) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "  %s:\n", ServiceName(t.ID))
 	fmt.Fprintf(&b, "    image: %s\n", Image)
-	fmt.Fprintf(&b, "    hostname: %s\n", t.ID)
 	b.WriteString("    restart: unless-stopped\n")
 	b.WriteString("    environment:\n")
 	fmt.Fprintf(&b, "      TS_HOSTNAME: %s\n", t.ID)

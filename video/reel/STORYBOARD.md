@@ -26,7 +26,7 @@ drift, while checking opacity, overlap, text size, layout stability and bounds.
 | 19.5–22 s   | CLI question | “Don’t want to learn the CLI?” lands over moving command lines.                                                                                                                                                                                         |
 | 22–28 s     | Agents       | A request types into the chat. Six agent headers switch while the plan, approval, install and result unfold. “One skill. Every agent.” uses the same sans-serif family as other prose.                                                                  |
 | 28–30 s     | Flurry       | Four half-second compositions: “Your hardware.” scales down; “Your rules.” whips in on violet; “Your data.” expands into place; “No rent.” enters from the right. Each keeps moving gently through its reading hold. No progress bar.           |
-| 30–34 s     | End          | The CLI Intro plays on the final hit, cropped to its logo, horizon and wordmark: the four containers drop with the CLI’s skew, squash and hop, their lights spark on and “self-host” morphs in from cipher glyphs. `curl -fsSL https://self-host.fyi/install \| bash` types, “CLI + your agent” appears and “your agent” glyph-morphs through Claude Code, Codex, OpenChamber, Hermes, OpenCode and Pi (each with its logo) before settling back, and the counts resolve to 89 Apps · 19 Recipes · 1 binary with `github.com/ajnart/self-host`. A slow push and caret keep the card alive.                         |
+| 30–34 s     | End          | The CLI Intro plays on the final hit, cropped to its logo, horizon and wordmark: the four containers drop with the CLI’s skew, squash and hop, their lights spark on and “self-host” morphs in from cipher glyphs. `curl -fsSL https://self-host.fyi/install \| bash` types, “CLI + your agent” appears and “your agent” glyph-morphs through Claude Code, Codex, OpenChamber, Hermes, OpenCode and Pi (each with its logo) before settling back, and the counts resolve to 89 Apps · 7 Recipes · 1 binary with `github.com/ajnart/self-host`. A slow push and caret keep the card alive.                         |
 
 ## Music and UI sound
 
@@ -56,8 +56,8 @@ integrated and a true peak below −1 dBTP.
 - The agent example follows `internal/skill/guide.md`, “Every conversation”: pick the Recipe or
   Apps from `apps list`, show the plan in goals and Apps, get approval, then install. The example
   uses the Jellyfin App plus Homarr, with Access shown as “Home network.”
-- 89 Apps and 19 Recipes match the Catalog on `main`; the agent's `apps list` result and the
-  end-card counts say 19 Recipes.
+- 89 Apps and 7 Recipes match the Catalog on `main`; the agent's `apps list` result and the
+  end-card counts say 7 Recipes.
 - Subscription prices are illustrative inherited examples, totalling $92. The $0 comparison
   concerns software subscriptions, not hardware, electricity or hosting costs.
 - The maintainer's 2026-10-11 request changes the end card to the canonical installer Address,
@@ -65,13 +65,11 @@ integrated and a true peak below −1 dBTP.
   **`ajnart/self-host`**. This supersedes the
   approved v5 npm preview, without changing the 34-second timeline or creative direction. The longer
   command uses 40 px type; the repository line uses 36 px and shares the counts' entrance.
-- **Publication is held pending anonymous installer and release-binary verification.** As of the
-  current-release reconciliation on 2026-10-13, the website is live and `ajnart/selfhost-skills` remains
-  private. This source correction does not rename or publish it.
-  [Issue #295](https://github.com/ajnart/selfhost-skills/issues/295) tracks installer/site acceptance,
-  [issue #193](https://github.com/ajnart/selfhost-skills/issues/193) tracks distribution decisions, and
-  [issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks reel publication acceptance.
-  A successful mock render does not establish a working anonymous installer or public binaries.
+- The repository `ajnart/self-host` is public since 2026-10-26, and the anonymous installer and
+  release binaries passed on a clean machine that day
+  ([issue #295](https://github.com/ajnart/self-host/issues/295)).
+  [Issue #193](https://github.com/ajnart/self-host/issues/193) tracks distribution decisions, and
+  [issue #268](https://github.com/ajnart/self-host/issues/268) tracks reel publication acceptance.
 - Agent logo provenance is in `assets/agents/SOURCES.md`.
 
 ## Validation and reproduction
@@ -202,7 +200,7 @@ publication remain separate gates under #295, #193 and #268.
   first container lands just after the hit. `intro.js` paints frame n as a pure function of the clock.
 - The full-width agent list is now “CLI + your agent”. It enters as “self-host” starts to morph in, then the
   slot morphs through each agent and its logo, 0.36 s per agent, and settles back on “your agent”.
-  The agent example installs Jellyfin with Homarr and the counts say 19 Recipes.
+  The agent example installs Jellyfin with Homarr and the counts say 7 Recipes.
 - Regenerated `audio/cues.json` (225 cues: a lock per landing, a check per light, a whoosh on the morph).
 - Final MP4: 2,040 frames, 1920×1080 at 60 fps, H.264 High `yuv420p`, faststart; AAC 48 kHz stereo.
   Picture, sound and container all measure 34.000 seconds; size 7.68 MB.

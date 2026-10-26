@@ -6,7 +6,7 @@ The maintainer approved **v5**: “perfect … I really like what it looks like 
 creative revision. Preserve this cut as the starting point for subsequent requests.
 
 - Branch: `feat/showreel-v2`.
-- Review: [PR #190](https://github.com/ajnart/selfhost-skills/pull/190), merged on 2026-10-11.
+- Review: [PR #190](https://github.com/ajnart/self-host/pull/190), merged on 2026-10-11.
 - Implementation: `de8e68ca`; concurrent Access terminology integration: `3d7546ab`.
 - Delivered MP4: `out/selfhost-reel.mp4`; review sheet: `out/contact.png`.
 - Taildrop of the approved cut to `iphone:` succeeded.
@@ -35,15 +35,13 @@ recorded in the storyboard and asset source files.
 
 ## Canonical-domain release candidate
 
-This revision is not a new creative approval or proof that installation works. The source repository
-remains **`ajnart/selfhost-skills`**, private; the reel does not imply a rename or visibility change.
-The canonical website is live as of the current-release reconciliation on 2026-10-13. Anonymous
-installer and release-binary acceptance remain unverified; source merge does not satisfy that gate.
-[Issue #295](https://github.com/ajnart/selfhost-skills/issues/295) tracks installer/site proof, and
-[issue #193](https://github.com/ajnart/selfhost-skills/issues/193) tracks distribution decisions.
-Verify the canonical script and anonymous release assets before publishing this candidate; do not
-publish the private source or raw music.
-[Issue #268](https://github.com/ajnart/selfhost-skills/issues/268) tracks the reel's publication checks.
+This revision is not a new creative approval. The source repository is **`ajnart/self-host`**, public
+since 2026-10-26, which is the repository the end card names. The anonymous installer and release
+binaries passed on a clean machine on 2026-10-26
+([issue #295](https://github.com/ajnart/self-host/issues/295));
+[issue #193](https://github.com/ajnart/self-host/issues/193) tracks distribution decisions. Do not
+publish the raw music.
+[Issue #268](https://github.com/ajnart/self-host/issues/268) tracks the reel's publication checks.
 The corrected candidate's artifact measurements are recorded in the storyboard, separately from
 approved v5 and the earlier canonical-domain render.
 
