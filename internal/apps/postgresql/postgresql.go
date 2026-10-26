@@ -47,7 +47,7 @@ func (App) Compose(rc app.RenderContext) string {
     ports:
       - ${BIND_IP}:` + strconv.Itoa(rc.Port) + `:5432
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${ADMIN_USER}", "-d", "postgres"]
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "${ADMIN_USER}", "-d", "postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,10 +59,13 @@ secrets:
 `
 }
 
+// pgReady probes over TCP: the image's first-start temporary server listens on
+// its socket only and then restarts, so a socket probe can pass and then fail.
+// A failed exec means the container is restarting, which is not ready yet.
 func pgReady(ctx context.Context, h *helpers.H, user string) (bool, error) {
-	result, err := h.Exec(ctx, nil, "pg_isready", "-U", user, "-d", "postgres")
+	result, err := h.Exec(ctx, nil, "pg_isready", "-h", "127.0.0.1", "-U", user, "-d", "postgres")
 	if err != nil {
-		return false, err
+		return false, nil
 	}
 	return result.ExitCode == 0, nil
 }

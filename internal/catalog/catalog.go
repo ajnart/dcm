@@ -40,10 +40,7 @@ func (c *Catalog) App(id string) (app.App, bool) {
 // unavailable holds the Apps hidden from new installs until each passes on a
 // VM, with the reason and the issue that tracks the way back (#493).
 var unavailable = map[string]string{
-	"bookstack":         "it failed on real hosts (https://github.com/ajnart/self-host/issues/416)",
-	"lldap":             "it failed on real hosts (https://github.com/ajnart/self-host/issues/452)",
-	"passbolt":          "it failed on real hosts (https://github.com/ajnart/self-host/issues/456)",
-	"speedtest-tracker": "it failed on real hosts (https://github.com/ajnart/self-host/issues/66)",
+	"passbolt": "it failed on real hosts (https://github.com/ajnart/self-host/issues/456)",
 }
 
 // Unavailable returns why an App is hidden from new installs, or "" when it

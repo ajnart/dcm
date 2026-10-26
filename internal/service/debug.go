@@ -32,6 +32,8 @@ type DebugReport struct {
 	Addresses []string         `json:"addresses,omitempty"`
 	// DockerError is set when container state could not be read.
 	DockerError string `json:"docker_error,omitempty"`
+	DockerHint  string `json:"docker_hint,omitempty"`
+	DockerDocs  string `json:"docker_docs,omitempty"`
 	// FailedSteps are the Setup steps that failed or wait for a person.
 	FailedSteps []StepStatus `json:"failed_steps,omitempty"`
 	Docs        string       `json:"docs,omitempty"`
@@ -59,6 +61,7 @@ func (s *Service) Debug(ctx context.Context, id string) (DebugReport, error) {
 		return DebugReport{}, fmt.Errorf("%s is not in the Project (see: self-host status)", id)
 	}
 	report := debugReportOf(*as, status.DockerError)
+	report.DockerHint, report.DockerDocs = status.DockerHint, status.DockerDocs
 	if a, found := s.Catalog.App(id); found {
 		report.Docs = a.Info().Docs
 	}
@@ -111,6 +114,7 @@ func (s *Service) maskDebug(r DebugReport) DebugReport {
 	mask := s.Log.Redact
 	r.Name, r.Image, r.Docs = mask(r.Name), mask(r.Image), mask(r.Docs)
 	r.DockerError, r.LogsError = mask(r.DockerError), mask(r.LogsError)
+	r.DockerHint, r.DockerDocs = mask(r.DockerHint), mask(r.DockerDocs)
 	r.HealthCheck.URL = mask(r.HealthCheck.URL)
 	for i, address := range r.Addresses {
 		r.Addresses[i] = mask(address)

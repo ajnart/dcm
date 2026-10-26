@@ -161,7 +161,8 @@ func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult) *he
 	t.Helper()
 	deps := systemtest.NewDeps(t)
 	return helpers.New(helpers.Config{
-		App: "audiobookshelf", Service: "audiobookshelf",
+		Peer: func(string) *helpers.H { return &helpers.H{} },
+		App:  "audiobookshelf", Service: "audiobookshelf",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
@@ -206,14 +207,14 @@ func TestSetupThenCheckThenRerunSkips(t *testing.T) {
 	fake.mu.Lock()
 	fake.badLibraries = true
 	fake.mu.Unlock()
-	if err := (audiobookshelf.App{}).Check(ctx, h); err == nil {
+	if _, err := audiobookshelf.VerifyHomarrCredential(ctx, h); err == nil {
 		t.Fatal("Check accepted a missing library list as an empty library")
 	}
 	fake.mu.Lock()
 	fake.badLibraries = false
 	fake.keyRevoked = true
 	fake.mu.Unlock()
-	if err := (audiobookshelf.App{}).Check(ctx, h); err == nil {
+	if _, err := audiobookshelf.VerifyHomarrCredential(ctx, h); err == nil {
 		t.Fatal("Check accepted a revoked key after an earlier successful check")
 	}
 	if err := (audiobookshelf.App{}).Setup(ctx, h); err == nil {

@@ -263,7 +263,8 @@ func newH(t *testing.T, server *httptest.Server, secrets secrets, rec *recorder)
 	t.Helper()
 	deps := systemtest.NewDeps(t)
 	return helpers.New(helpers.Config{
-		App: "navidrome", Service: "navidrome", BaseURL: server.URL, URL: server.URL,
+		Peer: func(string) *helpers.H { return &helpers.H{} },
+		App:  "navidrome", Service: "navidrome", BaseURL: server.URL, URL: server.URL,
 		HTTP: server.Client(), Secrets: secrets, Log: events.Discard(),
 		Now: deps.Now, Sleep: deps.Sleep, Record: rec.record,
 	})
@@ -286,11 +287,11 @@ func TestCreatesTheFirstAdministratorThenProvesTheLogin(t *testing.T) {
 	if rec.status("admin") != stepstatus.StepOK {
 		t.Fatalf("admin step = %q, want ok", rec.status("admin"))
 	}
-	if fake.subsonicCalls != 12 || fake.samplePages != 2 || fake.albumPages != 2 || rec.status("homarr-api") != stepstatus.StepSkip {
+	if fake.subsonicCalls != 6 || fake.samplePages != 1 || fake.albumPages != 1 || rec.status("homarr-api") != stepstatus.StepSkip {
 		t.Fatal("Setup and Check did not freshly verify the explicit empty music library and listening sessions")
 	}
 	data, err := navidrome.ReadHomarrData(context.Background(), h)
-	if err != nil || data != (navidrome.HomarrData{}) || fake.subsonicCalls != 18 || fake.albumPages != 3 || fake.samplePages != 2 {
+	if err != nil || data != (navidrome.HomarrData{}) || fake.subsonicCalls != 12 || fake.albumPages != 2 || fake.samplePages != 1 {
 		t.Fatalf("Homarr did not freshly verify complete authenticated empty-library data: %v", err)
 	}
 }
@@ -312,38 +313,38 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	if rec.status("ready") != stepstatus.StepSkip || rec.status("admin") != stepstatus.StepSkip || rec.status("homarr-api") != stepstatus.StepSkip {
 		t.Fatalf("rerun should skip every step: ready=%q admin=%q homarr-api=%q", rec.status("ready"), rec.status("admin"), rec.status("homarr-api"))
 	}
-	if fake.subsonicCalls != 12 || fake.albumPages != 2 || fake.samplePages != 2 {
+	if fake.subsonicCalls != 6 || fake.albumPages != 1 || fake.samplePages != 1 {
 		t.Fatal("standalone Setup and Check exceeded six fresh API reads and one single-album page each")
 	}
 	fake.mu.Lock()
 	fake.albumCount = 60001
 	fake.mu.Unlock()
-	if err := (navidrome.App{}).Check(context.Background(), h); err != nil {
-		t.Fatalf("standalone Check rejected a healthy larger API: %v", err)
+	if err := (navidrome.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatalf("standalone Setup rejected a healthy larger API: %v", err)
 	}
-	if fake.subsonicCalls != 18 || fake.albumPages != 3 || fake.samplePages != 3 {
+	if fake.subsonicCalls != 12 || fake.albumPages != 2 || fake.samplePages != 2 {
 		t.Fatal("standalone readiness request/page bound grew with the library")
 	}
 	if _, err := navidrome.ReadHomarrData(context.Background(), h); err == nil || !strings.Contains(err.Error(), "10000-album limit") {
 		t.Fatalf("Homarr consumer preflight did not reject its unsupported library size: %v", err)
 	}
-	if fake.subsonicCalls != 22 || fake.albumPages != 4 || fake.samplePages != 3 {
+	if fake.subsonicCalls != 16 || fake.albumPages != 3 || fake.samplePages != 2 {
 		t.Fatal("Homarr consumer preflight did not stop at the explicit unsupported total")
 	}
 	fake.mu.Lock()
 	fake.albumCount = 503
 	fake.mu.Unlock()
 	data, err := navidrome.ReadHomarrData(context.Background(), h)
-	if err != nil || data != (navidrome.HomarrData{ArtistCount: 1, AlbumCount: 503, SongCount: 503}) || fake.subsonicCalls != 29 || fake.albumPages != 6 || fake.samplePages != 3 {
+	if err != nil || data != (navidrome.HomarrData{ArtistCount: 1, AlbumCount: 503, SongCount: 503}) || fake.subsonicCalls != 23 || fake.albumPages != 5 || fake.samplePages != 2 {
 		t.Fatalf("Homarr did not reconcile both full album pages and complete counts: %v", err)
 	}
 	fake.mu.Lock()
 	fake.malformedAlbum = true
 	fake.mu.Unlock()
-	if err := (navidrome.App{}).Check(context.Background(), h); err == nil || !strings.Contains(err.Error(), "incomplete") {
+	if err := (navidrome.App{}).Setup(context.Background(), h); err == nil || !strings.Contains(err.Error(), "incomplete") {
 		t.Fatalf("standalone readiness accepted a null representative song count: %v", err)
 	}
-	if fake.subsonicCalls != 33 || fake.albumPages != 7 || fake.samplePages != 4 {
+	if fake.subsonicCalls != 31 || fake.albumPages != 7 || fake.samplePages != 4 {
 		t.Fatal("malformed readiness did not stop within its fixed request/page bound")
 	}
 }
@@ -387,7 +388,7 @@ func TestRepeatedSetupWaitsForLoginRateLimitWithoutRecreatingAdmin(t *testing.T)
 	if fake.creates != 1 || fake.password != saved["ADMIN_PASSWORD"] {
 		t.Fatal("repeated Setup recreated or changed the saved administrator")
 	}
-	if fake.subsonicCalls != 36 {
+	if fake.subsonicCalls != 18 {
 		t.Fatal("repeated Setup or Check reused stale music library or session data")
 	}
 }
@@ -434,7 +435,7 @@ func TestLoginHTTPHasBoundedDeadlineAndHonorsCancellation(t *testing.T) {
 		<-req.Context().Done()
 		return nil, req.Context().Err()
 	})}
-	h := helpers.New(helpers.Config{App: "navidrome", BaseURL: "http://navidrome.invalid", HTTP: client, Secrets: secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-only-password"}, Log: events.Discard()})
+	h := helpers.New(helpers.Config{Peer: func(string) *helpers.H { return &helpers.H{} }, App: "navidrome", BaseURL: "http://navidrome.invalid", HTTP: client, Secrets: secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "fixture-only-password"}, Log: events.Discard()})
 	started := time.Now()
 	result := make(chan error, 1)
 	go func() { result <- (navidrome.App{}).Check(caller, h) }()

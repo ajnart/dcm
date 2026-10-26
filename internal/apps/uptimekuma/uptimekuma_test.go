@@ -2,10 +2,8 @@ package uptimekuma_test
 
 import (
 	"context"
-	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/apps/porttest"
@@ -13,30 +11,9 @@ import (
 	stepstatus "github.com/ajnart/self-host/internal/status"
 )
 
-type fakeUptime struct {
-	mu       sync.Mutex
-	user     string
-	password string
-}
-
-func (f *fakeUptime) handler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("kuma")) })
-	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
-		f.mu.Lock()
-		defer f.mu.Unlock()
-		user, password, ok := r.BasicAuth()
-		if !ok || user != f.user || password != f.password || f.password == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		w.Write([]byte("# HELP uptime_monitor_status Monitor status\n"))
-	})
-	return mux
-}
-
-func TestTheAdminLoginAuthenticatesTheMetricsEndpoint(t *testing.T) {
-	server := httptest.NewServer((&fakeUptime{user: "admin", password: "secret"}).handler())
+func TestTheAdminLoginIsCreatedOverSocketIO(t *testing.T) {
+	fake := porttest.NewSocketIO("", "")
+	server := httptest.NewServer(fake.Handler())
 	defer server.Close()
 	rec := &porttest.Recorder{}
 	h := porttest.New(t, porttest.Options{App: "uptime-kuma", Service: "uptime-kuma",
@@ -45,16 +22,16 @@ func TestTheAdminLoginAuthenticatesTheMetricsEndpoint(t *testing.T) {
 	if err := (uptimekuma.App{}).Setup(context.Background(), h); err != nil {
 		t.Fatalf("Setup: %v", err)
 	}
+	if fake.User != "admin" || fake.Password != "secret" || rec.Status("admin") != stepstatus.StepOK {
+		t.Fatalf("admin not created: user=%q step=%q", fake.User, rec.Status("admin"))
+	}
 	if err := (uptimekuma.App{}).Check(context.Background(), h); err != nil {
 		t.Fatalf("Check: %v", err)
-	}
-	if rec.Status("admin") != stepstatus.StepSkip {
-		t.Fatalf("admin step = %q, want skip", rec.Status("admin"))
 	}
 }
 
 func TestRerunSkipsEveryStep(t *testing.T) {
-	server := httptest.NewServer((&fakeUptime{user: "admin", password: "secret"}).handler())
+	server := httptest.NewServer(porttest.NewSocketIO("admin", "secret").Handler())
 	defer server.Close()
 	rec := &porttest.Recorder{}
 	h := porttest.New(t, porttest.Options{App: "uptime-kuma", Service: "uptime-kuma",
@@ -69,7 +46,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 }
 
 func TestTheHintNamesTheAppPage(t *testing.T) {
-	server := httptest.NewServer((&fakeUptime{user: "admin", password: "changed"}).handler())
+	server := httptest.NewServer(porttest.NewSocketIO("admin", "changed").Handler())
 	defer server.Close()
 	rec := &porttest.Recorder{}
 	h := porttest.New(t, porttest.Options{App: "uptime-kuma", Service: "uptime-kuma",
@@ -78,7 +55,7 @@ func TestTheHintNamesTheAppPage(t *testing.T) {
 	if err := (uptimekuma.App{}).Setup(context.Background(), h); err == nil {
 		t.Fatal("Setup should fail when the administrator is not the saved login")
 	}
-	if rec.Status("admin") != stepstatus.StepManual || !strings.Contains(rec.Hint(), server.URL) {
-		t.Fatalf("admin step should be manual with the App URL hint, got %q", rec.Hint())
+	if rec.Status("admin") != stepstatus.StepFail || !strings.Contains(rec.Hint(), server.URL) {
+		t.Fatalf("admin step should fail with the App URL hint, got %q", rec.Hint())
 	}
 }

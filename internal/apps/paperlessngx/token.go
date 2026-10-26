@@ -148,6 +148,9 @@ func homarrTokenWorks(ctx context.Context, h *helpers.H) (bool, error) {
 	if key == "" && h.Secret(h.Key("homarr_account")) == "" && h.Secret(h.Key("homarr_user")) == "" && h.Secret(h.Key("homarr_password")) == "" {
 		return false, nil
 	}
+	if key == "" && pendingHomarrAccount(h) {
+		return false, nil
+	}
 	user, err := homarrUser(ctx, h)
 	if err != nil || !readOnlyUser(user) {
 		return false, err
@@ -224,38 +227,9 @@ func ensureHomarrToken(ctx context.Context, h *helpers.H) error {
 		if err := h.SetSecret(h.Key("homarr_password"), password); err != nil {
 			return err
 		}
-		resp, err := h.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api/users/", JSON: map[string]any{
-			"username": username, "password": password, "first_name": account.Owner,
-			"is_active": true, "is_staff": false, "is_superuser": false,
-			"groups": []int{}, "user_permissions": homarrPermissions,
-		}, User: h.AdminUser(), Password: h.AdminPassword()})
-		if err != nil {
-			return err
-		}
-		if resp.Status == 401 || resp.Status == 403 {
-			return accountRecovery(h, "Paperless-ngx denied creating the dedicated Homarr account; the pending checkpoint was preserved for review")
-		}
-		if resp.Status != 201 {
-			return fmt.Errorf("Paperless-ngx read-only account configuration returned HTTP %d; this requires Paperless-ngx 3.2.1's statistics permission", resp.Status)
-		}
-		var created integrationUser
-		if err := resp.Decode(&created); err != nil {
-			return err
-		}
-		if !validIntegrationUser(created) {
-			return fmt.Errorf("Paperless-ngx account creation omitted required account fields; its pending checkpoint was preserved")
-		}
-		if created.Username != username || *created.Owner != account.Owner || !readOnlyUser(created) {
-			return accountRecovery(h, "Paperless-ngx account creation did not return the intended read-only owner; its pending checkpoint was preserved")
-		}
-		account.ID = created.ID
-		checkpoint, err := json.Marshal(account)
-		if err != nil {
-			return err
-		}
-		if err := h.SetSecret(h.Key("homarr_account"), string(checkpoint)); err != nil {
-			return err
-		}
+	}
+	if err := resumeHomarrAccount(ctx, h); err != nil {
+		return err
 	}
 	user, err := homarrUser(ctx, h)
 	if err != nil {
@@ -300,4 +274,88 @@ func ensureHomarrToken(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	return h.SetSecret(h.Key("api_key"), key)
+}
+
+func resumeHomarrAccount(ctx context.Context, h *helpers.H) error {
+	var account homarrAccount
+	if json.Unmarshal([]byte(h.Secret(h.Key("homarr_account"))), &account) != nil || account.ID != 0 || account.Owner == "" {
+		return nil
+	}
+	username, password := h.Secret(h.Key("homarr_user")), h.Secret(h.Key("homarr_password"))
+	if username == "" || password == "" {
+		return nil
+	}
+	h.Log.Secret(account.Owner)
+	resp, err := h.HTTP(ctx, helpers.Request{Path: "/api/users/?page_size=1000", User: h.AdminUser(), Password: h.AdminPassword()})
+	if err != nil {
+		return err
+	}
+	if resp.Status == 401 || resp.Status == 403 {
+		return accountRecovery(h, "Paperless-ngx denied discovering the dedicated Homarr account; the pending checkpoint was preserved for review")
+	}
+	if resp.Status != 200 {
+		return fmt.Errorf("Paperless-ngx account discovery returned HTTP %d", resp.Status)
+	}
+	var list struct {
+		Results []integrationUser `json:"results"`
+	}
+	if err := resp.Decode(&list); err != nil {
+		return err
+	}
+	var created integrationUser
+	for _, user := range list.Results {
+		if user.Username != username {
+			continue
+		}
+		if !validIntegrationUser(user) || *user.Owner != account.Owner || !readOnlyUser(user) {
+			return accountRecovery(h, "Paperless-ngx has an account named like the pending Homarr account that this Project does not own; existing accounts were preserved")
+		}
+		created = user
+	}
+	if created.ID == 0 {
+		created, err = createHomarrAccount(ctx, h, account, username, password)
+		if err != nil {
+			return err
+		}
+	}
+	account.ID = created.ID
+	checkpoint, err := json.Marshal(account)
+	if err != nil {
+		return err
+	}
+	return h.SetSecret(h.Key("homarr_account"), string(checkpoint))
+}
+
+func createHomarrAccount(ctx context.Context, h *helpers.H, account homarrAccount, username, password string) (integrationUser, error) {
+	resp, err := h.HTTP(ctx, helpers.Request{Method: "POST", Path: "/api/users/", JSON: map[string]any{
+		"username": username, "password": password, "first_name": account.Owner,
+		"is_active": true, "is_staff": false, "is_superuser": false,
+		"groups": []int{}, "user_permissions": homarrPermissions,
+	}, User: h.AdminUser(), Password: h.AdminPassword()})
+	if err != nil {
+		return integrationUser{}, err
+	}
+	if resp.Status == 401 || resp.Status == 403 {
+		return integrationUser{}, accountRecovery(h, "Paperless-ngx denied creating the dedicated Homarr account; the pending checkpoint was preserved for review")
+	}
+	if resp.Status != 201 {
+		return integrationUser{}, fmt.Errorf("Paperless-ngx read-only account configuration returned HTTP %d; this requires Paperless-ngx 3.2.1's statistics permission", resp.Status)
+	}
+	var created integrationUser
+	if err := resp.Decode(&created); err != nil {
+		return integrationUser{}, err
+	}
+	if !validIntegrationUser(created) {
+		return integrationUser{}, fmt.Errorf("Paperless-ngx account creation omitted required account fields; its pending checkpoint was preserved")
+	}
+	if created.Username != username || *created.Owner != account.Owner || !readOnlyUser(created) {
+		return integrationUser{}, accountRecovery(h, "Paperless-ngx account creation did not return the intended read-only owner; its pending checkpoint was preserved")
+	}
+	return created, nil
+}
+
+func pendingHomarrAccount(h *helpers.H) bool {
+	var account homarrAccount
+	return json.Unmarshal([]byte(h.Secret(h.Key("homarr_account"))), &account) == nil && account.ID == 0 && account.Owner != "" &&
+		h.Secret(h.Key("homarr_user")) != "" && h.Secret(h.Key("homarr_password")) != ""
 }

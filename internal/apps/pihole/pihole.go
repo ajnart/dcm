@@ -183,6 +183,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-password", "Homarr is not installed; no Pi-hole application password is needed")
+		return nil
+	}
 	return h.Step(ctx, "homarr-password", "prepare the dedicated Homarr application password", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
 			if h.Secret(h.Key("homarr_app_password")) == "" {

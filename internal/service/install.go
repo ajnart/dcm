@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"slices"
@@ -272,7 +273,8 @@ func (s *Service) install(ctx context.Context, opts InstallOptions, locked *proj
 		return err
 	}
 	var previous map[string]map[string]string
-	if p.Exists() {
+	existed := p.Exists()
+	if existed {
 		state, err := p.LoadState()
 		if err != nil {
 			return err
@@ -342,6 +344,9 @@ func (s *Service) install(ctx context.Context, opts InstallOptions, locked *proj
 		initialize: func(p *project.Project) error { return s.createProject(ctx, p, opts) },
 		edit: func(ctx context.Context, ss *session) error {
 			ss.deferDashboard = opts.deferDashboard
+			if existed {
+				warnIgnoredProjectFlags(s.Log, opts)
+			}
 			var containers []compose.Container
 			if ss.tailscaleOn() && !slices.Contains(names, tailscaleID) {
 				var err error
@@ -403,11 +408,14 @@ func (s *Service) install(ctx context.Context, opts InstallOptions, locked *proj
 				if err := ss.writeFiles(a, rc); err != nil {
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
 				}
-				if err := ss.p.WriteFragment(info.ID, fragment); err != nil {
+				if err := ss.writeFragment(info.ID, fragment); err != nil {
 					return errors.Join(err, ss.recordStage([]string{info.ID}, events.Event{Event: events.StepFail, App: info.ID, Step: StageRender, Error: err.Error()}))
 				}
-				if err := ss.recordStage([]string{info.ID}, events.Event{Event: events.StepOK, App: info.ID, Step: StageRender,
-					Msg: fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)}); err != nil {
+				wrote := fmt.Sprintf("wrote apps/%s/compose.yml (%s)", info.ID, info.Image)
+				if port > 0 {
+					wrote = fmt.Sprintf("wrote apps/%s/compose.yml (%s on port %d)", info.ID, info.Image, port)
+				}
+				if err := ss.recordStage([]string{info.ID}, events.Event{Event: events.StepOK, App: info.ID, Step: StageRender, Msg: wrote}); err != nil {
 					return err
 				}
 			}
@@ -424,6 +432,34 @@ func (s *Service) install(ctx context.Context, opts InstallOptions, locked *proj
 		compose: composePullUp,
 		after:   afterSetup,
 	})
+}
+
+// warnIgnoredProjectFlags tells that new-Project options do nothing for a
+// Project that already exists, and how to change the setting instead.
+func warnIgnoredProjectFlags(log *events.Logger, opts InstallOptions) {
+	var flags, fixes []string
+	if opts.Exposure != "" {
+		flags = append(flags, "--exposure")
+		fixes = append(fixes, "EXPOSURE="+opts.Exposure)
+	}
+	if opts.EasyNames {
+		flags = append(flags, "--easy-names")
+		fixes = append(fixes, "EASY_NAMES=on")
+	}
+	if opts.MediaRoot != "" {
+		flags = append(flags, "--media-root")
+		fixes = append(fixes, "MEDIA_ROOT="+opts.MediaRoot)
+	}
+	if opts.DownloadsRoot != "" {
+		flags = append(flags, "--downloads-root")
+		fixes = append(fixes, "DOWNLOADS_ROOT="+opts.DownloadsRoot)
+	}
+	if len(flags) == 0 {
+		return
+	}
+	log.Emit(events.Event{Event: events.StepWarn, Step: "project",
+		Msg:  strings.Join(flags, ", ") + " only apply to a new Project and were ignored; this Project keeps its settings",
+		Hint: "To change it, run: self-host config set " + strings.Join(fixes, " ")})
 }
 
 func (s *Service) createProject(ctx context.Context, p *project.Project, opts InstallOptions) error {
@@ -508,7 +544,15 @@ func (ss *session) writeFiles(a app.App, rc app.RenderContext) error {
 		if mode == 0 {
 			mode = 0o644
 		}
-		if err := ss.p.WriteAppFile(id, clean, []byte(f.Content), mode); err != nil {
+		err := ss.p.WriteAppFile(id, clean, []byte(f.Content), mode)
+		top, _, nested := strings.Cut(clean, "/")
+		if errors.Is(err, fs.ErrPermission) && ss.compose != nil && nested {
+			if cerr := ss.compose.Chown(context.Background(), a.Info().Service, ss.p.Path("apps", id, top), ss.p.Owner.UID, ss.p.Owner.GID); cerr != nil {
+				return errors.Join(err, cerr)
+			}
+			err = ss.p.WriteAppFile(id, clean, []byte(f.Content), mode)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -681,6 +725,7 @@ func (ss *session) setupAll(ctx context.Context, apps []app.App) error {
 }
 
 func (s *Service) finish(err error) error {
+	err = s.withDockerAdvice(context.Background(), err)
 	switch {
 	case err == nil:
 		s.Log.Emit(events.Event{Event: events.RunEnd, Msg: "done"})

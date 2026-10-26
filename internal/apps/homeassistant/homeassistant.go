@@ -36,7 +36,7 @@ func (App) Inputs() []app.Input {
 		Help:     "An existing entity ID, shown read-only. Leave empty to discover an existing Sun or text helper; no device or automation is created or controlled.",
 		Validate: validateEntityID,
 	}, {
-		Key: "homarr_token", Prompt: "Existing Homarr long-lived access token (optional recovery)", Private: true,
+		Key: "homarr_token", Prompt: "Existing Homarr long-lived access token (optional recovery)", Private: true, RecoveryOnly: true,
 		Help: "Only for the dedicated read-only self-host-homarr user. Use --set-file, never a command argument. A refresh token or onboarding code is not an access token.",
 	}}
 }
@@ -112,51 +112,63 @@ func createAdmin(ctx context.Context, h *helpers.H, user, password string) error
 	return err
 }
 
-// loginWorks runs the same login flow the web UI runs and checks the password
-// is accepted; the authorization code itself is left unconsumed.
-func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+type loginOutcome struct {
+	Type   string `json:"type"`
+	Result string `json:"result"`
+	StepID string `json:"step_id"`
+}
+
+func submitLogin(ctx context.Context, h *helpers.H, user, password string) (loginOutcome, error) {
 	id := clientID(h)
 	opened, err := h.Expect(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/auth/login_flow",
 		JSON: map[string]any{"client_id": id, "redirect_uri": id, "handler": []any{"homeassistant", nil}},
 	})
 	if err != nil {
-		return false, err
+		return loginOutcome{}, err
 	}
 	var flow struct {
 		Type   string `json:"type"`
 		FlowID string `json:"flow_id"`
 	}
 	if err := opened.Decode(&flow); err != nil {
-		return false, err
+		return loginOutcome{}, err
 	}
 	if flow.Type != "form" || flow.FlowID == "" {
-		return false, fmt.Errorf("Home Assistant returned an unexpected login flow")
+		return loginOutcome{}, fmt.Errorf("Home Assistant returned an unexpected login flow")
 	}
 	verified, err := h.HTTP(ctx, helpers.Request{
 		Method: http.MethodPost, Path: "/auth/login_flow/" + flow.FlowID,
 		JSON: map[string]any{"client_id": id, "username": user, "password": password},
 	})
 	if err != nil {
-		return false, err
+		return loginOutcome{}, err
 	}
 	if verified.Status == http.StatusNotFound {
-		return false, fmt.Errorf("Home Assistant saved login flow is unavailable")
+		return loginOutcome{}, fmt.Errorf("Home Assistant saved login flow is unavailable")
 	}
 	if !verified.OK() {
-		return false, fmt.Errorf("POST /auth/login_flow/%s returned HTTP %d", flow.FlowID, verified.Status)
+		return loginOutcome{}, fmt.Errorf("POST /auth/login_flow/%s returned HTTP %d", flow.FlowID, verified.Status)
 	}
-	var result struct {
-		Type   string `json:"type"`
-		Result string `json:"result"`
-	}
-	if err := verified.Decode(&result); err != nil {
+	var outcome loginOutcome
+	return outcome, verified.Decode(&outcome)
+}
+
+// loginWorks runs the same login flow the web UI runs and checks the password
+// is accepted; the authorization code itself is left unconsumed. A rejected
+// password is false; only a multi-factor prompt needs a person.
+func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+	outcome, err := submitLogin(ctx, h, user, password)
+	if err != nil {
 		return false, err
 	}
-	if result.Type == "form" {
-		return false, fmt.Errorf("%w: finish the Home Assistant login or MFA in the browser without disabling it", helpers.ErrManual)
+	if outcome.Type == "form" {
+		if outcome.StepID == "mfa" {
+			return false, fmt.Errorf("%w: finish the Home Assistant multi-factor login in the browser without disabling it", helpers.ErrManual)
+		}
+		return false, nil
 	}
-	return result.Type == "create_entry" && result.Result != "", nil
+	return outcome.Type == "create_entry" && outcome.Result != "", nil
 }
 
 func firstAdmin() firstadmin.FirstAdmin {
@@ -173,6 +185,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := firstAdmin().Setup(ctx, h); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-token", "Homarr is not installed; no Home Assistant token is needed")
+		return onboarding(ctx, h)
+	}
 	return errors.Join(setupHomarr(ctx, h), onboarding(ctx, h))
 }
 
@@ -184,6 +200,5 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Admin login %s cannot sign in to Home Assistant", h.AdminUser())
 	}
-	_, entityErr := HomarrEntity(ctx, h)
-	return errors.Join(VerifyHomarr(ctx, h), entityErr, onboardingComplete(ctx, h))
+	return onboardingComplete(ctx, h)
 }

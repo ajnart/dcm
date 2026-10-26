@@ -37,7 +37,7 @@ const (
 	Endpoint = "https://hog.ajnart.dev"
 	// NoKey is the development placeholder for ProjectKey: no key, send nothing.
 	NoKey = "development"
-	// EnvOptOut turns Telemetry off when it is 1, like DO_NOT_TRACK.
+	// EnvOptOut turns Telemetry off when it is set to anything but 0 or false, like DO_NOT_TRACK.
 	EnvOptOut = "SELF_HOST_NO_TELEMETRY"
 	DocsURL   = "https://self-host.fyi/telemetry"
 
@@ -168,7 +168,12 @@ func (o Options) off() bool {
 	if !release.IsRelease(o.Version) {
 		return true
 	}
-	return o.Getenv("CI") != "" || o.Getenv(EnvOptOut) == "1" || o.Getenv("DO_NOT_TRACK") == "1"
+	return o.Getenv("CI") != "" || optedOut(o.Getenv(EnvOptOut)) || optedOut(o.Getenv("DO_NOT_TRACK"))
+}
+
+func optedOut(v string) bool {
+	v = strings.ToLower(strings.TrimSpace(v))
+	return v != "" && v != "0" && v != "false"
 }
 
 // Enabled is false whenever any off switch applies.

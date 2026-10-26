@@ -23,6 +23,7 @@ const (
 	Command      = "command"
 	Info         = "info"
 	PullProgress = "pull.progress"
+	Log          = "log"
 )
 
 type Event struct {

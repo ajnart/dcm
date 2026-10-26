@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/huh/v2"
@@ -187,7 +188,8 @@ func commonPrefix(names []string) string {
 	common := names[0]
 	for _, name := range names[1:] {
 		for !strings.HasPrefix(name, common) {
-			common = common[:len(common)-1]
+			_, size := utf8.DecodeLastRuneInString(common)
+			common = common[:len(common)-size]
 		}
 	}
 	return common

@@ -277,7 +277,36 @@ func (c *Compose) Remove(ctx context.Context, services ...string) error {
 func (c *Compose) EmptyDir(ctx context.Context, service, dir string) error {
 	_, err := c.Run(ctx, nil, "run", "--rm", "--no-deps", "-T", "--user", "0",
 		"-v", dir+":/purge", "--entrypoint", "find", service, "/purge", "-mindepth", "1", "!", "-path", "/purge/compose.yml", "-delete")
-	return err
+	if err == nil {
+		return nil
+	}
+	return c.helperRun(ctx, err, "-v", dir+":/purge", "busybox:stable", "find", "/purge", "-mindepth", "1", "!", "-path", "/purge/compose.yml", "-delete")
+}
+
+// helperRun runs a root one-off container of a stock image, for services whose own image
+// has no shell tools. It returns first when that also fails.
+func (c *Compose) helperRun(ctx context.Context, first error, args ...string) error {
+	cmd := system.Cmd{Name: "docker", Args: append([]string{"run", "--rm", "--user", "0"}, args...), Dir: c.root}
+	c.log.Emit(events.Event{Event: events.Command, Command: "docker " + strings.Join(cmd.Args, " ")})
+	result, err := c.deps.Runner.Run(ctx, cmd)
+	if err != nil {
+		return errors.Join(first, fmt.Errorf("helper container: %w", err))
+	}
+	if result.ExitCode != 0 {
+		return errors.Join(first, fmt.Errorf("helper container exited %d", result.ExitCode))
+	}
+	return nil
+}
+
+// Chown hands dir, a host folder, to uid:gid from a one-off container of
+// service running as root, for data an earlier run left owned by someone else.
+func (c *Compose) Chown(ctx context.Context, service, dir string, uid, gid int) error {
+	_, err := c.Run(ctx, nil, "run", "--rm", "--no-deps", "-T", "--user", "0",
+		"-v", dir+":/own", "--entrypoint", "chown", service, "-R", fmt.Sprintf("%d:%d", uid, gid), "/own")
+	if err == nil {
+		return nil
+	}
+	return c.helperRun(ctx, err, "-v", dir+":/own", "busybox:stable", "chown", "-R", fmt.Sprintf("%d:%d", uid, gid), "/own")
 }
 
 // Exec runs a command in a running service container without a TTY.

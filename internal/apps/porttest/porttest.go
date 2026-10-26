@@ -52,16 +52,27 @@ type Options struct {
 	Service string
 	Dir     string
 	Secrets Secrets
+	// Homarr makes Peer("homarr") report an installed Homarr.
+	Homarr bool
 }
 
 // New builds an H bound to a test server with a fake clock.
 func New(t *testing.T, opts Options, server *httptest.Server, rec *Recorder) *helpers.H {
 	t.Helper()
 	deps := systemtest.NewDeps(t)
-	return helpers.New(helpers.Config{
+	cfg := helpers.Config{
 		App: opts.App, Service: opts.Service, Dir: opts.Dir,
 		BaseURL: server.URL, URL: server.URL, HTTP: server.Client(),
 		Secrets: opts.Secrets, Log: events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 		Record: rec.Record,
-	})
+	}
+	if opts.Homarr {
+		cfg.Peer = func(id string) *helpers.H {
+			if id == "homarr" {
+				return &helpers.H{}
+			}
+			return nil
+		}
+	}
+	return helpers.New(cfg)
 }

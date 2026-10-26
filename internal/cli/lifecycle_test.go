@@ -176,7 +176,7 @@ func TestPurgeEmptiesRootOwnedDataThroughContainer(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("purge: %d\n%s", code, out)
 	}
-	if !strings.Contains(strings.Join(deps.Runner.(*systemtest.Runner).Calls(), "\n"), "run --rm --no-deps -T --user 0 -v "+filepath.Join(root, "apps", "one")+":/purge --entrypoint find one /purge -mindepth 1 ! -path /purge/compose.yml -delete") {
+	if !strings.Contains(strings.Join(deps.Runner.(*systemtest.Runner).Calls(), "\n"), "run --rm --no-deps -T --user 0 -v "+filepath.Join(root, "apps", "one")+":/own --entrypoint chown one -R 1000:1000 /own") {
 		t.Fatal("root-owned data was not emptied through a container")
 	}
 	if _, err := os.Stat(filepath.Join(root, "apps", "one")); !os.IsNotExist(err) {
@@ -298,17 +298,17 @@ func TestLogsStreamsTheAppsContainers(t *testing.T) {
 
 func TestHiddenAppIsUnlistedAndRefusedForNewInstalls(t *testing.T) {
 	deps := systemtest.NewDeps(t)
-	cat := catalog.New([]app.App{&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "lldap", done: map[string]bool{}}}, nil)
+	cat := catalog.New([]app.App{&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "passbolt", done: map[string]bool{}}}, nil)
 
 	_, out := runWith(t, deps, cat, "apps", "list", "--json")
-	if strings.Contains(out, "lldap") {
+	if strings.Contains(out, "passbolt") {
 		t.Fatalf("hidden App listed:\n%s", out)
 	}
-	_, out = runWith(t, deps, cat, "apps", "info", "lldap")
-	if !strings.Contains(out, "temporarily unavailable") || !strings.Contains(out, "issues/452") {
+	_, out = runWith(t, deps, cat, "apps", "info", "passbolt")
+	if !strings.Contains(out, "temporarily unavailable") || !strings.Contains(out, "issues/456") {
 		t.Fatalf("info: %s", out)
 	}
-	code, out := runWith(t, deps, cat, "install", "--yes", "lldap")
+	code, out := runWith(t, deps, cat, "install", "--yes", "passbolt")
 	if code == 0 || !strings.Contains(out, "temporarily unavailable") {
 		t.Fatalf("install: %d\n%s", code, out)
 	}

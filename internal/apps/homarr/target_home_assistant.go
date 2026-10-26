@@ -30,7 +30,8 @@ func homeAssistantTarget() target {
 			return map[string]any{"entityId": entity.ID, "displayName": name, "entityUnit": unit, "clickable": false}, nil
 		}}, statWidget("entities", "unavailable")},
 		preflight: func(ctx context.Context, from, to *helpers.H) error {
-			if err := (homeassistant.App{}).Check(ctx, to); err != nil {
+			_, entityErr := homeassistant.HomarrEntity(ctx, to)
+			if err := errors.Join((homeassistant.App{}).Check(ctx, to), homeassistant.VerifyHomarr(ctx, to), entityErr); err != nil {
 				from.Info("Home Assistant needs its verified read-only Homarr token, an available selected entity and completed first-run choices. Run self-host setup home-assistant, resolve its Manual steps without enabling hardware or discovery implicitly, then self-host setup homarr. No Homarr resources were changed.")
 				return err
 			}

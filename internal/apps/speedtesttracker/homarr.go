@@ -45,6 +45,8 @@ echo json_encode(['id'=>(string)$created->accessToken->getKey(),'adminId'=>(stri
 
 const measurementHint = "No usable completed Speedtest Tracker measurement is available. Internet speed is unknown, not zero. A real test consumes external bandwidth and may require provider terms; obtain separate approval bounded to one lawful supported test before running it outside Setup. After a completed result exists, run self-host setup speedtest-tracker and self-host setup homarr. Setup never runs or schedules a test."
 
+var errNoMeasurement = errors.New("no completed measurement")
+
 type Result struct {
 	ID           *int64          `json:"id"`
 	Ping         *float64        `json:"ping"`
@@ -269,7 +271,7 @@ func ReadHomarr(ctx context.Context, h *helpers.H) (HomarrData, error) {
 		return data, err
 	}
 	if response.Status == http.StatusNotFound && *history.Meta.Total == 0 {
-		return data, fmt.Errorf("%w: %s", helpers.ErrManual, measurementHint)
+		return data, fmt.Errorf("%w: %w: %s", errNoMeasurement, helpers.ErrManual, measurementHint)
 	}
 	if response.Status != http.StatusOK {
 		return data, fmt.Errorf("Speedtest Tracker latest result returned HTTP %d; retry self-host setup speedtest-tracker", response.Status)
@@ -284,7 +286,7 @@ func ReadHomarr(ctx context.Context, h *helpers.H) (HomarrData, error) {
 		return data, err
 	}
 	if latest.Data.Status != "completed" || !latest.Data.Measured() {
-		return data, fmt.Errorf("%w: %s", helpers.ErrManual, measurementHint)
+		return data, fmt.Errorf("%w: %w: %s", errNoMeasurement, helpers.ErrManual, measurementHint)
 	}
 	if !latest.Data.conversionCurrent() {
 		return data, errors.New("Speedtest Tracker result byte/bit rate fields disagree; use the supported version and retry Setup")

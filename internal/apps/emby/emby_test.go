@@ -109,7 +109,8 @@ func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult) *he
 	t.Helper()
 	deps := systemtest.NewDeps(t)
 	return helpers.New(helpers.Config{
-		App: "emby", Service: "emby",
+		Peer: func(string) *helpers.H { return &helpers.H{} },
+		App:  "emby", Service: "emby",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
@@ -152,7 +153,7 @@ func TestSetupSkipsWhenTheWizardIsDoneAndCheckPasses(t *testing.T) {
 		t.Fatal("hidden users should not become an invented release selection")
 	}
 	fake.key = "changed-api-key"
-	if err := (emby.App{}).Check(ctx, h); err == nil {
+	if err := emby.VerifyHomarr(ctx, h); err == nil {
 		t.Fatal("Check should freshly reject a revoked API key")
 	}
 	if err := (emby.App{}).Setup(ctx, h); err == nil {

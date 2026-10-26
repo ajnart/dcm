@@ -231,7 +231,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	if err := h.Ready(ctx, "/api/v1/auth/initial-setup-complete"); err != nil {
+	if err := h.Ready(ctx, "/api/v1/auth/initial-setup-complete", helpers.WantStatus(http.StatusOK), helpers.Contains(`"success"`)); err != nil {
 		return err
 	}
 	return firstadmin.FirstAdmin{

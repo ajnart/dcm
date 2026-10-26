@@ -20,6 +20,19 @@ import (
 	"github.com/ajnart/self-host/internal/systemtest"
 )
 
+type fakeHomarr struct{ nextcloud.App }
+
+func (fakeHomarr) Info() app.Info {
+	return app.Info{ID: "homarr", Name: "Homarr", Image: "homarr:latest", Port: 7575, ContainerPort: 7575, Service: "homarr"}
+}
+func (fakeHomarr) Inputs() []app.Input { return nil }
+func (fakeHomarr) Compose(app.RenderContext) string {
+	return "services:\n  homarr:\n    image: homarr:latest\n"
+}
+func (fakeHomarr) Setup(context.Context, *helpers.H) error { return nil }
+func (fakeHomarr) Check(context.Context, *helpers.H) error { return nil }
+func (fakeHomarr) Links() []app.Link                       { return nil }
+
 type fakeNextcloud struct {
 	reject bool
 }
@@ -72,7 +85,8 @@ func newH(t *testing.T, srv *httptest.Server) (*helpers.H, *[]helpers.StepResult
 	deps := systemtest.NewDeps(t)
 	var recorded []helpers.StepResult
 	h := helpers.New(helpers.Config{
-		App: "nextcloud", Service: "nextcloud",
+		Peer: func(string) *helpers.H { return &helpers.H{} },
+		App:  "nextcloud", Service: "nextcloud",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Secrets: fakeSecrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "adminpass", "NEXTCLOUD_HOMARR_APP_PASSWORD": "homarr-test-password", "NEXTCLOUD_HOMARR_APP_PASSWORD_ID": "7"},
 		Exec:    &trustedExec{domains: []string{"127.0.0.1", "nextcloud"}},
@@ -123,9 +137,9 @@ func TestSetupThenCheckPass(t *testing.T) {
 		}
 		return system.Result{}
 	})
-	cat := catalog.New([]app.App{nextcloud.App{}}, nil)
+	cat := catalog.New([]app.App{nextcloud.App{}, fakeHomarr{}}, nil)
 	deps.In = strings.NewReader("7\r\n")
-	r := clitest.Run(t, deps, cat, "install", "nextcloud", "--yes", "--json", "--set", "nextcloud.port="+clitest.Port(srv), "--set-file", "nextcloud.homarr_app_password_id=-")
+	r := clitest.Run(t, deps, cat, "install", "nextcloud", "homarr", "--yes", "--json", "--set", "nextcloud.port="+clitest.Port(srv), "--set-file", "nextcloud.homarr_app_password_id=-")
 	if r.Code == 0 || r.StepEvent("nextcloud", "homarr-password") != "step.manual" {
 		t.Fatal("restoring an ID alone must remain Manual")
 	}
@@ -179,12 +193,13 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 		if err := nextcloud.VerifyHomarr(ctx, h); !errors.Is(err, helpers.ErrManual) {
 			t.Fatal("missing recorded token ID must remain Manual even with a working administrator credential")
 		}
-		if err := (nextcloud.App{}).Setup(ctx, h); !errors.Is(err, helpers.ErrManual) {
-			t.Fatal("Setup must not adopt a named token without its recorded ID")
+		if err := (nextcloud.App{}).Setup(ctx, h); err == nil || errors.Is(err, helpers.ErrManual) {
+			t.Fatal("Setup must replace a managed token whose secret was never fully recorded")
 		}
-		if secrets["NEXTCLOUD_HOMARR_APP_PASSWORD_ID"] != "" || secrets["NEXTCLOUD_HOMARR_APP_PASSWORD"] != password || exec.creates != 0 {
-			t.Fatal("Manual recovery changed or reissued a credential")
+		if secrets["NEXTCLOUD_HOMARR_APP_PASSWORD_ID"] != "" || secrets["NEXTCLOUD_HOMARR_APP_PASSWORD"] != "" || exec.deletes != 1 || exec.creates != 1 {
+			t.Fatal("replacement must delete the managed token once and issue one new one")
 		}
+		exec.deletes, exec.creates = 0, 0
 	}
 	secrets := h.Secrets.(fakeSecrets)
 	secrets["NEXTCLOUD_HOMARR_APP_PASSWORD"] = "clear"
@@ -240,6 +255,7 @@ type trustedExec struct {
 	reads     int
 	tokens    string
 	creates   int
+	deletes   int
 	twoFactor bool
 }
 
@@ -253,6 +269,10 @@ func (e *trustedExec) Exec(_ context.Context, _ string, env map[string]string, c
 			return system.Result{Stdout: []byte(e.tokens)}, nil
 		}
 		return system.Result{Stdout: []byte(`[{"id":7,"name":"self-host Homarr","type":1,"scope":{"filesystem":true}}]`)}, nil
+	}
+	if strings.Contains(strings.Join(command, " "), "user:auth-tokens:delete") {
+		e.deletes++
+		return system.Result{}, nil
 	}
 	if strings.Contains(strings.Join(command, " "), "user:auth-tokens:add") {
 		e.creates++

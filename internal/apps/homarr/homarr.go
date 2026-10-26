@@ -143,6 +143,8 @@ func (s *session) query(ctx context.Context, h *helpers.H, proc string, input an
 	return decodeProcedure(resp)
 }
 
+var errLoginRejected = errors.New("Homarr rejected the Admin login")
+
 // login signs in through the credentials provider and proves the session is
 // the administrator. It is remembered for the run.
 func (s *session) login(ctx context.Context, h *helpers.H) error {
@@ -172,8 +174,11 @@ func (s *session) login(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
-	if !resp.OK() {
+	if resp.Status >= 500 {
 		return fmt.Errorf("the login form returned HTTP %d", resp.Status)
+	}
+	if !resp.OK() {
+		return fmt.Errorf("the login form returned HTTP %d: %w", resp.Status, errLoginRejected)
 	}
 	resp, err = s.http.HTTP(ctx, helpers.Request{Path: "/api/auth/session"})
 	if err != nil {
@@ -189,7 +194,7 @@ func (s *session) login(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	if current.User.Name != strings.ToLower(h.AdminUser()) || !slices.Contains(current.User.Permissions, "admin") {
-		return errors.New("the Admin login did not establish an administrator session")
+		return fmt.Errorf("the Admin login did not establish an administrator session: %w", errLoginRejected)
 	}
 	s.loggedIn = true
 	return nil
@@ -198,10 +203,11 @@ func (s *session) login(ctx context.Context, h *helpers.H) error {
 // admin reports whether the Admin login signs in; a failed login is a normal
 // state for the step to fix, not an error.
 func (s *session) admin(ctx context.Context, h *helpers.H) (bool, error) {
-	if err := s.login(ctx, h); err != nil {
+	err := s.login(ctx, h)
+	if errors.Is(err, errLoginRejected) {
 		return false, nil
 	}
-	return true, nil
+	return err == nil, err
 }
 
 func (s *session) currentStep(ctx context.Context, h *helpers.H) (string, error) {

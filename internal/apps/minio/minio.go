@@ -43,12 +43,28 @@ func (App) Inputs() []app.Input {
 		Prompt:   "Path to the AIStor license file you obtained from MinIO",
 		Help:     "Download the license from MinIO and pass its absolute path. See https://docs.min.io/aistor/installation/container/install/",
 		Required: true,
+	}, {
+		Key:               "console-port",
+		Prompt:            "Published console port",
+		Default:           "9001",
+		Help:              "Host port of the AIStor console, separate from the S3 API",
+		HostPortProtocols: []string{"tcp"},
+		Validate: func(value string) error {
+			port, err := strconv.Atoi(value)
+			if err != nil || port < 1 || port > 65535 || strings.Trim(value, "0123456789") != "" {
+				return errors.New("must be a decimal port from 1 to 65535")
+			}
+			return nil
+		},
 	}}
 }
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	console := strconv.Itoa(rc.Port + 1)
+	if selected := rc.Inputs["console-port"]; selected != "" {
+		console = selected
+	}
 	license := rc.Inputs["MINIO_LICENSE_FILE"]
 	return `services:
   minio:

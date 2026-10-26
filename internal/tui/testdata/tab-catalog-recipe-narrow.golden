@@ -2,12 +2,12 @@
 ╭─ Catalog Recipes and Apps ───╮╭─ Prowlarr ──────────────────────────────────╮
 │    ◐  ❖ Arr            arr   ││ Indexers                                    │
 │ ◇ Dashboards                 ││                                             │
-│   [ ] Homarr           homa… ││ category Downloads                          │
+│    ○  Homarr                 ││ category Downloads                          │
 │ ↓ Downloads                  ││ image    lscr.io/linuxserver/prowlarr:late… │
-│ > [ ] Prowlarr         prow… ││ port     9696                               │
-│   [x] Radarr           rada… ││                                             │
+│ >  ○  Prowlarr               ││ port     9696                               │
+│    ✓  Radarr                 ││                                             │
 │ ◇ Notifications              ││                                             │
-│   [ ] ntfy             ntfy  ││                                             │
+│    ○  ntfy             ntfy  ││                                             │
 │                              ││                                             │
 │                              ││                                             │
 │                              ││                                             │

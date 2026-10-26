@@ -20,7 +20,7 @@ func TestCopyModalKeepsDashboardVisibleAndCapturesKeysWhileLoading(t *testing.T)
 			t.Fatal("c must load available credentials")
 		}
 		out := screen(m)
-		underlying := "No Action yet"
+		underlying := "Last run"
 		if tab == "2" {
 			underlying = "Jellyfin logs"
 		}

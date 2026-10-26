@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/firstadmin"
@@ -107,8 +108,6 @@ func (App) Compose(rc app.RenderContext) string {
     restart: unless-stopped
     read_only: true
     cap_drop: ["ALL"]
-    mem_limit: 512m
-    cpus: "1"
     tmpfs:
       - /tmp
     healthcheck:
@@ -118,6 +117,11 @@ func (App) Compose(rc app.RenderContext) string {
       start_period: 10s
       retries: 3
 `
+}
+
+// LegacyComposes is the v0.6.0 render, whose guacd service carried cgroup limits.
+func (a App) LegacyComposes(rc app.RenderContext) []string {
+	return []string{strings.Replace(a.Compose(rc), "    cap_drop: [\"ALL\"]\n    tmpfs:", "    cap_drop: [\"ALL\"]\n    mem_limit: 512m\n    cpus: \"1\"\n    tmpfs:", 1)}
 }
 
 func adminEmail(h *helpers.H) string {

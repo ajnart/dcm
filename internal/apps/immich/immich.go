@@ -188,6 +188,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}).Admin(ctx, h); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-key", "Homarr is not installed; no Immich statistics key is needed")
+		return nil
+	}
 	return h.Step(ctx, "homarr-key", "prepare read-only Immich statistics", helpers.StepSpec{
 		Check:      func(ctx context.Context) (bool, error) { return homarrKeyWorks(ctx, h) },
 		Do:         func(ctx context.Context) error { return createHomarrKey(ctx, h) },
@@ -203,13 +207,6 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	}
 	if !ok {
 		return fmt.Errorf("the administrator %s cannot sign in", email)
-	}
-	ok, err = homarrKeyWorks(ctx, h)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return errors.New("the read-only Immich statistics credential is missing or rejected; run self-host setup immich")
 	}
 	return nil
 }

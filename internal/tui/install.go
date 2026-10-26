@@ -401,13 +401,20 @@ func (v *installView) renderList(ctx *viewContext, width, height int) string {
 		v.offset = v.cursor - avail + 1
 	}
 	v.offset = max(min(v.offset, max(len(items)-avail, 0)), 0)
+	nameW := 16
+	for _, it := range items {
+		if !it.header {
+			nameW = max(nameW, lipgloss.Width(it.name))
+		}
+	}
+	nameW = min(nameW, max(inner-8, 8))
 	for i := v.offset; i < len(items) && i-v.offset < avail; i++ {
 		it := items[i]
 		if it.header {
 			lines = append(lines, truncate(t.dim().Render(ctx.glyphs.Category(it.name))+" "+t.heading().Render(it.name), inner))
 			continue
 		}
-		mark := "[ ]"
+		mark := t.dim().Render(" " + pickNone.glyph() + " ")
 		switch {
 		case it.installed:
 			mark = t.fg(t.ok).Render(" ✓ ")
@@ -419,13 +426,16 @@ func (v *installView) renderList(ctx *viewContext, width, height int) string {
 				mark = t.title().Render(" " + recipe.glyph() + " ")
 			}
 		case v.picked[it.id]:
-			mark = t.title().Render("[x]")
+			mark = t.title().Render(" " + pickAll.glyph() + " ")
 		}
 		cursor := "  "
 		if i == v.cursor {
 			cursor = t.cursor()
 		}
-		line := cursor + mark + " " + t.body().Render(pad(it.name, 16)) + " " + t.dim().Render(it.id)
+		line := cursor + mark + " " + t.body().Render(pad(it.name, nameW))
+		if room := inner - lipgloss.Width(line) - 1; room >= lipgloss.Width(it.id) {
+			line += " " + t.dim().Render(it.id)
+		}
 		lines = append(lines, truncate(line, inner))
 	}
 	return t.box("Catalog", "Recipes and Apps", strings.Join(lines, "\n"), width, height, !v.detailFocused)
@@ -492,7 +502,7 @@ func (v *installView) renderDetail(ctx *viewContext, width, height int) string {
 }
 
 func (v *installView) renderReview(ctx *viewContext, width int) string {
-	body := renderPlan(ctx.theme, v.plan, "install · esc back", width)
+	body := renderPlan(ctx.theme, v.plan, "", width)
 	if len(v.reqInputs) > 0 {
 		t := ctx.theme
 		fields := []string{"", "  " + t.heading().Render("Required inputs")}

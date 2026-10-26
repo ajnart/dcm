@@ -2,6 +2,8 @@ package cli
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/ajnart/self-host/internal/app"
 	"github.com/ajnart/self-host/internal/catalog"
+	"github.com/ajnart/self-host/internal/events"
 	"github.com/ajnart/self-host/internal/service"
 )
 
@@ -19,14 +22,24 @@ func (a *program) lifecycleCmds() []*cobra.Command {
 		return &cobra.Command{Use: use + " [app...]", Short: short,
 			RunE: func(cmd *cobra.Command, args []string) error { return a.fail(fn(cmd, args)) }}
 	}
-	start := simple("start", "Start Apps (all when none named)", func(cmd *cobra.Command, ids []string) error {
-		return a.service().Start(cmd.Context(), ids)
-	})
+	startAll := func(cmd *cobra.Command, ids []string) error {
+		err := a.service().Start(cmd.Context(), ids)
+		if len(ids) == 0 && errors.Is(err, service.ErrNoApps) {
+			if a.json {
+				a.logger().Emit(events.Event{Event: events.Info, Step: "start", Msg: "Nothing to start: the Project has no Apps yet.", Hint: "Add one with: self-host install <app>"})
+				return nil
+			}
+			fmt.Fprintln(cmd.OutOrStdout(), "Nothing to start: the Project has no Apps yet. Add one with: self-host install <app>")
+			return nil
+		}
+		return err
+	}
+	start := simple("start", "Start Apps (all when none named)", startAll)
 	stop := simple("stop", "Stop Apps (all when none named)", func(cmd *cobra.Command, ids []string) error {
 		return a.service().Stop(cmd.Context(), ids)
 	})
 	up := &cobra.Command{Use: "up", Short: "Start every App in the Project", Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error { return a.fail(a.service().Start(cmd.Context(), nil)) }}
+		RunE: func(cmd *cobra.Command, _ []string) error { return a.fail(startAll(cmd, nil)) }}
 	down := &cobra.Command{Use: "down", Short: "Take down the Project's containers and networks; keep volumes", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return a.fail(a.service().Down(cmd.Context())) }}
 	restart := simple("restart", "Restart Apps (all when none named)", func(cmd *cobra.Command, ids []string) error {
@@ -74,7 +87,13 @@ func (a *program) lifecycleCmds() []*cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			a.document = true
-			return a.fail(a.service().Logs(cmd.Context(), args[0], a.deps.Out, follow, tail))
+			out := a.deps.Out
+			if a.json {
+				lines := &logLineWriter{app: args[0], sink: events.JSON(out)}
+				defer lines.Flush()
+				out = lines
+			}
+			return a.fail(a.service().Logs(cmd.Context(), args[0], out, follow, tail))
 		},
 	}
 	logs.Flags().BoolVarP(&follow, "follow", "f", false, "keep streaming new lines")
@@ -174,13 +193,13 @@ type appJSON struct {
 	Docs        string      `json:"docs,omitempty"`
 	Port        int         `json:"port"`
 	Inputs      []inputJSON `json:"inputs"`
-	Links       []string    `json:"links,omitempty"`
+	Links       []string    `json:"links"`
 	Unavailable string      `json:"unavailable,omitempty"`
 }
 
 func describe(a app.App) appJSON {
 	info := a.Info()
-	out := appJSON{ID: info.ID, Name: info.Name, Description: info.Description, Category: info.Category,
+	out := appJSON{Links: []string{}, ID: info.ID, Name: info.Name, Description: info.Description, Category: info.Category,
 		Image: info.Image, Docs: info.Docs, Port: info.Port, Inputs: []inputJSON{}, Unavailable: catalog.Unavailable(info.ID)}
 	for _, in := range a.Inputs() {
 		input := inputJSON{Key: in.Key, Prompt: in.Prompt, Help: in.Help, Default: in.Default, Required: in.Required, Private: in.Private}
@@ -265,4 +284,34 @@ func (a *program) appsCmd() *cobra.Command {
 	})
 	apps.AddCommand(a.appRequestCmd())
 	return apps
+}
+
+// logLineWriter turns streamed log text into one log event per line.
+type logLineWriter struct {
+	app     string
+	sink    events.Sink
+	pending []byte
+}
+
+func (w *logLineWriter) Write(p []byte) (int, error) {
+	w.pending = append(w.pending, p...)
+	for {
+		i := bytes.IndexByte(w.pending, '\n')
+		if i < 0 {
+			return len(p), nil
+		}
+		w.emit(w.pending[:i])
+		w.pending = w.pending[i+1:]
+	}
+}
+
+func (w *logLineWriter) Flush() {
+	if len(w.pending) > 0 {
+		w.emit(w.pending)
+		w.pending = nil
+	}
+}
+
+func (w *logLineWriter) emit(line []byte) {
+	w.sink.Emit(events.Event{Event: events.Log, App: w.app, Msg: strings.TrimRight(string(line), "\r")})
 }

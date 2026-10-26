@@ -146,6 +146,9 @@ func buildAction(status service.Status, evs []events.Event, pull Pull) Action {
 		case StageLinks:
 			link := newLink(e, state, name)
 			if i := slices.IndexFunc(links, func(l *Link) bool { return l.Key == link.Key }); i >= 0 {
+				if links[i].State == Done && link.State == Skipped {
+					continue
+				}
 				*links[i] = link
 			} else {
 				links = append(links, &link)

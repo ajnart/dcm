@@ -160,7 +160,7 @@ release page.
 `brew install ajnart/tap/self-host` installs the cask goreleaser writes to
 `dist/homebrew/Casks/self-host.rb` (pinned to that run's archive hashes). It is a
 cask rather than a formula because goreleaser deprecates `brews` in favour of
-`homebrew_casks`; the generated cask covers macOS and Linux (amd64/arm64) with the
+`homebrew_casks`; the generated cask covers macOS (amd64/arm64; Homebrew casks do not support Linux) with the
 same archives. The binary is unsigned, so the cask's post-install hook strips
 `com.apple.quarantine` on macOS (without it Gatekeeper reports the binary as
 damaged). Once the `vX.Y.Z` release is published:

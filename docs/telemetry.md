@@ -74,7 +74,7 @@ To turn all Telemetry and Feedback off, set either environment variable:
 export SELF_HOST_NO_TELEMETRY=1
 ```
 
-or `DO_NOT_TRACK=1`. Sending is always off when `CI` is set or the binary is a
+or `DO_NOT_TRACK=1`. Set to 1 (or true); any value except empty, 0 or false turns it off. Sending is always off when `CI` is set or the binary is a
 development build. Tests use fake transports and never send real Telemetry.
 
 ## Feedback is deliberate

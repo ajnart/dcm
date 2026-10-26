@@ -135,7 +135,7 @@ func (o *onboarding) whatNext(ctx *viewContext) tea.Cmd {
 
 // whatListHeight is what the list has left above the hovered description.
 func (o *onboarding) whatListHeight(ctx *viewContext) int {
-	return max(o.formHeight(ctx, stepWhat)-whatDetailLines-1, 4)
+	return max(o.formHeight(ctx, stepWhat)-whatDetailRoom(ctx)-1, 4)
 }
 
 // renderWhatList draws the list: a title, the rows the height allows around
@@ -172,6 +172,8 @@ func (o *onboarding) renderWhatList(ctx *viewContext) []string {
 	}
 	footer := t.dim().Render("space toggle · / filter · ↑/↓ focus")
 	switch {
+	case l.filtering:
+		footer = t.dim().Render("enter keep filter · esc clear")
 	case l.err != "":
 		footer = t.fg(t.fail).Render("✗ " + l.err)
 	case len(rows) > avail:

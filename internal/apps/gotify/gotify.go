@@ -106,6 +106,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-account", "Homarr is not installed; no Gotify account is needed")
+		return nil
+	}
 	return h.Step(ctx, "homarr-account", "prepare a private Gotify account for Homarr notifications", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
 			if h.Secret(h.Key("homarr_user_id")) == "" {
@@ -131,7 +135,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return errors.New("the administrator " + h.AdminUser() + " cannot sign in to Gotify")
 	}
-	return VerifyHomarr(ctx, h)
+	return nil
 }
 
 func (App) Links() []app.Link { return nil }

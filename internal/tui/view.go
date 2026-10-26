@@ -368,7 +368,11 @@ func (m Model) updatesAvailable() int {
 
 func (m Model) windowTitle() string {
 	label, _ := m.health()
-	return fmt.Sprintf("self-host · %d apps · %s", len(m.status.Apps), label)
+	noun := "apps"
+	if len(m.status.Apps) == 1 {
+		noun = "app"
+	}
+	return fmt.Sprintf("self-host · %d %s · %s", len(m.status.Apps), noun, label)
 }
 
 // headerPiece is one piece of the header's context: what it says, how it

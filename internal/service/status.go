@@ -71,6 +71,9 @@ type Status struct {
 	Dashboard string `json:"dashboard,omitempty"`
 	// DockerError is set when container state could not be read.
 	DockerError string `json:"docker_error,omitempty"`
+	// DockerHint and DockerDocs say how to bring Docker back when it is down.
+	DockerHint string `json:"docker_hint,omitempty"`
+	DockerDocs string `json:"docker_docs,omitempty"`
 	// Profile is the person's Profile; present once a Project exists.
 	Profile *project.Profile `json:"profile,omitempty"`
 }
@@ -112,6 +115,7 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 	ss.navigationError = psErr
 	if psErr != nil {
 		status.DockerError = s.Log.Redact(psErr.Error())
+		status.DockerHint, status.DockerDocs = s.dockerAdvice(ctx)
 		containers = nil
 	}
 	byService := map[string]compose.Container{}

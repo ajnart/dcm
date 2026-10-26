@@ -143,20 +143,20 @@ func TestSetsTheWebUILoginThroughTheFormAPI(t *testing.T) {
 	fake.providerResponse = map[string]any{"config": map[string]any{}}
 	fake.mu.Unlock()
 	rec.Steps = nil
-	if err := (sabnzbd.App{}).Setup(context.Background(), h); !errors.Is(err, helpers.ErrManual) {
-		t.Fatalf("a missing provider should be Manual, got %v", err)
+	if err := (sabnzbd.App{}).Setup(context.Background(), h); err != nil {
+		t.Fatalf("a missing provider must not block Setup, got %v", err)
 	}
-	if rec.Status("api-key") != stepstatus.StepSkip || rec.Status("provider") != stepstatus.StepManual || h.Secret(h.Key("api_key")) != apiKey {
+	if rec.Status("api-key") != stepstatus.StepSkip || rec.Status("provider") != stepstatus.StepSkip || h.Secret(h.Key("api_key")) != apiKey {
 		t.Fatal("a missing provider must not invalidate or rotate the ready API key")
 	}
-	if err := (sabnzbd.App{}).Check(context.Background(), h); !errors.Is(err, helpers.ErrManual) {
-		t.Fatalf("an authenticated empty config must keep Check Manual, got %v", err)
+	if err := (sabnzbd.App{}).Check(context.Background(), h); err != nil {
+		t.Fatalf("an authenticated empty config must pass Check, got %v", err)
 	}
 	fake.mu.Lock()
 	fake.providerResponse = map[string]any{"config": map[string]any{"servers": []any{}}}
 	fake.mu.Unlock()
-	if err := (sabnzbd.App{}).Check(context.Background(), h); !errors.Is(err, helpers.ErrManual) {
-		t.Fatalf("an explicit empty servers array must keep Check Manual, got %v", err)
+	if err := (sabnzbd.App{}).Check(context.Background(), h); err != nil {
+		t.Fatalf("an explicit empty servers array must pass Check, got %v", err)
 	}
 	for _, response := range []map[string]any{
 		{},

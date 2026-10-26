@@ -237,10 +237,11 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}).Admin(ctx, h); err != nil {
 		return err
 	}
-	if err := setupHomarrReader(ctx, h); err != nil {
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-reader", "Homarr is not installed; no WUD reader login is needed")
+	} else if err := setupHomarrReader(ctx, h); err != nil {
 		return err
-	}
-	if err := h.Step(ctx, "homarr-api", "the private API returns supported container update data", helpers.StepSpec{
+	} else if err := h.Step(ctx, "homarr-api", "the private API returns supported container update data", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
 			_, err := ReadHomarrStats(ctx, h)
 			return err == nil, err
@@ -272,9 +273,6 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	}
 	if ok, err := adminWorks(ctx, h); !ok {
 		return fmt.Errorf("the administrator %s cannot sign in: %v", h.AdminUser(), err)
-	}
-	if err := VerifyHomarrReader(ctx, h); err != nil {
-		return err
 	}
 	resp, err := h.HTTP(ctx, helpers.Request{Path: "/api/containers"})
 	if err != nil {

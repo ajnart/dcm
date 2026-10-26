@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -47,11 +48,21 @@ func (a *program) backupCmds() []*cobra.Command {
 		Short: "Restore every App in a Backup, or only the named ones",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			question := "Replace the current data of the restored Apps with the backup?"
-			if !yes && !a.confirm(question) {
-				return a.fail(fmt.Errorf("not confirmed; pass --yes to restore without asking"))
-			}
 			pass := a.deps.Getenv("SELF_HOST_BACKUP_PASSPHRASE")
+			if !yes {
+				named := args[1:]
+				if len(named) == 0 {
+					named, _ = a.service().BackupApps(args[0], pass)
+				}
+				apps := "the Apps in the backup"
+				if len(named) > 0 {
+					apps = strings.Join(named, ", ")
+				}
+				question := "Replace the current data of " + apps + " with " + filepath.Base(args[0]) + "?"
+				if !a.confirm(question) {
+					return a.fail(fmt.Errorf("not confirmed; pass --yes to restore without asking"))
+				}
+			}
 			err := a.service().Restore(cmd.Context(), args[0], args[1:], pass)
 			if err != nil && strings.Contains(err.Error(), "encrypted") && pass == "" && a.deps.Interactive {
 				if pass = a.passphrase("Backup passphrase: "); pass != "" {

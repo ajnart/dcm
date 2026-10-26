@@ -805,7 +805,7 @@ func TestInstallOpensTheCatalogAndInstallsThePick(t *testing.T) {
 		t.Fatalf("approving the install should hand focus to Activity\n%s", out)
 	}
 	m = drive(t, m, press("4"))
-	if strings.Contains(screen(m), "Review") || strings.Contains(screen(m), "[x]") {
+	if strings.Contains(screen(m), "Review") {
 		t.Fatalf("the Catalog should start afresh after an install\n%s", screen(m))
 	}
 }
@@ -826,7 +826,7 @@ func TestHelpListsEveryKey(t *testing.T) {
 	m, _ := sample(t, 140, 100)
 
 	help := helpText(t, m)
-	for _, want := range []string{"tabs", "Project", "actions", "highlight an Action", "open", "copy", "pick", "install", "refresh", "go to App", "quit"} {
+	for _, want := range []string{"tabs", "Project", "actions", "highlight an Action", "open", "copy", "select", "go to App", "quit"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help lacks %q\n%s", want, help)
 		}

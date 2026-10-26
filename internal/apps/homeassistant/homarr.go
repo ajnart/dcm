@@ -258,8 +258,13 @@ func onboardingComplete(ctx context.Context, h *helpers.H) error {
 func onboarding(ctx context.Context, h *helpers.H) error {
 	return h.Step(ctx, "onboarding", "review Home Assistant's remaining first-run choices", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return true, onboardingComplete(ctx, h) },
-		Do:    func(ctx context.Context) error { return onboardingComplete(ctx, h) },
-		Hint:  "Open " + h.URL + " and review the remaining core_config, analytics and integration choices. Core-config completion starts upstream provider flows; do not approve hardware, network discovery or external accounts implicitly. Then run self-host setup home-assistant and self-host setup homarr.",
+		Do: func(ctx context.Context) error {
+			if err := finishOnboarding(ctx, h); err != nil {
+				return err
+			}
+			return onboardingComplete(ctx, h)
+		},
+		Hint: "Open " + h.URL + " and review the remaining core_config, analytics and integration choices; do not approve hardware, network discovery or external accounts implicitly. Then run self-host setup home-assistant and self-host setup homarr.",
 	})
 }
 

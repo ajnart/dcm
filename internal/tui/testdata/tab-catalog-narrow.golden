@@ -2,13 +2,13 @@
 ╭─ Catalog Recipes and Apps ───╮╭─ Media ─────────────────────────────────────╮
 │ >  ✓  ❖ Media          media ││ Watch your movies                           │
 │ ◇ Dashboards                 ││                                             │
-│   [ ] Homarr           homa… ││ Apps                                        │
+│    ○  Homarr                 ││ Apps                                        │
 │ ↓ Downloads                  ││ Jellyfin  Media server                      │
-│    ✓  Sonarr           sona… ││                                             │
+│    ✓  Sonarr                 ││                                             │
 │ ♫ Media                      ││                                             │
-│    ✓  Jellyfin         jell… ││                                             │
+│    ✓  Jellyfin               ││                                             │
 │ ◇ Notifications              ││                                             │
-│   [ ] ntfy             ntfy  ││                                             │
+│    ○  ntfy             ntfy  ││                                             │
 │                              ││                                             │
 │                              ││                                             │
 │                              ││                                             │

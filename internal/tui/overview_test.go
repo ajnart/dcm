@@ -26,7 +26,7 @@ func TestOverviewShowsAppsNeedsAttentionAndNow(t *testing.T) {
 
 	out := screen(m)
 
-	for _, want := range []string{"Apps 3", "Jellyfin", "Needs attention 3", "Now", "No Action yet", "Host: 1 warning"} {
+	for _, want := range []string{"Apps 3", "Jellyfin", "Needs attention 3", "Now", "Last run: 1 App needs attention", "Host: 1 warning"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("the Overview lacks %q\n%s", want, out)
 		}

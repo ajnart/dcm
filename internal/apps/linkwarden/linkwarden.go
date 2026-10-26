@@ -32,9 +32,9 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input {
 	return []app.Input{
-		{Key: "homarr_api_key", Prompt: "Saved self-host Homarr access token", Private: true,
+		{Key: "homarr_api_key", Prompt: "Saved self-host Homarr access token", Private: true, RecoveryOnly: true,
 			Help: "Optional restoration of the known token with its matching ownership record, never a different account's token. Empty private inputs preserve saved values. Reinstall replaces Compose: preserve and review existing authentication, mounts and ports and separately approve replacement before using install --set-file."},
-		{Key: "homarr_token_ownership", Prompt: "Saved self-host Homarr token ownership", Private: true,
+		{Key: "homarr_token_ownership", Prompt: "Saved self-host Homarr token ownership", Private: true, RecoveryOnly: true,
 			Help: "Restore the matching JSON record with id, accountId, expires and fingerprint, not a guessed token ID. A pending issued token blocks reissuance until its secret is restored or its recorded ID is absent from the authenticated token inventory. Empty private inputs preserve saved values."},
 	}
 }
@@ -145,6 +145,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}).Setup(ctx, h); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-token", "Homarr is not installed; no Linkwarden token is needed")
+		return nil
+	}
 	return h.Step(ctx, "homarr-token", "prepare Linkwarden statistics access", helpers.StepSpec{
 		Check:      func(ctx context.Context) (bool, error) { return homarrTokenWorks(ctx, h) },
 		Do:         func(ctx context.Context) error { return createHomarrToken(ctx, h) },
@@ -162,10 +166,7 @@ func create(ctx context.Context, h *helpers.H, user, password string) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	if err := (firstadmin.FirstAdmin{Create: create, Login: login}).Check(ctx, h); err != nil {
-		return err
-	}
-	return VerifyHomarr(ctx, h)
+	return (firstadmin.FirstAdmin{Create: create, Login: login}).Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

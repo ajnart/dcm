@@ -33,9 +33,7 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
-// Compose mounts the shared media root read-only at /mnt/media; the first
-// owner wizard stays manual, as Emby's untouched-state endpoints are unsafe
-// to drive.
+// Compose mounts the shared media root read-only at /mnt/media.
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
@@ -125,12 +123,47 @@ func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool,
 	return token != "", err
 }
 
-// firstAdmin has no headless Create: the trap forbids writing Startup/User or
-// Startup/Complete, so a person completes the first-owner wizard.
+// runWizard posts what Emby's web wizard posts. Once the wizard is complete
+// every /Startup endpoint answers 401, so an existing owner cannot be reset;
+// a 401 here means the Admin login was not the one that created the owner.
+func runWizard(ctx context.Context, h *helpers.H, user, password string) error {
+	startup := func(method, path string, body any) (helpers.Response, error) {
+		return h.HTTP(ctx, helpers.Request{Method: method, Path: path, Header: embyHeader(""), NoRedirect: true, JSON: body})
+	}
+	resp, err := startup(http.MethodGet, "/Startup/Configuration", nil)
+	if err != nil {
+		return err
+	}
+	if resp.Status != http.StatusOK {
+		return fmt.Errorf("%w: Emby's first-owner wizard is not open (HTTP %d); finish it by hand", helpers.ErrManual, resp.Status)
+	}
+	steps := []struct {
+		method, path string
+		body         any
+	}{
+		{http.MethodPost, "/Startup/Configuration", map[string]string{"UICulture": "en-US", "MetadataCountryCode": "US", "PreferredMetadataLanguage": "en"}},
+		{http.MethodGet, "/Startup/User", nil},
+		{http.MethodPost, "/Startup/User", map[string]string{"Name": user, "Password": password}},
+		{http.MethodPost, "/Startup/RemoteAccess", map[string]bool{"EnableRemoteAccess": true, "EnableAutomaticPortMapping": false}},
+		{http.MethodPost, "/Startup/Complete", nil},
+	}
+	for _, step := range steps {
+		resp, err := startup(step.method, step.path, step.body)
+		if err != nil {
+			return err
+		}
+		if !resp.OK() {
+			return fmt.Errorf("%s %s returned HTTP %d", step.method, step.path, resp.Status)
+		}
+	}
+	return nil
+}
+
 func firstAdmin() firstadmin.FirstAdmin {
 	return firstadmin.FirstAdmin{
 		Ready:  firstadmin.Probe{Path: "/System/Info/Public"},
 		Login:  loginWorks,
+		Create: runWizard,
 		Manual: "open the first-owner wizard and create the administrator with username admin and the password from `self-host credentials`",
 	}
 }
@@ -138,6 +171,10 @@ func firstAdmin() firstadmin.FirstAdmin {
 func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := firstAdmin().Setup(ctx, h); err != nil {
 		return err
+	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-api-key", "Homarr is not installed; no Emby API key is needed")
+		return nil
 	}
 	return h.Step(ctx, "homarr-api-key", "prepare a dedicated Emby API key", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
@@ -161,5 +198,5 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Admin login %s cannot sign in to Emby", h.AdminUser())
 	}
-	return VerifyHomarr(ctx, h)
+	return nil
 }

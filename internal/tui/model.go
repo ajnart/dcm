@@ -475,7 +475,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleStatus(msg)
 
 	case doctorMsg:
-		m.checks = msg.checks
+		m.checks = make([]host.Check, len(msg.checks))
+		for i, c := range msg.checks {
+			m.checks[i] = dockerDown(c)
+		}
 		m.relayout()
 		if m.onboardingShown() && m.onboarding.checksArrived(m.ctx()) {
 			return m, m.startTicking()
@@ -744,12 +747,16 @@ func (m Model) contextHelp() (helpPage, bool) {
 	return helpPage{}, false
 }
 
-// helpGroups are the global keys, then every pane of every tab in tab order.
+// helpGroups are the global keys, then every pane of the current tab.
 func (m Model) helpGroups() []pane {
 	groups := []pane{{name: "Global", keys: m.keys.global()}, {name: "Action menu", keys: menuHelpKeys}}
 	ctxView := m.ctx()
 	views := []view{newDashboardView(newAppsView()), newAppsView(), &activityView{}, newInstallView(ctxView), newSettingsView(ctxView)}
+	current := map[surface]int{surfaceDashboard: 0, surfaceApps: 1, surfaceActivity: 2, surfaceInstall: 3, surfaceSettings: 4}[m.surface]
 	for i, v := range views {
+		if i != current {
+			continue
+		}
 		panes := v.Panes()
 		for _, p := range panes {
 			name := tabs[i].label

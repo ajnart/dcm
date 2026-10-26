@@ -8,11 +8,11 @@
   Access    Home network — addresses use
             Reachability is not verified; check from another device.
             From anywhere, privately, with Tailscale
-
-   enter  install · esc back
   Required inputs
   > Tailscale · Tailscale auth key
     Tailscale auth key
+
+
 
 
 

@@ -3,7 +3,7 @@
 ## Pitfalls
 
 - Provider access and retention are external operational dependencies.
-- Setup leaves a missing enabled Usenet provider as a retryable Manual step. Add your own authorized provider in Config > Servers, then retry `self-host setup sabnzbd`; Setup does not create or test provider accounts.
+- Setup secures the WebUI login and finishes OK without a Usenet provider, noting what is left. Add your own authorized provider in Config > Servers; Setup does not create or test provider accounts.
 - A first-run wizard is not API failure: readiness uses the version API, then verifies authenticated queue/history. Explicit empty arrays and zero download rate are valid.
 - Setup saves the existing full API key as `SABNZBD_API_KEY` through the Project secret boundary. The NZB upload-only key cannot read queue/history. Retry Setup to recover a missing saved key without rotation.
 - The source-verified Homarr 2.4.1/SABnzbd 5.1.3 contract and pending runtime acceptance are recorded in [the SABnzbd Link contract](../../homarr-sabnzbd-contract.md).

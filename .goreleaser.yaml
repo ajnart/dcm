@@ -60,6 +60,7 @@ aurs:
       install -Dm755 "./self-host" "${pkgdir}/usr/bin/self-host"
       install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/self-host-bin/LICENSE"
 
+# nfpm's archlinux format has no optdepends, so it depends on docker outright.
 # .deb, .rpm and .apk join the archives as release assets and in checksums.txt.
 nfpms:
   - id: self-host
@@ -74,6 +75,16 @@ nfpms:
     bindir: /usr/bin
     recommends:
       - docker
+    overrides:
+      rpm:
+        recommends: []
+        suggests:
+          - docker
+      archlinux:
+        recommends: []
+        dependencies:
+          - docker
+          - docker-compose
     contents:
       - src: ./LICENSE
         dst: /usr/share/licenses/self-host/LICENSE

@@ -34,7 +34,7 @@ Each status is a dated launch run on a real host or VM, linked to its issue. Not
 | WSL2                         | Not yet verified on a real host | Not run ([#502](https://github.com/ajnart/self-host/issues/502)).                                                                                                                                                                                     |
 | Native Windows               | Unsupported                     | Not supported.                                                                                                                                                                                                                                        |
 
-Known issues from these runs, both fixed in v0.6.0: a newcomer saw Nextcloud's Homarr credential-recovery inputs and Review listed port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App left its network and `down` refused ([#590](https://github.com/ajnart/self-host/issues/590)). Four Apps that failed on real hosts are hidden from new installs: BookStack, LLDAP, Passbolt and Speedtest Tracker ([#493](https://github.com/ajnart/self-host/issues/493)).
+Known issues from these runs, both fixed in v0.6.0: a newcomer saw Nextcloud's Homarr credential-recovery inputs and Review listed port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App left its network and `down` refused ([#590](https://github.com/ajnart/self-host/issues/590)). Passbolt failed on real hosts and is hidden from new installs ([#493](https://github.com/ajnart/self-host/issues/493)).
 
 ## Install
 
@@ -54,7 +54,7 @@ self-host skill install   # writes the self-host skill for Claude Code, Codex, O
 ```
 
 <details>
-<summary><b>Homebrew</b> (macOS and Linux)</summary>
+<summary><b>Homebrew</b> (macOS)</summary>
 
 ```bash
 brew install ajnart/tap/self-host
@@ -210,7 +210,7 @@ On a machine with no Project, bare `self-host` opens Onboarding, the setup wizar
 
 Onboarding writes nothing until you approve Review. Pre-boot then plays while the first install pulls its images, and Onboarding hands over to the Dashboard.
 
-Telemetry is announced on Welcome with a link to [the telemetry page](/telemetry). Turn it off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`.
+Telemetry is announced on Welcome with a link to [the telemetry page](/telemetry). Turn it off with `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` (or `true`).
 
 ## Without Onboarding
 

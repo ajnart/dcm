@@ -13,7 +13,7 @@
 - Setup separately verifies the authenticated `6.0.0` information response and
   actual device readings from `GET /api/v1/devices?meta=true`. A NUT error, empty
   device list, unknown status, missing battery charge or ambiguous device names
-  leaves a retryable Manual step. Open PeaNUT to connect an owner-selected
+  is reported as Info and Setup still finishes OK (the dashboard is secured with the Admin login; the Homarr Link still requires readings). Open PeaNUT to connect an owner-selected
   existing NUT server, verify its driver, then retry `self-host setup peanut`
   and `self-host setup homarr`.
 - The Project Admin login is reused through helpers; PeaNUT's single-user API

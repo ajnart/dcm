@@ -141,7 +141,8 @@ func newHarness(t *testing.T, handler http.Handler, sec *secrets) *harness {
 		sec.durable = maps.Clone(sec.values)
 	}
 	box.h = helpers.New(helpers.Config{
-		App: "linkwarden", Service: "linkwarden",
+		Peer: func(string) *helpers.H { return &helpers.H{} },
+		App:  "linkwarden", Service: "linkwarden",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Secrets: sec, Log: events.Discard(), Now: deps.Now, Sleep: deps.Sleep,
 		Record: func(r helpers.StepResult) { box.results = append(box.results, r) },

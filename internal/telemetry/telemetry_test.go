@@ -59,6 +59,7 @@ func TestNothingIsSentWhenTelemetryIsOff(t *testing.T) {
 	}{
 		{"SELF_HOST_NO_TELEMETRY", func(s *setup) { s.env["SELF_HOST_NO_TELEMETRY"] = "1" }},
 		{"DO_NOT_TRACK", func(s *setup) { s.env["DO_NOT_TRACK"] = "1" }},
+		{"DO_NOT_TRACK true", func(s *setup) { s.env["DO_NOT_TRACK"] = "TRUE" }},
 		{"CI", func(s *setup) { s.env["CI"] = "true" }},
 		{"development build", func(s *setup) { s.opts.Version = "dev" }},
 		{"test build", func(s *setup) { s.opts.Version = "test" }},

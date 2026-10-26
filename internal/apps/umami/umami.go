@@ -178,6 +178,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-data", "Homarr is not installed; no Umami account or fixture website is needed")
+		return nil
+	}
 	return setupHomarr(ctx, h)
 }
 
@@ -196,7 +200,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if seeded {
 		return fmt.Errorf("Umami still accepts its seeded administrator password")
 	}
-	return VerifyHomarr(ctx, h)
+	return nil
 }
 
 func (App) Links() []app.Link { return nil }

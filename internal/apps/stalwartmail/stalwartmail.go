@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/ajnart/self-host/internal/app"
+	"github.com/ajnart/self-host/internal/firstadmin"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
@@ -52,9 +53,42 @@ func hostname(rc app.RenderContext) string {
 	return "mail.example.com"
 }
 
+// Secrets declares the password of the bootstrap-time recovery administrator.
+// Setup pins it only while it creates the permanent administrator.
+func (App) Secrets() []app.SecretSpec {
+	return []app.SecretSpec{{Name: "recovery_password", Length: 32}}
+}
+
+// Files makes the bind mounts owned by the Project user, which the container runs as.
+func (App) Files(app.RenderContext, func(string) string) []app.File {
+	return []app.File{
+		{Path: "configuration/.keep", Mode: 0o644},
+		{Path: "data/.keep", Mode: 0o644},
+	}
+}
+
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
+  stalwart-mail:
+    image: stalwartlabs/stalwart:latest
+    restart: unless-stopped
+    user: ${PUID}:${PGID}
+    environment:
+      TZ: ${TZ}
+      STALWART_HOSTNAME: ` + hostname(rc) + `
+      STALWART_RECOVERY_ADMIN: ${STALWART_MAIL_RECOVERY_ADMIN:-}
+    volumes:
+      - ./configuration:/etc/stalwart
+      - ./data:/var/lib/stalwart
+    ports:
+      - ${BIND_IP}:` + port + `:8080
+`
+}
+
+// LegacyComposes is the v0.6.0 render, which ran as root with no recovery administrator.
+func (App) LegacyComposes(rc app.RenderContext) []string {
+	return []string{`services:
   stalwart-mail:
     image: stalwartlabs/stalwart:latest
     restart: unless-stopped
@@ -65,8 +99,8 @@ func (App) Compose(rc app.RenderContext) string {
       - ./configuration:/etc/stalwart
       - ./data:/var/lib/stalwart
     ports:
-      - ${BIND_IP}:` + port + `:8080
-`
+      - ${BIND_IP}:` + strconv.Itoa(rc.Port) + `:8080
+`}
 }
 
 const setupHint = "Set the hostname and domain with: self-host setup stalwart-mail --set stalwart-mail.STALWART_HOSTNAME=mail.selfhost.local " +
@@ -91,19 +125,22 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	return h.Step(ctx, "admin", "complete the Stalwart administrator setup", helpers.StepSpec{
-		Do:         func(context.Context) error { return fmt.Errorf("%w: %s", helpers.ErrManual, manualAdmin) },
-		Hint:       adminHint(h),
-		Credential: "admin",
-	})
+	return firstAdmin().Admin(ctx, h)
 }
 
-const manualAdmin = "Stalwart has no headless way to verify its administrator login"
-
-func adminHint(h *helpers.H) string {
-	return "Open " + h.URL + " and complete the first-run wizard for " + h.Inputs["STALWART_HOSTNAME"] + "; set the administrator " +
-		adminEmail(h.Inputs["STALWART_DOMAIN"]) + " with the password from `self-host credentials`. Mail delivery needs separate SMTP " +
-		"ports, DNS, TLS and anti-abuse approval."
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Login:  login,
+		Create: bootstrap,
+		Title: func(_ *helpers.H, user string) string {
+			return "complete the Stalwart setup and create the administrator " + user
+		},
+		Hint: func(h *helpers.H, user string) string {
+			return "Open " + h.URL + " and complete the first-run wizard for " + h.Inputs["STALWART_HOSTNAME"] + "; set the administrator " +
+				adminEmail(h.Inputs["STALWART_DOMAIN"]) + " with the password from `self-host credentials`. Mail delivery needs separate SMTP " +
+				"ports, DNS, TLS and anti-abuse approval."
+		},
+	}
 }
 
 func adminEmail(domain string) string {
@@ -129,7 +166,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Stalwart admin UI did not answer at %s", h.BaseURL)
 	}
-	return nil
+	return firstAdmin().Check(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

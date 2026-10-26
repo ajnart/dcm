@@ -144,6 +144,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}).Admin(ctx, h); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-key", "Homarr is not installed; no Speedtest Tracker results key is needed")
+		return nil
+	}
 	if err := h.Step(ctx, "homarr-key", "verify the Speedtest Tracker results credential", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return homarrKeyWorks(ctx, h) },
 		Do:    func(ctx context.Context) error { return createHomarrKey(ctx, h) },
@@ -335,8 +339,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
 		return fmt.Errorf("the administrator %s cannot be verified in Speedtest Tracker: %v", adminEmail(h), err)
 	}
-	_, err := ReadHomarr(ctx, h)
-	return err
+	return nil
 }
 
 func (App) Links() []app.Link { return nil }

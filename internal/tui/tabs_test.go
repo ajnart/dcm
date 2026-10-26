@@ -246,7 +246,7 @@ func TestTabContentsPersistAcrossSwitches(t *testing.T) {
 	m = drive(t, m, press("space")) // pick Homarr, after the Other header
 	m = drive(t, m, press("1"))
 	m = drive(t, m, press("4"))
-	if !strings.Contains(screen(m), "[x]") {
+	if catalogMark(t, screen(m), "Homarr") != "✓" {
 		t.Fatalf("the Catalog pick should survive a tab switch\n%s", screen(m))
 	}
 	m = drive(t, m, press("5"))
@@ -272,7 +272,7 @@ func TestHelpGroupsGlobalKeysThenEachTab(t *testing.T) {
 	m, _ := sample(t, 140, 100)
 
 	help := helpText(t, m)
-	order := []string{"Global", "1-5", "tabs", "Action menu", "highlight an Action", "Overview · Apps", "Overview · Needs attention", "Apps · List", "Apps · Details", "Activity", "Catalog · List", "Catalog · Detail", "Settings"}
+	order := []string{"Global", "1-5", "tabs", "Action menu", "highlight an Action", "Overview · Apps", "Overview · Needs attention"}
 	at := 0
 	for _, want := range order {
 		i := strings.Index(help[at:], want)
@@ -281,7 +281,7 @@ func TestHelpGroupsGlobalKeysThenEachTab(t *testing.T) {
 		}
 		at += i + len(want)
 	}
-	for _, want := range []string{"previous tab", "next tab", "next pane", "sub-tab", "Project", "actions", "destructive Actions need it twice", "goes through the Action menu"} {
+	for _, want := range []string{"previous tab", "next tab", "next pane", "Project", "actions", "destructive Actions need it twice", "goes through the Action menu"} {
 		if !strings.Contains(help, want) {
 			t.Errorf("help lacks %q\n%s", want, help)
 		}
@@ -309,7 +309,7 @@ func TestCatalogTabFocusesTheDetailAndArrowsScrollIt(t *testing.T) {
 	for range 5 {
 		m = drive(t, m, press("down"))
 	}
-	if out := screen(m); strings.Contains(out, "ZDESC") || !strings.Contains(out, "> [ ] Big") {
+	if out := screen(m); strings.Contains(out, "ZDESC") || !strings.Contains(out, ">  ○  Big") {
 		t.Fatalf("down in the detail should scroll it and keep Big selected\n%s", out)
 	}
 	if bar := lastLine(screen(m)); !strings.Contains(bar, "↑/↓  scroll") {
@@ -318,7 +318,7 @@ func TestCatalogTabFocusesTheDetailAndArrowsScrollIt(t *testing.T) {
 
 	m = drive(t, m, press("tab"))
 	m = drive(t, m, press("down"))
-	if out := screen(m); !strings.Contains(out, "> [ ] Small") || !strings.Contains(out, "a small App") {
+	if out := screen(m); !strings.Contains(out, ">  ○  Small") || !strings.Contains(out, "a small App") {
 		t.Fatalf("after tab, down should select the next App\n%s", out)
 	}
 }

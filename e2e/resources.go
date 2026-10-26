@@ -12,7 +12,10 @@ import (
 const minimumFreeInodes = 100000
 const defaultMinimumExecutableBytes = 2 << 30
 
-type filesystemCapacity struct{ AvailableBytes, FreeInodes uint64 }
+type filesystemCapacity struct {
+	AvailableBytes, FreeInodes uint64
+	InodesUnmeasured           bool
+}
 type resourceEvidence struct {
 	ProjectStorage    *resourceEvidence `json:"project_storage,omitempty"`
 	ExecutableStaging *resourceEvidence `json:"executable_staging,omitempty"`
@@ -21,6 +24,7 @@ type resourceEvidence struct {
 	Measured          bool              `json:"measured"`
 	AvailableBytes    uint64            `json:"available_bytes"`
 	FreeInodes        uint64            `json:"free_inodes"`
+	InodesUnmeasured  bool              `json:"inodes_unmeasured,omitempty"`
 	MinimumBytes      uint64            `json:"minimum_bytes"`
 	MinimumInodes     uint64            `json:"minimum_inodes"`
 	Reason            string            `json:"reason,omitempty"`
@@ -78,7 +82,7 @@ func ownedFilesystemCapacity(root string) (filesystemCapacity, error) {
 	if unix.Statfs(root, &stat) != nil || stat.Bsize <= 0 || stat.Bavail > math.MaxUint64/uint64(stat.Bsize) {
 		return filesystemCapacity{}, errors.New("owned filesystem measurement unavailable")
 	}
-	return filesystemCapacity{AvailableBytes: stat.Bavail * uint64(stat.Bsize), FreeInodes: stat.Ffree}, nil
+	return filesystemCapacity{AvailableBytes: stat.Bavail * uint64(stat.Bsize), FreeInodes: stat.Ffree, InodesUnmeasured: stat.Files == 0}, nil
 }
 
 func measureLocalAdmission(root string, minimumBytes uint64, measure func(string) (filesystemCapacity, error)) resourceEvidence {
@@ -89,10 +93,10 @@ func measureLocalAdmission(root string, minimumBytes uint64, measure func(string
 		return obs
 	}
 	obs.Measured = true
-	obs.AvailableBytes, obs.FreeInodes = capacity.AvailableBytes, capacity.FreeInodes
+	obs.AvailableBytes, obs.FreeInodes, obs.InodesUnmeasured = capacity.AvailableBytes, capacity.FreeInodes, capacity.InodesUnmeasured
 	if capacity.AvailableBytes < minimumBytes {
 		obs.Reason = "local disk free bytes below configured floor"
-	} else if capacity.FreeInodes < minimumFreeInodes {
+	} else if !capacity.InodesUnmeasured && capacity.FreeInodes < minimumFreeInodes {
 		obs.Reason = "local disk free inodes below safety floor"
 	}
 	return obs

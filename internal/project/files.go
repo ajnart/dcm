@@ -3,9 +3,11 @@ package project
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
+	"syscall"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -54,6 +56,17 @@ func (p *Project) RemoveAppData(id string) error {
 	dir := p.AppDir(id)
 	entries, err := os.ReadDir(dir)
 	if err != nil {
+		return err
+	}
+	if err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() && syscall.Access(path, 0o3) != nil {
+			return &fs.PathError{Op: "unlinkat", Path: path, Err: syscall.EACCES}
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 	for _, entry := range entries {

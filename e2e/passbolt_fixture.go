@@ -84,10 +84,9 @@ func (f *passboltFixtureFiles) compose() (string, error) {
 		"passbolt-prerequisites": map[string]any{
 			"image":      passboltFixtureImage,
 			"entrypoint": []string{"/fixture/helper"},
-			"command":    []string{"-https", ":" + strconv.Itoa(f.port), "-smtp", ":1025", "-backend", "http://passbolt:80"},
+			"command":    []string{"-https", ":" + strconv.Itoa(f.port), "-smtp", ":1025", "-backend", "https://passbolt:443"},
 			"read_only":  true, "user": f.user, "restart": "unless-stopped",
 			"cap_drop": []string{"ALL"}, "security_opt": []string{"no-new-privileges:true"},
-			"mem_limit": "64m", "cpus": 0.25, "pids_limit": 32,
 			"volumes":  []any{map[string]any{"type": "bind", "source": f.dir, "target": "/fixture", "read_only": true}},
 			"ports":    []string{fmt.Sprintf("127.0.0.1:%d:%d", f.port, f.port)},
 			"networks": map[string]any{"default": map[string]any{"aliases": []string{"passbolt.e2e.selfhost.test", "smtp.e2e.selfhost.test"}}},
@@ -113,7 +112,7 @@ func (f *passboltFixtureFiles) inputs() []string {
 	return []string{"--set", "passbolt.PASSBOLT_CANONICAL_ORIGIN=" + f.origin, "--set", "passbolt.PASSBOLT_SMTP_HOST=smtp.e2e.selfhost.test", "--set", "passbolt.PASSBOLT_SMTP_PORT=1025", "--set", "passbolt.PASSBOLT_FROM_EMAIL=fixture@selfhost.local", "--set", "passbolt.PASSBOLT_SERVER_KEY_EMAIL=fixture@selfhost.local"}
 }
 
-const passboltSMTPCommand = ". /etc/environment && bin/cake passbolt send_test_email fixture@selfhost.local"
+const passboltSMTPCommand = ". /etc/environment && bin/cake passbolt send_test_email --recipient fixture@selfhost.local"
 
 func writePassboltDockerWrapper(root, project, name, real, override string) (string, error) {
 	if !filepath.IsAbs(project) || !filepath.IsAbs(real) || !filepath.IsAbs(override) {
@@ -127,7 +126,7 @@ func writePassboltDockerWrapper(root, project, name, real, override string) (str
 	guard := strings.ReplaceAll(netBirdDockerGuard, "NetBird", "Passbolt")
 	guard = strings.ReplaceAll(guard, "netbird", "passbolt")
 	guard = strings.Replace(guard, "'images','logs')", "'images','logs','exec')", 1)
-	guard = strings.Replace(guard, "    a=['compose']+out+", "    if a[i]=='exec' and a[i:] not in (['exec','-T','passbolt','su','-s','/bin/bash','-c',"+fmt.Sprintf("%q", passboltSMTPCommand)+",'www-data'],['exec','-T','passbolt','sh','-c',"+fmt.Sprintf("%q", passboltMetadataCommand)+"],['exec','-T','--user','www-data','passbolt','php','-d','display_errors=0','-d','log_errors=0','-r',"+fmt.Sprintf("%q", passboltApplicationMetadataPHP)+"],['exec','-T','--user','www-data','passbolt','php','-d','display_errors=0','-d','log_errors=0','-r',"+fmt.Sprintf("%q", passboltEffectiveMetadataPHP)+"]): deny()\n    a=['compose']+out+", 1)
+	guard = strings.Replace(guard, "    a=['compose']+out+", "    if a[i]=='exec' and a[i:] not in (['exec','-T','passbolt','su','-s','/bin/bash','-c',"+fmt.Sprintf("%q", passboltSMTPCommand)+",'www-data'],['exec','-T','passbolt','curl','-fsk','--max-time','10','https://127.0.0.1/auth/verify.json'],['exec','-T','passbolt','sh','-c',"+fmt.Sprintf("%q", passboltMetadataCommand)+"],['exec','-T','--user','www-data','passbolt','php','-d','display_errors=0','-d','log_errors=0','-r',"+fmt.Sprintf("%q", passboltApplicationMetadataPHP)+"],['exec','-T','--user','www-data','passbolt','php','-d','display_errors=0','-d','log_errors=0','-r',"+fmt.Sprintf("%q", passboltEffectiveMetadataPHP)+"]): deny()\n    a=['compose']+out+", 1)
 	script := "#!/usr/bin/env python3\nimport csv,json,os,re,sys\nc=json.loads(" + fmt.Sprintf("%q", string(config)) + ")\n" + guard
 	wrapper := filepath.Join(bin, "docker")
 	if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {

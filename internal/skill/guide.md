@@ -235,8 +235,12 @@ Fields (all but `event` are omitted when empty):
 `step.warn` is not a failure but needs a look. `step.skip` means the work was
 already done.
 
-Document commands (`status`, `share`, `profile`, `debug`, `credentials`, `apps list`, `apps info`, `logs`)
-print one result on stdout and only errors on stderr with `--json`.
+Document commands (`status`, `share`, `profile`, `debug`, `credentials`, `apps list`, `apps info`, `apps request`)
+print one result on stdout and only errors on stderr with `--json`. `logs --json` prints one `log` event per
+line (`app`, `msg`).
+
+New-Project options (`--exposure`, `--easy-names`, `--media-root`, `--downloads-root`) are ignored on an existing
+Project; install then emits a `step.warn` (step `project`) whose hint names `self-host config set`.
 
 ## Exit codes
 
@@ -632,7 +636,10 @@ and secrets. Media libraries are not included.
 - An unencrypted backup emits `step.warn` step `unencrypted`: it contains
   passwords and API keys, so keep it private or encrypt it.
 - `self-host restore <file> [app...]` restores every App in the archive or only
-  those named, and reads the same variable for an encrypted archive.
+  those named, and reads the same variable for an encrypted archive. A
+  selective restore (apps named) needs an existing Project; on a new machine
+  restore the whole archive first. A successful restore removes the
+  `.restore-<n>` scratch folders in the Project.
 - The Dashboard's Settings → Backups lists, makes and restores archives
   interactively.
 
@@ -671,7 +678,7 @@ never sold or shared, and sending waits at most 500 ms without failing a command
 Details: https://self-host.fyi/telemetry.
 
 Only when the person asks how to turn Telemetry off, explain
-`SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. It is always off when `CI` is set
+`SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` (or `true`). It is always off when `CI` is set
 and on development builds. Set a switch only when asked; never on your own or
 as part of Onboarding.
 

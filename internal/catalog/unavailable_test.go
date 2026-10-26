@@ -8,8 +8,8 @@ import (
 )
 
 func TestHiddenAppsAreUnlistedButStillResolvable(t *testing.T) {
-	c := New([]app.App{namedApp{id: "lldap"}, namedApp{id: "ntfy"}},
-		[]Recipe{{ID: "mixed", Apps: []string{"lldap", "ntfy"}}, {ID: "only", Apps: []string{"lldap"}}})
+	c := New([]app.App{namedApp{id: "passbolt"}, namedApp{id: "ntfy"}},
+		[]Recipe{{ID: "mixed", Apps: []string{"passbolt", "ntfy"}}, {ID: "only", Apps: []string{"passbolt"}}})
 
 	if got := c.Apps(); len(got) != 1 || got[0].Info().ID != "ntfy" {
 		t.Fatalf("Apps listed a hidden App: %v", got)
@@ -17,10 +17,10 @@ func TestHiddenAppsAreUnlistedButStillResolvable(t *testing.T) {
 	if len(c.AllApps()) != 2 {
 		t.Fatal("AllApps must keep the hidden App for existing installs")
 	}
-	if _, found := c.App("lldap"); !found {
+	if _, found := c.App("passbolt"); !found {
 		t.Fatal("an existing install must still resolve its App")
 	}
-	if Unavailable("lldap") == "" || Unavailable("ntfy") != "" {
+	if Unavailable("passbolt") == "" || Unavailable("ntfy") != "" {
 		t.Fatal("unavailable reasons wrong")
 	}
 	recipes := c.Recipes()

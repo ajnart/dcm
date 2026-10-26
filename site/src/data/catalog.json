@@ -71,7 +71,7 @@
    "name": "Authentik",
    "d": "Sign in once to reach all your apps, with one login for the whole household",
    "c": "Identity",
-   "img": "ghcr.io/goauthentik/server:2026.8.3",
+   "img": "ghcr.io/goauthentik/server:2026.8",
    "p": 9000,
    "l": [],
    "lt": [],
@@ -98,6 +98,17 @@
    "l": [],
    "lt": [],
    "i": "svg/beszel.svg"
+  },
+  {
+   "id": "bookstack",
+   "name": "BookStack",
+   "d": "Keep notes and how-to guides organized in books, chapters and pages",
+   "c": "Productivity",
+   "img": "lscr.io/linuxserver/bookstack:latest",
+   "p": 8080,
+   "l": [],
+   "lt": [],
+   "i": "svg/bookstack.svg"
   },
   {
    "id": "borgmatic",
@@ -365,6 +376,7 @@
     "bazarr",
     "archive-team-warrior",
     "umami",
+    "speedtest-tracker",
     "deluge",
     "transmission",
     "adguard-home",
@@ -414,6 +426,7 @@
     "link Bazarr",
     "link ArchiveTeam Warrior",
     "link Umami",
+    "link Speedtest Tracker",
     "link Deluge",
     "link Transmission",
     "link AdGuard Home",
@@ -519,6 +532,17 @@
    "p": 3000,
    "l": [],
    "lt": []
+  },
+  {
+   "id": "lldap",
+   "name": "LLDAP",
+   "d": "Keep one list of users and passwords that your apps can share",
+   "c": "Identity",
+   "img": "lldap/lldap:latest",
+   "p": 17170,
+   "l": [],
+   "lt": [],
+   "i": "svg/lldap.svg"
   },
   {
    "id": "loki",
@@ -915,6 +939,16 @@
    "i": "svg/sonarr.svg"
   },
   {
+   "id": "speedtest-tracker",
+   "name": "Speedtest Tracker",
+   "d": "Check your internet speed on a schedule and keep the history",
+   "c": "Monitoring",
+   "img": "lscr.io/linuxserver/speedtest-tracker:latest",
+   "p": 8080,
+   "l": [],
+   "lt": []
+  },
+  {
    "id": "stalwart-mail",
    "name": "Stalwart Mail Server",
    "d": "Run your own email service, managed from a private admin page",
@@ -963,7 +997,7 @@
    "name": "Tdarr",
    "d": "Shrink and convert your video files automatically to save space",
    "c": "Media",
-   "img": "ghcr.io/haveagitgat/tdarr:2.92.01",
+   "img": "ghcr.io/haveagitgat/tdarr:latest",
    "p": 8265,
    "l": [],
    "lt": [],

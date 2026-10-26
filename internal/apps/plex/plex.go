@@ -262,8 +262,19 @@ func saveServerToken(ctx context.Context, h *helpers.H) error {
 	return h.SetSecret(h.Key("api_key"), token)
 }
 
+// ownershipVerified accepts the person's recorded machine identifier, or an
+// owner-issued claim token the first-run bootstrap exchanged for this server.
+func ownershipVerified(h *helpers.H) bool {
+	saved := h.Secret(h.Key("server_id"))
+	if saved == "" {
+		return false
+	}
+	claimed := h.Inputs["claim_token"] != "" && h.Secret(h.Key("api_key")) != ""
+	return claimed || h.Inputs["verified_server_id"] == saved
+}
+
 func VerifyHomarr(ctx context.Context, h *helpers.H) error {
-	if h.Inputs["verified_server_id"] == "" || h.Inputs["verified_server_id"] != h.Secret(h.Key("server_id")) {
+	if !ownershipVerified(h) {
 		h.Info("Verify this server in your own Plex account, then record its machine identifier with self-host install plex --set plex.verified_server_id=<identifier> and retry self-host setup plex homarr. Account ownership is not proved by /identity alone.")
 		return helpers.ErrManual
 	}
@@ -298,8 +309,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return claimed, err
 		},
 		Do: func(context.Context) error { return helpers.ErrManual },
-		Hint: "Create a claim token at https://www.plex.tv/claim and pass it with " +
-			"--set-file plex.claim_token=/path/to/credential, then run: self-host install plex",
+		Hint: "This server is unclaimed: anyone who reaches it can claim it. Create a claim token at https://www.plex.tv/claim (valid 4 minutes) and run: " +
+			"self-host install plex --set-file plex.claim_token=/path/to/credential. " +
+			"The image reads it only on first start, so if the server already started unclaimed, open " + h.URL +
+			"/web from the server's own network and sign in to claim it instead. Then run: self-host setup plex, which verifies the claim",
 		Credential: "admin",
 	}); err != nil {
 		return err
@@ -307,18 +320,16 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := h.Step(ctx, "claimed", "verify and save the private Plex server token", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return verifySavedToken(ctx, h) == nil, nil },
 		Do:    func(ctx context.Context) error { return saveServerToken(ctx, h) },
-		Hint: "Complete the first-run claim, then verify this server in your Plex account at https://app.plex.tv; " +
+		Hint: "Complete the claim, verify this server in your Plex account at https://app.plex.tv, then run: self-host setup plex; " +
 			"if the claim expired, inspect before reclaiming",
 		Credential: "admin",
 	}); err != nil {
 		return err
 	}
 	return h.Step(ctx, "account-ownership", "verify this server in your Plex account", helpers.StepSpec{
-		Check: func(context.Context) (bool, error) {
-			return h.Inputs["verified_server_id"] != "" && h.Inputs["verified_server_id"] == h.Secret(h.Key("server_id")), nil
-		},
-		Do:   func(context.Context) error { return helpers.ErrManual },
-		Hint: "Verify the intended server in your own Plex account, then record its /identity machine identifier with self-host install plex --set plex.verified_server_id=<identifier> and retry self-host setup plex homarr. No Plex Pass purchase, login or server reclaim is automated.",
+		Check: func(context.Context) (bool, error) { return ownershipVerified(h), nil },
+		Do:    func(context.Context) error { return helpers.ErrManual },
+		Hint:  "Verify the intended server in your own Plex account, then record its /identity machine identifier with self-host install plex --set plex.verified_server_id=<identifier> and retry self-host setup plex homarr. No Plex Pass purchase, login or server reclaim is automated.",
 	})
 }
 

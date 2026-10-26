@@ -46,18 +46,25 @@ func (App) Compose(rc app.RenderContext) string {
 `
 }
 
-func (App) Setup(ctx context.Context, h *helpers.H) error {
-	return (firstadmin.FirstAdmin{
-		Ready:  firstadmin.Probe{Path: "/"},
+func firstAdmin() firstadmin.FirstAdmin {
+	return firstadmin.FirstAdmin{
+		Ready: firstadmin.Probe{Path: "/"},
+		Exists: func(ctx context.Context, h *helpers.H) (bool, error) {
+			pending, err := h.SocketIOSetupPending(ctx)
+			return !pending, err
+		},
+		Create: func(ctx context.Context, h *helpers.H, user, password string) error {
+			return h.SocketIOCreateAdmin(ctx, user, password)
+		},
+		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+			return h.SocketIOLogin(ctx, user, password)
+		},
 		Manual: "open Dockge and create the first administrator account",
-	}).Setup(ctx, h)
+	}
 }
 
-func (App) Check(ctx context.Context, h *helpers.H) error {
-	return (firstadmin.FirstAdmin{
-		Ready:  firstadmin.Probe{Path: "/"},
-		Manual: "open Dockge and create the first administrator account",
-	}).Check(ctx, h)
-}
+func (App) Setup(ctx context.Context, h *helpers.H) error { return firstAdmin().Setup(ctx, h) }
+
+func (App) Check(ctx context.Context, h *helpers.H) error { return firstAdmin().Check(ctx, h) }
 
 func (App) Links() []app.Link { return nil }

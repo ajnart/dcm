@@ -139,8 +139,18 @@ func createHomarrKey(ctx context.Context, h *helpers.H) error {
 		return err
 	}
 	for _, key := range keys {
-		if key.Name == homarrKeyName || key.ID == h.Secret(h.Key("homarr_api_key_id")) {
-			return helpers.ErrManual
+		if key.Name != homarrKeyName {
+			if key.ID == h.Secret(h.Key("homarr_api_key_id")) {
+				return helpers.ErrManual
+			}
+			continue
+		}
+		resp, err = h.HTTP(ctx, helpers.Request{Method: http.MethodDelete, Path: "/api/api-keys/" + key.ID, NoRedirect: true, Header: header})
+		if err != nil {
+			return err
+		}
+		if resp.Status != http.StatusNoContent && resp.Status != http.StatusOK {
+			return fmt.Errorf("Immich API-key replacement returned HTTP %d", resp.Status)
 		}
 	}
 	resp, err = h.HTTP(ctx, helpers.Request{

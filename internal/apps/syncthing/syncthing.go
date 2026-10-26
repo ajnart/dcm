@@ -105,14 +105,21 @@ func exists(ctx context.Context, h *helpers.H) (bool, error) {
 
 // loginWorks proves the saved administrator through HTTP basic auth.
 func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{Path: "/", User: user, Password: password})
+	anonymous, err := h.HTTP(ctx, helpers.Request{Path: "/rest/system/status", NoRedirect: true})
+	if err != nil {
+		return false, err
+	}
+	if anonymous.Status != 401 {
+		return false, nil
+	}
+	resp, err := h.HTTP(ctx, helpers.Request{Path: "/rest/system/status", User: user, Password: password})
 	if err != nil {
 		return false, err
 	}
 	if resp.Status == 401 {
 		return false, nil
 	}
-	if !resp.OK() {
+	if !resp.OK() && resp.Status != 403 {
 		return false, fmt.Errorf("the GUI returned HTTP %d", resp.Status)
 	}
 	return true, nil
@@ -135,7 +142,17 @@ func create(ctx context.Context, h *helpers.H, user, password string) error {
 		Header: map[string]string{"X-API-Key": key, "Content-Type": "application/json"},
 		JSON:   map[string]any{"user": user, "password": password, "sendBasicAuthPrompt": true},
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	// Syncthing restarts its GUI listener after the change; wait until it asks for the login.
+	return h.Poll(ctx, time.Minute, func(ctx context.Context) (bool, error) {
+		resp, err := h.HTTP(ctx, helpers.Request{Path: "/rest/system/status", NoRedirect: true})
+		if err != nil {
+			return false, err
+		}
+		return resp.Status == 401, fmt.Errorf("the GUI answered HTTP %d without asking for the login", resp.Status)
+	})
 }
 
 func setup() firstadmin.FirstAdmin {

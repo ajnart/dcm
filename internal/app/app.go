@@ -123,6 +123,13 @@ type SecretDeclarer interface {
 	Secrets() []SecretSpec
 }
 
+// LegacyComposer is an optional interface for Apps whose Compose changed in
+// more than image tags since a release that did not record a hash of it. Update
+// treats a compose.yml equal to one of these renders as unmodified.
+type LegacyComposer interface {
+	LegacyComposes(RenderContext) []string
+}
+
 type AdminEmailProvider interface {
 	AdminEmail(username string) string
 }

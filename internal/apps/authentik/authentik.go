@@ -36,7 +36,7 @@ func (App) Info() app.Info {
 	return app.Info{
 		ID: "authentik", Name: "Authentik", Category: "Identity",
 		Description:   "Sign in once to reach all your apps, with one login for the whole household",
-		Image:         "ghcr.io/goauthentik/server:2026.8.3",
+		Image:         "ghcr.io/goauthentik/server:2026.8",
 		Docs:          "https://docs.goauthentik.io/install-config/install/docker-compose/",
 		Port:          9000,
 		ContainerPort: 9000,
@@ -68,7 +68,7 @@ func (App) Compose(rc app.RenderContext) string {
 `
 	return `services:
   authentik:
-    image: ghcr.io/goauthentik/server:2026.8.3
+    image: ghcr.io/goauthentik/server:2026.8
     command: server
     restart: unless-stopped
     shm_size: 536870912
@@ -81,7 +81,7 @@ func (App) Compose(rc app.RenderContext) string {
       authentik-postgresql:
         condition: service_healthy
   authentik-worker:
-    image: ghcr.io/goauthentik/server:2026.8.3
+    image: ghcr.io/goauthentik/server:2026.8
     command: worker
     restart: unless-stopped
     shm_size: 536870912

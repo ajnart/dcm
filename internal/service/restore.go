@@ -73,6 +73,12 @@ func (s *Service) Restore(ctx context.Context, file string, ids []string, passph
 		rs.keepRecovery = true
 		return fmt.Errorf("restore could not finish; original data and records retained in %s: %w", rs.staging.Dir(), err)
 	}
+	if err == nil {
+		if stale := rs.staging.Stale(); len(stale) > 0 {
+			rs.s.Log.Emit(events.Event{Event: events.Info, Step: "restore", Msg: "kept " + strings.Join(stale, ", ") + ", left by an earlier failed restore",
+				Hint: "They hold the data and records from before that restore; delete them once you no longer need them."})
+		}
+	}
 	return err
 }
 

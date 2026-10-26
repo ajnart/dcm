@@ -103,7 +103,9 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	if err := h.Step(ctx, "homarr-rpc", "prepare restricted NZBGet access for Homarr", helpers.StepSpec{
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-rpc", "Homarr is not installed; no restricted NZBGet login is needed")
+	} else if err := h.Step(ctx, "homarr-rpc", "prepare restricted NZBGet access for Homarr", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return VerifyHomarr(ctx, h) == nil, nil },
 		Do:    func(ctx context.Context) error { return prepareHomarr(ctx, h) },
 		Hint: "Run self-host setup nzbget to prepare its Homarr login. If restricted access already exists, keep it unchanged: " +
@@ -113,18 +115,16 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	if configured, err := providerConfigured(ctx, h); err == nil && !configured {
+		h.Info("NZBGet is secured and ready; add your own Usenet provider in NZBGet > Settings > News-Servers to start downloading. Setup creates no account and makes no provider request.")
+		h.Skip("usenet-provider", "no Usenet provider yet; add one when you are ready")
+		return nil
+	}
 	return h.Step(ctx, "usenet-provider", "review NZBGet Usenet provider settings", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return providerConfigured(ctx, h) },
 		Do: func(ctx context.Context) error {
-			configured, err := providerConfigured(ctx, h)
-			if err != nil {
-				return err
-			}
-			if configured {
-				return nil
-			}
-			h.Info("NZBGet RPC is ready, but no enabled Usenet provider with a non-placeholder host, valid port and positive connection count is configured. Review Settings > News-Servers with your own provider, save and apply them, then run self-host setup nzbget. Setup creates no account and makes no provider request.")
-			return helpers.ErrManual
+			_, err := providerConfigured(ctx, h)
+			return err
 		},
 		Hint: "Review Settings > News-Servers in NZBGet, save and apply your own provider settings, then run self-host setup nzbget. " +
 			"This checks configuration only, not provider authentication, connectivity or a download; an idle queue remains valid.",
@@ -202,7 +202,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := adminWorks(ctx, h); !ok {
 		return fmt.Errorf("the Admin login %s cannot read NZBGet's version over RPC: %v", h.AdminUser(), err)
 	}
-	return VerifyHomarr(ctx, h)
+	return nil
 }
 
 func (App) Links() []app.Link { return nil }

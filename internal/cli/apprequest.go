@@ -19,28 +19,40 @@ func (a *program) appRequestCmd() *cobra.Command {
 			"It sends nothing whenever Telemetry is off (SELF_HOST_NO_TELEMETRY=1, DO_NOT_TRACK=1, CI), and exits 0.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			a.document = true
 			request, err := telemetry.NewAppRequest(args[0], homepage)
 			if err != nil {
 				return a.fail(err)
 			}
-			if id, found := a.catalogApp(request.Name); found {
-				fmt.Fprintf(a.deps.Out, "%s is already in the Catalog. Install it with: self-host install %s\n", id, id)
+			typed := strings.Join(strings.Fields(args[0]), " ")
+			result := func(status, text string) error {
+				if a.json {
+					doc := map[string]string{"name": typed, "status": status, "msg": text}
+					if status != "requested" {
+						doc["issues"] = issuesURL
+					}
+					return writeJSON(a.deps.Out, doc)
+				}
+				fmt.Fprintln(a.deps.Out, text)
 				return nil
+			}
+			if id, found := a.catalogApp(request.Name); found {
+				return result("in_catalog", fmt.Sprintf("%s is already in the Catalog. Install it with: self-host install %s", id, id))
 			}
 			tel := a.service().Telemetry()
 			if !tel.Enabled() {
-				fmt.Fprintf(a.deps.Out, "Telemetry is off here, so nothing was sent. To ask for %q, open an issue: %s\n", request.Name, issuesURL)
-				return nil
+				return result("telemetry_off", fmt.Sprintf("Telemetry is off here, so nothing was sent. To ask for %q, open an issue: %s", typed, issuesURL))
 			}
 			if tel.Announce() {
 				fmt.Fprintln(a.deps.Err, telemetry.Notice)
 			}
 			if !tel.SendAppRequest(request) {
-				fmt.Fprintf(a.deps.Out, "Nothing was sent for %q. To ask for it, open an issue: %s\n", request.Name, issuesURL)
-				return nil
+				return result("not_sent", fmt.Sprintf("Nothing was sent for %q. To ask for it, open an issue: %s", typed, issuesURL))
 			}
-			fmt.Fprintf(a.deps.Out, "Noted: %q was requested anonymously.\n", request.Name)
-			if a.deps.Interactive {
+			if err := result("requested", fmt.Sprintf("Noted: %q was requested anonymously.", typed)); err != nil {
+				return err
+			}
+			if a.deps.Interactive && !a.json {
 				fmt.Fprintf(a.deps.Out, "To follow it up, open an issue: %s\n", issuesURL)
 			}
 			return nil

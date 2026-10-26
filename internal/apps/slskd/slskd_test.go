@@ -91,7 +91,7 @@ func TestSetupCheckPass(t *testing.T) {
 	}
 }
 
-func TestCatalogVersionLeavesDisconnectedSoulseekManual(t *testing.T) {
+func TestDisconnectedSoulseekIsInfoNotManual(t *testing.T) {
 	base := handler()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v0/application" && r.Method == http.MethodGet {
@@ -109,23 +109,19 @@ func TestCatalogVersionLeavesDisconnectedSoulseekManual(t *testing.T) {
 	h := newH(t, srv, &results)
 	ctx := context.Background()
 
-	if err := (slskd.App{}).Setup(ctx, h); !errors.Is(err, helpers.ErrManual) {
-		t.Fatalf("Setup = %v, want the Soulseek Manual step", err)
+	if err := (slskd.App{}).Setup(ctx, h); err != nil {
+		t.Fatalf("Setup = %v, want OK with the Soulseek account left as Info", err)
 	}
-	apiReady, providerManual := false, false
 	for _, result := range results {
-		if result.ID == "homarr-api" && result.Status == stepstatus.StepSkip {
-			apiReady = true
-		}
-		if result.ID == "soulseek" && result.Status == stepstatus.StepManual {
-			providerManual = true
+		if result.Status == stepstatus.StepManual {
+			t.Fatalf("unexpected Manual step: %+v", result)
 		}
 	}
-	if !apiReady || !providerManual {
-		t.Fatalf("want verified API and Manual Soulseek steps, got %+v", results)
+	if err := (slskd.App{}).Check(ctx, h); err != nil {
+		t.Fatalf("Check = %v", err)
 	}
-	if err := (slskd.App{}).Check(ctx, h); !errors.Is(err, helpers.ErrManual) {
-		t.Fatalf("Check = %v, want the Soulseek Manual step", err)
+	if err := slskd.VerifySoulseek(ctx, h); !errors.Is(err, helpers.ErrManual) {
+		t.Fatalf("VerifySoulseek = %v, want Manual for the Homarr Link", err)
 	}
 }
 

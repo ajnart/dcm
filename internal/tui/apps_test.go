@@ -167,7 +167,7 @@ func TestTheOverviewFollowsTheAppsTabSelection(t *testing.T) {
 func TestNoStackWordingRemains(t *testing.T) {
 	m, _ := sample(t, 140, 100)
 
-	if help := helpText(t, m); strings.Contains(help, "Stack") || !strings.Contains(help, "Apps · Details") {
+	if help := helpText(t, m); strings.Contains(help, "Stack") || !strings.Contains(help, "Overview · Needs attention") {
 		t.Fatalf("help should describe the Apps tab without Stack\n%s", help)
 	}
 }

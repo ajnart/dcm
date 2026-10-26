@@ -235,7 +235,7 @@ func (v *dashboardView) renderNow(ctx *viewContext, width int) string {
 	inner := width - 4
 	lines := activity.Strip(ctx.snapshot(), ctx.motion, inner, ctx.glyphs, t.palette())
 	if len(lines) == 0 {
-		lines = []string{t.dim().Render("No Action yet")}
+		lines = []string{t.dim().Render(lastRecorded(ctx))}
 	}
 	label, level := hostHealth(ctx.checks)
 	health := t.fg(t.muted).Render("○ Host: " + label)
@@ -247,6 +247,33 @@ func (v *dashboardView) renderNow(ctx *viewContext, width int) string {
 	}
 	lines = append(lines, truncate(health, inner))
 	return t.box("Now", "", strings.Join(lines, "\n"), width, nowHeight, false)
+}
+
+// lastRecorded summarises the Setup the Project remembers from an earlier
+// run, such as one the CLI did, when this session has run no Action.
+func lastRecorded(ctx *viewContext) string {
+	var done, attention int
+	for _, a := range ctx.status.Apps {
+		if !a.Managed || len(a.Steps) == 0 {
+			continue
+		}
+		if a.Setup == stepstatus.SetupOK {
+			done++
+		} else {
+			attention++
+		}
+	}
+	if done+attention == 0 {
+		return "No Action yet"
+	}
+	var parts []string
+	if done > 0 {
+		parts = append(parts, plural(done, "App", "Apps")+" set up")
+	}
+	if attention > 0 {
+		parts = append(parts, plural(attention, "App needs", "Apps need")+" attention")
+	}
+	return "Last run: " + strings.Join(parts, " · ")
 }
 
 func (v *dashboardView) renderApps(ctx *viewContext, width, height, y int) (string, []*lipgloss.Layer) {

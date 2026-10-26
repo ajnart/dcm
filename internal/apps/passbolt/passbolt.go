@@ -4,9 +4,9 @@ package passbolt
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
 	"strconv"
 
@@ -140,17 +140,18 @@ type verifyEnvelope struct {
 	} `json:"body"`
 }
 
+// SSL force redirects plain HTTP, so the key is read over the image's own
+// HTTPS listener from inside the container.
+var verifyCommand = []string{"curl", "-fsk", "--max-time", "10", "https://127.0.0.1/auth/verify.json"}
+
 func serverKeyWorks(ctx context.Context, h *helpers.H) (bool, error) {
-	resp, err := h.HTTP(ctx, helpers.Request{Path: "/auth/verify.json"})
+	res, err := h.Exec(ctx, nil, verifyCommand...)
 	if err != nil {
-		return false, err
-	}
-	if resp.Status != http.StatusOK {
 		return false, nil
 	}
 	var envelope verifyEnvelope
-	if err := resp.Decode(&envelope); err != nil {
-		return false, err
+	if json.Unmarshal(res.Stdout, &envelope) != nil {
+		return false, nil
 	}
 	return envelope.Header.Status == "success" && fingerprint.MatchString(envelope.Body.Fingerprint) && envelope.Body.Keydata != "", nil
 }

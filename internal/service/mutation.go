@@ -121,10 +121,13 @@ func (s *Service) runLocked(ctx context.Context, c change, p *project.Project) e
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	started := false
 	if !p.Exists() {
 		if c.initialize == nil {
 			return ErrNoProject
 		}
+		s.Log.Emit(events.Event{Event: events.RunStart, Msg: c.title})
+		started = true
 		if err := c.initialize(p); err != nil {
 			return err
 		}
@@ -166,7 +169,9 @@ func (s *Service) runLocked(ctx context.Context, c change, p *project.Project) e
 	if err := ss.p.WriteRoot(); err != nil {
 		return s.finish(err)
 	}
-	s.Log.Emit(events.Event{Event: events.RunStart, Msg: c.title})
+	if !started {
+		s.Log.Emit(events.Event{Event: events.RunStart, Msg: c.title})
+	}
 	if c.edit != nil {
 		if err := c.edit(ctx, ss); err != nil {
 			return s.finish(err)
@@ -323,6 +328,9 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 				return err
 			}
 			s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "remove", Msg: "deleted the data kept for " + id})
+			if err := ss.forgetDataSecrets(id); err != nil {
+				return err
+			}
 			continue
 		}
 		unlinkFailed = append(unlinkFailed, ss.unlink(ctx, id)...)
@@ -364,6 +372,11 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 			msg = "removed " + id + " and deleted its data"
 		}
 		s.Log.Emit(events.Event{Event: events.StepOK, App: id, Step: "remove", Msg: msg})
+		if purge {
+			if err := ss.forgetDataSecrets(id); err != nil {
+				return err
+			}
+		}
 	}
 	if _, err := ss.renderTailscale(); err != nil {
 		return err
@@ -372,6 +385,55 @@ func (s *Service) removeApps(ctx context.Context, ss *session, ids []string, pur
 		return fmt.Errorf("%w: removed, but %s still point at it; fix them using the hints above, then run: self-host setup %s",
 			ErrIncomplete, strings.Join(unlinkFailed, ", "), strings.Join(unlinkFailed, " "))
 	}
+	return nil
+}
+
+// forgetDataSecrets drops the secrets bound to the data a purge just deleted:
+// whatever Setup minted inside the App (account IDs, API keys, tokens). Kept:
+// secrets the App declares (repository passwords, keys), private inputs the
+// person supplied, and secrets of Apps whose ID extends this one's.
+func (ss *session) forgetDataSecrets(id string) error {
+	keep := map[string]bool{}
+	if a, found := ss.s.Catalog.App(id); found {
+		if declarer, ok := a.(app.SecretDeclarer); ok {
+			for _, spec := range declarer.Secrets() {
+				keep[SecretKey(id, spec.Name)] = true
+			}
+		}
+		for _, input := range a.Inputs() {
+			if input.Private && !input.RecoveryOnly {
+				keep[SecretKey(id, input.Key)] = true
+			}
+		}
+	}
+	prefix := SecretKey(id, "")
+	var longer []string
+	for _, other := range ss.s.Catalog.AllApps() {
+		if otherID := other.Info().ID; strings.HasPrefix(otherID, id+"-") {
+			longer = append(longer, SecretKey(otherID, ""))
+		}
+	}
+	var forgotten []string
+	for key := range ss.secrets.values {
+		if !strings.HasPrefix(key, prefix) || keep[key] {
+			continue
+		}
+		if slices.ContainsFunc(longer, func(p string) bool { return strings.HasPrefix(key, p) }) {
+			continue
+		}
+		forgotten = append(forgotten, key)
+	}
+	if len(forgotten) == 0 {
+		return nil
+	}
+	slices.Sort(forgotten)
+	for _, key := range forgotten {
+		delete(ss.secrets.values, key)
+	}
+	if err := ss.p.SaveSecrets(ss.secrets.values); err != nil {
+		return err
+	}
+	ss.s.Log.Emit(events.Event{Event: events.Info, App: id, Step: "remove", Msg: "forgot secrets bound to the deleted data: " + strings.Join(forgotten, ", ")})
 	return nil
 }
 
@@ -405,10 +467,16 @@ func (ss *session) purgeAppDir(ctx context.Context, id, dir string, services []s
 	if len(services) == 0 {
 		return fmt.Errorf("%w: %s's data is owned by root; rerun with: sudo \"$(command -v self-host)\" remove %s --purge", err, id, id)
 	}
-	if cerr := ss.compose.EmptyDir(ctx, services[0], dir); cerr != nil {
-		return fmt.Errorf("%w: %s's data is owned by root and a container could not delete it (%v); rerun with: sudo \"$(command -v self-host)\" remove %s --purge", err, id, cerr, id)
+	var cerr error
+	for _, service := range services {
+		if ss.compose.Chown(ctx, service, dir, ss.p.Owner.UID, ss.p.Owner.GID) == nil && ss.p.RemoveAppData(id) == nil {
+			return nil
+		}
+		if cerr = ss.compose.EmptyDir(ctx, service, dir); cerr == nil {
+			return ss.p.RemoveAppData(id)
+		}
 	}
-	return ss.p.RemoveAppData(id)
+	return fmt.Errorf("%w: %s's data is owned by root and a container could not delete it (%v); rerun with: sudo \"$(command -v self-host)\" remove %s --purge", err, id, cerr, id)
 }
 
 // runAfter runs Setup (and Links) or only Check for the targets.
@@ -421,22 +489,54 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 				apps = append(apps, a)
 			}
 		}
+		if slices.Contains(ids, "homarr") {
+			apps = append(apps, ss.homarrTargets(ids)...)
+		}
 		err := ss.setupAll(ctx, apps)
 		if !slices.Contains(ids, "homarr") || slices.Contains(ids, tailscaleID) || slices.Contains(ids, cloudflareConnector) {
 			err = errors.Join(err, ss.refreshDashboard(ctx))
 		}
 		return err
 	case afterCheck:
-		var failed []string
+		var apps []app.App
+		targets := slices.Clone(ss.refreshed)
 		for _, id := range ids {
-			if err := ss.check(ctx, id); err != nil {
+			st := ss.state.Apps[id]
+			if st != nil && (st.Setup == stepstatus.SetupManual || st.Setup == stepstatus.SetupPending) && !slices.Contains(targets, id) {
+				targets = append(targets, id)
+			}
+		}
+		for _, id := range targets {
+			if a, found := s.Catalog.App(id); found {
+				apps = append(apps, a)
+			}
+		}
+		var setupManual error
+		if len(apps) > 0 {
+			if err := ss.setupAll(ctx, apps); errors.Is(err, ErrManual) {
+				setupManual = err
+			} else if err != nil {
+				return err
+			}
+		}
+		var failed, manual []string
+		for _, id := range ids {
+			err := ss.check(ctx, id)
+			switch {
+			case err == nil:
+			case errors.Is(err, helpers.ErrManual):
+				manual = append(manual, id)
+			default:
 				failed = append(failed, id)
 			}
 		}
 		if len(failed) > 0 {
 			return fmt.Errorf("%w: check failed after update for %s", ErrIncomplete, strings.Join(failed, ", "))
 		}
-		return nil
+		if len(manual) > 0 {
+			return fmt.Errorf("%w: check needs manual steps after update for %s; follow their hints, then run: self-host setup %s", ErrManual, strings.Join(manual, ", "), strings.Join(manual, " "))
+		}
+		return setupManual
 	case afterDashboard:
 		return ss.refreshDashboard(ctx)
 	case afterUnmanagedDashboard:
@@ -447,6 +547,25 @@ func (s *Service) runAfter(ctx context.Context, ss *session, step afterStep, ids
 		}
 	}
 	return nil
+}
+
+// homarrTargets are installed Apps Homarr links to that are not already part
+// of the run: their Setup prepares the Homarr credentials once Homarr exists.
+func (ss *session) homarrTargets(ids []string) []app.App {
+	dashboard, found := ss.s.Catalog.App(dashboardAppID)
+	if !found {
+		return nil
+	}
+	var apps []app.App
+	for _, link := range dashboard.Links() {
+		if slices.Contains(ids, link.Target) || ss.state.Apps[link.Target] == nil {
+			continue
+		}
+		if a, found := ss.s.Catalog.App(link.Target); found && !slices.ContainsFunc(apps, func(o app.App) bool { return o.Info().ID == link.Target }) {
+			apps = append(apps, a)
+		}
+	}
+	return apps
 }
 
 // refreshDashboard lets its adapter reconcile the final Project inventory and URLs.
@@ -565,7 +684,7 @@ func (ss *session) emitStage(ids []string, e events.Event) {
 // pull pulls the services' images before Compose starts them, reporting
 // progress and naming the image when a pull fails.
 func (ss *session) pull(ctx context.Context, ids, services []string) error {
-	ss.emitStage(ids, events.Event{Event: events.StepStart, Step: StagePull, Msg: fmt.Sprintf("pull %d images", len(services))})
+	ss.emitStage(ids, events.Event{Event: events.StepStart, Step: StagePull, Msg: pullMessage(len(services))})
 	if err := ss.compose.PullProgress(ctx, services...); err != nil {
 		if ctx.Err() != nil {
 			return errors.Join(err, ss.recordStage(ids, events.Event{Event: events.StepFail, Step: StagePull, Msg: "pull cancelled", Error: "cancelled", Hint: "Run self-host to resume the install."}))
@@ -575,4 +694,11 @@ func (ss *session) pull(ctx context.Context, ids, services []string) error {
 		return errors.Join(err, ss.recordStage(ids, events.Event{Event: events.StepFail, Step: StagePull, Msg: "could not pull " + image, Error: err.Error(), Hint: hint}))
 	}
 	return ss.recordStage(ids, events.Event{Event: events.StepOK, Step: StagePull, Msg: "pulled " + strings.Join(ids, ", ")})
+}
+
+func pullMessage(n int) string {
+	if n == 1 {
+		return "pull 1 image"
+	}
+	return fmt.Sprintf("pull %d images", n)
 }

@@ -45,7 +45,7 @@ func whatMark(t *testing.T, out, name string) string {
 // catalogMark is the mark a Catalog row shows for name.
 func catalogMark(t *testing.T, out, name string) string {
 	t.Helper()
-	row := regexp.MustCompile(`(?m)^│\s*(?:> )?\s*(\[x\]|\[ \]|✓|◐|○)\s+(?:❖ )?` + regexp.QuoteMeta(name) + `\s`)
+	row := regexp.MustCompile(`(?m)^│\s*(?:> )?\s*(✓|◐|○)\s+(?:❖ )?` + regexp.QuoteMeta(name) + `\s`)
 	found := row.FindStringSubmatch(out)
 	if found == nil {
 		t.Fatalf("the Catalog has no row for %q\n%s", name, out)
@@ -194,7 +194,7 @@ func TestPickingARecipeInTheCatalogPicksItsApps(t *testing.T) {
 	m = drive(t, m, press("space")) // the Arr Recipe
 
 	out := screen(m)
-	for name, want := range map[string]string{"Arr": "✓", "Radarr": "[x]", "Prowlarr": "[x]", "Homarr": "[ ]", "ntfy": "[ ]"} {
+	for name, want := range map[string]string{"Arr": "✓", "Radarr": "✓", "Prowlarr": "✓", "Homarr": "○", "ntfy": "○"} {
 		if got := catalogMark(t, out, name); got != want {
 			t.Fatalf("%s should show %s, got %s\n%s", name, want, got, out)
 		}
@@ -218,7 +218,7 @@ func TestUntickingARecipesAppsMakesItHalfThenEmptyInTheCatalog(t *testing.T) {
 	m = drive(t, m, press("space"))
 
 	out := screen(m)
-	if catalogMark(t, out, "Arr") != "◐" || catalogMark(t, out, "Prowlarr") != "[ ]" || catalogMark(t, out, "Radarr") != "[x]" {
+	if catalogMark(t, out, "Arr") != "◐" || catalogMark(t, out, "Prowlarr") != "○" || catalogMark(t, out, "Radarr") != "✓" {
 		t.Fatalf("one App out of two should leave the Recipe half picked\n%s", out)
 	}
 	m = drive(t, m, press("down"))
@@ -266,7 +266,7 @@ func TestCatalogRecipeCountsInstalledAppsAsHaving(t *testing.T) {
 		t.Fatalf("a Recipe with one App installed and one not should be half\n%s", out)
 	}
 	m = drive(t, m, press("space"))
-	if out := screen(m); catalogMark(t, out, "Media") != "✓" || catalogMark(t, out, "Radarr") != "[x]" {
+	if out := screen(m); catalogMark(t, out, "Media") != "✓" || catalogMark(t, out, "Radarr") != "✓" {
 		t.Fatalf("picking it should pick only the App not installed\n%s", out)
 	}
 }

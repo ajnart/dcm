@@ -106,7 +106,9 @@ func targetName(cat *catalog.Catalog, id string) string {
 func renderPlan(t theme, p *plan, keys string, width int) string {
 	lines := []string{"", "  " + t.title().Render("Review") + t.dim().Render("  nothing has been written yet")}
 	lines = append(lines, planLines(t, p, width)...)
-	lines = append(lines, "", "  "+t.button("enter")+t.dim().Render(" "+keys))
+	if keys != "" {
+		lines = append(lines, "", "  "+t.button("enter")+t.dim().Render(" "+keys))
+	}
 	return strings.Join(lines, "\n")
 }
 

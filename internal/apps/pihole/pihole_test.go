@@ -134,7 +134,8 @@ func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult) *he
 	t.Helper()
 	deps := systemtest.NewDeps(t)
 	return helpers.New(helpers.Config{
-		App: "pihole", Service: "pihole",
+		Peer: func(string) *helpers.H { return &helpers.H{} },
+		App:  "pihole", Service: "pihole",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Secrets: fakeSecrets{"ADMIN_USER": adminUser, "ADMIN_PASSWORD": adminPass},
 		Log:     events.Discard(), Now: deps.Now, Sleep: deps.Sleep,

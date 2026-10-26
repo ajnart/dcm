@@ -58,17 +58,26 @@ func introLevel(l host.Level) intro.Level {
 	return intro.OK
 }
 
+// dockerDown replaces the raw daemon error of a failing Docker check with a
+// short line that says how to recheck.
+func dockerDown(c host.Check) host.Check {
+	if c.ID != "docker-socket" || c.Level != host.Fail || c.Hint == host.SocketDeniedHint {
+		return c
+	}
+	orbstack := strings.Contains(c.Hint, "OrbStack")
+	c.Detail, c.Hint = "Docker isn't running.", "Start Docker, then press r."
+	if orbstack {
+		c.Hint = "Open OrbStack, then press r."
+	}
+	return c
+}
+
 func (o *onboarding) introDoctor(ctx *viewContext) intro.Doctor {
 	i := o.intro
 	checks := make([]intro.Check, len(ctx.checks))
 	for n, c := range ctx.checks {
+		c = dockerDown(c)
 		checks[n] = intro.Check{Title: c.Title, Detail: c.Detail, Hint: c.Hint, Docs: c.Docs, Level: introLevel(c.Level)}
-		if c.ID == "docker-socket" && c.Level == host.Fail && c.Hint != host.SocketDeniedHint {
-			checks[n].Detail, checks[n].Hint = "Docker isn't running.", "Start Docker, then press r."
-			if strings.Contains(c.Hint, "OrbStack") {
-				checks[n].Hint = "Open OrbStack, then press r."
-			}
-		}
 	}
 	return intro.Doctor{Checks: checks, Reading: i.reading, Again: i.again,
 		SettingsReading: !i.reading && ctx.defaults == nil, TickFrom: i.tickFrom}

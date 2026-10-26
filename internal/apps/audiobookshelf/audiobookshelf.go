@@ -116,6 +116,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := firstAdmin().Setup(ctx, h); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-account", "Homarr is not installed; no Audiobookshelf account or API key is needed")
+		return nil
+	}
 	return setupHomarrCredential(ctx, h)
 }
 
@@ -127,6 +131,5 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the Admin login %s cannot sign in to Audiobookshelf", h.AdminUser())
 	}
-	_, err = VerifyHomarrCredential(ctx, h)
-	return err
+	return nil
 }

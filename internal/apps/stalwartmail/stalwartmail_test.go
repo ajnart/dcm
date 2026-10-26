@@ -19,10 +19,17 @@ type fakeSecrets map[string]string
 func (s fakeSecrets) Get(key string) string       { return s[key] }
 func (s fakeSecrets) Set(key, value string) error { s[key] = value; return nil }
 
-func handler() http.Handler {
+func handler(signedIn bool) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("<html>Stalwart admin</html>"))
+	})
+	mux.HandleFunc("GET /jmap/session", func(w http.ResponseWriter, r *http.Request) {
+		if !signedIn {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte("{}"))
 	})
 	return mux
 }
@@ -40,7 +47,7 @@ func newH(t *testing.T, srv *httptest.Server, records *[]helpers.StepResult, inp
 }
 
 func TestAdminUIReadinessDoesNotCompleteBrowserAdministrator(t *testing.T) {
-	srv := httptest.NewServer(handler())
+	srv := httptest.NewServer(handler(false))
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records, map[string]string{"STALWART_HOSTNAME": "mail.example.com", "STALWART_DOMAIN": "example.com"})
@@ -49,8 +56,8 @@ func TestAdminUIReadinessDoesNotCompleteBrowserAdministrator(t *testing.T) {
 	if err := (stalwartmail.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
 		t.Fatalf("Setup = %v, want manual administrator boundary", err)
 	}
-	if err := (stalwartmail.App{}).Check(ctx, h); err != nil {
-		t.Fatalf("Check = %v, want successful probe", err)
+	if err := (stalwartmail.App{}).Check(ctx, h); err == nil {
+		t.Fatal("Check should fail while the Admin login cannot sign in")
 	}
 	records = nil
 	if err := (stalwartmail.App{}).Setup(ctx, h); err == nil || !strings.Contains(err.Error(), "has no headless way") {
@@ -71,7 +78,7 @@ func TestAdminUIReadinessDoesNotCompleteBrowserAdministrator(t *testing.T) {
 }
 
 func TestMissingHostnameFailsWithAHint(t *testing.T) {
-	srv := httptest.NewServer(handler())
+	srv := httptest.NewServer(handler(false))
 	t.Cleanup(srv.Close)
 	var records []helpers.StepResult
 	h := newH(t, srv, &records, nil)
@@ -90,12 +97,12 @@ func TestMissingHostnameFailsWithAHint(t *testing.T) {
 	}
 }
 
-func TestCheckPassesWhenAdminUIAnswers(t *testing.T) {
-	srv := httptest.NewServer(handler())
+func TestCheckPassesWhenAdminLoginSignsIn(t *testing.T) {
+	srv := httptest.NewServer(handler(true))
 	defer srv.Close()
 	var records []helpers.StepResult
 	h := newH(t, srv, &records, map[string]string{"STALWART_HOSTNAME": "mail.example.com", "STALWART_DOMAIN": "example.com"})
 	if err := (stalwartmail.App{}).Check(context.Background(), h); err != nil {
-		t.Fatalf("Check = %v, want successful admin UI probe", err)
+		t.Fatalf("Check = %v, want a signed-in Admin login", err)
 	}
 }

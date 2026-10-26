@@ -226,6 +226,12 @@ func (f FirstAdmin) Check(ctx context.Context, h *helpers.H) error {
 	if err != nil {
 		return err
 	}
+	if f.Exists != nil {
+		exists, err := f.Exists(ctx, h)
+		if err == nil && !exists {
+			return fmt.Errorf("%w: %s has no administrator yet; run: self-host setup %s", helpers.ErrManual, h.App, h.App)
+		}
+	}
 	password := h.AdminPassword()
 	ok, err := f.signIn(ctx, h, user, password)
 	if err != nil {

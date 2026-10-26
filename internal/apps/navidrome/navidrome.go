@@ -87,7 +87,9 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	if err := setup().Setup(ctx, h); err != nil {
 		return err
 	}
-	if err := h.Step(ctx, "homarr-user", "prepare the regular Navidrome account for Homarr", helpers.StepSpec{
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-user", "Homarr is not installed; no Navidrome account is needed")
+	} else if err := h.Step(ctx, "homarr-user", "prepare the regular Navidrome account for Homarr", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
 			if h.Secret(h.Key("homarr_user_id")) == "" {
 				return false, nil
@@ -101,6 +103,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-api", "Homarr is not installed; no music API check is needed")
+		return nil
+	}
 	return h.Step(ctx, "homarr-api", "verify music API readiness", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) {
 			err := verifyMusicAPI(ctx, h)
@@ -113,11 +119,5 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
-	if err := setup().Check(ctx, h); err != nil {
-		return err
-	}
-	if err := VerifyHomarrUser(ctx, h); err != nil {
-		return err
-	}
-	return verifyMusicAPI(ctx, h)
+	return setup().Check(ctx, h)
 }

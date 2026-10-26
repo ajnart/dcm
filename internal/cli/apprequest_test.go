@@ -26,7 +26,7 @@ func TestAnAppRequestSendsOneAnonymousEventWithTheNormalisedNameAndHost(t *testi
 
 	r := clitest.Run(t, deps, cat, "apps", "request", "  Immich ", "--url", "https://Immich.app/docs?user=alice")
 
-	if r.Code != 0 || !strings.Contains(r.Out, `Noted: "immich" was requested`) {
+	if r.Code != 0 || !strings.Contains(r.Out, `Noted: "Immich" was requested`) {
 		t.Fatalf("exit %d\n%s", r.Code, r.Out)
 	}
 	requests := appRequests(net)

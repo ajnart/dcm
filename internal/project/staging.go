@@ -33,6 +33,23 @@ func (p *Project) NewStaging(folder func(id string) string) (*Staging, error) {
 
 func (s *Staging) Dir() string { return s.root }
 
+// Stale lists the scratch directories earlier Restores left in the Project,
+// excluding this one. After a failed Restore they hold the original data.
+func (s *Staging) Stale() []string {
+	entries, err := os.ReadDir(filepath.Dir(s.root))
+	if err != nil {
+		return nil
+	}
+	var stale []string
+	for _, entry := range entries {
+		dir := filepath.Join(filepath.Dir(s.root), entry.Name())
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), ".restore-") && dir != s.root {
+			stale = append(stale, dir)
+		}
+	}
+	return stale
+}
+
 func (s *Staging) Path(parts ...string) string {
 	return filepath.Join(append([]string{s.root}, parts...)...)
 }

@@ -19,7 +19,11 @@ func peanutTarget() target {
 			"showBattery": true, "showLoad": true, "showVoltage": true,
 		}}, statWidget("devices", "onBattery", "lowBattery")},
 		preflight: func(ctx context.Context, from, to *helpers.H) error {
-			if err := (peanut.App{}).Check(ctx, to); err != nil {
+			err := peanut.VerifyAPI(ctx, to)
+			if err == nil {
+				_, err = peanut.Devices(ctx, to)
+			}
+			if err != nil {
 				from.Info("PeaNUT needs its verified Project Admin login and actual UPS readings from an owner-selected NUT server. Resolve its Manual steps, then run self-host setup peanut and self-host setup homarr. Do not disable authentication, add hardware access or grant shutdown control. No Homarr resources were changed.")
 				return err
 			}

@@ -204,6 +204,7 @@ type session struct {
 	navigationError      error
 	navigationWarnings   []string
 	deferDashboard       bool
+	refreshed            []string
 }
 
 func (s *Service) open(ctx context.Context) (*session, error) {
@@ -278,13 +279,18 @@ func (ss *session) helpers(a app.App) *helpers.H {
 			inputs[input.Key] = ss.secrets.Get(SecretKey(info.ID, input.Key))
 		}
 	}
+	var baseURL, appURL string
+	if port > 0 {
+		baseURL = fmt.Sprintf("http://127.0.0.1:%d", port)
+		appURL = AppURL(ss.settings, port, info.Path)
+	}
 	return helpers.New(helpers.Config{
 		App:           info.ID,
 		Service:       info.Service,
 		ContainerPort: info.ContainerPortFor(port),
 		Dir:           ss.p.Path("apps", info.ID),
-		BaseURL:       fmt.Sprintf("http://127.0.0.1:%d", port),
-		URL:           AppURL(ss.settings, port, info.Path),
+		BaseURL:       baseURL,
+		URL:           appURL,
 		Port:          port,
 		Inputs:        inputs,
 		Settings:      ss.settings,

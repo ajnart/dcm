@@ -12,10 +12,10 @@
 
 <p align="center">
   <!-- Static while the repo is private; switch back to https://img.shields.io/github/v/release/ajnart/self-host?style=flat-square&labelColor=14121e&color=7a57d3 once it is public. -->
-  <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Release v0.6.0" src="https://img.shields.io/badge/release-v0.6.0-7a57d3?style=flat-square&labelColor=14121e"></a>
+  <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Release v0.6.1" src="https://img.shields.io/badge/release-v0.6.1-7a57d3?style=flat-square&labelColor=14121e"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-7a57d3?style=flat-square&labelColor=14121e"></a>
   <img alt="Platforms: Linux, macOS, WSL2" src="https://img.shields.io/badge/platforms-Linux%20%C2%B7%20macOS%20%C2%B7%20WSL2-7a57d3?style=flat-square&labelColor=14121e">
-  <a href="https://self-host.fyi/apps"><img alt="90 Apps in the Catalog" src="https://img.shields.io/badge/Apps-90-00d787?style=flat-square&labelColor=14121e"></a>
+  <a href="https://self-host.fyi/apps"><img alt="93 Apps in the Catalog" src="https://img.shields.io/badge/Apps-93-00d787?style=flat-square&labelColor=14121e"></a>
 </p>
 
 <p align="center">
@@ -39,18 +39,18 @@ That installs only the binary and deploys nothing. Needs Docker with the Compose
 
 Every channel installs the same release binary, byte for byte.
 
-| Channel                 | Command                                                                                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| wget                    | `wget -qO- https://self-host.fyi/install \| bash`                                                                                                            |
-| Homebrew (macOS, Linux) | `brew install ajnart/tap/self-host`                                                                                                                          |
-| Docker                  | `docker run --rm -it ghcr.io/ajnart/self-host:latest` plus socket and Home folder mounts: [full command](https://self-host.fyi/docs/getting-started#install) |
-| Debian, Ubuntu (.deb)   | `sudo apt install ./self-host_X.Y.Z_linux_amd64.deb`                                                                                                         |
-| Fedora, RHEL (.rpm)     | `sudo dnf install ./self-host_X.Y.Z_linux_amd64.rpm`                                                                                                         |
-| Alpine (.apk)           | `sudo apk add --allow-untrusted ./self-host_X.Y.Z_linux_amd64.apk`                                                                                           |
-| Arch Linux, Omarchy     | `sudo pacman -U ./self-host_X.Y.Z_linux_amd64.pkg.tar.zst`                                                                                                   |
-| Release archive         | `self-host_<version>_<os>_<arch>.tar.gz` from [Releases](https://github.com/ajnart/self-host/releases), then check it against `checksums.txt`                |
-| Go                      | `go install github.com/ajnart/self-host/cmd/self-host@latest`                                                                                                |
-| From source             | `git clone https://github.com/ajnart/self-host && cd self-host && go build -buildvcs=false -o ~/.local/bin/self-host ./cmd/self-host`                        |
+| Channel               | Command                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| wget                  | `wget -qO- https://self-host.fyi/install \| bash`                                                                                                            |
+| Homebrew (macOS)      | `brew install ajnart/tap/self-host`                                                                                                                          |
+| Docker                | `docker run --rm -it ghcr.io/ajnart/self-host:latest` plus socket and Home folder mounts: [full command](https://self-host.fyi/docs/getting-started#install) |
+| Debian, Ubuntu (.deb) | `sudo apt install ./self-host_X.Y.Z_linux_amd64.deb`                                                                                                         |
+| Fedora, RHEL (.rpm)   | `sudo dnf install ./self-host_X.Y.Z_linux_amd64.rpm`                                                                                                         |
+| Alpine (.apk)         | `sudo apk add --allow-untrusted ./self-host_X.Y.Z_linux_amd64.apk`                                                                                           |
+| Arch Linux, Omarchy   | `sudo pacman -U ./self-host_X.Y.Z_linux_amd64.pkg.tar.zst`                                                                                                   |
+| Release archive       | `self-host_<version>_<os>_<arch>.tar.gz` from [Releases](https://github.com/ajnart/self-host/releases), then check it against `checksums.txt`                |
+| Go                    | `go install github.com/ajnart/self-host/cmd/self-host@latest`                                                                                                |
+| From source           | `git clone https://github.com/ajnart/self-host && cd self-host && go build -buildvcs=false -o ~/.local/bin/self-host ./cmd/self-host`                        |
 
 Packages come from [GitHub Releases](https://github.com/ajnart/self-host/releases/latest) for `amd64` or `arm64`. Go and source builds need Go 1.26.0+ and cannot `self-update`.
 
@@ -64,7 +64,7 @@ To read the install script first: `curl -fsSL https://self-host.fyi/install -o i
 
 <p align="center"><img src="docs/assets/readme/replaces-meet.svg" width="600" alt="What it replaces: Netflix to Jellyfin, Spotify to Navidrome, Drive to Nextcloud, Dropbox to Syncthing, Photos to Immich, 1Password to Vaultwarden, Notion to Docmost, ChatGPT to Open WebUI. Every App is in the Catalog, with 82 more."></p>
 
-Choose Jellyfin for your media library, Immich for photos, Nextcloud for files or Vaultwarden for passwords, for example `self-host install immich`. Browse all 90 self-hosted Apps in the [Catalog](https://self-host.fyi/apps); see [Platforms and support](#platforms-and-support) for what has been verified.
+Choose Jellyfin for your media library, Immich for photos, Nextcloud for files or Vaultwarden for passwords, for example `self-host install immich`. Browse all 93 self-hosted Apps in the [Catalog](https://self-host.fyi/apps); see [Platforms and support](#platforms-and-support) for what has been verified.
 
 <p align="center"><img src="docs/assets/readme/hero-command.svg" width="880" alt="The install command, curl -fsSL self-host.fyi/install | bash, wired to nine Apps with data pulses travelling the wires: Jellyfin, Sonarr, Radarr, Immich, Nextcloud, Homarr, Vaultwarden, Navidrome and Home Assistant."></p>
 
@@ -81,13 +81,13 @@ Choose Jellyfin for your media library, Immich for photos, Nextcloud for files o
 
 | ✅ Does                                                                         | ❌ Doesn't                                                                      |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Ships the Catalog inside the binary: 90 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                           |
+| Ships the Catalog inside the binary: 93 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                           |
 | Runs headless Setup for each App: accounts, API keys, settings.                 | Touch anything outside its one Compose Project in `~/.self-host`.               |
 | Wires Apps together with Links, and gives Homarr native tiles.                  | Back up media libraries or data outside App folders.                            |
 | Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows. Use WSL2.                                                |
 | Offers Access from the Home network to Tailscale, Cloudflare or your own proxy. | Ship indexers, trackers or content sources.                                     |
 | Backs up and restores with optional encryption.                                 | Prove safe version-to-version migration. Update checks are not migration tests. |
-| Gives agents plain commands with `--json` output.                               | Make every App work: four are hidden ([details](#platforms-and-support)).       |
+| Gives agents plain commands with `--json` output.                               | Make every App work: one is hidden ([details](#platforms-and-support)).         |
 
 A **Recipe** is a pre-wired bundle: `media` is qBittorrent, Sonarr, Radarr, Prowlarr, Jellyfin and Seerr.
 
@@ -262,7 +262,7 @@ Each status below is a dated launch run on a real host or VM, linked to its issu
 
 Known issues from these runs, both fixed in v0.6.0: a newcomer saw Nextcloud's Homarr credential-recovery inputs and Review listed port 7575 ([#589](https://github.com/ajnart/self-host/issues/589)); removing the last App left its network and `down` refused ([#590](https://github.com/ajnart/self-host/issues/590)).
 
-Four Apps failed on real hosts and are hidden from new installs until each passes on a VM: BookStack ([#416](https://github.com/ajnart/self-host/issues/416)), LLDAP ([#452](https://github.com/ajnart/self-host/issues/452)), Passbolt ([#456](https://github.com/ajnart/self-host/issues/456)) and Speedtest Tracker ([#66](https://github.com/ajnart/self-host/issues/66)). Existing installs keep working ([#493](https://github.com/ajnart/self-host/issues/493)). Apps beyond those in the runs above have no launch run, so the older [runtime matrix](docs/runtime-matrix.md), a 2026-10-07 snapshot, is a pre-launch record, not a promise.
+One App, Passbolt ([#456](https://github.com/ajnart/self-host/issues/456)), is hidden from new installs until it passes on a VM. BookStack, LLDAP and Speedtest Tracker passed a VM run on 2026-10-25 and are offered again. Existing installs keep working ([#493](https://github.com/ajnart/self-host/issues/493)). Apps beyond those in the runs above have no launch run, so the older [runtime matrix](docs/runtime-matrix.md), a 2026-10-07 snapshot, is a pre-launch record, not a promise.
 
 Docker socket denied? Run `sudo "$(command -v self-host)"`. The Project, config and cache stay yours. Rootless Docker also works.
 
@@ -308,7 +308,7 @@ Anonymous, on by default, and easy to turn off.
 
 Nothing is stored to link one run to another. The maintainers use it to see which Apps people install and where Setup breaks. It is never sold or shared.
 
-To turn it off, set `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. The full list is on the [telemetry page](https://self-host.fyi/telemetry).
+To turn it off, set `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` (or `true`). The full list is on the [telemetry page](https://self-host.fyi/telemetry).
 
 </details>
 

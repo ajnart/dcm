@@ -115,6 +115,10 @@ func (o *onboarding) stepIntro(ctx *viewContext, s step) []string {
 	switch s {
 	case stepWhat:
 		text = "Pick the Apps you want to run, or a Recipe: a ready-made set of Apps that work together. You can add more later from the Catalog."
+		if ctx.mainHeight() < 19 {
+			text = "Pick Apps to run, or a Recipe: a ready-made set of Apps."
+			break
+		}
 		if o.answers.picks["homarr"] {
 			text += " Homarr is preselected as your Apps' home page; unpick its App row to skip it."
 		}

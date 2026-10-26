@@ -101,7 +101,7 @@ func (ss *session) renderTailscale() (bool, error) {
 	if !changed {
 		return false, nil
 	}
-	return true, ss.p.WriteFragment(tailscaleID, fragment)
+	return true, ss.writeFragment(tailscaleID, fragment)
 }
 
 // retireNode stops and removes an App's node before the App goes.

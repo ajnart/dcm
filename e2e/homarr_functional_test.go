@@ -5,7 +5,9 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -228,8 +230,8 @@ func TestHomarrFunctional(t *testing.T) {
 		return current.validate(ports, secrets, []string{"ntfy", "jellyfin"})
 	})
 	hfStage(r, "credential-recovery", func() error {
-		// Only the generated, owned token is perturbed. Running Homarr alone
-		// exercises its consuming Link rather than ntfy's token repair step.
+		// Only the generated, owned token is perturbed. Setup runs the Link
+		// target first, so ntfy re-issues the token before Homarr links it.
 		stored, err := p.LoadSecrets()
 		if err != nil {
 			return errors.New("owned credentials unavailable for targeted recovery")
@@ -240,29 +242,20 @@ func TestHomarrFunctional(t *testing.T) {
 		if p.SaveSecrets(stored) != nil {
 			return errors.New("could not seed the owned invalid token")
 		}
-		failed := r.run("setup", "homarr", "--json")
-		useful, targetFailed, hintPresent := false, false, false
-		starts, skips, successes, failures := 0, 0, 0, 0
-		for _, event := range failed.events {
-			if event.App != "homarr" || event.Step != "link-ntfy" {
-				continue
-			}
-			switch event.Event {
-			case "step.start":
-				starts++
-			case "step.skip":
-				skips++
-			case "step.ok":
-				successes++
-			case "step.fail":
-				failures++
-				targetFailed = true
-				hintPresent = hintPresent || event.Hint != ""
-				useful = useful || strings.Contains(event.Error+event.Hint, "self-host setup homarr")
+		perturbed := stored["NTFY_HOMARR_TOKEN"]
+		recovered := r.run("setup", "homarr", "--json")
+		repaired, linked := false, false
+		for _, event := range recovered.events {
+			switch {
+			case event.App == "ntfy" && event.Step == "topic-token" && event.Event == "step.ok":
+				repaired = true
+			case event.App == "homarr" && event.Step == "link-ntfy" && event.Event == "step.ok":
+				linked = true
 			}
 		}
-		if failed.code != exitIncomplete || !useful {
-			return fmt.Errorf("invalid integration credential did not produce a targeted retry operation: exit=%d, target_step_fail=%t, hint_present=%t, retry_present=%t, ntfy_start=%d, ntfy_skip=%d, ntfy_ok=%d, ntfy_fail=%d", failed.code, targetFailed, hintPresent, useful, starts, skips, successes, failures)
+		healed, err := p.LoadSecrets()
+		if err != nil || recovered.code != 0 || !repaired || !linked || healed["NTFY_HOMARR_TOKEN"] == "" || healed["NTFY_HOMARR_TOKEN"] == perturbed {
+			return fmt.Errorf("invalid integration credential was not repaired by one Setup: exit=%d, token_repaired=%t, link_ok=%t", recovered.code, repaired, linked)
 		}
 		stored["NTFY_HOMARR_TOKEN"] = original
 		if p.SaveSecrets(stored) != nil {
@@ -1531,6 +1524,9 @@ func (inv hfInventory) validate(ports map[string]int, secrets map[string]string,
 	if slices.Contains(expected, "jellyfin") {
 		expectedIntegrations["jellyfin"] = []string{"mediaServer", "mediaReleases", "stats"}
 	}
+	if slices.Contains(expected, "gatus") {
+		expectedIntegrations["gatus"] = []string{"stats"}
+	}
 	if len(inv.Integrations) != len(expectedIntegrations) {
 		return errors.New("dedicated integration inventory is missing or duplicated")
 	}
@@ -1592,27 +1588,32 @@ func (inv hfInventory) validate(ports map[string]int, secrets map[string]string,
 			if len(item.IntegrationIDs) != 0 {
 				return errors.New("App tile has an unexpected integration")
 			}
-			if seedIDs[id] && (len(item.Options) != 3 || item.Options["openInNewTab"] != true || item.Options["showTitle"] != true) {
+			if seedIDs[id] && (len(item.Options) != 3 || !hfOpensInNewTab(item.Options) || item.Options["showTitle"] != true) {
 				return errors.New("upstream bookmark tile shape differs from the source seed")
 			}
-			if appIDs[id] && (len(item.Options) != 3 || item.Options["openInNewTab"] != true || item.Options["showTitle"] != true) {
+			if appIDs[id] && (len(item.Options) != 3 || !hfOpensInNewTab(item.Options) || item.Options["showTitle"] != true) {
 				return errors.New("managed App tile flags differ from the generated configuration")
 			}
 			tiles[id]++
 			continue
 		}
+		if item.Kind == "assistant" && len(item.IntegrationIDs) == 0 {
+			continue
+		}
 		if item.Kind != "notebook" {
-			if len(item.IntegrationIDs) != 1 {
+			if len(item.IntegrationIDs) == 0 || len(item.IntegrationIDs) > 1 && item.Kind != "stats" {
 				return errors.New("unexpected board widget survived reconciliation")
 			}
-			kind := ""
-			for _, integration := range inv.Integrations {
-				if integration.ID == item.IntegrationIDs[0] {
-					kind = integration.Kind
+			for _, integrationID := range item.IntegrationIDs {
+				kind := ""
+				for _, integration := range inv.Integrations {
+					if integration.ID == integrationID {
+						kind = integration.Kind
+					}
 				}
-			}
-			if !slices.Contains(expectedIntegrations[kind], item.Kind) {
-				return errors.New("unexpected board widget survived reconciliation")
+				if !slices.Contains(expectedIntegrations[kind], item.Kind) {
+					return errors.New("unexpected board widget survived reconciliation")
+				}
 			}
 			continue
 		}
@@ -1661,25 +1662,48 @@ func (inv hfInventory) validate(ports map[string]int, secrets map[string]string,
 	return nil
 }
 
-// The owning Homarr links.go targets declare one visible, noncompact metric:
-// ntfy messages and Jellyfin sessions. Entry IDs are auto-stack- followed by
-// the first 32 hex characters of SHA256(metric), as statsEntryID specifies.
+// Homarr persists the tile's new-tab flag as openIn: "newTab" and still
+// accepts the legacy openInNewTab: true that self-host sends.
+func hfOpensInNewTab(options map[string]any) bool {
+	return options["openIn"] == "newTab" || options["openInNewTab"] == true
+}
+
+// The owning Homarr targets declare visible, noncompact metrics: ntfy
+// messages, Jellyfin sessions and Gatus up/down/unknown/total. Entry IDs are
+// auto-stack- followed by the first 32 hex characters of
+// SHA256(integrationID + ":" + metric), as statsEntryID specifies. All
+// integrations share one stats widget, so each contributes its own entries.
 func hfGeneratedStatsMatches(item hfItem, kind, integrationID string) bool {
-	metric, entryID := "", ""
+	var metrics []string
 	switch kind {
 	case "ntfy":
-		metric, entryID = "messages", "auto-stack-f5cccfb737512bedd4f2e39e7d72425a"
+		metrics = []string{"messages"}
 	case "jellyfin":
-		metric, entryID = "sessions", "auto-stack-1225ae6c1ae69dcb4ee4781b703e1220"
+		metrics = []string{"sessions"}
+	case "gatus":
+		metrics = []string{"up", "down", "unknown", "total"}
 	default:
 		return false
 	}
 	entries, ok := item.Options["entries"].([]any)
-	if !ok || len(item.Options) != 1 || len(entries) != 1 {
+	if !ok || len(item.Options) != 1 {
 		return false
 	}
-	entry, ok := entries[0].(map[string]any)
-	return ok && len(entry) == 6 && entry["id"] == entryID && entry["metric"] == metric && entry["integrationId"] == integrationID && entry["label"] == "" && entry["hidden"] == false && entry["compact"] == false
+	seen := map[string]bool{}
+	for _, raw := range entries {
+		entry, ok := raw.(map[string]any)
+		if !ok || entry["integrationId"] != integrationID {
+			continue
+		}
+		metric, _ := entry["metric"].(string)
+		sum := sha256.Sum256([]byte(integrationID + ":" + metric))
+		entryID := "auto-stack-" + hex.EncodeToString(sum[:])[:32]
+		if seen[metric] || !slices.Contains(metrics, metric) || len(entry) != 6 || entry["id"] != entryID || entry["label"] != "" || entry["hidden"] != false || entry["compact"] != false {
+			return false
+		}
+		seen[metric] = true
+	}
+	return len(seen) == len(metrics)
 }
 
 // seedBoardWidgetsAsync/placeAllWidgetsAsync retain four bookmark App tiles

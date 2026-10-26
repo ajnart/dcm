@@ -31,7 +31,14 @@ func (App) Info() app.Info {
 	}
 }
 
-func (App) Inputs() []app.Input { return nil }
+func (App) Inputs() []app.Input {
+	return []app.Input{
+		{Key: "soulseek-username", Prompt: "Soulseek username (optional)", Private: true,
+			Help: "Your own Soulseek network account, not the Web UI login. Leave both empty to add it later in Slskd."},
+		{Key: "soulseek-password", Prompt: "Soulseek password (optional)", Private: true,
+			Help: "The password of that Soulseek account. Supply both or neither."},
+	}
+}
 
 // Secrets declares the primary API key the image documents, so the documented
 // slskd/slskd defaults are never retained.
@@ -45,6 +52,12 @@ func (App) Files(app.RenderContext, func(string) string) []app.File {
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
+	soulseek := ""
+	if rc.Inputs["soulseek-username"] != "" && rc.Inputs["soulseek-password"] != "" {
+		soulseek = `      SLSKD_SLSK_USERNAME: ${SLSKD_SOULSEEK_USERNAME}
+      SLSKD_SLSK_PASSWORD: ${SLSKD_SOULSEEK_PASSWORD}
+`
+	}
 	return `services:
   slskd:
     image: ghcr.io/slskd/slskd:latest
@@ -55,7 +68,7 @@ func (App) Compose(rc app.RenderContext) string {
       SLSKD_PASSWORD: ${ADMIN_PASSWORD}
       SLSKD_API_KEY: role=ReadOnly;${SLSKD_API_KEY}
       SLSKD_DOWNLOADS_DIR: /downloads
-    volumes:
+` + soulseek + `    volumes:
       - ./app:/app
       - ${DOWNLOADS_ROOT}:/downloads
     ports:
@@ -153,12 +166,24 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	return h.Step(ctx, "soulseek", "verify the Soulseek connection", helpers.StepSpec{
-		Check:      func(ctx context.Context) (bool, error) { return soulseekReady(ctx, h) },
-		Do:         func(ctx context.Context) error { return VerifySoulseek(ctx, h) },
-		Hint:       soulseekHint(h),
-		Credential: "admin",
-	})
+	return noteSoulseek(ctx, h)
+}
+
+// noteSoulseek says what is left when no Soulseek account is connected; the
+// Web UI is already secured, so this is not a Manual step.
+func noteSoulseek(ctx context.Context, h *helpers.H) error {
+	ready, err := soulseekReady(ctx, h)
+	if err != nil {
+		return err
+	}
+	if ready {
+		return nil
+	}
+	if h.Inputs["soulseek-username"] != "" && h.Inputs["soulseek-password"] != "" {
+		return errors.New("slskd is not connected to the Soulseek network with the supplied account; check the Soulseek username and password, then retry self-host setup slskd")
+	}
+	h.Info(soulseekHint(h))
+	return nil
 }
 
 // Check verifies the Web UI login and the generated primary API key. It does
@@ -170,7 +195,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if err := VerifyHomarr(ctx, h); err != nil {
 		return err
 	}
-	return VerifySoulseek(ctx, h)
+	return noteSoulseek(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

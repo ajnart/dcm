@@ -171,28 +171,27 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
-	return h.Step(ctx, "ups-data", "verify discovered UPS readings", helpers.StepSpec{
-		Check: func(ctx context.Context) (bool, error) {
-			_, err := Devices(ctx, h)
-			return err == nil, err
-		},
-		Do: func(ctx context.Context) error {
-			_, err := Devices(ctx, h)
-			return err
-		},
-		Hint: "Open " + h.URL + " and connect an owner-selected existing NUT server with unique UPS names. " +
-			"Verify its driver supplies UPS status and battery charge, then retry self-host setup peanut and self-host setup homarr. " +
-			"This does not configure hardware, grant control access or prove physical UPS health; a dummy source verifies only API behavior.",
-		Credential: "admin",
-	})
+	return noteUPS(ctx, h)
+}
+
+// noteUPS says what is left when no NUT server feeds PeaNUT; the dashboard is
+// already secured, so this is not a Manual step.
+func noteUPS(ctx context.Context, h *helpers.H) error {
+	_, err := Devices(ctx, h)
+	if errors.Is(err, helpers.ErrManual) {
+		h.Info("Open " + h.URL + " and connect an owner-selected existing NUT server with unique UPS names; PeaNUT shows nothing until then. " +
+			"Verify its driver supplies UPS status and battery charge, then run self-host setup peanut and self-host setup homarr. " +
+			"This does not configure hardware or grant control access.")
+		return nil
+	}
+	return err
 }
 
 func (App) Check(ctx context.Context, h *helpers.H) error {
 	if err := VerifyAPI(ctx, h); err != nil {
 		return err
 	}
-	_, err := Devices(ctx, h)
-	return err
+	return noteUPS(ctx, h)
 }
 
 func (App) Links() []app.Link { return nil }

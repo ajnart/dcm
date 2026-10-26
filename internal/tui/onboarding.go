@@ -444,6 +444,9 @@ func (o *onboarding) openStep(ctx *viewContext, s step) tea.Cmd {
 func (o *onboarding) checkPlan(ctx *viewContext) {
 	o.plan = planFromAnswers(ctx.backend, o.answers)
 	o.hostChecks = ctx.backend.OnboardingChecks(context.Background(), o.plan.opts)
+	for i, c := range o.hostChecks {
+		o.hostChecks[i] = dockerDown(c)
+	}
 	for _, check := range o.hostChecks {
 		if check.ID == "port" && check.Level != host.Fail && check.Input != "" && check.Port > 0 {
 			o.plan.opts.Sets = append(o.plan.opts.Sets, check.App+"."+check.Input+"="+strconv.Itoa(check.Port))

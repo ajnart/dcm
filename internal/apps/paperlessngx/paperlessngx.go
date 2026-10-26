@@ -158,6 +158,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}).Admin(ctx, h); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("api-key", "Homarr is not installed; no Paperless-ngx token is needed")
+		return nil
+	}
 	return h.Step(ctx, "api-key", "save a read-only Paperless-ngx token for Homarr", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return homarrTokenWorks(ctx, h) },
 		Do:    func(ctx context.Context) error { return ensureHomarrToken(ctx, h) },
@@ -175,13 +179,6 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	}
 	if !ok {
 		return fmt.Errorf("the administrator %s cannot sign in to Paperless-ngx", h.AdminUser())
-	}
-	ok, err = homarrTokenWorks(ctx, h)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return fmt.Errorf("Paperless-ngx's saved read-only token is unavailable; run self-host setup paperless-ngx")
 	}
 	return nil
 }

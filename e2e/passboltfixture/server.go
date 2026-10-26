@@ -64,12 +64,16 @@ type Server struct {
 
 func Start(https, smtp net.Listener, backend string, certificate tls.Certificate) (*Server, error) {
 	target, err := url.Parse(backend)
-	if err != nil || target.Scheme != "http" || (target.Hostname() != "passbolt" && target.Hostname() != "127.0.0.1") || target.Port() == "" {
+	if err != nil || (target.Scheme != "http" && target.Scheme != "https") || (target.Hostname() != "passbolt" && target.Hostname() != "127.0.0.1") || target.Port() == "" {
 		https.Close()
 		smtp.Close()
 		return nil, errors.New("invalid owned Passbolt backend")
 	}
 	transport := &http.Transport{Proxy: nil}
+	if target.Scheme == "https" {
+		// Passbolt's own self-signed listener, reached only on the owned Project network.
+		transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.Transport = transport
 	director := proxy.Director

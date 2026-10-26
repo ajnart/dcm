@@ -29,6 +29,8 @@ type fakeVaultwarden struct {
 	loginLimit int
 	// noConfig makes the diagnostics endpoint answer 404, like a version without it.
 	noConfig bool
+	// expired makes every saved session cookie stale.
+	expired bool
 }
 
 func (f *fakeVaultwarden) handler() http.Handler {
@@ -66,7 +68,7 @@ func (f *fakeVaultwarden) handler() http.Handler {
 			return
 		}
 		cookie, err := r.Cookie("VW_ADMIN")
-		if err != nil || cookie.Value != "jwt-for-"+f.token {
+		if err != nil || f.expired || cookie.Value != "jwt-for-"+f.token {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -252,8 +254,8 @@ func TestInstallAndSetupRerunsStayUnderTheLoginRateLimit(t *testing.T) {
 			t.Errorf("run %d: exit %d\n%s", i, r.Code, r.Out)
 		}
 	}
-	if fake.logins != 3 {
-		t.Errorf("want one admin login per run, got %d for 3 runs", fake.logins)
+	if fake.logins != 1 {
+		t.Errorf("want the admin session reused across runs, got %d logins for 3 runs", fake.logins)
 	}
 }
 
@@ -261,21 +263,22 @@ func TestARateLimitedLoginIsNotBlamedOnTheToken(t *testing.T) {
 	deps, fake, _, server, cat := setup(t)
 	clitest.Run(t, deps, cat, "install", "vaultwarden", "--yes", "--set", "vaultwarden.port="+clitest.Port(server))
 	fake.logins = fake.loginLimit
+	fake.expired = true
 
 	r := clitest.Run(t, deps, cat, "setup", "vaultwarden", "--json")
 
-	if r.Code != 2 {
-		t.Fatalf("exit %d, want 2\n%s", r.Code, r.Out)
+	if r.Code != 3 {
+		t.Fatalf("exit %d, want 3\n%s", r.Code, r.Out)
 	}
 	fail := r.Step("vaultwarden", "admin-access")
-	if fail == nil || fail["event"] != "step.fail" {
-		t.Fatalf("admin-access should fail:\n%s", r.Out)
+	if fail == nil || fail["event"] != "step.manual" {
+		t.Fatalf("admin-access should need a manual retry:\n%s", r.Out)
 	}
 	hint, _ := fail["hint"].(string)
 	if !strings.Contains(hint, "wait about 5 minutes") || !strings.Contains(hint, "self-host setup vaultwarden") || strings.Contains(hint, "self-host start") {
 		t.Errorf("hint should say to wait and rerun setup, got %q", hint)
 	}
-	if strings.Contains(fail["error"].(string), "rejected") {
+	if msg, _ := fail["error"].(string); strings.Contains(msg, "rejected") {
 		t.Errorf("error blames the token: %v", fail["error"])
 	}
 }

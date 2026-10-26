@@ -114,6 +114,9 @@ func writeJSON(w io.Writer, v any) error {
 // many Apps, what each is for and where to open it, the dashboard, and where
 // everything lives.
 func printSummary(w io.Writer, s service.Status) {
+	if s.DockerError != "" {
+		fmt.Fprintln(w, "⚠ Docker is not reachable, so App states below are unknown.")
+	}
 	switch len(s.Apps) {
 	case 0:
 		fmt.Fprintln(w, "You have no Apps yet.")
@@ -168,6 +171,7 @@ func printStatus(w io.Writer, s service.Status, colour bool) {
 	fmt.Fprintf(w, "Settings  TZ=%s PUID=%s PGID=%s UMASK=%s\n", s.Settings["TZ"], s.Settings["PUID"], s.Settings["PGID"], s.Settings["UMASK"])
 	if s.DockerError != "" {
 		fmt.Fprintf(w, "Docker    unavailable: %s\n", s.DockerError)
+		printDockerAdvice(w, s.DockerHint, s.DockerDocs)
 	}
 	fmt.Fprintln(w)
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)

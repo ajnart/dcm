@@ -92,7 +92,7 @@ func TestRegistersTheFirstOwnerThenProvesIt(t *testing.T) {
 	server := httptest.NewServer((&fakeTdarr{}).handler())
 	defer server.Close()
 	rec := &porttest.Recorder{}
-	h := porttest.New(t, porttest.Options{App: "tdarr", Service: "tdarr",
+	h := porttest.New(t, porttest.Options{App: "tdarr", Service: "tdarr", Homarr: true,
 		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "secret", "TDARR_API_KEY_SEED": "fixture_tdarr_key_seed"}}, server, rec)
 
 	if err := (tdarr.App{}).Setup(context.Background(), h); err != nil {
@@ -113,7 +113,7 @@ func TestRerunSkipsEveryStep(t *testing.T) {
 	server := httptest.NewServer((&fakeTdarr{password: "secret", token: "t1"}).handler())
 	defer server.Close()
 	rec := &porttest.Recorder{}
-	h := porttest.New(t, porttest.Options{App: "tdarr", Service: "tdarr",
+	h := porttest.New(t, porttest.Options{App: "tdarr", Service: "tdarr", Homarr: true,
 		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "secret", "TDARR_API_KEY_SEED": "fixture_tdarr_key_seed", "TDARR_HOMARR_API_KEY": "tapi_fixture_tdarr_key_seed"}}, server, rec)
 
 	if err := (tdarr.App{}).Setup(context.Background(), h); err != nil {
@@ -131,7 +131,7 @@ func TestTheHintNamesTheFirstRunPage(t *testing.T) {
 	server := httptest.NewServer((&fakeTdarr{password: "changed", token: "t1"}).handler())
 	defer server.Close()
 	rec := &porttest.Recorder{}
-	h := porttest.New(t, porttest.Options{App: "tdarr", Service: "tdarr",
+	h := porttest.New(t, porttest.Options{App: "tdarr", Service: "tdarr", Homarr: true,
 		Secrets: porttest.Secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "secret"}}, server, rec)
 
 	if err := (tdarr.App{}).Setup(context.Background(), h); err == nil {

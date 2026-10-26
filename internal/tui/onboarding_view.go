@@ -245,6 +245,15 @@ func (o *onboarding) folderListing(key string, width int) []string {
 // its name, then its words and, for a Recipe, its Apps.
 const whatDetailLines = 5
 
+// whatDetailRoom is whatDetailLines, less on a short window so the list
+// keeps more rows.
+func whatDetailRoom(ctx *viewContext) int {
+	if ctx.mainHeight() < 19 {
+		return 3
+	}
+	return whatDetailLines
+}
+
 // whatDetail describes the item under the highlight of the What list.
 func (o *onboarding) whatDetail(ctx *viewContext) []string {
 	list := o.list
@@ -285,8 +294,8 @@ func (o *onboarding) whatDetail(ctx *viewContext) []string {
 	if extra != "" {
 		body = append(body, strings.Split(wrap(extra, width), "\n")...)
 	}
-	if len(body) > whatDetailLines-1 {
-		body = body[:whatDetailLines-1]
+	if room := whatDetailRoom(ctx); len(body) > room-1 {
+		body = body[:room-1]
 		body[len(body)-1] = truncate(body[len(body)-1]+"…", width)
 	}
 	lines := []string{"  " + t.heading().Render(name)}

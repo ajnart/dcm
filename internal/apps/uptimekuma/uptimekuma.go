@@ -67,39 +67,21 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
-func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
-	unauthenticated, err := h.HTTP(ctx, helpers.Request{Path: "/metrics", NoRedirect: true})
-	if err != nil {
-		return false, err
-	}
-	if unauthenticated.Status == 200 {
-		h.Info("Uptime Kuma metrics did not require a login; restore authentication in Settings, then retry self-host setup uptime-kuma. An open metrics endpoint cannot verify the Admin login.")
-		return false, helpers.ErrManual
-	}
-	if unauthenticated.Status != 401 {
-		return false, fmt.Errorf("Uptime Kuma metrics authentication probe returned HTTP %d; read its logs and retry Setup", unauthenticated.Status)
-	}
-	resp, err := h.HTTP(ctx, helpers.Request{Path: "/metrics", User: user, Password: password, NoRedirect: true})
-	if err != nil {
-		return false, err
-	}
-	if resp.Status == 401 {
-		h.Info("Open Uptime Kuma and verify the saved Admin login. If API keys are enabled, metrics no longer accepts that login and this CLI cannot verify the Socket.IO sign-in; keep existing keys and authentication unchanged.")
-		return false, nil
-	}
-	if !resp.OK() {
-		return false, errors.New("the metrics endpoint did not accept the Admin login (HTTP " + strconv.Itoa(resp.Status) + ")")
-	}
-	return strings.Contains(string(resp.Body), "# HELP") || strings.Contains(string(resp.Body), "# TYPE"), nil
-}
-
 func setup() firstadmin.FirstAdmin {
 	return firstadmin.FirstAdmin{
 		Ready: firstadmin.Probe{Path: "/"},
-		Login: loginWorks,
-		Manual: "Uptime Kuma creates its first administrator in the web UI and has no HTTP setup API; " +
-			"create it only if this is a new App. Do not replace an existing account or disable authentication. " +
-			"API-key metrics authentication cannot verify the Admin login; keep existing keys unchanged",
+		Exists: func(ctx context.Context, h *helpers.H) (bool, error) {
+			pending, err := h.SocketIOSetupPending(ctx)
+			return !pending, err
+		},
+		Create: func(ctx context.Context, h *helpers.H, user, password string) error {
+			return h.SocketIOCreateAdmin(ctx, user, password)
+		},
+		Login: func(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
+			return h.SocketIOLogin(ctx, user, password)
+		},
+		Manual: "Uptime Kuma creates its first administrator over Socket.IO; if Setup cannot, " +
+			"create it in the web UI only if this is a new App. Do not replace an existing account or disable authentication",
 	}
 }
 

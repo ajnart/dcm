@@ -40,7 +40,7 @@ func hfSeededInventoryFixture() hfInventory {
 		hfItem{ID: "tile-ntfy", Kind: "app", Options: map[string]any{"appId": "owned-ntfy", "openInNewTab": true, "showTitle": true}},
 		hfItem{ID: "notifications", Kind: "notifications", IntegrationIDs: []string{"integration-ntfy"}},
 		hfItem{ID: "stats", Kind: "stats", IntegrationIDs: []string{"integration-ntfy"}, Options: map[string]any{"entries": []any{map[string]any{
-			"id": "auto-stack-f5cccfb737512bedd4f2e39e7d72425a", "metric": "messages", "integrationId": "integration-ntfy", "label": "", "hidden": false, "compact": false,
+			"id": "auto-stack-d018817345f0489c7211dd39e1ae45c4", "metric": "messages", "integrationId": "integration-ntfy", "label": "", "hidden": false, "compact": false,
 		}}}},
 		hfItem{ID: "notebook", Kind: "notebook", Options: map[string]any{"content": "Your homelab at a glance ntfy http://127.0.0.1:8080"}},
 	)
@@ -62,7 +62,7 @@ func hfStatsInventoryFixture(kind string) hfInventory {
 	inv.Board.Items[8].IntegrationIDs = []string{"integration-jellyfin"}
 	inv.Board.Items[9].IntegrationIDs = []string{"integration-jellyfin"}
 	inv.Board.Items[9].Options = map[string]any{"entries": []any{map[string]any{
-		"id": "auto-stack-1225ae6c1ae69dcb4ee4781b703e1220", "metric": "sessions", "integrationId": "integration-jellyfin", "label": "", "hidden": false, "compact": false,
+		"id": "auto-stack-539737af046b9808097e691321ac5b6e", "metric": "sessions", "integrationId": "integration-jellyfin", "label": "", "hidden": false, "compact": false,
 	}}}
 	inv.Board.Items[10].Options["content"] = strings.ReplaceAll(inv.Board.Items[10].Options["content"].(string), "ntfy", "Jellyfin")
 	inv.Board.Items = append(inv.Board.Items, hfItem{ID: "releases", Kind: "mediaReleases", IntegrationIDs: []string{"integration-jellyfin"}})

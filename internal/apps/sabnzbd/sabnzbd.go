@@ -203,19 +203,18 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}); err != nil {
 		return err
 	}
+	if configured, err := providerConfigured(ctx, h); err == nil && !configured {
+		h.Info("SABnzbd is secured and ready; add your own Usenet provider in SABnzbd > Config > Servers to start downloading. Setup creates no provider account and makes no provider request.")
+		h.Skip("provider", "no Usenet provider yet; add one when you are ready")
+		return nil
+	}
 	return h.Step(ctx, "provider", "check for an existing Usenet provider", helpers.StepSpec{
 		Check: func(ctx context.Context) (bool, error) { return providerConfigured(ctx, h) },
 		Do: func(ctx context.Context) error {
-			configured, err := providerConfigured(ctx, h)
-			if err != nil {
-				return err
-			}
-			if configured {
-				return nil
-			}
-			return fmt.Errorf("%w: the API is ready, but no enabled Usenet provider is configured", helpers.ErrManual)
+			_, err := providerConfigured(ctx, h)
+			return err
 		},
-		Hint:       "Open SABnzbd > Config > Servers (or its first-run wizard) and configure your own authorized Usenet provider, then run self-host setup sabnzbd and self-host setup homarr. No provider account is created or tested by Setup.",
+		Hint:       "Open SABnzbd > Config > Servers and configure your own authorized Usenet provider, then run self-host setup sabnzbd and self-host setup homarr. No provider account is created or tested by Setup.",
 		Credential: "admin",
 	})
 }
@@ -227,12 +226,6 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if _, err := verifyAPIKey(ctx, h, h.Secret(h.Key("api_key"))); err != nil {
 		return err
 	}
-	configured, err := providerConfigured(ctx, h)
-	if err != nil {
-		return err
-	}
-	if !configured {
-		return fmt.Errorf("%w: the SABnzbd API is ready, but no enabled Usenet provider is configured; open Config > Servers and retry self-host setup sabnzbd", helpers.ErrManual)
-	}
-	return nil
+	_, err := providerConfigured(ctx, h)
+	return err
 }

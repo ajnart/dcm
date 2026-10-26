@@ -3,7 +3,6 @@ package nzbget_test
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -76,11 +75,20 @@ func handler(settings ...*sync.Map) http.Handler {
 	return mux
 }
 
+type infoCounter struct{ seen, read int }
+
+func (c *infoCounter) next() int {
+	n := c.seen - c.read
+	c.read = c.seen
+	return n
+}
+
 func newH(t *testing.T, srv *httptest.Server, results *[]helpers.StepResult) *helpers.H {
 	t.Helper()
 	deps := systemtest.NewDeps(t)
 	return helpers.New(helpers.Config{
-		App: "nzbget", Service: "nzbget",
+		Peer: func(string) *helpers.H { return &helpers.H{} },
+		App:  "nzbget", Service: "nzbget",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Secrets: secrets{
 			"ADMIN_USER": "admin", "ADMIN_PASSWORD": password,
@@ -103,6 +111,12 @@ func TestSetupCheckPass(t *testing.T) {
 	defer srv.Close()
 	var results []helpers.StepResult
 	h := newH(t, srv, &results)
+	infos := &infoCounter{}
+	h.Log.AddSink(events.SinkFunc(func(e events.Event) {
+		if e.Event == events.Info {
+			infos.seen++
+		}
+	}))
 	deps := systemtest.NewDeps(t)
 	runner := deps.Runner.(*systemtest.Runner)
 	h.Config.Exec = compose.New(deps, h.Log, t.TempDir(), "owned-fixture")
@@ -190,11 +204,11 @@ assert stat.S_IMODE(saved.st_mode) == 0o600
 		{"Name": "Server1.Connections", "Value": "8"},
 	})
 	results = nil
-	if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
-		t.Fatal("placeholder-only provider configuration must remain Manual")
+	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil || infos.next() == 0 {
+		t.Fatal("placeholder-only provider configuration must say a provider is still to add")
 	}
-	if len(results) == 0 || results[len(results)-1].ID != "usenet-provider" || results[len(results)-1].Status != stepstatus.StepManual || !strings.Contains(results[len(results)-1].Hint, "configuration only") {
-		t.Fatal("missing provider must be a separate retryable settings-only Manual step")
+	if len(results) == 0 || results[len(results)-1].ID != "usenet-provider" || results[len(results)-1].Status != stepstatus.StepSkip {
+		t.Fatal("missing provider must be a separate retryable finished step")
 	}
 	if err := (nzbget.App{}).Check(t.Context(), h); err != nil {
 		t.Fatal("provider-unavailable settings must not invalidate authenticated idle RPC")
@@ -210,20 +224,20 @@ assert stat.S_IMODE(saved.st_mode) == 0o600
 	}...)
 	second = second[:len(second):len(second)]
 	settings.Store("config", second)
-	if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
-		t.Fatal("Server2 alone must remain Manual because NZBGet stops at absent Server1")
+	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil || infos.next() == 0 {
+		t.Fatal("Server2 alone must say a provider is still to add because NZBGet stops at absent Server1")
 	}
 	settings.Store("config", append(second, map[string]string{"Name": "Server1.Active", "Value": "no"}))
-	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil {
+	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil || infos.next() != 0 {
 		t.Fatal("a disabled Server1 definition must allow configured Server2 settings")
 	}
 	settings.Store("config", append(second, map[string]string{"Name": "Server1.Name", "Value": ""}))
-	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil {
+	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil || infos.next() != 0 {
 		t.Fatal("an incomplete recognized Server1 definition must allow consecutive Server2 settings")
 	}
 	for _, key := range []string{"Unknown", "Notes", "IpVersion", "CertVerification"} {
 		settings.Store("config", append(second, map[string]string{"Name": "Server1." + key, "Value": ""}))
-		if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+		if err := (nzbget.App{}).Setup(t.Context(), h); err != nil || infos.next() == 0 {
 			t.Fatal("a field excluded from upstream definition presence must not open the provider sequence")
 		}
 	}
@@ -233,12 +247,12 @@ assert stat.S_IMODE(saved.st_mode) == 0o600
 		{"Name": "Server3.Port", "Value": "563"},
 		{"Name": "Server3.Connections", "Value": "2"},
 	}...))
-	if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil || infos.next() == 0 {
 		t.Fatal("a missing Server2 definition must stop before configured Server3 settings")
 	}
 	for _, prefix := range []string{"Server01", "Server+1"} {
 		settings.Store("config", append(second, map[string]string{"Name": prefix + ".Name", "Value": ""}))
-		if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+		if err := (nzbget.App{}).Setup(t.Context(), h); err != nil || infos.next() == 0 {
 			t.Fatal("noncanonical indexes must not alias the missing Server1 definition")
 		}
 	}
@@ -248,14 +262,14 @@ assert stat.S_IMODE(saved.st_mode) == 0o600
 		{"Name": "Server02.Port", "Value": "563"},
 		{"Name": "Server02.Connections", "Value": "2"},
 	}...))
-	if err := (nzbget.App{}).Setup(t.Context(), h); !errors.Is(err, helpers.ErrManual) {
+	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil || infos.next() == 0 {
 		t.Fatal("noncanonical provider fields must not alias a loaded Server2")
 	}
 	if err := (nzbget.App{}).Check(t.Context(), h); err != nil || writes != 2 || restarts != 0 {
 		t.Fatal("provider index checks must preserve idle RPC and never mutate configuration")
 	}
 	settings.Delete("config")
-	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil {
+	if err := (nzbget.App{}).Setup(t.Context(), h); err != nil || infos.next() != 0 {
 		t.Fatal("configured provider settings must allow retry with an empty queue")
 	}
 	native, err := os.ReadFile("../homarr/target_nzbget.go")
@@ -330,7 +344,8 @@ func TestWrongPasswordFailsWithHint(t *testing.T) {
 	var results []helpers.StepResult
 	deps := systemtest.NewDeps(t)
 	h := helpers.New(helpers.Config{
-		App: "nzbget", Service: "nzbget",
+		Peer: func(string) *helpers.H { return &helpers.H{} },
+		App:  "nzbget", Service: "nzbget",
 		BaseURL: srv.URL, URL: srv.URL, HTTP: srv.Client(),
 		Secrets: secrets{"ADMIN_USER": "admin", "ADMIN_PASSWORD": "wrong"},
 		Log:     events.Discard(),

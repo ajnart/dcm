@@ -203,6 +203,10 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 	}).Admin(ctx, h); err != nil {
 		return err
 	}
+	if h.Peer("homarr") == nil {
+		h.Skip("homarr-password", "Homarr is not installed; no Nextcloud app password is needed")
+		return nil
+	}
 	return h.Step(ctx, "homarr-password", "prepare Nextcloud's Homarr app password", helpers.StepSpec{
 		Check:      func(ctx context.Context) (bool, error) { return homarrPasswordWorks(ctx, h) },
 		Do:         func(ctx context.Context) error { return prepareHomarrPassword(ctx, h) },
@@ -255,7 +259,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 	if !ok {
 		return fmt.Errorf("the administrator %s cannot sign in to Nextcloud", h.AdminUser())
 	}
-	return VerifyHomarr(ctx, h)
+	return nil
 }
 
 func homeHosts(h *helpers.H) []string {
@@ -418,8 +422,20 @@ func prepareHomarrPassword(ctx context.Context, h *helpers.H) error {
 		}
 		password, id = "", ""
 	}
+	if token != nil && id == "" {
+		if err := deleteHomarrToken(ctx, h, token.ID); err != nil {
+			return err
+		}
+		if err := h.SetSecret(h.Key("homarr_app_password"), ""); err != nil {
+			return err
+		}
+		if err := h.SetSecret(h.Key("homarr_app_password_id"), ""); err != nil {
+			return err
+		}
+		token, password, id = nil, "", ""
+	}
 	if token != nil {
-		if password == "" || id == "" {
+		if password == "" {
 			h.Info(HomarrRecoveryHint(h))
 			return helpers.ErrManual
 		}
@@ -451,6 +467,15 @@ func prepareHomarrPassword(ctx context.Context, h *helpers.H) error {
 		return errors.New("Nextcloud did not return its created app-password metadata")
 	}
 	return h.SetSecret(h.Key("homarr_app_password_id"), strconv.Itoa(token.ID))
+}
+
+func deleteHomarrToken(ctx context.Context, h *helpers.H, id int) error {
+	_, err := h.Exec(ctx, map[string]string{"SELF_HOST_NEXTCLOUD_USER": h.AdminUser(), "SELF_HOST_TOKEN_ID": strconv.Itoa(id)},
+		"su", "-m", "-s", "/bin/sh", "www-data", "-c", `php occ user:auth-tokens:delete --no-interaction -- "$SELF_HOST_NEXTCLOUD_USER" "$SELF_HOST_TOKEN_ID"`)
+	if err != nil {
+		return errors.New("Nextcloud could not replace its Homarr app password; inspect Personal settings > Security before retrying")
+	}
+	return nil
 }
 
 var errAuthentication = errors.New("Nextcloud rejected the saved credential; run self-host setup nextcloud")

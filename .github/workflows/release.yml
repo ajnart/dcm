@@ -18,10 +18,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v7.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.27.2"
           cache-dependency-path: go.sum
@@ -31,6 +31,8 @@ jobs:
         run: |
           [[ "$GITHUB_REPOSITORY" == ajnart/self-host ]]
           [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
           printf 'SELF_HOST_RELEASE_VERSION=%s\n' "${RELEASE_TAG#v}" >> "$GITHUB_ENV"
       - name: Check installer and self-update fixtures
         run: |
@@ -38,13 +40,20 @@ jobs:
           go test ./internal/release ./internal/cli -run '^(TestLatest|TestAuthenticated|TestUpdate|TestNewer|TestDevBuild|TestMalformedVersions|TestExtract|TestInstall|TestRepository|TestAnInvalid|TestSelfUpdate)'
       # OSS snapshot packaging never publishes from goreleaser itself.
       # The validated vX.Y.Z tag supplies the version; gh owns publication.
-      - uses: goreleaser/goreleaser-action@v7.2.3
+      - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         env:
           POSTHOG_PROJECT_KEY: ${{ vars.POSTHOG_PROJECT_KEY }}
         with:
           distribution: goreleaser
           version: v2.18.3
           args: release --snapshot --clean
+      - name: Verify every binary embeds the PostHog key
+        run: |
+          binaries=$(find dist -mindepth 2 -maxdepth 2 -type f -name self-host)
+          test -n "$binaries"
+          for bin in $binaries; do
+            test "$(grep -c phc_ "$bin")" -gt 0 || { echo "$bin has no PostHog key; set vars.POSTHOG_PROJECT_KEY" >&2; exit 1; }
+          done
       - name: Verify exact archive set and native Linux binary
         run: |
           version=$SELF_HOST_RELEASE_VERSION
@@ -57,7 +66,7 @@ jobs:
           test "$("$RUNNER_TEMP/release-check/self-host" --version)" = "$version"
           "$RUNNER_TEMP/release-check/self-host" apps list --json >/dev/null
           "$RUNNER_TEMP/release-check/self-host" skill >/dev/null
-      - uses: actions/upload-artifact@v7.0.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: self-host-${{ github.ref_name }}
           path: |

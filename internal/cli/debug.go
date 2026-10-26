@@ -49,6 +49,7 @@ func printDebug(w io.Writer, r service.DebugReport) {
 	}
 	if r.DockerError != "" {
 		fmt.Fprintf(w, "Docker    unavailable: %s\n", r.DockerError)
+		printDockerAdvice(w, r.DockerHint, r.DockerDocs)
 	}
 	if len(r.FailedSteps) > 0 {
 		fmt.Fprintln(w, "\nFailed steps")
@@ -71,5 +72,14 @@ func printDebug(w io.Writer, r service.DebugReport) {
 	}
 	if r.LogsError != "" {
 		fmt.Fprintf(w, "  logs unavailable: %s\n", strings.TrimSpace(r.LogsError))
+	}
+}
+
+func printDockerAdvice(w io.Writer, hint, docs string) {
+	if hint != "" {
+		fmt.Fprintf(w, "          %s\n", hint)
+	}
+	if docs != "" {
+		fmt.Fprintf(w, "          Docs: %s\n", docs)
 	}
 }
