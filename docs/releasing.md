@@ -37,10 +37,21 @@ old versions keep installing.
 
 The Telemetry project key (public; ADR 0006) is set at build time from
 `POSTHOG_PROJECT_KEY`, and `.goreleaser.yaml` falls back to the project's key
-when it is unset. Leave it unset for a local release: an empty value replaces
-the key, and the binary sends nothing. Check with `grep -c phc_ dist/self-host_*/self-host`.
+when it is unset. Leave it unset, locally and in `release.yml`: an empty value
+replaces the key, and the binary sends nothing. Check with `grep -c phc_ dist/self-host_*/self-host`.
 
 ## Release from CI
+
+Releases are cut locally (next section), because every channel publishes from
+the `dist/` that built the release, and a CI build would not match it byte for
+byte. When the tag of a release published that way arrives, `release.yml` does
+not rebuild: it downloads the published assets, checks them against
+`checksums.txt`, checks that every binary embeds the Telemetry key, and smoke-tests
+the Linux binary. To check a release again, run the workflow from the Actions
+tab with its tag.
+
+The rest of this section describes a tag pushed with no release yet, which the
+workflow publishes itself; the channels then still need a `dist/` that matches it.
 
 For release-note images, follow
 [the release-visual skill](../.claude/skills/release-visual/SKILL.md).
@@ -59,7 +70,7 @@ Latest for a `vX.Y.Z` tag.
 git tag vX.Y.Z && git push origin vX.Y.Z
 ```
 
-## Release locally (when CI is unavailable)
+## Release locally
 
 Build the same archives with the same pinned goreleaser (v2.18.3 needs Go 1.27.1 or newer; Go downloads that toolchain on first use):
 
@@ -110,10 +121,10 @@ script also runs alone, with `--dry-run` for Docker.
 ### npm
 
 Not published. npm only allows unattended publishing through trusted
-publishing (OIDC) from GitHub Actions or GitLab, and Actions is unavailable while
-the repository is private; 2FA-bypass tokens last at most 90 days and lose
-direct publishing in January 2027. Revisit once the repository is public: a
-trusted-publishing job in `release.yml` can publish from the release archives.
+publishing (OIDC) from GitHub Actions or GitLab; 2FA-bypass tokens last at most
+90 days and lose direct publishing in January 2027. Now that the repository is
+public, a trusted-publishing job in `release.yml` could publish from the release
+archives.
 
 ### Docker image
 

@@ -11,8 +11,7 @@
 <p align="center"><b>Stop renting your software.</b></p>
 
 <p align="center">
-  <!-- Static while the repo is private; switch back to https://img.shields.io/github/v/release/ajnart/self-host?style=flat-square&labelColor=14121e&color=7a57d3 once it is public. -->
-  <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Release v0.6.2" src="https://img.shields.io/badge/release-v0.6.2-7a57d3?style=flat-square&labelColor=14121e"></a>
+  <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ajnart/self-host?style=flat-square&label=release&color=7a57d3&labelColor=14121e"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-7a57d3?style=flat-square&labelColor=14121e"></a>
   <img alt="Platforms: Linux, macOS, WSL2" src="https://img.shields.io/badge/platforms-Linux%20%C2%B7%20macOS%20%C2%B7%20WSL2-7a57d3?style=flat-square&labelColor=14121e">
   <a href="https://self-host.fyi/apps"><img alt="93 Apps in the Catalog" src="https://img.shields.io/badge/Apps-93-00d787?style=flat-square&labelColor=14121e"></a>
@@ -33,6 +32,8 @@ curl -fsSL https://self-host.fyi/install | bash
 That installs only the binary and deploys nothing. Needs Docker with the Compose v2 plugin on Linux, macOS or WSL2. Then run `self-host`.
 
 <p align="center"><img src="docs/assets/readme/dashboard.png" width="880" alt="The self-host Dashboard right after Onboarding installed the Media Recipe: Pull, Start, Setup, Credentials, Links and Check all done, seven Apps running and nothing needs attention."></p>
+
+<p align="center"><b>Once your Apps are running, <a href="https://github.com/ajnart/self-host/stargazers">⭐ star self-host on GitHub</a>.</b> Stars are how other people find it.</p>
 
 <details>
 <summary><b>Other ways to install</b> (wget, Homebrew, Docker, packages, Arch, archive, source)</summary>
@@ -314,6 +315,7 @@ To turn it off, set `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` (or `true`). 
 
 ## Community and support
 
+- [Star the repo](https://github.com/ajnart/self-host/stargazers) if self-host saved you a subscription: it helps others find it.
 - [Discord](https://discord.gg/aCsmEV5RgA): questions and show and tell.
 - [GitHub Issues](https://github.com/ajnart/self-host/issues): bugs and App requests.
 - Support the work: [GitHub Sponsors](https://github.com/sponsors/ajnart) · [Ko-fi](https://ko-fi.com/ajnart).

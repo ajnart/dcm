@@ -3,12 +3,17 @@ name: release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (vX.Y.Z): verifies its published release, or publishes one if it has none"
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -17,44 +22,80 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.27.2"
           cache-dependency-path: go.sum
       - name: Validate CLI channel and version
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           [[ "$GITHUB_REPOSITORY" == ajnart/self-host ]]
           [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
           git fetch --no-tags origin main
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          git merge-base --is-ancestor HEAD origin/main
           printf 'SELF_HOST_RELEASE_VERSION=%s\n' "${RELEASE_TAG#v}" >> "$GITHUB_ENV"
       - name: Check installer and self-update fixtures
         run: |
           bash -n install.sh
           go test ./internal/release ./internal/cli -run '^(TestLatest|TestAuthenticated|TestUpdate|TestNewer|TestDevBuild|TestMalformedVersions|TestExtract|TestInstall|TestRepository|TestAnInvalid|TestSelfUpdate)'
+      # A release cut locally (docs/releasing.md) is already published when its
+      # tag arrives; rebuilding would not match it byte for byte, so it is
+      # verified as published instead.
+      - name: Look for an already published release
+        id: release
+        run: |
+          if [[ "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null)" == false ]]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify the published release
+        if: steps.release.outputs.published == 'true'
+        run: |
+          version=$SELF_HOST_RELEASE_VERSION
+          dir="$RUNNER_TEMP/release-download"
+          mkdir -p "$dir"
+          gh release download "$RELEASE_TAG" --dir "$dir"
+          cd "$dir"
+          for asset in self-host_${version}_{linux,darwin}_{amd64,arm64}.tar.gz self-host_${version}_linux_{amd64,arm64}.{deb,rpm,apk,pkg.tar.zst} PKGBUILD checksums.txt; do
+            test -f "$asset" || { echo "the release lacks $asset" >&2; exit 1; }
+          done
+          sha256sum --check checksums.txt
+          for archive in self-host_${version}_*.tar.gz; do
+            mkdir -p "${archive%.tar.gz}"
+            tar -xzf "$archive" -C "${archive%.tar.gz}" self-host
+            test "$(grep -c phc_ "${archive%.tar.gz}/self-host")" -gt 0 || { echo "$archive has no PostHog key" >&2; exit 1; }
+          done
+          bin="self-host_${version}_linux_amd64/self-host"
+          test "$("$bin" --version)" = "$version"
+          "$bin" apps list --json >/dev/null
+          "$bin" skill >/dev/null
       # OSS snapshot packaging never publishes from goreleaser itself.
       # The validated vX.Y.Z tag supplies the version; gh owns publication.
+      # POSTHOG_PROJECT_KEY stays unset: .goreleaser.yaml falls back to the
+      # project's key, and an empty value would remove it.
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
-        env:
-          POSTHOG_PROJECT_KEY: ${{ vars.POSTHOG_PROJECT_KEY }}
+        if: steps.release.outputs.published != 'true'
         with:
           distribution: goreleaser
           version: v2.18.3
           args: release --snapshot --clean
       - name: Verify every binary embeds the PostHog key
+        if: steps.release.outputs.published != 'true'
         run: |
           binaries=$(find dist -mindepth 2 -maxdepth 2 -type f -name self-host)
           test -n "$binaries"
           for bin in $binaries; do
-            test "$(grep -c phc_ "$bin")" -gt 0 || { echo "$bin has no PostHog key; set vars.POSTHOG_PROJECT_KEY" >&2; exit 1; }
+            test "$(grep -c phc_ "$bin")" -gt 0 || { echo "$bin has no PostHog key; leave POSTHOG_PROJECT_KEY unset so .goreleaser.yaml's key applies" >&2; exit 1; }
           done
       - name: Verify exact archive set and native Linux binary
+        if: steps.release.outputs.published != 'true'
         run: |
           version=$SELF_HOST_RELEASE_VERSION
           expected=$(printf 'self-host_%s_linux_amd64.tar.gz\nself-host_%s_linux_arm64.tar.gz\nself-host_%s_darwin_amd64.tar.gz\nself-host_%s_darwin_arm64.tar.gz\n' "$version" "$version" "$version" "$version" | sort)
@@ -67,8 +108,9 @@ jobs:
           "$RUNNER_TEMP/release-check/self-host" apps list --json >/dev/null
           "$RUNNER_TEMP/release-check/self-host" skill >/dev/null
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.release.outputs.published != 'true'
         with:
-          name: self-host-${{ github.ref_name }}
+          name: self-host-${{ env.RELEASE_TAG }}
           path: |
             dist/self-host_*.tar.gz
             dist/self-host_*.deb
@@ -79,15 +121,13 @@ jobs:
             dist/checksums.txt
           if-no-files-found: error
       - name: Publish and verify immutable CLI assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
+        if: steps.release.outputs.published != 'true'
         run: |
           version=$SELF_HOST_RELEASE_VERSION
           cp dist/aur/self-host-bin.pkgbuild dist/PKGBUILD
           assets=("dist/self-host_${version}_linux_amd64.tar.gz" "dist/self-host_${version}_linux_arm64.tar.gz" "dist/self-host_${version}_darwin_amd64.tar.gz" "dist/self-host_${version}_darwin_arm64.tar.gz" dist/self-host_${version}_linux_{amd64,arm64}.{deb,rpm,apk,pkg.tar.zst} dist/PKGBUILD dist/checksums.txt)
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" "${assets[@]}" --verify-tag --draft --title "self-host $version" --notes "Linux and macOS amd64/arm64 CLI. WSL2 uses Linux binaries; native WSL validation is pending. Native Windows is unsupported."
+            gh release create "$RELEASE_TAG" "${assets[@]}" --verify-tag --draft --title "self-host $version" --notes "Linux and macOS amd64/arm64 CLI. WSL2 uses Linux binaries. Native Windows is unsupported."
           fi
           mkdir -p "$RUNNER_TEMP/release-download"
           gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/release-download"
