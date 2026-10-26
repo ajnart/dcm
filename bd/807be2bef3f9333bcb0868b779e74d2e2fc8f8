@@ -1,0 +1,29 @@
+README.md
+  s_fffcac84c335e5::t_8a3b7669524596 152
+docs/catalog/traps/tailscale.md
+  s_fffcac84c335e5::t_cce126085f9add 10
+internal/service/fragments.go
+  s_fffcac84c335e5::t_6f8152158cb228 136-137,194-204
+site/src/content/docs/docs/access.md
+  s_fffcac84c335e5::t_4742624c9c537a 15
+video/reel/HANDOFF.md
+  s_fffcac84c335e5::t_6945ee0828f80c 9,38-44
+video/reel/STORYBOARD.md
+  s_fffcac84c335e5::t_aa3d7f35421f76 29,59-60,68-72,203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bd807be2bef3f9333bcb0868b779e74d2e2fc8f8",
+  "prompts": {},
+  "sessions": {
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
