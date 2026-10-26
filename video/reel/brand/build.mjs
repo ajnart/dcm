@@ -5,6 +5,7 @@ import { dirname, join, relative } from "node:path";
 import { animated } from "./animate.mjs";
 import { markDoc } from "./shapes.mjs";
 import { INK_BOX, MARKS, root } from "./source.mjs";
+import { WORDMARK_THEMES, lockupHDoc, lockupVDoc, wordmarkDoc } from "./wordmark.mjs";
 
 const out = join(root, "docs/assets/brand");
 const ANIMATED_BUDGET = 50 * 1024;
@@ -41,6 +42,21 @@ for (const theme of ["dark", "light"]) {
     put(rel, svg);
     ANIM[rel] = svg;
     list.push(asset(`animated-${id}-${theme}`, "Animated", `${id}, ${theme}`, `${NOTES[id]}; for ${theme} backgrounds`, theme, svg, rel));
+  }
+}
+
+const WM_PNG = [{ h: 256 }, { h: 128 }];
+for (const t of WORDMARK_THEMES) {
+  const docs = [
+    ["wordmark", "Wordmark", wordmarkDoc(t.ink), "the name in JetBrains Mono Bold, as outlines"],
+    ["lockup-horizontal", "Lockup horizontal", lockupHDoc(t.model, t.ink), "mark left of the name"],
+    ["lockup-stacked", "Lockup stacked", lockupVDoc(t.model, t.ink), "mark above the name"],
+  ];
+  for (const [id, label, svg, note] of docs) {
+    const group = id === "wordmark" ? "Wordmark" : "Lockup";
+    const rel = `${id === "wordmark" ? "wordmark" : "lockup"}/${id}-${t.id}.svg`;
+    put(rel, svg);
+    list.push(asset(`${id}-${t.id}`, group, `${label}, ${t.id}`, `${note}; ${t.note}`, t.theme, svg, rel, WM_PNG.map((p) => ({ rel: rel.replace(/\.svg$/, `-${p.h}.png`), h: p.h }))));
   }
 }
 

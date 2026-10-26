@@ -256,6 +256,168 @@
       ]
     },
     {
+      "id": "wordmark-dark",
+      "group": "Wordmark",
+      "label": "Wordmark, dark",
+      "note": "the name in JetBrains Mono Bold, as outlines; for dark backgrounds",
+      "theme": "dark",
+      "files": [
+        {
+          "path": "wordmark/wordmark-dark.svg",
+          "bytes": 4943,
+          "width": 552,
+          "height": 90
+        },
+        {
+          "path": "wordmark/wordmark-dark-256.png",
+          "bytes": 22057,
+          "width": 1570,
+          "height": 256
+        },
+        {
+          "path": "wordmark/wordmark-dark-128.png",
+          "bytes": 10801,
+          "width": 785,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "lockup-horizontal-dark",
+      "group": "Lockup",
+      "label": "Lockup horizontal, dark",
+      "note": "mark left of the name; for dark backgrounds",
+      "theme": "dark",
+      "files": [
+        {
+          "path": "lockup/lockup-horizontal-dark.svg",
+          "bytes": 11002,
+          "width": 689.21,
+          "height": 112
+        },
+        {
+          "path": "lockup/lockup-horizontal-dark-256.png",
+          "bytes": 23475,
+          "width": 1575,
+          "height": 256
+        },
+        {
+          "path": "lockup/lockup-horizontal-dark-128.png",
+          "bytes": 11618,
+          "width": 788,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "lockup-stacked-dark",
+      "group": "Lockup",
+      "label": "Lockup stacked, dark",
+      "note": "mark above the name; for dark backgrounds",
+      "theme": "dark",
+      "files": [
+        {
+          "path": "lockup/lockup-stacked-dark.svg",
+          "bytes": 10997,
+          "width": 552,
+          "height": 352
+        },
+        {
+          "path": "lockup/lockup-stacked-dark-256.png",
+          "bytes": 10287,
+          "width": 401,
+          "height": 256
+        },
+        {
+          "path": "lockup/lockup-stacked-dark-128.png",
+          "bytes": 6072,
+          "width": 201,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "wordmark-light",
+      "group": "Wordmark",
+      "label": "Wordmark, light",
+      "note": "the name in JetBrains Mono Bold, as outlines; for light backgrounds",
+      "theme": "light",
+      "files": [
+        {
+          "path": "wordmark/wordmark-light.svg",
+          "bytes": 4943,
+          "width": 552,
+          "height": 90
+        },
+        {
+          "path": "wordmark/wordmark-light-256.png",
+          "bytes": 24345,
+          "width": 1570,
+          "height": 256
+        },
+        {
+          "path": "wordmark/wordmark-light-128.png",
+          "bytes": 12096,
+          "width": 785,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "lockup-horizontal-light",
+      "group": "Lockup",
+      "label": "Lockup horizontal, light",
+      "note": "mark left of the name; for light backgrounds",
+      "theme": "light",
+      "files": [
+        {
+          "path": "lockup/lockup-horizontal-light.svg",
+          "bytes": 11002,
+          "width": 689.21,
+          "height": 112
+        },
+        {
+          "path": "lockup/lockup-horizontal-light-256.png",
+          "bytes": 25270,
+          "width": 1575,
+          "height": 256
+        },
+        {
+          "path": "lockup/lockup-horizontal-light-128.png",
+          "bytes": 12283,
+          "width": 788,
+          "height": 128
+        }
+      ]
+    },
+    {
+      "id": "lockup-stacked-light",
+      "group": "Lockup",
+      "label": "Lockup stacked, light",
+      "note": "mark above the name; for light backgrounds",
+      "theme": "light",
+      "files": [
+        {
+          "path": "lockup/lockup-stacked-light.svg",
+          "bytes": 10997,
+          "width": 552,
+          "height": 352
+        },
+        {
+          "path": "lockup/lockup-stacked-light-256.png",
+          "bytes": 11069,
+          "width": 401,
+          "height": 256
+        },
+        {
+          "path": "lockup/lockup-stacked-light-128.png",
+          "bytes": 6422,
+          "width": 201,
+          "height": 128
+        }
+      ]
+    },
+    {
       "id": "di-self-host",
       "group": "Dashboard Icons",
       "label": "self-host",

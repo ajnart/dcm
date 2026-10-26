@@ -27,6 +27,8 @@ h2+p{margin:0 0 16px;color:#a09cb0}
 .tag{font:11px var(--mono);color:#8e88a8;text-transform:uppercase;letter-spacing:.06em;margin:2px 0 4px}
 .group-animated{--ih:110px;--th:150px}
 .group-icon{--ih:96px}
+.group-wm{--ih:56px;--th:100px}
+.group-lock{--ih:110px;--th:150px}
 .mocks{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:900px){.mocks{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
 .gh{border:1px solid;border-radius:6px;padding:24px 24px 28px;font:14px/1.5 var(--sans)}
@@ -56,6 +58,8 @@ const kb = (n) => (n / 1024).toFixed(1) + " KB";
 const fileName = (p) => p.split("/").pop();
 const GROUPS = [
   ["Mark", "The rack of four containers on a square canvas with room for the pulse. Colour is a mid-tone that holds on light and dark; dark and light are the Logo's two palettes; mono is one ink.", ""],
+  ["Wordmark", "The name set in JetBrains Mono Bold (SIL OFL 1.1), converted to outlines: no font needed. Dark is for dark backgrounds, light for light ones.", "group-wm"],
+  ["Lockup", "The mark with the wordmark, horizontal and stacked. Outlines only, one source with the mark.", "group-lock"],
   ["Animated", "Self-contained CSS keyframes, seamless loops with no fades at the seam, prefers-reduced-motion shows the finished mark. Use inside an img or picture.", "group-animated"],
   ["Dashboard Icons", "The submission set: svg/ png/ webp/ meta/. Their naming: -light is for dark backgrounds, -dark is for light backgrounds.", "group-icon"],
 ];
