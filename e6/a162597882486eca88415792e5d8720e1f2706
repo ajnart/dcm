@@ -1,0 +1,39 @@
+CONTEXT.md
+  s_1b18a56aef6a8a::t_7a58283c5c326d 176-178
+docs/adr/0012-telemetry-notice-only-in-onboarding.md
+  s_012621c1d8ad62::t_92b01142082523 14-19
+docs/telemetry.md
+  s_012621c1d8ad62::t_590ad0a818686f 61-62,90-91
+internal/cli/apprequest_test.go
+  s_1b18a56aef6a8a::t_c63df71a6c8c9c 129
+internal/cli/telemetry_test.go
+  s_1b18a56aef6a8a::t_7a97f3674fe86d 27,137-138,148,176,188
+internal/skill/guide.md
+  s_012621c1d8ad62::t_e22b2e239517ff 674-676
+internal/tui/intro_test.go
+  s_1b18a56aef6a8a::t_a50c26eb3bf1e8 28-32,37,304
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6a162597882486eca88415792e5d8720e1f2706",
+  "prompts": {},
+  "sessions": {
+    "s_012621c1d8ad62": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7385cc7e-48a6-4974-8df2-a1a7e96e446f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_1b18a56aef6a8a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4d6c2f3e-35c6-4825-9a9e-e709caa0fdcb",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
