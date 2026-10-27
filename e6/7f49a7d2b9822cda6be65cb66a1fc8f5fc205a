@@ -1,0 +1,47 @@
+docs/adr/0006-telemetry-on-by-default.md
+  s_ad7a3caa23d325::t_d1c857dea29c26 63-68
+docs/adr/0009-onboarding-event-and-experience-property.md
+  s_ad7a3caa23d325::t_a91f14ed58fef2 38-40
+docs/adr/0011-minimal-anonymous-telemetry.md
+  s_ad7a3caa23d325::t_aa5b25897671f2 18-19,38-46
+internal/cli/apprequest_test.go
+  s_ad7a3caa23d325::t_8eac7738bc5b77 123,129
+internal/cli/telemetry.go
+  s_ad7a3caa23d325::t_1e9f54318af90e 15-17
+internal/service/telemetry.go
+  s_ad7a3caa23d325::t_f5a09f025bb9d3 5-6
+internal/skill/guide.md
+  s_ad7a3caa23d325::t_e28e964470e87d 674-676
+internal/telemetry/telemetry.go
+  s_ad7a3caa23d325::t_36a8d5d3761aa9 43-44,150,210,221-222,224,248,250,266
+internal/telemetry/telemetry_test.go
+  s_ad7a3caa23d325::t_832222f48893f7 22-24,29,273-278,280-283,288-289,291,587,590,679,721
+internal/tui/backend.go
+  s_ad7a3caa23d325::t_b0f47433f9e3a9 122-123,145-146
+internal/tui/harness_test.go
+  s_ad7a3caa23d325::t_1898b963322215 99
+internal/tui/intro.go
+  s_ad7a3caa23d325::t_3b5a42226bb39b 169,190,197,239,252
+internal/tui/intro_test.go
+  s_ad7a3caa23d325::t_f7c2270e8700a6 28-32,37,303-304,307-308,311-312,382
+internal/tui/onboarding.go
+  s_ad7a3caa23d325::t_c287d95a263e88 83-84,103-104
+internal/tui/onboarding_telemetry_test.go
+  s_ad7a3caa23d325::t_fe107754cb1944 220,223,227,236-237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e67f49a7d2b9822cda6be65cb66a1fc8f5fc205a",
+  "prompts": {},
+  "sessions": {
+    "s_ad7a3caa23d325": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "61cbfb1d-1b56-4ff0-833c-aadeeb69711f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
