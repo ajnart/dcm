@@ -1,0 +1,57 @@
+CONTEXT.md
+  s_fffcac84c335e5::t_06d7dbf0235ddd 175-176
+docs/adr/0006-telemetry-on-by-default.md
+  s_fffcac84c335e5::t_690d99ed9edfce 63-68
+docs/adr/0009-onboarding-event-and-experience-property.md
+  s_fffcac84c335e5::t_8263f73d449b72 38-40
+docs/adr/0011-minimal-anonymous-telemetry.md
+  s_fffcac84c335e5::t_2c205e88f56b3b 18-19,38-46
+docs/adr/0012-telemetry-notice-only-in-onboarding.md
+  s_fffcac84c335e5::t_9d06a9bdc5ab0a 1-20
+docs/telemetry.md
+  s_fffcac84c335e5::t_23772a62db0b3e 66-69,90
+internal/cli/apprequest_test.go
+  s_fffcac84c335e5::t_a50bd35d72cd07 123,129
+internal/cli/telemetry.go
+  s_fffcac84c335e5::t_999b4795b396e8 15-17
+internal/cli/telemetry_test.go
+  s_fffcac84c335e5::t_ce1ab4321fc2f4 27,127,137-138,148,153,155-156,176,188
+internal/project/profile.go
+  s_fffcac84c335e5::t_d8340caa03ec6f 21-23,26,29,31,34-36,40
+internal/service/telemetry.go
+  s_fffcac84c335e5::t_6f416361ab2a08 5-6
+internal/skill/guide.md
+  s_fffcac84c335e5::t_6690afaa10560e 674
+internal/telemetry/telemetry.go
+  s_fffcac84c335e5::t_55a25be8e0ebf4 43-44,150,210,221-222,224,248,250,266
+internal/telemetry/telemetry_test.go
+  s_fffcac84c335e5::t_7136542d5a4f96 22-24,29,273-278,280-283,288-289,291,587,590,679,721
+internal/tui/backend.go
+  s_fffcac84c335e5::t_5cfae3278a68d1 122-123,145-146
+internal/tui/harness_test.go
+  s_fffcac84c335e5::t_ecca1fc6cf2580 99
+internal/tui/intro.go
+  s_fffcac84c335e5::t_82cfd1e74819f9 169,190,197,239,252
+internal/tui/intro_test.go
+  s_fffcac84c335e5::t_2eb0ff75e3953c 299-304,307-308,311-312,382
+internal/tui/onboarding.go
+  s_fffcac84c335e5::t_9e1c3e157d922b 83-84,103-104
+internal/tui/onboarding_telemetry_test.go
+  s_fffcac84c335e5::t_53b251199f7c52 220,223,227,236-237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cb35ef2ad7731529d1083840c07e3c0f02f0ef7f",
+  "prompts": {},
+  "sessions": {
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
