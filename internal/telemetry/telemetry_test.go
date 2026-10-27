@@ -19,31 +19,24 @@ import (
 )
 
 type setup struct {
-	net   *telemetrytest.Transport
-	store *telemetrytest.Store
-	env   map[string]string
-	opts  telemetry.Options
+	net  *telemetrytest.Transport
+	env  map[string]string
+	opts telemetry.Options
 }
 
 func enabled(t *testing.T) *setup {
 	t.Helper()
-	s := &setup{net: &telemetrytest.Transport{}, store: &telemetrytest.Store{}, env: map[string]string{}}
+	s := &setup{net: &telemetrytest.Transport{}, env: map[string]string{}}
 	s.opts = telemetry.Options{
 		Key:       "phc_test",
 		Version:   "1.2.3",
 		OS:        "linux",
 		Arch:      "amd64",
 		Getenv:    func(key string) string { return s.env[key] },
-		Store:     s.store,
 		Transport: s.net,
 		Deadline:  2 * time.Second,
 	}
-	s.announce()
 	return s
-}
-
-func (s *setup) announce() {
-	telemetry.New(s.opts).Announce()
 }
 
 func (s *setup) send(r telemetry.Report) {
@@ -64,7 +57,6 @@ func TestNothingIsSentWhenTelemetryIsOff(t *testing.T) {
 		{"development build", func(s *setup) { s.opts.Version = "dev" }},
 		{"test build", func(s *setup) { s.opts.Version = "test" }},
 		{"placeholder project key", func(s *setup) { s.opts.Key = telemetry.NoKey }},
-		{"no Home folder", func(s *setup) { s.opts.Store = nil }},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -156,9 +148,6 @@ func TestARunUsesOneRandomUUIDThatIsNeverSaved(t *testing.T) {
 	uuid := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 	if !uuid.MatchString(ids[0]) {
 		t.Fatalf("ID %q is not a v4 UUID", ids[0])
-	}
-	if _, err := s.store.ReadHomeFile("telemetry-id"); err == nil {
-		t.Fatal("the ID was written to the Home folder")
 	}
 }
 
@@ -279,59 +268,27 @@ func TestASlowEndpointNeverDelaysACommand(t *testing.T) {
 	}
 }
 
-func TestNothingIsSentBeforeTheNoticeIsAnnounced(t *testing.T) {
-	s := enabled(t)
-	s.store.Remove("telemetry-notice")
-	s.send(install)
-	if n := len(s.net.Bodies()); n != 0 {
-		t.Fatalf("sent %d requests before the notice", n)
-	}
-}
-
-func TestTheNoticeIsDueOnce(t *testing.T) {
-	s := enabled(t)
-	s.store.Remove("telemetry-notice")
-	c := telemetry.New(s.opts)
-	if !c.Announce() {
-		t.Fatal("first Announce = false, want true")
-	}
-	if c.Announce() || telemetry.New(s.opts).Announce() {
-		t.Fatal("the notice is due twice")
-	}
-}
-
-func TestNoNoticeWhenTelemetryIsOff(t *testing.T) {
-	s := enabled(t)
-	s.store.Remove("telemetry-notice")
-	s.env["DO_NOT_TRACK"] = "1"
-	if telemetry.New(s.opts).Announce() {
-		t.Fatal("announced a Telemetry that is off")
-	}
-}
-
 func TestTheNoticeLinksTheWikiAndNamesNoOffSwitch(t *testing.T) {
 	const page = "https://self-host.fyi/telemetry"
-	for name, notice := range map[string]string{"Notice": telemetry.Notice, "NoticeShort": telemetry.NoticeShort} {
-		if !strings.Contains(notice, page) {
-			t.Errorf("%s = %q, want it to link %s", name, notice, page)
+	if !strings.Contains(telemetry.Notice, page) {
+		t.Errorf("Notice = %q, want it to link %s", telemetry.Notice, page)
+	}
+	for _, banned := range []string{"SELF_HOST_NO_TELEMETRY", "DO_NOT_TRACK", "Turn off", "turn it off", "opt out"} {
+		if strings.Contains(telemetry.Notice, banned) {
+			t.Errorf("Notice = %q advertises the off switch with %q", telemetry.Notice, banned)
 		}
-		for _, banned := range []string{"SELF_HOST_NO_TELEMETRY", "DO_NOT_TRACK", "Turn off", "turn it off", "opt out"} {
-			if strings.Contains(notice, banned) {
-				t.Errorf("%s = %q advertises the off switch with %q", name, notice, banned)
-			}
-		}
-		for _, claim := range []string{"anonymous usage data", "no IP", "no personal data"} {
-			if !strings.Contains(strings.ToLower(notice), strings.ToLower(claim)) {
-				t.Errorf("%s = %q does not say %q", name, notice, claim)
-			}
+	}
+	for _, claim := range []string{"anonymous usage data", "no IP", "no personal data"} {
+		if !strings.Contains(strings.ToLower(telemetry.Notice), strings.ToLower(claim)) {
+			t.Errorf("Notice = %q does not say %q", telemetry.Notice, claim)
 		}
 	}
 }
 
-func TestTheShortNoticeFitsTheOnboardingLines(t *testing.T) {
-	lines := strings.Split(telemetry.NoticeShort, "\n")
+func TestTheNoticeFitsTheOnboardingLines(t *testing.T) {
+	lines := strings.Split(telemetry.Notice, "\n")
 	if len(lines) != 2 {
-		t.Fatalf("NoticeShort has %d lines, want 2", len(lines))
+		t.Fatalf("Notice has %d lines, want 2", len(lines))
 	}
 	for _, line := range lines {
 		if n := len([]rune(line)); n > 76 {
@@ -627,11 +584,10 @@ func TestFeedbackDropsAnAppThatIsNotACatalogID(t *testing.T) {
 	}
 }
 
-func TestFeedbackObeysTheOffSwitchesButNotTheNoticeMarker(t *testing.T) {
+func TestFeedbackObeysTheOffSwitches(t *testing.T) {
 	s := enabled(t)
-	s.store.Remove("telemetry-notice")
 	if !telemetry.New(s.opts).SendFeedback(telemetry.Feedback{Message: "x"}) {
-		t.Fatal("feedback waited for the notice")
+		t.Fatal("feedback was not sent")
 	}
 	for _, off := range []func(){
 		func() { s.env["SELF_HOST_NO_TELEMETRY"] = "1" },
@@ -720,13 +676,12 @@ func TestOnboardingValuesOutsideTheFixedSetsAreNotSent(t *testing.T) {
 	}
 }
 
-func TestOnboardingObeysTheOffSwitchesAndWaitsForTheNotice(t *testing.T) {
+func TestOnboardingObeysTheOffSwitches(t *testing.T) {
 	for name, tweak := range map[string]func(s *setup){
 		"SELF_HOST_NO_TELEMETRY": func(s *setup) { s.env["SELF_HOST_NO_TELEMETRY"] = "1" },
 		"DO_NOT_TRACK":           func(s *setup) { s.env["DO_NOT_TRACK"] = "1" },
 		"CI":                     func(s *setup) { s.env["CI"] = "true" },
 		"development build":      func(s *setup) { s.opts.Version = "dev" },
-		"no notice yet":          func(s *setup) { s.store.Remove("telemetry-notice") },
 	} {
 		t.Run(name, func(t *testing.T) {
 			s := enabled(t)
@@ -763,13 +718,12 @@ func TestAnAppRequestIsOneAnonymousEventWithANameAndAHost(t *testing.T) {
 	}
 }
 
-func TestAnAppRequestObeysTheOffSwitchesAndWaitsForTheNotice(t *testing.T) {
+func TestAnAppRequestObeysTheOffSwitches(t *testing.T) {
 	for name, tweak := range map[string]func(s *setup){
 		"SELF_HOST_NO_TELEMETRY": func(s *setup) { s.env["SELF_HOST_NO_TELEMETRY"] = "1" },
 		"DO_NOT_TRACK":           func(s *setup) { s.env["DO_NOT_TRACK"] = "1" },
 		"CI":                     func(s *setup) { s.env["CI"] = "true" },
 		"development build":      func(s *setup) { s.opts.Version = "dev" },
-		"no notice yet":          func(s *setup) { s.store.Remove("telemetry-notice") },
 	} {
 		t.Run(name, func(t *testing.T) {
 			s := enabled(t)

@@ -35,3 +35,6 @@ events before approval, which the notice promise forbids.
 [ADR 0011](0011-minimal-anonymous-telemetry.md): `experience` is a plain
 property of the `onboarding` event, not a person property, and
 `self-host profile set experience` sends nothing.
+
+[ADR 0012](0012-telemetry-notice-only-in-onboarding.md): the notice shows on
+Welcome and nothing waits for it.

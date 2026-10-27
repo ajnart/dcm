@@ -2,9 +2,8 @@ package service
 
 import "github.com/ajnart/self-host/internal/telemetry"
 
-// Telemetry returns the Telemetry client for this machine: it keeps its notice
-// marker in the Home folder and sends through the Deps' HTTP transport.
-// Without a usable Home folder it sends nothing.
+// Telemetry returns the Telemetry client for this machine; it sends through
+// the Deps' HTTP transport.
 func (s *Service) Telemetry() *telemetry.Client {
 	opts := telemetry.Options{
 		Version: s.Deps.Version,
@@ -14,9 +13,6 @@ func (s *Service) Telemetry() *telemetry.Client {
 	}
 	if s.Deps.HTTP != nil {
 		opts.Transport = s.Deps.HTTP.Transport
-	}
-	if p, err := s.Project(); err == nil {
-		opts.Store = p
 	}
 	return telemetry.New(opts)
 }

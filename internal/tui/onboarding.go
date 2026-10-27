@@ -80,10 +80,8 @@ type onboarding struct {
 	err  string
 	// folders suggests and lists the folders of the Where step's folder fields.
 	folders *folderPicker
-	// notice announces Telemetry on the Welcome step, once per Home folder;
-	// it is read when Welcome is first about to show, which noticeRead records.
-	notice     string
-	noticeRead bool
+	// notice announces Telemetry on the Welcome step.
+	notice string
 	// experienceSaved is set when the Profile already holds an Experience
 	// level: Welcome does not ask, and Review does not save one.
 	experienceSaved bool
@@ -102,7 +100,8 @@ type onboardingAsk struct {
 
 func newOnboarding(ctx *viewContext) *onboarding {
 	o := &onboarding{answers: &answers{exposure: service.ExposureLAN, adminUser: "admin", inputs: map[string]*string{}},
-		folders: newFolderPicker(ctx.backend), opened: ctx.opts.Now(), react: welcomeReaction{focusAge: -1, selectAge: -1}}
+		folders: newFolderPicker(ctx.backend), opened: ctx.opts.Now(), react: welcomeReaction{focusAge: -1, selectAge: -1},
+		notice: ctx.backend.TelemetryNotice()}
 	o.answers.fill(ctx.defaults)
 	o.openStep(ctx, stepWelcome)
 	o.intro = newIntroScreen(ctx)

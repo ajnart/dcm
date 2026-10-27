@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"slices"
 	"strings"
 
@@ -13,9 +12,9 @@ import (
 	"github.com/ajnart/self-host/internal/telemetry"
 )
 
-// startTelemetry announces Telemetry before a plain command and returns the
-// function that reports the command once it is done. Nothing runs for help,
-// completion, a bare `self-host` off a terminal or when Telemetry is off.
+// startTelemetry returns the function that reports a command once it is done.
+// Nothing runs for help, completion, a bare `self-host` off a terminal or when
+// Telemetry is off.
 func (a *program) startTelemetry(root *cobra.Command, args []string) func(err error, code int) {
 	none := func(error, int) {}
 	cmd, _, err := root.Find(args)
@@ -34,9 +33,6 @@ func (a *program) startTelemetry(root *cobra.Command, args []string) func(err er
 	tel := service.New(a.deps, events.Discard(), a.catalog).Telemetry()
 	if !tel.Enabled() {
 		return none
-	}
-	if cmd != root && !jsonRequested(args) && tel.Announce() {
-		fmt.Fprintln(a.deps.Err, telemetry.Notice)
 	}
 	start := a.deps.Now()
 	return func(err error, code int) {

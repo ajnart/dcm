@@ -60,3 +60,9 @@ Which commands send an event is narrowed by
 [ADR 0011](0011-minimal-anonymous-telemetry.md) removes the persisted install
 ID and person profiles, and narrows what is sent to Onboarding, errors, agent
 App requests and approved Feedback.
+
+## Amendment: the notice only in Onboarding
+
+[ADR 0012](0012-telemetry-notice-only-in-onboarding.md) shows the notice only
+on Onboarding's Welcome step, records nothing, and stops holding events back
+until it was shown.

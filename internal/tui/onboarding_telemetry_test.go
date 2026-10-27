@@ -58,7 +58,6 @@ func TestBackendStreamAndUpdatePanicsAreFlushedBeforeRethrowing(t *testing.T) {
 			net := &telemetrytest.Transport{}
 			deps.HTTP = net.Client()
 			b := ServiceBackend{Deps: deps, Apps: wizardCatalog()}
-			b.TelemetryNotice()
 			if err := b.Run(context.Background(), Request{Action: ActionInstall, Install: &service.InstallOptions{Targets: []string{"ntfy"}, Exposure: "lan"}}, events.Discard()); err != nil {
 				t.Fatal(err)
 			}
@@ -114,7 +113,6 @@ func TestATUIActionFlushesAnUnhandledPanicBeforeRethrowing(t *testing.T) {
 	deps.HTTP = net.Client()
 	cat := catalog.New([]app.App{telemetryPanicApp{stubApp: stubApp{info: app.Info{ID: "one", Name: "One", Image: "one:latest"}}}}, nil)
 	backend := ServiceBackend{Deps: deps, Apps: cat}
-	backend.TelemetryNotice()
 	var crash any
 	func() {
 		defer func() { crash = recover() }()
@@ -157,7 +155,6 @@ func TestTheTUIInstallReportsTheChosenAccess(t *testing.T) {
 			deps.HTTP = net.Client()
 			deps.Runner.(*systemtest.Runner).OnStreamError("--progress json pull", "", errors.New("synthetic pull failure"))
 			backend := ServiceBackend{Deps: deps, Apps: wizardCatalog()}
-			backend.TelemetryNotice()
 			m := New(backend, Options{Version: "1.2.3"})
 			p := planFromAnswers(m.backend, &answers{picks: picks{"ntfy": true}, exposure: choice.exposure, adminUser: "admin", inputs: map[string]*string{}})
 			backend.Run(context.Background(), Request{Action: ActionInstall, Install: &p.opts}, events.Discard())
@@ -220,14 +217,14 @@ func TestOtherStepsDoNotRepeatTheTelemetryNotice(t *testing.T) {
 	}
 }
 
-func TestWelcomeHasNoNoticeOnceItWasShown(t *testing.T) {
+func TestWelcomeHasNoNoticeWhileTelemetryIsOff(t *testing.T) {
 	m, _ := freshHost(t)
 	if strings.Contains(screen(m), "self-host.fyi/telemetry") {
-		t.Fatalf("Welcome carries a notice the backend did not announce\n%s", screen(m))
+		t.Fatalf("Welcome carries a notice the backend did not give\n%s", screen(m))
 	}
 }
 
-func TestTheServiceBackendAnnouncesTelemetryOnce(t *testing.T) {
+func TestTheServiceBackendGivesTheNoticeWhileTelemetryIsOn(t *testing.T) {
 	key := telemetry.ProjectKey
 	telemetry.ProjectKey = "phc_test"
 	t.Cleanup(func() { telemetry.ProjectKey = key })
@@ -236,10 +233,8 @@ func TestTheServiceBackendAnnouncesTelemetryOnce(t *testing.T) {
 	deps.HTTP = &http.Client{Transport: &telemetrytest.Transport{}}
 	backend := ServiceBackend{Deps: deps, Apps: wizardCatalog()}
 
-	first, second := backend.TelemetryNotice(), backend.TelemetryNotice()
-
-	if first != noticeLines || second != "" {
-		t.Fatalf("notices = %q then %q, want %q then nothing", first, second, noticeLines)
+	if notice := backend.TelemetryNotice(); notice != noticeLines {
+		t.Fatalf("notice = %q, want %q", notice, noticeLines)
 	}
 }
 
@@ -348,7 +343,6 @@ func TestTheServiceBackendSendsTheAnonymousOnboardingEvent(t *testing.T) {
 	net := &telemetrytest.Transport{}
 	deps.HTTP = net.Client()
 	backend := ServiceBackend{Deps: deps, Apps: wizardCatalog()}
-	backend.TelemetryNotice()
 
 	backend.ReportOnboarding(telemetry.Onboarding{Experience: "new", Glyphs: "simple", Doctor: "ok", IntroSkipped: false, Duration: 2 * time.Second})
 

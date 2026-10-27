@@ -43,9 +43,6 @@ func (a *program) appRequestCmd() *cobra.Command {
 			if !tel.Enabled() {
 				return result("telemetry_off", fmt.Sprintf("Telemetry is off here, so nothing was sent. To ask for %q, open an issue: %s", typed, issuesURL))
 			}
-			if tel.Announce() {
-				fmt.Fprintln(a.deps.Err, telemetry.Notice)
-			}
 			if !tel.SendAppRequest(request) {
 				return result("not_sent", fmt.Sprintf("Nothing was sent for %q. To ask for it, open an issue: %s", typed, issuesURL))
 			}

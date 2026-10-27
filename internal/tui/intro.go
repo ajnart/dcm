@@ -166,7 +166,7 @@ func (o *onboarding) advanceIntro(ctx *viewContext) {
 	if i.exit >= 0 {
 		i.exit++
 		if i.exit >= intro.ExitFrames-1 {
-			o.endIntro(ctx)
+			o.endIntro()
 		}
 		return
 	}
@@ -187,26 +187,15 @@ func (o *onboarding) advanceIntro(ctx *viewContext) {
 		return
 	}
 	if ctx.opts.ReducedMotion {
-		o.endIntro(ctx)
+		o.endIntro()
 		return
 	}
-	o.previewNotice(ctx)
 	i.exit = 0
 }
 
 // endIntro hands the screen to Welcome.
-func (o *onboarding) endIntro(ctx *viewContext) {
-	o.revealNotice(ctx)
+func (o *onboarding) endIntro() {
 	o.intro = nil
-}
-
-// previewNotice lets the exit draw Welcome with the Telemetry notice it will
-// show, without recording it as shown: quitting during the exit leaves it
-// for the next run.
-func (o *onboarding) previewNotice(ctx *viewContext) {
-	if !o.noticeRead {
-		o.notice = ctx.backend.PendingTelemetryNotice()
-	}
 }
 
 // checksArrived takes Doctor's answer while the Intro reads: the checks start
@@ -247,7 +236,7 @@ func (o *onboarding) introKey(ctx *viewContext, msg tea.KeyPressMsg) (tea.Cmd, o
 	switch {
 	case i.exit >= 0:
 		o.introSkipped = true
-		o.endIntro(ctx)
+		o.endIntro()
 	case !intro.Settled(i.frame):
 		o.introSkipped = true
 		i.frame = intro.SceneFrames
@@ -260,7 +249,7 @@ func (o *onboarding) introKey(ctx *viewContext, msg tea.KeyPressMsg) (tea.Cmd, o
 		return nil, onboardingAsk{tick: true}
 	case o.introReady(ctx):
 		o.introSkipped = true
-		o.endIntro(ctx)
+		o.endIntro()
 	}
 	return nil, onboardingAsk{}
 }
@@ -274,17 +263,6 @@ func (o *onboarding) poke() onboardingAsk {
 	o.introSkipped = true
 	i.frame = intro.SceneFrames
 	return onboardingAsk{tick: true}
-}
-
-// revealNotice reads the Telemetry notice and records it as shown the first
-// time Welcome is on screen, so quitting during the Intro leaves it for the
-// next run.
-func (o *onboarding) revealNotice(ctx *viewContext) {
-	if o.noticeRead {
-		return
-	}
-	o.noticeRead = true
-	o.notice = ctx.backend.TelemetryNotice()
 }
 
 // renderIntro is the whole terminal while the Intro is on screen. The exit

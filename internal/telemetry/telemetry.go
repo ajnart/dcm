@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"path"
 	"reflect"
 	"regexp"
@@ -41,12 +40,8 @@ const (
 	EnvOptOut = "SELF_HOST_NO_TELEMETRY"
 	DocsURL   = "https://self-host.fyi/telemetry"
 
-	// Notice is the sentence a plain command prints once; NoticeShort is the
-	// two lines Onboarding's Welcome step shows. Neither names an off switch.
-	Notice      = "Anonymous usage data helps improve self-host: no IP, no personal data. Details: " + DocsURL
-	NoticeShort = "Anonymous usage data helps improve self-host: no IP, no personal data.\nDetails: " + DocsURL
-
-	noticeFile = "telemetry-notice"
+	// Notice is the two lines Onboarding's Welcome step shows. It names no off switch.
+	Notice = "Anonymous usage data helps improve self-host: no IP, no personal data.\nDetails: " + DocsURL
 
 	defaultDeadline  = 500 * time.Millisecond
 	feedbackDeadline = 5 * time.Second
@@ -66,19 +61,12 @@ const (
 	OutcomeManual     Outcome = "manual"
 )
 
-// Store is the Home folder, where the notice marker lives.
-type Store interface {
-	ReadHomeFile(name string) ([]byte, error)
-	WriteHomeFile(name string, data []byte, mode os.FileMode) error
-}
-
 // Options say where and how a Client sends. The zero value sends nothing.
 type Options struct {
 	// Key defaults to ProjectKey.
 	Key               string
 	Version, OS, Arch string
 	Getenv            func(key string) string
-	Store             Store
 	Transport         http.RoundTripper
 	// Deadline is all the time a command waits for the send; the rest is dropped.
 	Deadline time.Duration
@@ -159,7 +147,7 @@ func (o Options) key() string {
 }
 
 func (o Options) off() bool {
-	if o.Store == nil || o.Getenv == nil {
+	if o.Getenv == nil {
 		return true
 	}
 	if key := o.key(); key == "" || key == NoKey {
@@ -178,25 +166,6 @@ func optedOut(v string) bool {
 
 // Enabled is false whenever any off switch applies.
 func (c *Client) Enabled() bool { return !c.o.off() }
-
-// Announce reports whether the notice is due now, and records that it was
-// shown: true once per Home folder while Telemetry is on. Nothing is sent
-// before the notice was announced.
-func (c *Client) Announce() bool {
-	if !c.Enabled() || c.announced() {
-		return false
-	}
-	return c.o.Store.WriteHomeFile(noticeFile, []byte("shown\n"), 0o644) == nil
-}
-
-// NoticeDue reports whether Announce would show the notice now, without
-// recording anything.
-func (c *Client) NoticeDue() bool { return c.Enabled() && !c.announced() }
-
-func (c *Client) announced() bool {
-	_, err := c.o.Store.ReadHomeFile(noticeFile)
-	return err == nil
-}
 
 const (
 	maxSteps  = 100
@@ -238,7 +207,7 @@ func (silent) Errorf(string, ...any) {}
 // succeeded sends nothing (ADR 0011). It returns within the deadline whatever
 // the network does; what is not sent by then is dropped.
 func (c *Client) Send(r Report) {
-	if !c.Enabled() || !c.announced() {
+	if !c.Enabled() {
 		return
 	}
 	if r.Outcome != OutcomeFailed && r.Outcome != OutcomeIncomplete {
@@ -249,10 +218,10 @@ func (c *Client) Send(r Report) {
 	}, func(id string) []logRecord { return c.logRecords(id, r) }, defaultDeadline)
 }
 
-// SendOnboarding sends the "onboarding" event of an approved Review. Like Send
-// it waits for the notice and every off switch applies.
+// SendOnboarding sends the "onboarding" event of an approved Review. Every off
+// switch applies.
 func (c *Client) SendOnboarding(o Onboarding) {
-	if !c.Enabled() || !c.announced() {
+	if !c.Enabled() {
 		return
 	}
 	c.deliver(func(id string) []posthog.Message {
@@ -276,10 +245,9 @@ func (c *Client) SendOnboarding(o Onboarding) {
 }
 
 // SendAppRequest sends the "app_requested" event of an agent and reports
-// whether PostHog took it. Like Send it waits for the notice and every off
-// switch applies.
+// whether PostHog took it. Every off switch applies.
 func (c *Client) SendAppRequest(r AppRequest) bool {
-	if !c.Enabled() || !c.announced() {
+	if !c.Enabled() {
 		return false
 	}
 	return c.deliver(func(id string) []posthog.Message {
@@ -295,8 +263,7 @@ func (c *Client) SendAppRequest(r AppRequest) bool {
 // SendFeedback sends one Feedback as a "feedback" event, with the same
 // anonymity and endpoint as every other event, and reports whether
 // PostHog took it before the deadline. The person has just seen and agreed to
-// exactly this text, so it does not wait for the notice; every off switch
-// still applies.
+// exactly this text; every off switch still applies.
 func (c *Client) SendFeedback(f Feedback) bool {
 	if !c.Enabled() {
 		return false

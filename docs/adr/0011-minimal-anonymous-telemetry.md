@@ -15,8 +15,8 @@ UUID in memory and uses it as the PostHog distinct ID for that run only, so
 runs cannot be linked. Every event is anonymous (`$process_person_profile:
 false`): no person profiles and no person properties, so `experience` is a
 plain property of the `onboarding` event. `self-host profile set experience`
-stays a local preference and sends nothing. The first-run notice and its
-marker file in the Home folder stay; the marker holds no identity.
+stays a local preference and sends nothing. The first-run notice stays; ADR
+0012 moves it to Onboarding only.
 
 **Events, and nothing else:**
 
@@ -35,6 +35,12 @@ marker file in the Home folder stay; the marker holds no identity.
   GitHub issue instead.
 - `feedback`, only after the person approves the text, as in ADR 0006.
 
-Every off switch and the first-run notice of ADR 0006 apply, including to
-`app_requested`; with Telemetry off the command says so and exits 0. The
-fields, never-sent rules, proxy and deadlines of ADR 0006 otherwise stand.
+Every off switch of ADR 0006 applies, including to `app_requested`; with
+Telemetry off the command says so and exits 0. The fields, never-sent rules,
+proxy and deadlines of ADR 0006 otherwise stand.
+
+## Amendment
+
+[ADR 0012](0012-telemetry-notice-only-in-onboarding.md): the notice shows only
+on Onboarding's Welcome step, nothing records it, and sending does not wait
+for it.

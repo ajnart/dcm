@@ -172,13 +172,13 @@ network and volume have unique names and are removed before the report ends.
 
 **Telemetry**:
 Anonymous data sent to the project's PostHog (through `hog.ajnart.dev`), on by
-default in releases and announced on first run with a link to the telemetry
-page, not an off-switch prompt. It stores no ID: each run uses a random value
-kept only in memory, and events are anonymous, with no person profiles or
-person properties (ADR 0011). Only four things are sent: one `onboarding`
-event when Onboarding's plan is approved (Experience level, glyph set, whether
-the Intro was skipped, Doctor's outcome, duration, App and Recipe IDs, Access
-choice), errors from failed or incomplete commands as PostHog exceptions with
+default in releases and mentioned on Onboarding's Welcome step with a link to
+the telemetry page, not an off-switch prompt (ADR 0012). It stores no ID: each
+run uses a random value kept only in memory, and events are anonymous, with no
+person profiles or person properties (ADR 0011). Only four things are sent:
+one `onboarding` event when Onboarding's plan is approved (Experience level,
+glyph set, whether the Intro was skipped, Doctor's outcome, duration, App and
+Recipe IDs, Access choice), errors from failed or incomplete commands as PostHog exceptions with
 module-relative in-app stack frames (and fixed-text OTLP logs for warning and
 error steps), an `app_requested` event from an agent that asks for an App the
 Catalog lacks (`self-host apps request`), and approved Feedback. A successful

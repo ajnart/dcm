@@ -24,7 +24,7 @@ import (
 	"github.com/ajnart/self-host/internal/telemetry/telemetrytest"
 )
 
-const noticeSentence = "Anonymous usage data helps improve self-host: no IP, no personal data. Details: https://self-host.fyi/telemetry"
+const noticeMarker = "Anonymous usage data"
 
 // telemetryDeps is a release build with a project key and a fake PostHog, so
 // Telemetry is on; every other test leaves both off.
@@ -124,7 +124,7 @@ func failPull(deps *system.Deps) {
 	deps.Runner.(*systemtest.Runner).OnStreamError("--progress json pull", "", errors.New("exit status 125"))
 }
 
-func TestTheFirstPlainCommandAnnouncesTelemetryOnceAndASuccessfulInstallSendsNothing(t *testing.T) {
+func TestACommandPrintsNoNoticeAndASuccessfulInstallSendsNothing(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}})
 
@@ -134,34 +134,23 @@ func TestTheFirstPlainCommandAnnouncesTelemetryOnceAndASuccessfulInstallSendsNot
 	if first.Code != 0 || second.Code != 0 {
 		t.Fatalf("install exited %d and %d\n%s", first.Code, second.Code, first.Out)
 	}
-	if got := strings.Count(first.Out, noticeSentence); got != 1 {
-		t.Errorf("first run printed the notice %d times, want once:\n%s", got, first.Out)
-	}
-	if strings.Contains(second.Out, noticeSentence) {
-		t.Errorf("second run printed the notice again:\n%s", second.Out)
-	}
-	if _, err := os.Stat(filepath.Join(clitest.Root(t, deps), "telemetry-notice")); err != nil {
-		t.Errorf("no notice marker in the Home folder: %v", err)
+	if strings.Contains(first.Out+second.Out, noticeMarker) {
+		t.Errorf("a command printed the Telemetry notice:\n%s\n%s", first.Out, second.Out)
 	}
 	if got := len(net.Bodies()); got != 0 {
 		t.Fatalf("successful installs sent %d requests, want 0: %v", got, net.Bodies())
 	}
 }
 
-func TestNothingIsSentUntilAPlainCommandHasShownTheNotice(t *testing.T) {
+func TestAFailedJSONCommandIsReported(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
 	failPull(deps)
 
-	first := clitest.Run(t, deps, cat, "install", "one", "--yes", "--json")
-	if first.Code == 0 || strings.Contains(first.Out, noticeSentence) || len(net.Bodies()) != 0 {
-		t.Fatalf("a --json command announced or sent before the notice (exit %d):\n%s\n%v", first.Code, first.Out, net.Bodies())
-	}
-	clitest.Run(t, deps, cat, "apps", "list")
-	clitest.Run(t, deps, cat, "install", "one", "--yes", "--json")
+	r := clitest.Run(t, deps, cat, "install", "one", "--yes", "--json")
 
-	if got := len(exceptionProps(net)); got != 1 {
-		t.Fatalf("got %d exceptions after the notice, want 1", got)
+	if r.Code == 0 || len(exceptionProps(net)) != 1 {
+		t.Fatalf("exit %d, sent %v, want one exception", r.Code, net.Bodies())
 	}
 }
 
@@ -181,7 +170,7 @@ func TestTelemetryIsOffWhereTheOffSwitchesSay(t *testing.T) {
 			deps, net := telemetryDeps(t)
 			c.tweak(deps)
 			r := clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "status")
-			if r.Code == 0 || strings.Contains(r.Out, noticeSentence) || len(net.Bodies()) != 0 {
+			if r.Code == 0 || strings.Contains(r.Out, noticeMarker) || len(net.Bodies()) != 0 {
 				t.Fatalf("announced or sent while off:\n%s\n%v", r.Out, net.Bodies())
 			}
 		})
@@ -193,7 +182,7 @@ func TestTelemetryIsOffInTestsByDefault(t *testing.T) {
 	net := &telemetrytest.Transport{}
 	deps.HTTP = &http.Client{Transport: net}
 	r := clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "status")
-	if r.Code == 0 || strings.Contains(r.Out, noticeSentence) || len(net.Bodies()) != 0 {
+	if r.Code == 0 || strings.Contains(r.Out, noticeMarker) || len(net.Bodies()) != 0 {
 		t.Fatalf("a default test announced or sent:\n%s\n%v", r.Out, net.Bodies())
 	}
 }
@@ -201,7 +190,6 @@ func TestTelemetryIsOffInTestsByDefault(t *testing.T) {
 func TestAnInstallReportsItsIDsAccessAndFailedSteps(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}})
-	clitest.Run(t, deps, cat, "apps", "list")
 	deps.Runner.(*systemtest.Runner).OnStreamError("--progress json pull", "", errors.New("exit status 125"))
 
 	r := clitest.Run(t, deps, cat, "install", "pair", "one", "--yes", "--exposure", "local", "--json")
@@ -272,7 +260,6 @@ func TestNoPathHostNameInputOrSecretIsSentByAnyCommand(t *testing.T) {
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}}, &echoApp{id: "two", done: map[string]bool{}})
 	seeded := []string{"/srv/nowhere", "/home/alice/media", "nas.example.com", "hunter2-s3cret", "alice-admin", "alice-laptop", "192.168.1.20", clitest.Root(t, deps)}
 	systemtest.SetEnv(deps, map[string]string{"SELF_HOST_ADMIN_PASSWORD": "hunter2-s3cret"})
-	clitest.Run(t, deps, cat, "apps", "list")
 	deps.Runner.(*systemtest.Runner).OnStreamError("--progress json pull", "", errors.New("exit status 125: /srv/nowhere hunter2-s3cret"))
 
 	clitest.Run(t, deps, cat, "install", "pair", "nas.example.com", "/srv/nowhere", "--yes", "--json",
@@ -322,19 +309,6 @@ func exceptionProps(net *telemetrytest.Transport) []map[string]any {
 		}
 	}
 	return out
-}
-
-func TestThePlainNoticeLinksTheWikiAndNamesNoOffSwitch(t *testing.T) {
-	deps, _ := telemetryDeps(t)
-	r := clitest.Run(t, deps, testCatalog(&echoApp{id: "one", done: map[string]bool{}}), "apps", "list")
-	if !strings.Contains(r.Out, "https://self-host.fyi/telemetry") {
-		t.Fatalf("the notice does not link the telemetry page:\n%s", r.Out)
-	}
-	for _, banned := range []string{"SELF_HOST_NO_TELEMETRY", "DO_NOT_TRACK", "turn it off", "Turn off"} {
-		if strings.Contains(r.Out, banned) {
-			t.Errorf("the notice names the off switch with %q:\n%s", banned, r.Out)
-		}
-	}
 }
 
 func TestNoIDFileIsEverSaved(t *testing.T) {
@@ -391,7 +365,6 @@ func TestAnExceptionCarriesItsStepsWithIDOutcomeAndDuration(t *testing.T) {
 	slow := &echoApp{id: "one", done: map[string]bool{}}
 	slow.slow = func(ctx context.Context) { deps.Sleep(ctx, 2500*time.Millisecond) }
 	cat := testCatalog(slow, &echoApp{id: "two", done: map[string]bool{}, fail: errors.New("boom")})
-	clitest.Run(t, deps, cat, "apps", "list")
 
 	clitest.Run(t, deps, cat, "install", "pair", "--yes", "--json")
 
@@ -415,7 +388,6 @@ func TestAnExceptionCarriesItsStepsWithIDOutcomeAndDuration(t *testing.T) {
 func TestAFailedStepIsAnErrorLogAndAnExceptionWithInAppFrames(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}, fail: errors.New("boom /srv/nowhere")})
-	clitest.Run(t, deps, cat, "apps", "list")
 
 	clitest.Run(t, deps, cat, "install", "one", "--yes", "--json")
 
@@ -442,7 +414,6 @@ func TestAFailedStepIsAnErrorLogAndAnExceptionWithInAppFrames(t *testing.T) {
 func TestAPanicIsSentAsAnUnhandledExceptionBeforeTheProcessCrashesAsBefore(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}, crash: "disk /home/alice is full: hunter2-s3cret"})
-	clitest.Run(t, deps, cat, "apps", "list")
 
 	var recovered any
 	func() {
@@ -477,7 +448,6 @@ func TestAPanicIsSentAsAnUnhandledExceptionBeforeTheProcessCrashesAsBefore(t *te
 func TestNoAbsolutePathOrHostNameIsSentInAStackFrame(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}, fail: errors.New("boom")})
-	clitest.Run(t, deps, cat, "apps", "list")
 	clitest.Run(t, deps, cat, "install", "one", "--yes", "--json")
 	_, thisFile, _, _ := runtime.Caller(0)
 	seeded := []string{filepath.Dir(thisFile), filepath.Dir(filepath.Dir(filepath.Dir(thisFile))), clitest.Root(t, deps)}
@@ -513,7 +483,6 @@ func TestTelemetryDoesNotTouchConfigPathsWithFakeDependencies(t *testing.T) {
 func TestProfileSetExperienceSendsNothing(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
-	clitest.Run(t, deps, cat, "apps", "list")
 
 	r := clitest.Run(t, deps, cat, "profile", "set", "experience", "advanced")
 
@@ -525,7 +494,6 @@ func TestProfileSetExperienceSendsNothing(t *testing.T) {
 func TestASuccessfulStatusSendsNothing(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
-	clitest.Run(t, deps, cat, "apps", "list")
 	clitest.Run(t, deps, cat, "install", "one", "--yes")
 	before := len(net.Events())
 
@@ -542,7 +510,6 @@ func TestASuccessfulStatusSendsNothing(t *testing.T) {
 func TestAFailedStatusSendsOneException(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
-	clitest.Run(t, deps, cat, "apps", "list")
 
 	r := clitest.Run(t, deps, cat, "status")
 

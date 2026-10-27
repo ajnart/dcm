@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 )
@@ -134,37 +133,4 @@ func (t *Transport) Events() []map[string]any {
 		}
 	}
 	return events
-}
-
-// Store is an in-memory Home folder.
-type Store struct {
-	mu    sync.Mutex
-	files map[string][]byte
-}
-
-func (s *Store) ReadHomeFile(name string) ([]byte, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	data, ok := s.files[name]
-	if !ok {
-		return nil, os.ErrNotExist
-	}
-	return data, nil
-}
-
-func (s *Store) WriteHomeFile(name string, data []byte, _ os.FileMode) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.files == nil {
-		s.files = map[string][]byte{}
-	}
-	s.files[name] = append([]byte(nil), data...)
-	return nil
-}
-
-// Remove deletes a file, as a person deleting it from the Home folder would.
-func (s *Store) Remove(name string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.files, name)
 }

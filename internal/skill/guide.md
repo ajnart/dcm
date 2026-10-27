@@ -671,8 +671,9 @@ and fixed-text logs for warning and error steps, never App logs), App requests
 from agents, and Feedback the person approved. A successful command sends
 nothing. No ID is stored: each run uses a random value that is never saved.
 Never absolute paths, host names, inputs, secrets, App data or raw error text.
-It is on by default in releases, announced once, only for the maintainers and
-never sold or shared, and sending waits at most 500 ms without failing a command.
+It is on by default in releases, mentioned in Onboarding, only for the
+maintainers and never sold or shared, and sending waits at most 500 ms without
+failing a command.
 Details: https://self-host.fyi/telemetry.
 
 Only when the person asks how to turn Telemetry off, explain

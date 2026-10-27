@@ -96,7 +96,7 @@ type fakeBackend struct {
 	updateErr   error
 	restarts    int
 	restartErr  error
-	// telemetryNotice is what TelemetryNotice announces, once.
+	// telemetryNotice is what TelemetryNotice returns.
 	telemetryNotice string
 	// onboardingReports is every event ReportOnboarding received.
 	onboardingReports []telemetry.Onboarding
@@ -128,14 +128,6 @@ func (f *fakeBackend) ListFolders(dir string) ([]string, error) {
 func (f *fakeBackend) UserHome() string { return f.home }
 
 func (f *fakeBackend) TelemetryNotice() string {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	notice := f.telemetryNotice
-	f.telemetryNotice = ""
-	return notice
-}
-
-func (f *fakeBackend) PendingTelemetryNotice() string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.telemetryNotice

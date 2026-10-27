@@ -68,7 +68,6 @@ func TestAnAppRequestRejectsABadNameOrURLAndSendsNoRequest(t *testing.T) {
 	}
 	for _, args := range cases {
 		deps, net := telemetryDeps(t)
-		clitest.Run(t, deps, cat, "apps", "list")
 		r := clitest.Run(t, deps, cat, append([]string{"apps", "request"}, args...)...)
 		if r.Code == 0 {
 			t.Errorf("%q succeeded:\n%s", args, r.Out)
@@ -121,13 +120,13 @@ func TestAnAppRequestHonoursTheOffSwitchesAndExitsZero(t *testing.T) {
 	}
 }
 
-func TestAnInitialJSONAppRequestShowsTheNoticeThenSends(t *testing.T) {
+func TestAnInitialJSONAppRequestSendsWithoutANotice(t *testing.T) {
 	deps, net := telemetryDeps(t)
 	cat := testCatalog(&echoApp{id: "one", done: map[string]bool{}})
 
 	r := clitest.Run(t, deps, cat, "apps", "request", "immich", "--json")
 
-	if r.Code != 0 || len(net.Events()) != 1 || !strings.Contains(r.Out, noticeSentence) {
+	if r.Code != 0 || len(net.Events()) != 1 || strings.Contains(r.Out, noticeMarker) {
 		t.Fatalf("exit %d, sent %v\n%s", r.Code, net.Bodies(), r.Out)
 	}
 }

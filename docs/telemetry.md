@@ -58,15 +58,14 @@ module, never to the machine where the binary was built or installed.
 
 Nothing identifies you or your machine, and nothing is saved. Each run uses a
 random value held in memory and thrown away when the command ends, so one run
-cannot be linked to another. Older versions that saved a `telemetry-id` file no
-longer read it; you can delete it.
+cannot be linked to another.
 
 ## Notice and controls
 
-The first plain command or Onboarding announces Telemetry and links here, with
-no button or toggle. Automatic usage is not sent before the notice is shown;
-an initial `--json` command does not announce or send. Usage and logs wait at
-most 500 ms and are dropped silently if the network is slow, without retries.
+Onboarding's Welcome step mentions Telemetry and links here, with no button or
+toggle. Commands print nothing about it, and nothing records that the notice
+was shown. Usage and logs wait at most 500 ms and are dropped silently if the
+network is slow, without retries.
 
 To turn all Telemetry and Feedback off, set either environment variable:
 
@@ -87,9 +86,8 @@ the agent must remove personal details and the CLI masks known secrets again.
 
 Messages from `--message` or stdin are limited to 4096 bytes. Approved Feedback
 uses the same endpoint, anonymity and off switches, but waits up to five seconds
-for delivery and reports failure. It does not require the usage notice because
-you explicitly approved it. With Telemetry off it sends nothing, exits 1, and
-points to [GitHub Issues](https://github.com/ajnart/self-host/issues).
+for delivery and reports failure. With Telemetry off it sends nothing, exits 1,
+and points to [GitHub Issues](https://github.com/ajnart/self-host/issues).
 
 ## Technical sources
 

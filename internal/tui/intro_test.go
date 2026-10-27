@@ -25,12 +25,16 @@ var (
 func introModel(t *testing.T, opts Options, checks ...host.Check) (Model, *fakeBackend) {
 	t.Helper()
 	backend := &fakeBackend{catalog: wizardCatalog(), checks: checks}
+	return introModelWith(t, backend, opts), backend
+}
+
+func introModelWith(t *testing.T, backend *fakeBackend, opts Options) Model {
+	t.Helper()
 	opts.Version = "1.0.0"
 	m := New(backend, opts)
 	m = update(t, m, windowSize(120, 40))
 	m = update(t, m, tea.BackgroundColorMsg{Color: color.Black})
-	m = drive(t, m, statusMsgFor(service.ErrNoProject))
-	return m, backend
+	return drive(t, m, statusMsgFor(service.ErrNoProject))
 }
 
 func onWelcome(m Model) bool { return m.onboarding.intro == nil }
@@ -296,36 +300,16 @@ func TestFramesStopOnceTheIntroIsDone(t *testing.T) {
 	}
 }
 
-func TestTheNoticeIsAnnouncedOnlyWhenWelcomeShows(t *testing.T) {
-	m, backend := introModel(t, Options{}, readyChecks...)
-	backend.telemetryNotice = noticeLines
+func TestTheNoticeShowsOnlyOnWelcome(t *testing.T) {
+	m := introModelWith(t, &fakeBackend{catalog: wizardCatalog(), checks: readyChecks, telemetryNotice: noticeLines}, Options{})
 	m = update(t, m, doctorMsg{checks: readyChecks})
 	m = frames(t, m, 60)
-	if backend.telemetryNotice == "" || strings.Contains(screen(m), "self-host.fyi/telemetry") {
-		t.Fatal("the Intro must not announce Telemetry")
+	if strings.Contains(screen(m), "self-host.fyi/telemetry") {
+		t.Fatal("the Intro must not show the Telemetry notice")
 	}
 	m = frames(t, m, introFrames)
-	if backend.telemetryNotice != "" || !strings.Contains(screen(m), "self-host.fyi/telemetry") {
-		t.Fatalf("Welcome announces Telemetry\n%s", screen(m))
-	}
-}
-
-func TestQuittingDuringTheExitLeavesTheNotice(t *testing.T) {
-	m, backend := introModel(t, Options{}, readyChecks...)
-	backend.telemetryNotice = noticeLines
-	m = update(t, m, doctorMsg{checks: readyChecks})
-	for range introFrames {
-		if m.onboarding.intro.exit >= 0 {
-			break
-		}
-		m = frames(t, m, 1)
-	}
-	if m.onboarding.intro == nil || m.onboarding.intro.exit < 0 {
-		t.Fatal("the exit should be playing")
-	}
-	m = drive(t, m, press("q"))
-	if backend.telemetryNotice == "" {
-		t.Fatal("quitting during the exit must not record the notice as shown")
+	if !strings.Contains(screen(m), "self-host.fyi/telemetry") {
+		t.Fatalf("Welcome shows the Telemetry notice\n%s", screen(m))
 	}
 }
 
@@ -395,7 +379,7 @@ func TestTheLastExitFrameIsWelcomesFirstFrame(t *testing.T) {
 			m = update(t, m, frameMsg{})
 		}
 		last := strings.Join(intro.RenderExit(m.onboarding.introInput(m.ctx()), intro.ExitFrames-1, m.introTarget()), "\n")
-		m.onboarding.endIntro(m.ctx())
+		m.onboarding.endIntro()
 		welcome := m
 		if trimLines(ansi.Strip(last)) != trimLines(screen(welcome)) {
 			t.Fatalf("%dx%d: the exit must land on Welcome\n%s\n---\n%s", size.width, size.height, ansi.Strip(last), screen(welcome))
