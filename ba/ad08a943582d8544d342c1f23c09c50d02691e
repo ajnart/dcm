@@ -1,0 +1,31 @@
+docs/adr/0011-minimal-anonymous-telemetry.md
+  s_fffcac84c335e5::t_7bdfab56c1e199 18-21
+internal/cli/telemetry_test.go
+  s_fffcac84c335e5::t_0ce9f02f85a1d4 143-147
+internal/project/profile.go
+  s_fffcac84c335e5::t_d7d5e50be3512c 14-17,25-33,36,39,41,44,48,54-104
+internal/service/telemetry.go
+  s_fffcac84c335e5::t_45c1022666cdb2 5-6
+internal/telemetry/telemetry.go
+  s_fffcac84c335e5::t_1d2d56d276b82f 66,68-69,186,194-195
+internal/telemetry/telemetry_test.go
+  s_fffcac84c335e5::t_5dc8536e665e6c 281,290,302,629,726,769
+internal/telemetry/telemetrytest/telemetrytest.go
+  s_fffcac84c335e5::t_d3f4121145085f 141,144,147,150,153,157-158,161
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "baad08a943582d8544d342c1f23c09c50d02691e",
+  "prompts": {},
+  "sessions": {
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
