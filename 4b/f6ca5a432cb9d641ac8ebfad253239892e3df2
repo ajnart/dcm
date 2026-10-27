@@ -1,0 +1,43 @@
+.goreleaser.yaml
+  s_fffcac84c335e5::t_df7faa9cf89257 47,73
+Dockerfile
+  s_fffcac84c335e5::t_40613612b27667 18
+README.md
+  s_012621c1d8ad62::t_5e40bafe5df491 15,294
+THIRD_PARTY_NOTICES.md
+  s_fffcac84c335e5::t_a7025c8345007e 7
+internal/skill/SKILL.md
+  s_fffcac84c335e5::t_dcbbf5d3ba20f0 4
+site/src/components/SiteFooter.astro
+  s_fffcac84c335e5::t_89a0acaa1ea8e8 6
+site/src/components/docs/Footer.astro
+  s_fffcac84c335e5::t_aab2bf8b24290c 8
+site/src/pages/index.astro
+  s_fffcac84c335e5::t_d604eda8782e97 27,201
+skills/self-host/SKILL.md
+  s_fffcac84c335e5::t_fe2000e3e9a86a 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4bf6ca5a432cb9d641ac8ebfad253239892e3df2",
+  "prompts": {},
+  "sessions": {
+    "s_012621c1d8ad62": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7385cc7e-48a6-4974-8df2-a1a7e96e446f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_fffcac84c335e5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82de067b-82ef-411f-8a24-12d6b98d28d1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
