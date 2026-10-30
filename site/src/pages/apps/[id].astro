@@ -10,7 +10,7 @@ import { breadcrumbs, DESCRIPTION_MAX, fit, ORIGIN, schema, TITLE_MAX } from "..
 export const getStaticPaths = (async () => (await getCollection("apps")).map((app) => ({ params: { id: app.id }, props: { app } }))) satisfies GetStaticPaths;
 
 const { app } = Astro.props;
-const { name, description, category, image, port, icon, links } = app.data;
+const { name, description, category, image, port, icon, lightIcon, links } = app.data;
 const into = linksInto(app.id);
 const recipes = recipesWith(app.id);
 const nameOf = (id: string) => appById.get(id)?.name ?? id;
@@ -36,7 +36,7 @@ const jsonld = schema(
   <main class="page apppage">
     <nav class="crumbs" aria-label="Breadcrumb"><a href="/">self-host</a> / <a href="/apps">apps</a> / <span>{app.id}</span></nav>
     <header class="apphead">
-      <AppIcon name={name} icon={icon} size={44} id={`app-${app.id}`} />
+      <AppIcon name={name} icon={lightIcon || icon} size={44} id={`app-${app.id}`} />
       <div>
         <h1>{name}</h1>
         <p class="lede">{description}.</p>

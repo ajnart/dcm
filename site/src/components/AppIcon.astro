@@ -10,6 +10,21 @@ const { name, icon, size = 22, id } = Astro.props;
 ---
 
 <span class="ico" id={id}>
-  <span aria-hidden="true">{name[0]}</span>
+  <span aria-hidden="true" hidden={Boolean(icon)}>{name[0]}</span>
   {icon && <img src={icon} alt="" width={size} height={size} loading="lazy" decoding="async" />}
 </span>
+
+<script>
+  for (const image of document.querySelectorAll<HTMLImageElement>(".ico img")) {
+    const fallback = image.previousElementSibling;
+    if (!(fallback instanceof HTMLElement)) continue;
+    const update = () => {
+      const loaded = image.naturalWidth > 0;
+      fallback.hidden = loaded;
+      image.hidden = !loaded;
+    };
+    image.addEventListener("load", update);
+    image.addEventListener("error", update);
+    if (image.complete) update();
+  }
+</script>

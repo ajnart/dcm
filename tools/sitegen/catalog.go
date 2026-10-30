@@ -18,6 +18,7 @@ type appJSON struct {
 	Links       []string `json:"l"`
 	LinkTitles  []string `json:"lt"`
 	Icon        string   `json:"i,omitempty"`
+	LightIcon   string   `json:"il,omitempty"`
 }
 
 type recipeJSON struct {
@@ -50,7 +51,7 @@ func writeCatalog() error {
 		if err != nil {
 			return err
 		}
-		out := appJSON{ID: info.ID, Name: info.Name, Description: info.Description, Category: info.Category, Image: info.Image, Port: info.Port, Links: []string{}, LinkTitles: []string{}, Icon: iconPath}
+		out := appJSON{ID: info.ID, Name: info.Name, Description: info.Description, Category: info.Category, Image: info.Image, Port: info.Port, Links: []string{}, LinkTitles: []string{}, Icon: iconPath, LightIcon: lightIcons[info.ID]}
 		for _, link := range standalone.AvailableLinks(ap) {
 			out.Links = append(out.Links, link.Target)
 			out.LinkTitles = append(out.LinkTitles, link.Title)

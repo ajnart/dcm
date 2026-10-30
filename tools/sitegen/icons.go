@@ -107,6 +107,21 @@ var icons = map[string]string{
 	"zerotier":             "svg/zerotier.svg",
 }
 
+var lightIcons = map[string]string{
+	"frigate":          "svg/frigate-light.svg",
+	"lldap":            "svg/lldap-dark.svg",
+	"mayan-edms":       "svg/mayan-edms-light.svg",
+	"minio":            "svg/minio-light.svg",
+	"ollama":           "svg/ollama-dark.svg",
+	"open-webui":       "svg/open-webui-light.svg",
+	"plex":             "svg/plex-light.svg",
+	"portainer":        "svg/portainer-dark.svg",
+	"tailscale":        "svg/tailscale-light.svg",
+	"umami":            "svg/umami-light.svg",
+	"vaultwarden":      "svg/vaultwarden-light.svg",
+	"victoria-metrics": "svg/victoriametrics-light.svg",
+}
+
 func icon(id string) (string, error) {
 	path, ok := icons[id]
 	if !ok {
@@ -116,6 +131,11 @@ func icon(id string) (string, error) {
 }
 
 func checkIcons(cat *catalog.Catalog) error {
+	for _, id := range slices.Sorted(maps.Keys(lightIcons)) {
+		if icons[id] == "" {
+			return fmt.Errorf("lightIcons names %q, which has no base icon", id)
+		}
+	}
 	for _, id := range slices.Sorted(maps.Keys(icons)) {
 		if _, found := cat.App(id); !found {
 			return fmt.Errorf("icons names %q, which is not in the Catalog", id)

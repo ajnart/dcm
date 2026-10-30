@@ -258,7 +258,8 @@
    "p": 8971,
    "l": [],
    "lt": [],
-   "i": "svg/frigate.svg"
+   "i": "svg/frigate.svg",
+   "il": "svg/frigate-light.svg"
   },
   {
    "id": "gatus",
@@ -542,7 +543,8 @@
    "p": 17170,
    "l": [],
    "lt": [],
-   "i": "svg/lldap.svg"
+   "i": "svg/lldap.svg",
+   "il": "svg/lldap-dark.svg"
   },
   {
    "id": "loki",
@@ -564,7 +566,8 @@
    "p": 8080,
    "l": [],
    "lt": [],
-   "i": "svg/mayan-edms.svg"
+   "i": "svg/mayan-edms.svg",
+   "il": "svg/mayan-edms-light.svg"
   },
   {
    "id": "minio",
@@ -575,7 +578,8 @@
    "p": 9000,
    "l": [],
    "lt": [],
-   "i": "svg/minio.svg"
+   "i": "svg/minio.svg",
+   "il": "svg/minio-light.svg"
   },
   {
    "id": "navidrome",
@@ -674,7 +678,8 @@
    "p": 11434,
    "l": [],
    "lt": [],
-   "i": "svg/ollama.svg"
+   "i": "svg/ollama.svg",
+   "il": "svg/ollama-dark.svg"
   },
   {
    "id": "open-webui",
@@ -685,7 +690,8 @@
    "p": 8080,
    "l": [],
    "lt": [],
-   "i": "svg/open-webui.svg"
+   "i": "svg/open-webui.svg",
+   "il": "svg/open-webui-light.svg"
   },
   {
    "id": "pangolin",
@@ -762,7 +768,8 @@
    "p": 32400,
    "l": [],
    "lt": [],
-   "i": "svg/plex.svg"
+   "i": "svg/plex.svg",
+   "il": "svg/plex-light.svg"
   },
   {
    "id": "portainer",
@@ -773,7 +780,8 @@
    "p": 9000,
    "l": [],
    "lt": [],
-   "i": "svg/portainer.svg"
+   "i": "svg/portainer.svg",
+   "il": "svg/portainer-dark.svg"
   },
   {
    "id": "postgresql",
@@ -990,7 +998,8 @@
    "p": 0,
    "l": [],
    "lt": [],
-   "i": "svg/tailscale.svg"
+   "i": "svg/tailscale.svg",
+   "il": "svg/tailscale-light.svg"
   },
   {
    "id": "tdarr",
@@ -1056,7 +1065,8 @@
    "p": 3000,
    "l": [],
    "lt": [],
-   "i": "svg/umami.svg"
+   "i": "svg/umami.svg",
+   "il": "svg/umami-light.svg"
   },
   {
    "id": "unbound",
@@ -1100,7 +1110,8 @@
    "p": 8222,
    "l": [],
    "lt": [],
-   "i": "svg/vaultwarden.svg"
+   "i": "svg/vaultwarden.svg",
+   "il": "svg/vaultwarden-light.svg"
   },
   {
    "id": "vector",
@@ -1122,7 +1133,8 @@
    "p": 8428,
    "l": [],
    "lt": [],
-   "i": "svg/victoriametrics.svg"
+   "i": "svg/victoriametrics.svg",
+   "il": "svg/victoriametrics-light.svg"
   },
   {
    "id": "wud",
