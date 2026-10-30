@@ -1,0 +1,45 @@
+docs/migration/dcm-takeover.md
+  s_bdf9c7c97b9503::t_b0792474cdb081 1-185
+scripts/migrate/backport-releases.sh
+  s_bdf9c7c97b9503::t_dc0f340a3f11c8 1-126
+scripts/migrate/lib.sh
+  s_6fc98e53ed6570::t_425a9320528a16 1-46
+scripts/migrate/push-merged-history.sh
+  s_bdf9c7c97b9503::t_f3796bf8974d0d 1-137
+scripts/migrate/rename-repos.sh
+  s_bdf9c7c97b9503::t_da3c0e086e6cd8 1-199
+scripts/migrate/transfer-issues.sh
+  s_32cefbed2369c4::t_660bd6970fd258 1-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "94dfc670a96b7123ac82e1cae2565d38b821b01b",
+  "prompts": {},
+  "sessions": {
+    "s_32cefbed2369c4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "97ca41b2-b7ac-4e9a-adb7-4f5ba439d99b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_6fc98e53ed6570": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "859d6898-0fd5-40a7-b9d6-9320126a086f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_bdf9c7c97b9503": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b3b7be69-a704-4177-942d-ac8c49570b1f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
