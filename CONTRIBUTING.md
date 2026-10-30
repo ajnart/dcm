@@ -35,11 +35,13 @@ For optional workflow execution on macOS, see [Local CI with act](docs/local-ci.
 
 ```bash
 bun install --frozen-lockfile
-go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/src/styles
+go run ./tools/sitegen
+git add -N site/src/data dcm/src/data site/src/styles
+git diff --exit-code site/src/data dcm/src/data site/src/styles
 bunx turbo run build test lint check
 ```
 
-`bun test` in `dcm/` needs no Docker: `turbo run test` skips `dcm/tests/validate-compose.test.ts` because it runs `docker compose config`, which CI runs as `test:compose` (`cd dcm && bun run test:compose`, Docker required). Turbo caches every task and the site build reads the release version and changelog from git and GitHub, which it cannot hash: set `SELF_HOST_SITE_VERSION=0.0.0` (as CI does) or add `--force` so a cache hit does not show a stale release.
+`bun run test` in `dcm/` needs no Docker: it skips `dcm/tests/validate-compose.test.ts` because that runs `docker compose config`. CI adds it as `test:compose` (`bunx turbo run build test test:compose lint check`; locally `cd dcm && bun run test:compose`, Docker required). Turbo caches every task and the site build reads the release version and changelog from git and GitHub, which it cannot hash: set `SELF_HOST_SITE_VERSION=0.0.0` (as CI does) or add `--force` so a cache hit does not show a stale release.
 
 ## Pull requests
 

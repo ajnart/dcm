@@ -71,7 +71,7 @@ Once you have your docker-compose configuration, you have several ways to deploy
 
 #### Copy & Paste
 
-Simply copy the generated docker-compose.yaml and .env content, save them locally, and run `docker-compose up -d` to start your containers.
+Simply copy the generated docker-compose.yaml and .env content, save them locally, and run `docker compose up -d` to start your containers.
 
 #### Download Files
 
@@ -106,7 +106,7 @@ If you want to try DCM for yourself, there are several ways to get started:
 
 ### 🌐 Use the Online Version
 
-Visit [self-host.fyi/compose](https://self-host.fyi/compose) to use the tool immediately without installation. A redirect from the old `compose.ajnart.dev` address is still to be added.
+Visit [self-host.fyi/compose](https://self-host.fyi/compose) to use the tool immediately without installation. The old `compose.ajnart.dev` address and its redirect are covered in `docs/releasing.md`.
 
 ### 🐳 Run with Docker
 
@@ -141,7 +141,7 @@ services:
 Then run:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 🚀 Using Easypanel
