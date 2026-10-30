@@ -102,9 +102,6 @@ done
 
 say "-- dcm's own tags (left untouched)"
 git ls-remote --tags "$dcm_url" | awk '{print "  " $2 " " $1}'
-v1_remote="$(remote_tag_oid "$dcm_url" v1)"
-v1_local="$(git rev-parse -q --verify refs/tags/v1 || true)"
-[[ -z "$v1_remote" || "$v1_remote" == "$v1_local" ]] || die "local v1 ($v1_local) differs from dcm's v1 ($v1_remote); fix before pushing"
 
 say "-- plan"
 say "push 1: HEAD -> main"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Step 6 of docs/migration/dcm-takeover.md (optional): move open issues of the old repo to the new one.
+# Step 4 of docs/migration/dcm-takeover.md (optional, before the rename): move open issues of the old repo to the new one.
 # Dry run unless --yes. Run it BEFORE archiving the old repo (an archived repo is read-only).
 #
 # GitHub rules (docs: "Transferring an issue to another repository"): both repos must have the same
@@ -12,8 +12,8 @@ here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 source "$here/lib.sh"
 
-old_repo="$OWNER/self-host-old"
-new_repo="$OWNER/self-host"
+old_repo="$OWNER/self-host"
+new_repo="$OWNER/dcm"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --yes) YES=true ;;

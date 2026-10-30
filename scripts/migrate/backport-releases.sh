@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Step 2 (before the rename) and step 6 (verification after it) of docs/migration/dcm-takeover.md.
+# Step 2 (before the rename) and step 6 (recheck after it) of docs/migration/dcm-takeover.md.
 # Recreates every GitHub Release of the old repo on the new one: same tag, title, notes, flags, assets.
 # Dry run unless --yes. Idempotent: a release that exists on the new repo has its asset names and sizes
 # compared with the old one, and missing or different assets are uploaded with --clobber.

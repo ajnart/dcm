@@ -26,7 +26,7 @@ Nothing here pushes or renames on its own; you run it.
 - `ajnart/dcm` `main` (`e499c2fd`) is an ancestor of the merged branch, so the push is a **fast-forward**. No force push is needed, and the script refuses one without `--force`.
 - Both repos use only the automatic `GITHUB_TOKEN` in workflows. **No secret has to be recreated.**
 - Everything else authenticates from your machine: the GHCR push uses your `docker login`, `publish-aur.sh` your AUR SSH key, `publish-homebrew.sh` and `publish-site.sh` your `gh` and `wrangler` logins. `POSTHOG_PROJECT_KEY` stays unset (see `docs/releasing.md`).
-- Cloudflare Pages: `self-host-fyi` is Git-connected to repo id 1349952104 (old repo), production branch `main`, build `bash scripts/build-site-pages.sh`, output `site/dist-pages`, domains `self-host.fyi` and `self-host-fyi.pages.dev`. `dcm` is direct-upload (no Git source), domains `compose.ajnart.dev`, `compose.homarr.dev`, `docker-compose-maker.pages.dev`.
+- Cloudflare Pages: `self-host-fyi` is Git-connected to repo id 1349952104 (old repo), production branch `main`, build `bash scripts/build-site-pages.sh`, output `site/dist-pages`, domains `self-host.fyi` and `self-host-fyi.pages.dev`. `dcm` is a direct-upload project (no Git source), domains `compose.ajnart.dev`, `compose.homarr.dev`, `docker-compose-maker.pages.dev`; it is retired, because the site is now one Astro app with DCM at `/compose` (no Pages Functions or KV).
 - GHCR: package `ghcr.io/ajnart/self-host` is not linked to any repository; `ghcr.io/ajnart/dcm` is linked to `ajnart/dcm` and follows the repo through the rename.
 - GitHub's tag-push rule: no workflow events are created when more than three tags are pushed at once, so the single 39-tag push (the second of the script's two pushes) does not start `release.yml` or `e2e.yml`. The first push (`main`) does start `ci` and `dcm-image`.
 
@@ -38,7 +38,15 @@ Nothing here pushes or renames on its own; you run it.
 4. **Old repo: archive or private.** Default is archive: it stays public and read-only, so its 5 stars, 315 closed issues, 299 PRs and public release assets stay readable. Private (`archive --private`) erases stars and watchers, hides issues and PRs, and stops anonymous downloads of its release assets; only use it if you want the old repo hidden.
 5. **Open dcm PRs.** They target dcm's old tree: #104 ("target auto-container PRs at dev", edits the old `auto-add-container.yml` that no longer exists after the move) is obsolete, close it. #110 (README: second one-click template, the RepoCloud button) is a product decision: reapply it to the new README or close it.
 
+## Order
+
+0 preflight, 1 push, 2 backport releases into `ajnart/dcm`, 3 configure `ajnart/dcm`, 4 move open issues, 5 rename, 6 recheck releases, 7 archive the old repo, 8 package channels, 9 Cloudflare, 10 after the dust settles.
+
+Configure runs before the rename so the new repo is never live as `ajnart/self-host` with Actions on "all", merge commits and no ruleset. `rename-repos.sh rename` refuses until it ran.
+
 ## 0. Preflight
+
+The Go gate, then the web gate from `AGENTS.md`, both from the repository root:
 
 ```bash
 export GOFLAGS=-buildvcs=false
@@ -48,14 +56,26 @@ go build ./... && go vet ./... && go vet -tags e2e ./e2e/
 go test ./...
 go test -race ./internal/tui/ ./internal/activity/
 bash -n install.sh
+
+bun install --frozen-lockfile
+go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/src/styles
+bunx turbo run build test lint check
+
 git merge-base --is-ancestor "$(git ls-remote origin refs/heads/main | cut -f1)" HEAD && echo "old main is in HEAD"
 gh auth status                                    # token needs repo scope; you must be admin on both repos
 ```
 
-Also run the dcm and site builds (`bun install && bun run build`, or whatever the turbo pipeline is on this branch). Finish all work on the branch first: the push publishes `HEAD`.
+The site build reads the version and changelog from git and GitHub, which turbo cannot hash: set `SELF_HOST_SITE_VERSION` (CI uses `0.0.0`) or add `--force` so a cache hit does not hide a stale release.
+Finish all work on the branch first: the push publishes `HEAD`.
 Check that `go.mod` still says `module github.com/ajnart/self-host`.
 
 ## 1. Push the merged history to ajnart/dcm
+
+Before `--yes`, record the digest that `dcm-image` is about to overwrite; the rollback needs it:
+
+```bash
+docker buildx imagetools inspect ghcr.io/ajnart/dcm:latest --format '{{json .Manifest.Digest}}' | tee /tmp/before-dcm-latest.digest
+```
 
 ```bash
 scripts/migrate/push-merged-history.sh            # read it
@@ -100,9 +120,39 @@ done
 diff /tmp/assets-self-host.txt /tmp/assets-dcm.txt && echo "assets match"
 ```
 
-## 3. Rename
+## 3. Configure the new repo (still named ajnart/dcm)
 
-Preconditions the script enforces: dcm `main` contains old `main`, every old tag exists on dcm with the same object, every old release exists on dcm with the same asset names and sizes.
+Snapshot dcm's settings first; the rollback below needs them:
+
+```bash
+gh api repos/ajnart/dcm > /tmp/before-configure.json
+gh api repos/ajnart/dcm/actions/permissions > /tmp/before-actions.json
+gh label list --repo ajnart/dcm --limit 200 --json name > /tmp/before-labels.json
+```
+
+```bash
+scripts/migrate/rename-repos.sh configure          # defaults: --old ajnart/self-host --new ajnart/dcm
+scripts/migrate/rename-repos.sh configure --yes
+```
+
+Copies from `ajnart/self-host` (the old repo, before it is renamed): description, homepage, topics (20), squash-only merge settings and commit title/message, delete-branch-on-merge, missing labels (`needs-triage`, `ready-for-agent`, `ready-for-human`, `needs-info`, `accessibility`, `dependencies`, `github_actions`), the labels the DCM issue templates and workflows use if absent (`dcm`, `container`, `accepted`, `automated`, `needs-review`), the Actions policy, Dependabot security updates, and the `protect main` ruleset.
+
+Actions policy: the old repo only allows GitHub-owned actions plus `goreleaser/goreleaser-action@*`, which would block the new workflows. The script keeps `selected` and adds every non-GitHub action found in `.github/workflows/*.yml` of this checkout as `owner/repo@*` (today: `docker/build-push-action`, `docker/login-action`, `docker/metadata-action`, `docker/setup-buildx-action`, `docker/setup-qemu-action`, `goreleaser/goreleaser-action`, `oven-sh/setup-bun`, `peter-evans/create-pull-request`), and prints the list in the dry run. Add a pattern by hand whenever a workflow starts using a new third-party action. It also turns on **"Allow GitHub Actions to create and approve pull requests"** (`can_approve_pull_request_reviews: true`; default token permissions stay read-only), which `peter-evans/create-pull-request` with `GITHUB_TOKEN` in both `dcm-add-container.yml` and `stars.yml` needs. The ruleset goes last because it blocks force pushes with no bypass; to force-push `main` later, disable it first, as was done on 2026-10-27.
+
+Left as dcm has them: wiki and discussions (both on), the `copilot` environment, the two open dcm PRs (see "Decide first" item 5).
+
+## 4. Move open issues (optional, before the rename)
+
+```bash
+scripts/migrate/transfer-issues.sh            # read it; defaults: --old ajnart/self-host --new ajnart/dcm
+scripts/migrate/transfer-issues.sh --yes
+```
+
+The old repo has no open issues today, so this is a no-op. GitHub rules: same owner, only **open** issues move (closed issues and PRs never do; they stay in `self-host-old`), comments and assignees stay, labels stay if the name exists on the target, and an issue of a private repo cannot go to a public repo. Run it before Steps 5 and 7: an archived repo is read-only, so its open issues could no longer be handled there.
+
+## 5. Rename
+
+Preconditions the script enforces: dcm `main` contains old `main`, every old tag exists on dcm with the same object, every old release exists on dcm with the same asset names and sizes, and configure ran (every ruleset of the old repo exists on dcm and the Actions policy matches). `--skip-configure-check` overrides the last one with a warning.
 
 ```bash
 scripts/migrate/rename-repos.sh rename
@@ -127,42 +177,13 @@ SELF_HOST_GITHUB_TOKEN="$(gh auth token)" VERIFY_INSTALL_URL="file://$PWD/instal
 
 Your local `origin` (`git@github.com:ajnart/self-host.git`) now points at the new repo. Every other clone of either old repo fast-forwards on `git pull`, because both histories are inside the new `main`.
 
-## 4. Configure the new repo
-
-Snapshot dcm's settings first; the rollback below needs them:
-
-```bash
-gh api repos/ajnart/self-host > /tmp/before-configure.json
-gh api repos/ajnart/self-host/actions/permissions > /tmp/before-actions.json
-```
-
-```bash
-scripts/migrate/rename-repos.sh configure
-scripts/migrate/rename-repos.sh configure --yes
-```
-
-Copies from `self-host-old`: description, homepage, topics (20), squash-only merge settings and commit title/message, delete-branch-on-merge, missing labels (`needs-triage`, `ready-for-agent`, `ready-for-human`, `needs-info`, `accessibility`, `dependencies`, `github_actions`), the Actions policy, Dependabot security updates, and the `protect main` ruleset.
-
-Actions policy: the old repo only allows GitHub-owned actions plus `goreleaser/goreleaser-action@*`, which would block the new workflows. The script keeps `selected` and adds every non-GitHub action found in `.github/workflows/*.yml` of this checkout as `owner/repo@*` (today: `docker/build-push-action`, `docker/login-action`, `docker/metadata-action`, `docker/setup-buildx-action`, `docker/setup-qemu-action`, `goreleaser/goreleaser-action`, `oven-sh/setup-bun`, `peter-evans/create-pull-request`), and prints the list in the dry run. Add a pattern by hand whenever a workflow starts using a new third-party action. It also turns on **"Allow GitHub Actions to create and approve pull requests"** (`can_approve_pull_request_reviews: true`; default token permissions stay read-only), which `peter-evans/create-pull-request` with `GITHUB_TOKEN` in `dcm-add-container.yml` needs. The ruleset goes last because it blocks force pushes with no bypass; to force-push `main` later, disable it first, as was done on 2026-10-27.
-
-Left as dcm has them: wiki and discussions (both on), labels `accepted` and `container`, the `copilot` environment, the two open dcm PRs (see "Decide first" item 5).
-
-## 5. Rerun the release backport as a check
+## 6. Rerun the release backport as a check
 
 ```bash
 scripts/migrate/backport-releases.sh --yes          # defaults: --old ajnart/self-host-old --new ajnart/self-host
 ```
 
-Everything should print `skip ... assets match`, and the summary `created 0, assets synced 0, ... failed 0`. It also catches any release, or any asset, published on the old repo between steps 2 and 3.
-
-## 6. Move open issues (optional)
-
-```bash
-scripts/migrate/transfer-issues.sh            # read it
-scripts/migrate/transfer-issues.sh --yes
-```
-
-The old repo has no open issues today, so this is a no-op. GitHub rules: same owner, only **open** issues move (closed issues and PRs never do; they stay in `self-host-old`), comments and assignees stay, labels stay if the name exists on the target, and an issue of a private repo cannot go to a public repo. Run it before Step 7: an archived repo is read-only, so its open issues could no longer be handled there.
+Everything should print `skip ... assets match`, and the summary `created 0, assets synced 0, ... failed 0`. It also catches any release, or any asset, published on the old repo between Steps 2 and 5.
 
 ## 7. Archive the old repo
 
@@ -189,10 +210,22 @@ Nothing to change: the final name is `ajnart/self-host`.
 
 - **`self-host-fyi`** is tied to the old repo by id: it keeps building `self-host-old`, which gets no more pushes. Cloudflare cannot re-point a Pages project to another repo, and a direct-upload project cannot switch to Git later. Choose one:
   - _Keep it, deploy by hand._ `scripts/publish-site.sh X.Y.Z` already runs `wrangler pages deploy site/dist-pages --project-name self-host-fyi`. Installer and site changes then need that command after each merge; the "merging install.sh deploys immediately" behaviour is lost.
-  - _Recreate it from the dashboard_ (Workers & Pages -> Create -> Pages -> Connect to Git, not `wrangler pages project create`): repo `ajnart/self-host`, production branch `main`, build command `bash scripts/build-site-pages.sh`, output `site/dist-pages`, root empty, same watch paths. Verify on its `*.pages.dev` address, then remove `self-host.fyi` from the old project and add it to the new one (brief gap), then delete the old project. The new project needs a different name or the old one deleted first.
+  - _Recreate it from the dashboard_ (Workers & Pages -> Create -> Pages -> Connect to Git, not `wrangler pages project create`): repo `ajnart/self-host`, production branch `main`, build command `bash scripts/build-site-pages.sh`, output `site/dist-pages`, root empty. The other settings (`BUN_VERSION`, the optional `GITHUB_TOKEN` secret, the build watch paths) are the table in [`docs/releasing.md`](../releasing.md#automatic-deploys-git-integration); set them from there, do not copy them from this runbook. Verify on its `*.pages.dev` address, then remove `self-host.fyi` from the old project and add it to the new one (brief gap), then delete the old project. The new project needs a different name or the old one deleted first.
   - Until one of these is done, merging to `main` does not update self-host.fyi. Rehearse on a preview first.
-- **`dcm`** (the standalone Pages project) has no Git source: nothing breaks, and nothing deploys to it any more. DCM is now part of the one `self-host-fyi` build at `/compose`, so no new Pages project is needed. Delete `dcm` after the redirect below is live.
-- **Redirect `compose.ajnart.dev` -> `https://self-host.fyi/compose`:** once the new page exists, add a Cloudflare Single Redirect rule on the `ajnart.dev` zone (301, preserve path as you like), and the same for `compose.homarr.dev` if you want it. Then remove both domains from the `dcm` Pages project. Until then both domains keep serving the old Next.js build.
+- **`dcm`** (the standalone Pages project) has no Git source and is retired: nothing deploys to it any more. DCM is part of the one `self-host-fyi` build at `/compose` (one Astro app, no Pages Functions, KV or upvotes), so no new Pages project is needed. Delete `dcm` only after the redirects below are live and verified.
+- **Redirect `compose.ajnart.dev` to `https://self-host.fyi/compose`.** Keep the `compose.ajnart.dev` DNS record **proxied** (orange cloud): a redirect rule only runs on proxied records, and the record must stay while the domain is detached from the old `dcm` Pages project. On the `ajnart.dev` zone, Rules -> Redirect Rules -> Single Redirect, two rules in this order:
+  1. When hostname equals `compose.ajnart.dev` and URI path equals `/`: static redirect to `https://self-host.fyi/compose`, 301, **preserve query string**. The site uses `trailingSlash: "never"`. Without this rule `/` falls through to rule 2 and lands on `/compose/`, which Pages 308s to `/compose`: it works, with one more hop.
+  2. When hostname equals `compose.ajnart.dev`: dynamic redirect, expression `concat("https://self-host.fyi/compose", http.request.uri.path)`, 301, **preserve query string**.
+
+  Verify before removing the domain from the `dcm` project (expect `301` and a `location` on `https://self-host.fyi/compose` with the path and `?share=x` carried over):
+
+  ```bash
+  for u in / /templates /template/<id> '/?share=x'; do curl -sI "https://compose.ajnart.dev$u" | grep -iE '^(HTTP|location)'; done
+  ```
+
+  Then remove `compose.ajnart.dev` from the `dcm` Pages project.
+
+- **`compose.homarr.dev`** lives in another Cloudflare zone and needs its own pair of rules there (same expressions, its own hostname), verified the same way. Until they exist it keeps serving the old build, so do not detach it from `dcm` before then.
 - GitHub Apps: Cloudflare Workers and Pages is installed per account, so no reinstall is needed. Check `https://github.com/settings/installations` that it can see `ajnart/self-host` (repository access "all" or the repo listed).
 
 ## 10. After the dust settles
@@ -204,14 +237,22 @@ Nothing to change: the final name is `ajnart/self-host`.
 
 ## Rollback
 
-| Reached                        | Undo                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| After Step 1 (push)            | Additive. Delete the tags (`git push git@github.com:ajnart/dcm.git --delete TAG ...`) and, if wanted, restore dcm main: `git push --force-with-lease=refs/heads/main:<pushed sha> git@github.com:ajnart/dcm.git e499c2fd347e39803fd062dcba6499891e9a4a2e:refs/heads/main`. Go proxy keeps any version it already fetched; the SHAs were the same anyway. |
-| After Step 2 (releases on dcm) | `gh release delete TAG --repo ajnart/dcm --yes` per release (the tag stays without `--cleanup-tag`). Keep dcm's `v1` release.                                                                                                                                       |
-| After Step 3 (renamed)         | If Step 7 ran, unarchive `self-host-old` first. Reverse order: `gh api -X PATCH repos/ajnart/self-host -f name=dcm`, then `gh api -X PATCH repos/ajnart/self-host-old -f name=self-host`. Redirects return as long as no repo took either name.                                                                                                                                                          |
-| After Step 4 (configure)       | Settings: `gh api -X PATCH repos/ajnart/self-host -F allow_merge_commit=true -F allow_rebase_merge=true` and the description, homepage and topics from `/tmp/before-configure.json`. Actions: `gh api -X PUT repos/ajnart/self-host/actions/permissions -F enabled=true -f allowed_actions=all` (dcm's original, see `/tmp/before-actions.json`), and `gh api -X PUT repos/ajnart/self-host/actions/permissions/workflow -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false`. Ruleset: `gh api repos/ajnart/self-host/rulesets --jq '.[] \| [.id,.name]'`, then `gh api -X DELETE repos/ajnart/self-host/rulesets/ID`. Labels added by the script: `gh label delete NAME --repo ajnart/self-host --yes`. Dependabot security updates: `gh api -X DELETE repos/ajnart/self-host/automated-security-fixes`. |
-| After Step 6 (issue transfers) | Not reversible by these scripts. A transferred issue keeps a redirect from its old URL, and `gh issue transfer N ajnart/self-host-old` moves it back by hand but gives it a new number again. Treat transfers as one-way. |
-| After Step 7 (archived)        | `gh api -X PATCH repos/ajnart/self-host-old -F archived=false` (GitHub REST "Update a repository": `archived` false unarchives). An archived repo cannot be renamed, so unarchive before undoing Step 3. Nothing is lost by archiving. |
-| After Step 7 (`--private`)     | `gh api -X PATCH repos/ajnart/self-host-old -F private=false` (stars and watchers are gone; forks stay detached). Only if it was also archived: unarchive first. |                                                                                                                                                                                                                                        |
+Undo in reverse order. Until Step 5 the new repo is `ajnart/dcm`; after it, `ajnart/self-host`.
+
+- **After Step 1 (push).** Additive. Delete the tags (`git push git@github.com:ajnart/dcm.git --delete TAG ...`) and, if wanted, restore dcm main: `git push --force-with-lease=refs/heads/main:<pushed sha> git@github.com:ajnart/dcm.git e499c2fd347e39803fd062dcba6499891e9a4a2e:refs/heads/main`. Go proxy keeps any version it already fetched; the SHAs were the same anyway. The push also made `dcm-image` overwrite `ghcr.io/ajnart/dcm:latest`; restore the image recorded in `/tmp/before-dcm-latest.digest` (needs `docker login ghcr.io`): `docker buildx imagetools create -t ghcr.io/ajnart/dcm:latest ghcr.io/ajnart/dcm@sha256:DIGEST`.
+- **After Step 2 (releases on dcm).** `gh release delete TAG --repo ajnart/dcm --yes` per release (the tag stays without `--cleanup-tag`). Keep dcm's `v1` release.
+- **After Step 3 (configure).**
+  - Settings: `gh api -X PATCH repos/ajnart/dcm -F allow_merge_commit=true -F allow_rebase_merge=true`, and the description, homepage and topics from `/tmp/before-configure.json`.
+  - Actions: `gh api -X PUT repos/ajnart/dcm/actions/permissions -F enabled=true -f allowed_actions=all` (dcm's original, see `/tmp/before-actions.json`), and `gh api -X PUT repos/ajnart/dcm/actions/permissions/workflow -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false`.
+  - Ruleset: `gh api repos/ajnart/dcm/rulesets --jq '.[] | [.id,.name]'`, then `gh api -X DELETE repos/ajnart/dcm/rulesets/ID`.
+  - Labels the script added (every name not in `/tmp/before-labels.json`): `gh label delete NAME --repo ajnart/dcm --yes`.
+  - Dependabot security updates: `gh api -X DELETE repos/ajnart/dcm/automated-security-fixes`.
+  - After Step 5, use `ajnart/self-host` in all of these.
+- **After Step 4 (issue transfers).** Not reversible by these scripts. A transferred issue keeps a redirect from its old URL, and `gh issue transfer N ajnart/self-host` (the old repo's name until Step 5) moves it back by hand but gives it a new number again. Treat transfers as one-way.
+- **After Step 5 (renamed).** If Step 7 ran, unarchive `self-host-old` first. Reverse order: `gh api -X PATCH repos/ajnart/self-host -f name=dcm`, then `gh api -X PATCH repos/ajnart/self-host-old -f name=self-host`. Redirects return as long as no repo took either name. Configure stays applied to dcm; undo it as above.
+- **After Step 6 (recheck).** It only adds missing releases or assets to the repo now named `ajnart/self-host`; undo like Step 2 with that name (`gh release delete TAG --repo ajnart/self-host --yes`, or `gh release delete-asset TAG NAME --repo ajnart/self-host --yes`).
+- **After Step 7 (archived).** `gh api -X PATCH repos/ajnart/self-host-old -F archived=false` (GitHub REST "Update a repository": `archived` false unarchives). An archived repo cannot be renamed, so unarchive before undoing Step 5. Nothing is lost by archiving.
+- **After Step 7 (`--private`).** `gh api -X PATCH repos/ajnart/self-host-old -F private=false` (stars and watchers are gone; forks stay detached). If it was also archived, unarchive first.
+- **After Step 9 (Cloudflare).** Redirects: delete the two Single Redirect rules on the `ajnart.dev` zone (and the ones on the `compose.homarr.dev` zone), and, if the domains were detached, add `compose.ajnart.dev` and `compose.homarr.dev` back to the `dcm` Pages project (its last deployment still serves the old build until the project is deleted). `self-host.fyi`: if moved to a recreated project, detach it there and add it back to the old `self-host-fyi` project, or keep deploying by hand with `wrangler pages deploy site/dist-pages --project-name self-host-fyi`.
 
 Do not force-push `main` of the live repo to undo a bad merge after the first release from it: tags and the Go proxy pin their commits. Revert with a new commit.

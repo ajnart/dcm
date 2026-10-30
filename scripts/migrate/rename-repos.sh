@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# Steps 3, 4 and 7 of docs/migration/dcm-takeover.md. Dry run unless --yes.
+# Steps 3, 5 and 7 of docs/migration/dcm-takeover.md. Dry run unless --yes.
 #
-#   rename     ajnart/self-host -> ajnart/self-host-old, then ajnart/dcm -> ajnart/self-host
-#   configure  copy description, homepage, topics, merge settings, labels, Actions policy and the
-#              'protect main' ruleset from the old repo onto the new one. The Actions allow-list is the
-#              old one plus every non-GitHub action used in .github/workflows/*.yml, and the workflow
-#              token may create pull requests (dcm-add-container.yml).
+#   configure  (step 3, BEFORE the rename: --old ajnart/self-host --new ajnart/dcm, the defaults)
+#              copy description, homepage, topics, merge settings, labels, Actions policy and the
+#              'protect main' ruleset from the old repo onto the new one, so the new repo is never live
+#              as ajnart/self-host unconfigured. The Actions allow-list is the old one plus every
+#              non-GitHub action used in .github/workflows/*.yml, and the workflow token may create pull
+#              requests (dcm-add-container.yml and stars.yml use peter-evans/create-pull-request). Also
+#              creates the labels the dcm workflows and issue templates use.
+#   rename     (step 5) ajnart/self-host -> ajnart/self-host-old, then ajnart/dcm -> ajnart/self-host.
+#              Refuses until configure ran.
 #   archive    archive the old repo: it stays public and becomes read-only (last step). With --private
 #              it is made private instead, which erases its stars and watchers and hides its issues, PRs
 #              and release assets
@@ -14,7 +18,7 @@
 # ajnart/self-host to self-host-old until the name is taken, and drops that redirect when dcm takes it.
 set -euo pipefail
 
-usage="usage: scripts/migrate/rename-repos.sh rename|configure|archive [--yes] [--private] [--old OWNER/REPO] [--new OWNER/REPO] [--skip-release-check]"
+usage="usage: scripts/migrate/rename-repos.sh configure|rename|archive [--yes] [--private] [--old OWNER/REPO] [--new OWNER/REPO] [--skip-release-check] [--skip-configure-check]"
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 source "$here/lib.sh"
@@ -23,7 +27,7 @@ step="${1:-}"
 [[ "$step" == rename || "$step" == configure || "$step" == archive ]] || die "$usage"
 shift
 
-old_repo="" new_repo="" make_private=false
+old_repo="" new_repo="" make_private=false skip_configure_check=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --yes) YES=true ;;
@@ -31,6 +35,7 @@ while [[ $# -gt 0 ]]; do
     --new) new_repo="${2:?$usage}"; shift ;;
     --private) make_private=true ;;
     --skip-release-check) SKIP_RELEASE_CHECK=true ;;
+    --skip-configure-check) skip_configure_check=true ;;
     -h|--help) say "$usage"; exit 0 ;;
     *) die "$usage" ;;
   esac
@@ -78,6 +83,26 @@ $lost"
   say "-- releases"
   check_release_parity "$old_repo" "$new_repo"
 
+  say "-- configure must have run on $new_repo"
+  new_rulesets="$(gh api "repos/$new_repo/rulesets" --jq '.[].name')"
+  unconfigured=""
+  while IFS= read -r rs_name; do
+    [[ -n "$rs_name" ]] || continue
+    grep -qxF -- "$rs_name" <<<"$new_rulesets" || unconfigured="$unconfigured '$rs_name'"
+  done < <(gh api "repos/$old_repo/rulesets" --jq '.[].name')
+  old_policy="$(gh api "repos/$old_repo/actions/permissions" --jq .allowed_actions)"
+  new_policy="$(gh api "repos/$new_repo/actions/permissions" --jq .allowed_actions)"
+  [[ "$old_policy" == "$new_policy" ]] || unconfigured="$unconfigured Actions policy ($new_policy, expected $old_policy)"
+  if [[ -n "$unconfigured" ]]; then
+    if $skip_configure_check; then
+      say "WARN $new_repo is not configured:$unconfigured (--skip-configure-check)"
+    else
+      die "$new_repo is not configured, missing:$unconfigured; run: rename-repos.sh configure --old $old_repo --new $new_repo --yes (or --skip-configure-check)"
+    fi
+  else
+    say "rulesets and Actions policy of $old_repo are on $new_repo"
+  fi
+
   say "-- things that do not move with a rename"
   say "open issues on $old_repo: $(gh issue list --repo "$old_repo" --state open --json number --jq length) (move them with transfer-issues.sh BEFORE the archive step)"
   say "open PRs on $old_repo: $(gh pr list --repo "$old_repo" --state open --json number --jq length) (PRs cannot be transferred)"
@@ -102,18 +127,18 @@ $lost"
     for _ in $(seq 1 30); do [[ "$(repo_id "$final")" == "$new_id" ]] && break; sleep 2; done
     [[ "$(repo_id "$final")" == "$new_id" ]] || die "$final does not resolve to $new_repo (id $new_id)"
     say "renamed: $final is id $new_id"
-    say "next: scripts/migrate/rename-repos.sh configure --yes"
+    say "next: verify (runbook step 5), rerun backport-releases.sh as a check, then rename-repos.sh archive"
   fi
   ;;
 
 configure)
-  old_repo="${old_repo:-$OWNER/self-host-old}"
-  new_repo="${new_repo:-$OWNER/self-host}"
+  old_repo="${old_repo:-$OWNER/self-host}"
+  new_repo="${new_repo:-$OWNER/dcm}"
   [[ "$old_repo" != "$new_repo" ]] || die "--old and --new are the same"
   old_id="$(repo_id "$old_repo")"
   new_id="$(repo_id "$new_repo")"
   [[ -n "$old_id" && -n "$new_id" ]] || die "$old_repo or $new_repo not found"
-  [[ "$old_id" != "$new_id" ]] || die "$old_repo and $new_repo are the same repository; rename first"
+  [[ "$old_id" != "$new_id" ]] || die "$old_repo and $new_repo are the same repository (already renamed?): pass --old $OWNER/self-host-old --new $OWNER/self-host"
 
   old_json="$(gh api "repos/$old_repo")"
   say "-- settings from $old_repo"
@@ -131,6 +156,19 @@ configure)
     if grep -qxF -- "$name" <<<"$existing"; then continue; fi
     run_json POST "repos/$new_repo/labels" "$(jq -c '{name, color, description}' <<<"$label")"
   done < <(gh api "repos/$old_repo/labels" --paginate --jq '.[] | @json')
+
+  say "-- labels the dcm workflows and issue templates need (dcm-*.yml templates, dcm-add-container.yml, stars.yml)"
+  known="$existing"$'\n'"$(gh api "repos/$old_repo/labels" --paginate --jq '.[].name')"
+  for entry in \
+    "dcm|1d76db|Docker Compose Maker" \
+    "container|581350|new container suggestion" \
+    "accepted|aaaaaa|maintainer accepted a container submission" \
+    "automated|ededed|opened by a workflow" \
+    "needs-review|fbca04|container validation failed"; do
+    IFS='|' read -r name color description <<<"$entry"
+    if grep -qxF -- "$name" <<<"$known"; then continue; fi
+    run_json POST "repos/$new_repo/labels" "$(jq -cn --arg name "$name" --arg color "$color" --arg description "$description" '{name: $name, color: $color, description: $description}')"
+  done
 
   say "-- Actions policy"
   need git
@@ -153,7 +191,7 @@ configure)
   else
     say "allowed_actions is '$allowed' on $old_repo: no allow-list to write"
   fi
-  say "workflow token: read-only by default, and may create pull requests (peter-evans/create-pull-request in dcm-add-container.yml needs it)"
+  say "workflow token: read-only by default, and may create pull requests (peter-evans/create-pull-request with GITHUB_TOKEN in dcm-add-container.yml and stars.yml needs it)"
   run_json PUT "repos/$new_repo/actions/permissions/workflow" \
     "$(gh api "repos/$old_repo/actions/permissions/workflow" | jq -c '{default_workflow_permissions, can_approve_pull_request_reviews: true}')"
 
