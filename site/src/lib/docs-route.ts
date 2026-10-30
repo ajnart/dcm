@@ -3,6 +3,7 @@ import {
 	defineRouteMiddleware,
 } from "@astrojs/starlight/route-data";
 import { recipeById } from "./catalog";
+import { changelogPage } from "./changelog";
 import { isNoindex } from "./indexing.mjs";
 import { ORIGIN, breadcrumbs, schema } from "./meta";
 import { OG_HEIGHT, OG_WIDTH, ogPath, pageSlug } from "./og";
@@ -16,42 +17,6 @@ function cleanEntries(entries: Entry[]): void {
 		if (entry.type === "link") entry.href = clean(entry.href);
 		else cleanEntries(entry.entries);
 	}
-}
-
-type Changelog = { title: string; crumb: string; description: string };
-
-function changelogPage(slug: string): Changelog | undefined {
-	if (slug === "docs/changelog")
-		return {
-			title: "Changelog",
-			crumb: "Changelog",
-			description:
-				"Every self-host release: what was added, changed and fixed, newest first.",
-		};
-	const list = /^docs\/changelog\/(\d+)$/.exec(slug);
-	if (list) {
-		const title = `Changelog, page ${list[1]}`;
-		return {
-			title,
-			crumb: title,
-			description: `Older self-host releases, page ${list[1]} of the changelog: what was added, changed and fixed.`,
-		};
-	}
-	const version =
-		/^docs\/changelog\/version\/(\d+)-(\d+)-(\d+)(\.\.\.latest)?$/.exec(slug);
-	if (!version) return undefined;
-	const number = version.slice(1, 4).join(".");
-	if (version[4])
-		return {
-			title: `Changes since ${number}`,
-			crumb: `Since ${number}`,
-			description: `Everything that changed in self-host from ${number} to the latest release, on one page.`,
-		};
-	return {
-		title: `self-host ${number} release notes`,
-		crumb: number,
-		description: `What changed in self-host ${number}: the release notes with every addition and fix.`,
-	};
 }
 
 function crumbs(slug: string, title: string): [string, string][] {
@@ -87,7 +52,7 @@ export const onRequest = defineRouteMiddleware((context) => {
 	const description =
 		changelog?.description ?? route.entry.data.description ?? "";
 	const noindex = isNoindex(context.url.pathname);
-	const cardSlug = slug.startsWith("docs/changelog") ? "docs/changelog" : slug;
+	const cardSlug = slug.replace(/\.\.\.latest$/, "");
 	const image = new URL(ogPath(`/${cardSlug}`), context.site).href;
 
 	if (noindex)

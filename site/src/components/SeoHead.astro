@@ -38,6 +38,7 @@ const reel = new URL("/reel.mp4", Astro.site);
   video && (
     <>
       <meta property="og:video" content={reel} />
+      <meta property="og:video:secure_url" content={reel} />
       <meta property="og:video:type" content="video/mp4" />
       <meta property="og:video:width" content="1920" />
       <meta property="og:video:height" content="1080" />
