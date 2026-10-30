@@ -1,0 +1,77 @@
+bun.lock
+  s_648ebbdc146794::t_8359d184596a7a 33,325-330,641-642,747-748,1081-1084,1093-1094,1357-1360
+dcm/package.json
+  s_648ebbdc146794::t_bb338907e16c6f 38
+dcm/src/components/ModeToggle.tsx
+  s_55160d9b57c4ef::t_a629910a88bf71 1,25-28
+dcm/src/components/TemplateClient.tsx
+  s_55160d9b57c4ef::t_a949d77e1d0f8f 23,77-80,97-102,105,111-112
+dcm/src/components/compose-modal/CopyComposeModal.tsx
+  s_55160d9b57c4ef::t_283e5882db9afb 7,97,103-110,120-125
+dcm/src/components/container-submission-form.tsx
+  s_55160d9b57c4ef::t_4bca796adde7e7 33,148
+dcm/src/components/floating-bar.tsx
+  s_55160d9b57c4ef::t_ae670e9ccbdcc2 7,101,104-105
+dcm/src/components/search-command.tsx
+  s_55160d9b57c4ef::t_811144ccae325f 10,28-31
+dcm/src/components/selfhost-command.tsx
+  s_55160d9b57c4ef::t_7057ab07aaf5f5 12,20,32,38-45,63-75
+dcm/src/components/settings-panel.tsx
+  s_55160d9b57c4ef::t_53f64cb31728b1 9-10,38-41
+dcm/src/components/suggest-container.tsx
+  s_55160d9b57c4ef::t_af915b711e6926 2,17
+dcm/src/hooks/use-catalog-view.ts
+  s_55160d9b57c4ef::t_67db5db854e0ee 3,17-36
+dcm/src/lib/analytics.ts
+  s_55160d9b57c4ef::t_b849a816ddfb1f 1-85
+docs/adr/0013-website-analytics.md
+  s_55160d9b57c4ef::t_c37564b93ae149 1-40
+docs/telemetry.md
+  s_55160d9b57c4ef::t_1b9a105a1f4b42 45,47-81
+site/astro.config.mjs
+  s_55160d9b57c4ef::t_e1d640efdcdbe7 88,95
+site/src/components/CodeBlock.astro
+  s_55160d9b57c4ef::t_a2f600536d4f98 12-13,16-17,21,27
+site/src/components/docs/Footer.astro
+  s_55160d9b57c4ef::t_da9f457b6666f1 12
+site/src/layouts/Base.astro
+  s_55160d9b57c4ef::t_f05ff7a2b715fa 72-74
+site/src/layouts/Compose.astro
+  s_55160d9b57c4ef::t_0309890c840344 55-57
+site/src/pages/404.astro
+  s_55160d9b57c4ef::t_6f9200867dae5d 11
+site/src/pages/apps/[id].astro
+  s_55160d9b57c4ef::t_be2a9f2d1c4439 45,70
+site/src/pages/index.astro
+  s_55160d9b57c4ef::t_a4767ff3c9772e 76,195
+site/src/scripts/analytics.ts
+  s_55160d9b57c4ef::t_6fab0c7c425da1 1-3
+site/src/scripts/catalog-view.js
+  s_55160d9b57c4ef::t_db2d16a2d44ffc 1,129
+site/src/scripts/codeblock.js
+  s_55160d9b57c4ef::t_12abde1c76520d 1,4-14,33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6bc8aa331a09d7fe58d2dfee17661503d4c03f7c",
+  "prompts": {},
+  "sessions": {
+    "s_55160d9b57c4ef": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "90f81d7b-4cb4-48fa-a97d-6594a6a198b3",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_648ebbdc146794": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c54b0155-f3be-4cd0-bad6-129811db7d7d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
