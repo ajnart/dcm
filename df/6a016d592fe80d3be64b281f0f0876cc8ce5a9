@@ -1,0 +1,25 @@
+site/public/_headers
+  s_a91f4b733e8ee4::t_159c0bf4e41916 5
+site/src/layouts/Base.astro
+  s_a91f4b733e8ee4::t_70f37c993a42dc 72
+site/src/layouts/Compose.astro
+  s_a91f4b733e8ee4::t_2c71752c4ea750 60
+site/src/lib/speculation.mjs
+  s_a91f4b733e8ee4::t_313e0501831beb 12-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df6a016d592fe80d3be64b281f0f0876cc8ce5a9",
+  "prompts": {},
+  "sessions": {
+    "s_a91f4b733e8ee4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2f0f81a4-3fff-4415-afef-7b285a1a665c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
