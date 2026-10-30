@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -27,10 +26,5 @@ func writeTheme() error {
 		fmt.Fprintf(&b, "  --%s: %s;\n", v[0], strings.ToLower(v[1]))
 	}
 	b.WriteString("}\n")
-	path := filepath.Join("site", "src", "styles", "theme.css")
-	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
-		return err
-	}
-	fmt.Println(path)
-	return nil
+	return writeFile(filepath.Join("site", "src", "styles", "theme.css"), []byte(b.String()))
 }

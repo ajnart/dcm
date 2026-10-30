@@ -10,6 +10,7 @@ package standalone
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strings"
@@ -25,6 +26,9 @@ type Env struct {
 	Default     string `json:"default"`
 	Description string `json:"description"`
 	Secret      bool   `json:"secret"`
+	// External marks a value the person supplies from outside, such as a token another
+	// service issues. Leave it blank by default rather than generate one.
+	External bool `json:"external,omitempty"`
 }
 
 // Link is a wiring self-host applies after both Apps run.
@@ -42,7 +46,7 @@ type Entry struct {
 	// Standalone is false when the Compose mounts files only self-host generates.
 	Standalone bool
 	// Notes is what plain Compose leaves to the person, in order: files, required
-	// inputs, converted secrets, the App's own guide, links.
+	// inputs, dropped password files, the App's own guide, links.
 	Notes string
 }
 
@@ -60,12 +64,7 @@ func Project(ap app.App) (Entry, error) {
 	if err != nil {
 		return Entry{}, err
 	}
-	links := []Link{}
-	for _, link := range ap.Links() {
-		if catalog.Unavailable(link.Target) == "" {
-			links = append(links, Link{Target: link.Target, Title: link.Title})
-		}
-	}
+	links := AvailableLinks(ap)
 	notes, err := notesFor(ap, c, vars, links)
 	if err != nil {
 		return Entry{}, err
@@ -75,6 +74,17 @@ func Project(ap app.App) (Entry, error) {
 		env[i] = v.Env
 	}
 	return Entry{Compose: compose, Env: env, Links: links, Standalone: len(c.missing) == 0, Notes: notes}, nil
+}
+
+// AvailableLinks lists an App's Links to Apps offered for new installs, never nil.
+func AvailableLinks(ap app.App) []Link {
+	links := []Link{}
+	for _, link := range ap.Links() {
+		if catalog.Unavailable(link.Target) == "" {
+			links = append(links, Link{Target: link.Target, Title: link.Title})
+		}
+	}
+	return links
 }
 
 func renderContext(ap app.App) app.RenderContext {
@@ -94,9 +104,9 @@ type variable struct {
 }
 
 // globals are the variables Docker Compose Maker's own .env already provides, plus the
-// ones every App's login needs.
+// ones every App's login needs. The defaults match dcm/src/lib/settings.ts.
 var globals = map[string]Env{
-	"TZ":               {Default: "Etc/UTC", Description: "Time zone, for example Europe/Paris"},
+	"TZ":               {Default: "UTC", Description: "Time zone, for example Europe/Paris"},
 	"PUID":             {Default: "1000", Description: "User ID the container runs as (run `id -u`)"},
 	"PGID":             {Default: "1000", Description: "Group ID the container runs as (run `id -g`)"},
 	"UMASK":            {Default: "022", Description: "Permission mask for files the App creates"},
@@ -111,12 +121,38 @@ var globals = map[string]Env{
 		"Choose a strong one or generate it with: openssl rand -hex 16"},
 }
 
+// Globals lists the variables above, sorted by key, for the export to read.
+func Globals() []Env {
+	out := make([]Env, 0, len(globals))
+	for key, value := range globals {
+		value.Key = key
+		out = append(out, value)
+	}
+	slices.SortFunc(out, func(a, b Env) int { return strings.Compare(a.Key, b.Key) })
+	return out
+}
+
 // extraEnv describes variables an App's Compose reads that self-host fills in after the
 // App runs (its Setup), so no declared secret or input carries them.
 var extraEnv = map[string]Env{
 	"BESZEL_AGENT_KEY":             {Description: "Public key the Beszel hub shows when you add a system. Leave empty until you have added the system"},
-	"BESZEL_AGENT_TOKEN":           {Secret: true, Description: "Agent token the Beszel hub shows when you add a system. Leave empty until you have added the system"},
-	"STALWART_MAIL_RECOVERY_ADMIN": {Secret: true, Description: "Optional recovery administrator as username:password, used only while bootstrapping. Leave empty to skip it"},
+	"BESZEL_AGENT_TOKEN":           {Secret: true, External: true, Description: "Agent token the Beszel hub shows when you add a system. Leave empty until you have added the system"},
+	"STALWART_MAIL_RECOVERY_ADMIN": {Secret: true, External: true, Description: "Optional recovery administrator as username:password, used only while bootstrapping. Leave empty to skip it"},
+}
+
+// CheckExtraEnv fails on an extraEnv entry that none of the given variables, collected from
+// every App's Compose, names, so a rename cannot leave a description behind.
+func CheckExtraEnv(vars []Env) error {
+	read := map[string]bool{}
+	for _, env := range vars {
+		read[env.Key] = true
+	}
+	for _, key := range slices.Sorted(maps.Keys(extraEnv)) {
+		if !read[key] {
+			return fmt.Errorf("extraEnv describes %s, which no App's compose reads", key)
+		}
+	}
+	return nil
 }
 
 var varRef = regexp.MustCompile(`\$\$|\$\{([A-Za-z_][A-Za-z0-9_]*)|\$([A-Za-z_][A-Za-z0-9_]*)`)
@@ -174,7 +210,7 @@ func envMeta(ap app.App) map[string]variable {
 		case in.RecoveryOnly:
 		case in.Private:
 			key := service.SecretKey(info.ID, in.Key)
-			meta[key] = variable{Env: Env{Key: key, Secret: true, Description: describeInput(in)}}
+			meta[key] = variable{Env: Env{Key: key, Secret: true, External: true, Description: describeInput(in)}}
 		case in.Required && in.Default == "":
 			key := inputVar(info.ID, in.Key)
 			meta[key] = variable{Env: Env{Key: key, Default: in.Default, Description: describeInput(in)}, required: true, prompt: strings.TrimSpace(in.Prompt)}

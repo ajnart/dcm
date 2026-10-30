@@ -118,7 +118,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -157,7 +157,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (rpc-config), mounted from ${CONFIG_PATH}/aria2/; without them it does not start. Use self-host install aria2 for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (rpc-config), expected in ${CONFIG_PATH}/aria2/; without them it does not start."
   },
   {
    "id": "audiobookshelf",
@@ -191,7 +191,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -261,13 +261,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (config/configuration.yml, config/users_database.yml), mounted from ${CONFIG_PATH}/authelia/; without them it does not start. Use self-host install authelia for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (config/configuration.yml, config/users_database.yml), expected in ${CONFIG_PATH}/authelia/; without them it does not start."
   },
   {
    "id": "authentik",
@@ -382,7 +382,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -418,7 +418,8 @@
      "key": "BESZEL_AGENT_TOKEN",
      "default": "",
      "description": "Agent token the Beszel hub shows when you add a system. Leave empty until you have added the system",
-     "secret": true
+     "secret": true,
+     "external": true
     },
     {
      "key": "CONFIG_PATH",
@@ -516,13 +517,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (php-fpm-run), mounted from ${CONFIG_PATH}/bookstack/; without them it does not start. Use self-host install bookstack for the full setup. BookStack starts with a seeded administrator account (admin@admin.com, password \"password\"); sign in and replace it."
+   "notes": "Needs files this Compose does not create before the first start (php-fpm-run), expected in ${CONFIG_PATH}/bookstack/; without them it does not start. BookStack starts with a seeded administrator account (admin@admin.com, password \"password\"); sign in and replace it."
   },
   {
    "id": "borgmatic",
@@ -556,7 +557,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (config), mounted from ${CONFIG_PATH}/borgmatic/; without them it does not start. Use self-host install borgmatic for the full setup. self-host hands secrets to the container as files (BORG_PASSPHRASE_FILE); this Compose passes them as plain environment variables (BORG_PASSPHRASE) instead."
+   "notes": "Needs files this Compose does not create before the first start (config), expected in ${CONFIG_PATH}/borgmatic/; without them it does not start."
   },
   {
    "id": "caddy",
@@ -590,7 +591,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (caddyfile), mounted from ${CONFIG_PATH}/caddy/; without them it does not start. Use self-host install caddy for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (caddyfile), expected in ${CONFIG_PATH}/caddy/; without them it does not start."
   },
   {
    "id": "cleanuparr",
@@ -649,7 +650,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -661,7 +662,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, create the account on the first visit. After its first start, self-host also wires it to other Apps (clean Sonarr's queue; clean Radarr's queue; download client: qBittorrent); plain Compose leaves that to you."
+   "notes": "After the first start, create the account on the first visit. It works with other Apps (clean Sonarr's queue; clean Radarr's queue; download client: qBittorrent), but this Compose does not connect them; do that in each App's settings."
   },
   {
    "id": "cloudflare-tunnel",
@@ -679,7 +680,8 @@
      "key": "CLOUDFLARE_TUNNEL_TOKEN",
      "default": "",
      "description": "Cloudflare Tunnel connector token. The tunnel run token, not the API token; self-host cloudflare publish obtains it automatically",
-     "secret": true
+     "secret": true,
+     "external": true
     },
     {
      "key": "CONTAINER_PREFIX",
@@ -695,7 +697,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -773,7 +775,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -813,7 +815,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -969,7 +971,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -1043,7 +1045,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -1089,7 +1091,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (bootstrap-config), mounted from ${CONFIG_PATH}/frigate/; without them it does not start. Use self-host install frigate for the full setup. Frigate generates the first administrator (admin) and prints its password once in the container logs; sign in with it and change it."
+   "notes": "Needs files this Compose does not create before the first start (bootstrap-config), expected in ${CONFIG_PATH}/frigate/; without them it does not start. Frigate generates the first administrator (admin) and prints its password once in the container logs; sign in with it and change it."
   },
   {
    "id": "gatus",
@@ -1123,7 +1125,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (config), mounted from ${CONFIG_PATH}/gatus/; without them it does not start. Use self-host install gatus for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (config), expected in ${CONFIG_PATH}/gatus/; without them it does not start."
   },
   {
    "id": "glances",
@@ -1180,13 +1182,15 @@
      "key": "GLUETUN_OPENVPN_PASSWORD",
      "default": "",
      "description": "Provider OpenVPN password. The OpenVPN password issued by the provider",
-     "secret": true
+     "secret": true,
+     "external": true
     },
     {
      "key": "GLUETUN_OPENVPN_USER",
      "default": "",
      "description": "Provider OpenVPN username. The OpenVPN username issued by the provider (not your web-account login)",
-     "secret": true
+     "secret": true,
+     "external": true
     },
     {
      "key": "GLUETUN_SERVER_COUNTRY",
@@ -1202,13 +1206,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (control-auth.toml), mounted from ${CONFIG_PATH}/gluetun/; without them it does not start. Use self-host install gluetun for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (control-auth.toml), expected in ${CONFIG_PATH}/gluetun/; without them it does not start."
   },
   {
    "id": "gotify",
@@ -1254,13 +1258,12 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
-   "standalone": true,
-   "notes": "self-host hands secrets to the container as files (GOTIFY_DEFAULTUSER_PASS_FILE); this Compose passes them as plain environment variables (GOTIFY_DEFAULTUSER_PASS) instead."
+   "standalone": true
   },
   {
    "id": "grafana",
@@ -1363,13 +1366,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (haproxy.cfg), mounted from ${CONFIG_PATH}/haproxy/; without them it does not start. Use self-host install haproxy for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (haproxy.cfg), expected in ${CONFIG_PATH}/haproxy/; without them it does not start."
   },
   {
    "id": "headscale",
@@ -1403,13 +1406,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (config.yaml), mounted from ${CONFIG_PATH}/headscale/; without them it does not start. Use self-host install headscale for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (config.yaml), expected in ${CONFIG_PATH}/headscale/; without them it does not start."
   },
   {
    "id": "homarr",
@@ -1642,13 +1645,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": true,
-   "notes": "After the first start, finish the onboarding wizard and create the administrator. After its first start, self-host also wires it to 48 other Apps; plain Compose leaves that to you."
+   "notes": "After the first start, finish the onboarding wizard and create the administrator. It works with 48 other Apps, but this Compose does not connect them; do that in each App's settings."
   },
   {
    "id": "home-assistant",
@@ -1682,7 +1685,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -1722,7 +1725,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -1826,7 +1829,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -1986,7 +1989,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -2125,8 +2128,7 @@
      "secret": false
     }
    ],
-   "standalone": true,
-   "notes": "self-host hands secrets to the container as files (LLDAP_LDAP_USER_PASS_FILE, LLDAP_JWT_SECRET_FILE, LLDAP_KEY_SEED_FILE); this Compose passes them as plain environment variables (LLDAP_LDAP_USER_PASS, LLDAP_JWT_SECRET, LLDAP_KEY_SEED) instead."
+   "standalone": true
   },
   {
    "id": "loki",
@@ -2247,7 +2249,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (redis-config), mounted from ${CONFIG_PATH}/mayan-edms/; without them it does not start. Use self-host install mayan-edms for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (redis-config), expected in ${CONFIG_PATH}/mayan-edms/; without them it does not start."
   },
   {
    "id": "minio",
@@ -2299,13 +2301,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": true,
-   "notes": "Set MINIO_LICENSE_FILE before the first start (Path to the AIStor license file you obtained from MinIO); the default ./minio-license-file is only a placeholder, and without a file there the container does not start. self-host hands secrets to the container as files (MINIO_ROOT_PASSWORD_FILE); this Compose passes them as plain environment variables (MINIO_ROOT_PASSWORD) instead."
+   "notes": "Set MINIO_LICENSE_FILE before the first start (Path to the AIStor license file you obtained from MinIO); the default ./minio-license-file is only a placeholder, and without a file there the container does not start."
   },
   {
    "id": "navidrome",
@@ -2379,13 +2381,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (server-config), mounted from ${CONFIG_PATH}/netbird/; without them it does not start. Use self-host install netbird for the full setup. After the first start, create the administrator on the first visit."
+   "notes": "Needs files this Compose does not create before the first start (server-config), expected in ${CONFIG_PATH}/netbird/; without them it does not start. After the first start, create the administrator on the first visit."
   },
   {
    "id": "netdata",
@@ -2419,7 +2421,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (startup.sh), mounted from ${CONFIG_PATH}/netdata/; without them it does not start. Use self-host install netdata for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (startup.sh), expected in ${CONFIG_PATH}/netdata/; without them it does not start."
   },
   {
    "id": "nextcloud",
@@ -2482,8 +2484,7 @@
      "secret": false
     }
    ],
-   "standalone": true,
-   "notes": "self-host hands secrets to the container as files (MYSQL_PASSWORD_FILE, NEXTCLOUD_ADMIN_PASSWORD_FILE, MARIADB_PASSWORD_FILE, MARIADB_ROOT_PASSWORD_FILE); this Compose passes them as plain environment variables (MYSQL_PASSWORD, NEXTCLOUD_ADMIN_PASSWORD, MARIADB_PASSWORD, MARIADB_ROOT_PASSWORD) instead."
+   "standalone": true
   },
   {
    "id": "nginx-proxy-manager",
@@ -2569,13 +2570,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (settings), mounted from ${CONFIG_PATH}/node-red/; without them it does not start. Use self-host install node-red for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (settings), expected in ${CONFIG_PATH}/node-red/; without them it does not start."
   },
   {
    "id": "ntfy",
@@ -2627,7 +2628,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -2697,7 +2698,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -2832,13 +2833,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (dynamic.yml, config.yml), mounted from ${CONFIG_PATH}/pangolin/; without them it does not start. Use self-host install pangolin for the full setup. self-host hands secrets to the container as files (SERVER_SECRET_FILE); this Compose passes them as plain environment variables (SERVER_SECRET) instead. After the first start, create the first administrator on the setup page with the PANGOLIN_SETUP_TOKEN value."
+   "notes": "Needs files this Compose does not create before the first start (dynamic.yml, config.yml), expected in ${CONFIG_PATH}/pangolin/; without them it does not start. After the first start, create the first administrator on the setup page with the PANGOLIN_SETUP_TOKEN value."
   },
   {
    "id": "paperless-ngx",
@@ -2907,8 +2908,7 @@
      "secret": false
     }
    ],
-   "standalone": true,
-   "notes": "self-host hands secrets to the container as files (PAPERLESS_DBPASS_FILE, PAPERLESS_SECRET_KEY_FILE, PAPERLESS_ADMIN_PASSWORD_FILE, POSTGRES_PASSWORD_FILE); this Compose passes them as plain environment variables (PAPERLESS_DBPASS, PAPERLESS_SECRET_KEY, PAPERLESS_ADMIN_PASSWORD, POSTGRES_PASSWORD) instead."
+   "standalone": true
   },
   {
    "id": "patchmon",
@@ -2984,7 +2984,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (redis-config), mounted from ${CONFIG_PATH}/patchmon/; without them it does not start. Use self-host install patchmon for the full setup. After the first start, create the administrator on the first visit."
+   "notes": "Needs files this Compose does not create before the first start (redis-config), expected in ${CONFIG_PATH}/patchmon/; without them it does not start. After the first start, create the administrator on the first visit."
   },
   {
    "id": "peanut",
@@ -3086,7 +3086,7 @@
    "port": 8080,
    "docs": "https://docs.pi-hole.net/docker/",
    "links": [],
-   "compose": "services:\n  pihole:\n    image: pihole/pihole:latest\n    container_name: ${CONTAINER_PREFIX}pihole\n    restart: ${RESTART_POLICY}\n    environment:\n      TZ: ${TZ}\n      WEBPASSWORD: ${ADMIN_PASSWORD}\n    volumes:\n      - ${CONFIG_PATH}/pihole/config:/etc/pihole\n    ports:\n      - 53:53/udp\n      - 53:53/tcp\n      - 8080:80\n",
+   "compose": "services:\n  pihole:\n    image: pihole/pihole:latest\n    container_name: ${CONTAINER_PREFIX}pihole\n    restart: ${RESTART_POLICY}\n    environment:\n      TZ: ${TZ}\n      FTLCONF_webserver_api_password: ${ADMIN_PASSWORD}\n    volumes:\n      - ${CONFIG_PATH}/pihole/config:/etc/pihole\n    ports:\n      - 53:53/udp\n      - 53:53/tcp\n      - 8080:80\n",
    "env": [
     {
      "key": "ADMIN_PASSWORD",
@@ -3114,13 +3114,12 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
-   "standalone": true,
-   "notes": "self-host hands secrets to the container as files (WEBPASSWORD_FILE); this Compose passes them as plain environment variables (WEBPASSWORD) instead."
+   "standalone": true
   },
   {
    "id": "plex",
@@ -3162,7 +3161,8 @@
      "key": "PLEX_CLAIM_TOKEN",
      "default": "",
      "description": "Plex claim token. For a new unclaimed server, create a claim token at https://www.plex.tv/claim. Leave empty when this server is already claimed.",
-     "secret": true
+     "secret": true,
+     "external": true
     },
     {
      "key": "RESTART_POLICY",
@@ -3172,13 +3172,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": true,
-   "notes": "self-host hands secrets to the container as files (PLEX_CLAIM_FILE); this Compose passes them as plain environment variables (PLEX_CLAIM) instead. Create a claim token at https://www.plex.tv/claim (valid 4 minutes) and set PLEX_CLAIM_TOKEN before the first start, or the server stays unclaimed."
+   "notes": "Create a claim token at https://www.plex.tv/claim (valid 4 minutes) and set PLEX_CLAIM_TOKEN before the first start, or the server stays unclaimed."
   },
   {
    "id": "portainer",
@@ -3212,7 +3212,7 @@
     }
    ],
    "standalone": true,
-   "notes": "self-host preseeds the administrator through a password file (--admin-password-file=/run/secrets/admin-bootstrap); this Compose leaves it out, so create the administrator in the web page on the first visit."
+   "notes": "The option --admin-password-file=/run/secrets/admin-bootstrap reads a password file this Compose does not provide, so it is left out; set the password in the web page on the first visit."
   },
   {
    "id": "postgresql",
@@ -3257,8 +3257,7 @@
      "secret": false
     }
    ],
-   "standalone": true,
-   "notes": "self-host hands secrets to the container as files (POSTGRES_PASSWORD_FILE); this Compose passes them as plain environment variables (POSTGRES_PASSWORD) instead."
+   "standalone": true
   },
   {
    "id": "prometheus",
@@ -3358,7 +3357,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -3370,7 +3369,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password). After its first start, self-host also wires it to other Apps (sync indexers to Sonarr; sync indexers to Radarr); plain Compose leaves that to you."
+   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password). It works with other Apps (sync indexers to Sonarr; sync indexers to Radarr), but this Compose does not connect them; do that in each App's settings."
   },
   {
    "id": "qbittorrent",
@@ -3422,7 +3421,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -3491,7 +3490,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -3503,7 +3502,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password) and add the root folder /media/movies. After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
+   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password) and add the root folder /media/movies. It works with other Apps (download client: qBittorrent), but this Compose does not connect them; do that in each App's settings."
   },
   {
    "id": "renovate",
@@ -3527,7 +3526,8 @@
      "key": "RENOVATE_TOKEN",
      "default": "",
      "description": "Forgejo Personal Access Token. A dedicated Renovate account's token with repository read and pull-request write scope",
-     "secret": true
+     "secret": true,
+     "external": true
     }
    ],
    "standalone": true,
@@ -3571,7 +3571,7 @@
     }
    ],
    "standalone": true,
-   "notes": "self-host hands secrets to the container as files (RESTIC_PASSWORD_FILE); this Compose passes them as plain environment variables (RESTIC_PASSWORD) instead. The container only runs restic version; run your backups against the repository yourself. self-host only prepares its credentials and folders."
+   "notes": "The container only runs restic version; run your backups against the repository yourself. self-host only prepares its credentials and folders."
   },
   {
    "id": "sabnzbd",
@@ -3617,7 +3617,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -3791,13 +3791,13 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
    ],
    "standalone": true,
-   "notes": "After its first start, self-host also wires it to other Apps (media server: Jellyfin; requests go to Sonarr; requests go to Radarr); plain Compose leaves that to you."
+   "notes": "It works with other Apps (media server: Jellyfin; requests go to Sonarr; requests go to Radarr), but this Compose does not connect them; do that in each App's settings."
   },
   {
    "id": "slskd",
@@ -3869,13 +3869,15 @@
      "key": "SLSKD_SOULSEEK_PASSWORD",
      "default": "",
      "description": "Soulseek password (optional). The password of that Soulseek account. Supply both or neither.",
-     "secret": true
+     "secret": true,
+     "external": true
     },
     {
      "key": "SLSKD_SOULSEEK_USERNAME",
      "default": "",
      "description": "Soulseek username (optional). Your own Soulseek network account, not the Web UI login. Leave both empty to add it later in Slskd.",
-     "secret": true
+     "secret": true,
+     "external": true
     }
    ],
    "standalone": true
@@ -3935,7 +3937,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -3947,7 +3949,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password) and add the root folder /media/tv. After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
+   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password) and add the root folder /media/tv. It works with other Apps (download client: qBittorrent), but this Compose does not connect them; do that in each App's settings."
   },
   {
    "id": "speedtest-tracker",
@@ -4011,7 +4013,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (config/app.key, php-fpm-run), mounted from ${CONFIG_PATH}/speedtest-tracker/; without them it does not start. Use self-host install speedtest-tracker for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (config/app.key, php-fpm-run), expected in ${CONFIG_PATH}/speedtest-tracker/; without them it does not start."
   },
   {
    "id": "stalwart-mail",
@@ -4065,11 +4067,12 @@
      "key": "STALWART_MAIL_RECOVERY_ADMIN",
      "default": "",
      "description": "Optional recovery administrator as username:password, used only while bootstrapping. Leave empty to skip it",
-     "secret": true
+     "secret": true,
+     "external": true
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -4188,7 +4191,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (keys/auth-key), mounted from ${CONFIG_PATH}/tailscale/; without them it does not start. Use self-host install tailscale for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (keys/auth-key), expected in ${CONFIG_PATH}/tailscale/; without them it does not start."
   },
   {
    "id": "tdarr",
@@ -4246,7 +4249,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -4291,8 +4294,7 @@
      "secret": false
     }
    ],
-   "standalone": true,
-   "notes": "self-host hands secrets to the container as files (DNS_SERVER_ADMIN_PASSWORD_FILE); this Compose passes them as plain environment variables (DNS_SERVER_ADMIN_PASSWORD) instead."
+   "standalone": true
   },
   {
    "id": "tracearr",
@@ -4350,7 +4352,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -4396,7 +4398,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (management-api), mounted from ${CONFIG_PATH}/traefik/; without them it does not start. Use self-host install traefik for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (management-api), expected in ${CONFIG_PATH}/traefik/; without them it does not start."
   },
   {
    "id": "transmission",
@@ -4454,7 +4456,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -4539,7 +4541,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     }
@@ -4624,7 +4626,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (valkey.conf), mounted from ${CONFIG_PATH}/valkey/; without them it does not start. Use self-host install valkey for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (valkey.conf), expected in ${CONFIG_PATH}/valkey/; without them it does not start."
   },
   {
    "id": "vaultwarden",
@@ -4676,7 +4678,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -4722,7 +4724,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (config), mounted from ${CONFIG_PATH}/vector/; without them it does not start. Use self-host install vector for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (config), expected in ${CONFIG_PATH}/vector/; without them it does not start."
   },
   {
    "id": "victoria-metrics",
@@ -4801,7 +4803,7 @@
     },
     {
      "key": "TZ",
-     "default": "Etc/UTC",
+     "default": "UTC",
      "description": "Time zone, for example Europe/Paris",
      "secret": false
     },
@@ -4853,7 +4855,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (local-policy), mounted from ${CONFIG_PATH}/zerotier/; without them it does not start. Use self-host install zerotier for the full setup."
+   "notes": "Needs files this Compose does not create before the first start (local-policy), expected in ${CONFIG_PATH}/zerotier/; without them it does not start."
   }
  ],
  "recipes": [
@@ -4939,6 +4941,74 @@
     "cloudflare-tunnel",
     "caddy"
    ]
+  }
+ ],
+ "globals": [
+  {
+   "key": "ADMIN_PASSWORD",
+   "default": "",
+   "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
+   "secret": true
+  },
+  {
+   "key": "ADMIN_USER",
+   "default": "admin",
+   "description": "Username of the administrator account the App creates on its first start",
+   "secret": false
+  },
+  {
+   "key": "CONFIG_PATH",
+   "default": "/opt/appdata/config",
+   "description": "Host folder that holds every App's configuration",
+   "secret": false
+  },
+  {
+   "key": "CONTAINER_PREFIX",
+   "default": "",
+   "description": "Prefix put in front of every container name",
+   "secret": false
+  },
+  {
+   "key": "DATA_PATH",
+   "default": "/opt/appdata/data",
+   "description": "Host folder that holds every App's data, media and downloads",
+   "secret": false
+  },
+  {
+   "key": "LAN_IP",
+   "default": "localhost",
+   "description": "Address you open this App at: this machine's IP on your network (for example 192.168.1.20) or a host name. The App uses it to build links it hands out, so the default only works on this machine",
+   "secret": false
+  },
+  {
+   "key": "PGID",
+   "default": "1000",
+   "description": "Group ID the container runs as (run `id -g`)",
+   "secret": false
+  },
+  {
+   "key": "PUID",
+   "default": "1000",
+   "description": "User ID the container runs as (run `id -u`)",
+   "secret": false
+  },
+  {
+   "key": "RESTART_POLICY",
+   "default": "unless-stopped",
+   "description": "Docker restart policy",
+   "secret": false
+  },
+  {
+   "key": "TZ",
+   "default": "UTC",
+   "description": "Time zone, for example Europe/Paris",
+   "secret": false
+  },
+  {
+   "key": "UMASK",
+   "default": "022",
+   "description": "Permission mask for files the App creates",
+   "secret": false
   }
  ]
 }

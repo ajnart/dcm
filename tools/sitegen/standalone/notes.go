@@ -20,13 +20,13 @@ var (
 
 // notesFor tells the person what plain Compose leaves to them, in the order they meet it:
 // what is missing before the first start, what changed in the Compose, what to do after it,
-// what self-host wires up later. The conversion derives all of it except the App's own guide.
+// which Apps it works with. The conversion derives all of it except the App's own guide.
 func notesFor(ap app.App, c *converter, vars []variable, links []Link) (string, error) {
 	id := ap.Info().ID
 	var notes []string
 	if len(c.missing) > 0 {
-		notes = append(notes, fmt.Sprintf("Needs files that only self-host generates before the first start (%s), mounted from ${CONFIG_PATH}/%s/; without them it does not start. Use self-host install %s for the full setup.",
-			strings.Join(c.missing, ", "), id, id))
+		notes = append(notes, fmt.Sprintf("Needs files this Compose does not create before the first start (%s), expected in ${CONFIG_PATH}/%s/; without them it does not start.",
+			strings.Join(c.missing, ", "), id))
 	}
 	for _, v := range vars {
 		if v.required && c.facts.bound[v.Key] {
@@ -34,16 +34,8 @@ func notesFor(ap app.App, c *converter, vars []variable, links []Link) (string, 
 				v.Key, v.prompt, v.Default))
 		}
 	}
-	if len(c.converted) > 0 {
-		keys := make([]string, len(c.converted))
-		for i, key := range c.converted {
-			keys[i] = strings.TrimSuffix(key, "_FILE")
-		}
-		notes = append(notes, fmt.Sprintf("self-host hands secrets to the container as files (%s); this Compose passes them as plain environment variables (%s) instead.",
-			strings.Join(c.converted, ", "), strings.Join(keys, ", ")))
-	}
 	if len(c.dropped) > 0 {
-		notes = append(notes, fmt.Sprintf("self-host preseeds the administrator through a password file (%s); this Compose leaves it out, so create the administrator in the web page on the first visit.",
+		notes = append(notes, fmt.Sprintf("The option %s reads a password file this Compose does not provide, so it is left out; set the password in the web page on the first visit.",
 			strings.Join(c.dropped, " ")))
 	}
 	if guider, ok := ap.(app.StandaloneGuide); ok {
@@ -57,13 +49,13 @@ func notesFor(ap app.App, c *converter, vars []variable, links []Link) (string, 
 	}
 	switch {
 	case len(links) > maxListedLinks:
-		notes = append(notes, fmt.Sprintf("After its first start, self-host also wires it to %d other Apps; plain Compose leaves that to you.", len(links)))
+		notes = append(notes, fmt.Sprintf("It works with %d other Apps, but this Compose does not connect them; do that in each App's settings.", len(links)))
 	case len(links) > 0:
 		titles := make([]string, len(links))
 		for i, link := range links {
 			titles[i] = link.Title
 		}
-		notes = append(notes, "After its first start, self-host also wires it to other Apps ("+strings.Join(titles, "; ")+"); plain Compose leaves that to you.")
+		notes = append(notes, "It works with other Apps ("+strings.Join(titles, "; ")+"), but this Compose does not connect them; do that in each App's settings.")
 	}
 	return strings.Join(notes, " "), nil
 }

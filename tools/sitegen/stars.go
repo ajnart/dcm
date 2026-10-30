@@ -143,6 +143,9 @@ func writeStars() error {
 		return err
 	}
 	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("GitHub answered %s; the old stars.json is kept", res.Status)
+	}
 	var out struct {
 		Data   map[string]*struct{ StargazerCount int } `json:"data"`
 		Errors []struct{ Message string }               `json:"errors"`
@@ -152,6 +155,9 @@ func writeStars() error {
 	}
 	for _, e := range out.Errors {
 		fmt.Fprintln(os.Stderr, e.Message)
+	}
+	if len(out.Data) == 0 {
+		return fmt.Errorf("GitHub returned no repositories; the old stars.json is kept")
 	}
 	type entry struct {
 		Repo  string `json:"repo"`
@@ -167,10 +173,5 @@ func writeStars() error {
 	if err != nil {
 		return err
 	}
-	path := filepath.Join("site", "src", "data", "stars.json")
-	if err := os.WriteFile(path, append(doc, '\n'), 0o644); err != nil {
-		return err
-	}
-	fmt.Println(path)
-	return nil
+	return writeFile(filepath.Join("site", "src", "data", "stars.json"), append(doc, '\n'))
 }

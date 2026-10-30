@@ -2,24 +2,25 @@ package standalone
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/hex"
 	"strings"
 	"testing"
 
 	"github.com/ajnart/self-host/internal/app"
-	"github.com/ajnart/self-host/internal/apps/minio"
-	"github.com/ajnart/self-host/internal/apps/speedtesttracker"
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
 type fake struct {
 	compose string
+	inputs  []app.Input
 	secrets []app.SecretSpec
 	files   func(secret func(string) string) []app.File
 	guide   string
 }
 
 func (fake) Info() app.Info                          { return app.Info{ID: "fake", Name: "Fake", Port: 8080} }
-func (fake) Inputs() []app.Input                     { return nil }
+func (f fake) Inputs() []app.Input                   { return f.inputs }
 func (f fake) Compose(app.RenderContext) string      { return f.compose }
 func (fake) Setup(context.Context, *helpers.H) error { return nil }
 func (fake) Check(context.Context, *helpers.H) error { return nil }
@@ -37,12 +38,25 @@ func tokenFile(secret func(string) string) []app.File {
 	return []app.File{{Path: "token.txt", Content: secret("token")}}
 }
 
+// keyFiles decodes a hex secret the way an App deriving a key file does, so it needs a stand-in
+// that is valid hex rather than a placeholder.
+func keyFiles(secret func(string) string) []app.File {
+	raw, err := hex.DecodeString(secret("app_key"))
+	if err != nil || len(raw) != 32 {
+		return nil
+	}
+	return []app.File{
+		{Path: "config/app.key", Content: "base64:" + base64.StdEncoding.EncodeToString(raw)},
+		{Path: "php-fpm-run", Content: "#!/bin/sh"},
+	}
+}
+
 const shortForm = `services:
   web:
     image: x/web:1
     restart: unless-stopped
     environment:
-      TOKEN_FILE: /run/secrets/token
+      POSTGRES_PASSWORD_FILE: /run/secrets/token
     volumes:
       - ./token.txt:/run/secrets/token:ro
       - ./data:/data
@@ -50,12 +64,31 @@ const shortForm = `services:
       - ${BIND_IP}:8080:80
 `
 
+const licenseMount = `services:
+  web:
+    image: x/web:1
+    environment:
+      LICENSE: /run/secrets/license
+    volumes:
+      - ${LICENSE_FILE}:/run/secrets/license:ro
+`
+
+const keyMount = `services:
+  web:
+    image: x/web:1
+    environment:
+      FILE__APP_KEY: /config/app.key
+    volumes:
+      - ./config:/config
+      - ./php-fpm-run:/launch:ro
+`
+
 const longForm = `services:
   web:
     image: x/web:1
     environment:
       - TZ=${TZ}
-      - TOKEN_FILE=/run/secrets/token
+      - POSTGRES_PASSWORD_FILE=/run/secrets/token
     volumes:
       - type: bind
         source: ./token.txt
@@ -88,16 +121,15 @@ func TestProject(t *testing.T) {
 		{
 			name:       "secret file becomes an environment variable",
 			app:        fake{compose: shortForm, secrets: secrets, files: tokenFile},
-			compose:    []string{"container_name: ${CONTAINER_PREFIX}web", "restart: ${RESTART_POLICY}", "TOKEN: ${FAKE_TOKEN}", "${CONFIG_PATH}/fake/data:/data", "- 8080:80"},
+			compose:    []string{"container_name: ${CONTAINER_PREFIX}web", "restart: ${RESTART_POLICY}", "POSTGRES_PASSWORD: ${FAKE_TOKEN}", "${CONFIG_PATH}/fake/data:/data", "- 8080:80"},
 			notCompose: []string{"BIND_IP", "token.txt", "_FILE", "secrets:"},
-			notes:      []string{"(TOKEN_FILE); this Compose passes them as plain environment variables (TOKEN)"},
 			standalone: true,
 		},
 		{
 			name:       "list-form environment and long-form volumes",
 			app:        fake{compose: longForm, secrets: secrets, files: tokenFile},
-			compose:    []string{"- TOKEN=${FAKE_TOKEN}", "source: ${CONFIG_PATH}/fake/config", "source: cache", "- TZ=${TZ}", "published: 8080"},
-			notCompose: []string{"host_ip", "token.txt", "TOKEN_FILE"},
+			compose:    []string{"- POSTGRES_PASSWORD=${FAKE_TOKEN}", "source: ${CONFIG_PATH}/fake/config", "source: cache", "- TZ=${TZ}", "published: 8080"},
+			notCompose: []string{"host_ip", "token.txt", "POSTGRES_PASSWORD_FILE"},
 			standalone: true,
 		},
 		{
@@ -128,12 +160,24 @@ func TestProject(t *testing.T) {
 		},
 		{
 			name: "list-form entry that reads a secret it cannot resolve",
-			app:  fake{compose: strings.Replace(longForm, "TOKEN_FILE=/run/secrets/token", "OTHER=/run/secrets/other", 1), secrets: secrets, files: tokenFile},
-			err:  "reads a secret file",
+			app:  fake{compose: strings.Replace(longForm, "POSTGRES_PASSWORD_FILE=/run/secrets/token", "OTHER=/run/secrets/other", 1), secrets: secrets, files: tokenFile},
+			err:  "reads /run/secrets/other",
+		},
+		{
+			name: "secret file whose plain variable is not known",
+			app:  fake{compose: strings.Replace(shortForm, "POSTGRES_PASSWORD_FILE", "UNKNOWN_FILE", 1), secrets: secrets, files: tokenFile},
+			err:  "plainEnv does not say",
+		},
+		{
+			name:       "command option that reads a secret file is left out",
+			app:        fake{compose: strings.Replace(shortForm, "    environment:", "    command: [\"serve\", \"--password-file=/run/secrets/token\"]\n    environment:", 1), secrets: secrets, files: tokenFile},
+			compose:    []string{`command: ["serve"]`},
+			notes:      []string{"The option --password-file=/run/secrets/token reads a password file this Compose does not provide"},
+			standalone: true,
 		},
 		{
 			name: "secret read that no volume provides",
-			app:  fake{compose: strings.Replace(shortForm, "TOKEN_FILE: /run/secrets/token", "TOKEN_FILE: /run/secrets/token\n      OTHER: /run/secrets/other", 1), secrets: secrets, files: tokenFile},
+			app:  fake{compose: strings.Replace(shortForm, "POSTGRES_PASSWORD_FILE: /run/secrets/token", "POSTGRES_PASSWORD_FILE: /run/secrets/token\n      OTHER: /run/secrets/other", 1), secrets: secrets, files: tokenFile},
 			err:  "reads /run/secrets/other",
 		},
 		{
@@ -148,16 +192,16 @@ func TestProject(t *testing.T) {
 		},
 		{
 			name:       "required input bound as a mount gets a placeholder and a note",
-			app:        minio.App{},
-			compose:    []string{"- ${MINIO_LICENSE_FILE}:/run/secrets/aistor-license:ro", "MINIO_ROOT_PASSWORD: ${ADMIN_PASSWORD}"},
-			notes:      []string{"Set MINIO_LICENSE_FILE before the first start"},
-			env:        map[string]string{"MINIO_LICENSE_FILE": "./minio-license-file"},
+			app:        fake{compose: licenseMount, inputs: []app.Input{{Key: "LICENSE_FILE", Prompt: "Path to the license file", Required: true}}},
+			compose:    []string{"- ${LICENSE_FILE}:/run/secrets/license:ro"},
+			notes:      []string{"Set LICENSE_FILE before the first start"},
+			env:        map[string]string{"LICENSE_FILE": "./license-file"},
 			standalone: true,
 		},
 		{
 			name:  "generated files make it not standalone, hex stand-in decodes",
-			app:   speedtesttracker.App{},
-			notes: []string{"config/app.key, php-fpm-run"},
+			app:   fake{compose: keyMount, secrets: []app.SecretSpec{{Name: "app_key", Length: 64, Hex: true}}, files: keyFiles},
+			notes: []string{"(config/app.key, php-fpm-run)"},
 		},
 	}
 	for _, tc := range cases {

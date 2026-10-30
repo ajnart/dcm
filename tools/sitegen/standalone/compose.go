@@ -20,6 +20,32 @@ var (
 	fileKeys = []string{"env_file", "build", "configs", "extends"}
 )
 
+// plainEnv maps each KEY_FILE an App points at a secret to the variable the image reads for
+// the same value when the secret is passed in the environment. Most images read KEY, but the
+// name is the image's own, so an entry is added after checking its documentation and a
+// KEY_FILE missing here fails the build rather than export a variable the image ignores.
+var plainEnv = map[string]string{
+	"BORG_PASSPHRASE_FILE":           "BORG_PASSPHRASE",
+	"DNS_SERVER_ADMIN_PASSWORD_FILE": "DNS_SERVER_ADMIN_PASSWORD",
+	"GOTIFY_DEFAULTUSER_PASS_FILE":   "GOTIFY_DEFAULTUSER_PASS",
+	"LLDAP_JWT_SECRET_FILE":          "LLDAP_JWT_SECRET",
+	"LLDAP_KEY_SEED_FILE":            "LLDAP_KEY_SEED",
+	"LLDAP_LDAP_USER_PASS_FILE":      "LLDAP_LDAP_USER_PASS",
+	"MARIADB_PASSWORD_FILE":          "MARIADB_PASSWORD",
+	"MARIADB_ROOT_PASSWORD_FILE":     "MARIADB_ROOT_PASSWORD",
+	"MINIO_ROOT_PASSWORD_FILE":       "MINIO_ROOT_PASSWORD",
+	"MYSQL_PASSWORD_FILE":            "MYSQL_PASSWORD",
+	"NEXTCLOUD_ADMIN_PASSWORD_FILE":  "NEXTCLOUD_ADMIN_PASSWORD",
+	"PAPERLESS_ADMIN_PASSWORD_FILE":  "PAPERLESS_ADMIN_PASSWORD",
+	"PAPERLESS_DBPASS_FILE":          "PAPERLESS_DBPASS",
+	"PAPERLESS_SECRET_KEY_FILE":      "PAPERLESS_SECRET_KEY",
+	"PLEX_CLAIM_FILE":                "PLEX_CLAIM",
+	"POSTGRES_PASSWORD_FILE":         "POSTGRES_PASSWORD",
+	"RESTIC_PASSWORD_FILE":           "RESTIC_PASSWORD",
+	"SERVER_SECRET_FILE":             "SERVER_SECRET",
+	"WEBPASSWORD_FILE":               "FTLCONF_webserver_api_password",
+}
+
 type mount struct{ source, target string }
 
 // facts are what the converted Compose reads and mounts, for the variable list and the guide check.
@@ -37,11 +63,10 @@ type converter struct {
 	id    string
 	files []fileSpec
 	// refs maps a top-level Compose secret to the variable that feeds it.
-	refs      map[string]string
-	missing   []string
-	converted []string
-	dropped   []string
-	facts     facts
+	refs    map[string]string
+	missing []string
+	dropped []string
+	facts   facts
 }
 
 func (c *converter) convert(raw string) (string, error) {
@@ -139,9 +164,7 @@ func (c *converter) service(name string, svc *yaml.Node) error {
 	if err := c.environment(lookup(svc, "environment"), secretFiles); err != nil {
 		return err
 	}
-	if err := c.command(lookup(svc, "command"), secretFiles); err != nil {
-		return err
-	}
+	c.command(lookup(svc, "command"), secretFiles)
 	return c.checkSecretReads(name, svc)
 }
 
@@ -182,26 +205,24 @@ func ports(list *yaml.Node) {
 // volume is one volume entry in either spelling.
 type volume struct {
 	source, target string
-	// hostPath is false for named volumes and tmpfs, which carry no folder of the person's.
-	hostPath  bool
-	setSource func(string)
+	setSource      func(string)
 }
 
 func parseVolume(item *yaml.Node) (volume, error) {
 	switch item.Kind {
 	case yaml.ScalarNode:
-		source, rest, found := strings.Cut(item.Value, ":")
+		source, rest, _ := strings.Cut(item.Value, ":")
 		target, _, _ := strings.Cut(rest, ":")
-		return volume{source: source, target: target, hostPath: found,
+		return volume{source: source, target: target,
 			setSource: func(s string) { item.Value = s + ":" + rest }}, nil
 	case yaml.MappingNode:
 		kind := lookup(item, "type")
 		source, target := lookup(item, "source"), lookup(item, "target")
-		hostPath := kind == nil || kind.Value == "bind"
-		if target == nil || (hostPath && source == nil) {
+		bind := kind == nil || kind.Value == "bind"
+		if target == nil || (bind && source == nil) {
 			return volume{}, fmt.Errorf("long-form volume at line %d has no source or target", item.Line)
 		}
-		v := volume{target: target.Value, hostPath: hostPath}
+		v := volume{target: target.Value}
 		if source != nil {
 			v.source = source.Value
 			v.setSource = func(s string) { source.Value = s }
@@ -211,17 +232,15 @@ func parseVolume(item *yaml.Node) (volume, error) {
 	return volume{}, fmt.Errorf("volume at line %d is neither a string nor a mapping", item.Line)
 }
 
-// relative reports the path below the App's own folder that a source such as ./config names.
+// relative reports the cleaned path below the App's own folder that a source such as ./config
+// names, and whether the source is such a path at all (a named volume or an absolute path is not).
 func relative(v volume) (string, bool, error) {
-	if !v.hostPath {
-		return "", false, nil
-	}
 	rel, found := strings.CutPrefix(v.source, "./")
-	climbs := v.source == "." || v.source == ".." || strings.HasPrefix(v.source, "../") || slices.Contains(strings.Split(rel, "/"), "..")
-	if climbs || (found && path.Clean(rel) == ".") {
+	clean := path.Clean(rel)
+	if v.source == "." || clean == ".." || strings.HasPrefix(clean, "../") || (found && clean == ".") {
 		return "", false, fmt.Errorf("volume source %q does not name a folder below the App's own", v.source)
 	}
-	return rel, found, nil
+	return clean, found, nil
 }
 
 // pureMounts maps the name a container sees a file under in /run/secrets to the variable
@@ -300,18 +319,24 @@ func (c *converter) volumes(svc *yaml.Node, pure map[*yaml.Node]bool) error {
 }
 
 // secretFile resolves KEY_FILE=/run/secrets/name, or KEY_FILE=name as Pi-hole reads it, to
-// the variable that holds the name's content.
-func (c *converter) secretFile(key, value string, secretFiles map[string]string) (string, string, bool) {
-	base, isFile := strings.CutSuffix(key, "_FILE")
-	if !isFile {
-		return "", "", false
+// the variable the image reads in KEY_FILE's place and the variable that holds the name's content.
+func (c *converter) secretFile(key, value string, secretFiles map[string]string) (plain, variable string, ok bool, err error) {
+	if !strings.HasSuffix(key, "_FILE") {
+		return "", "", false, nil
 	}
 	name := strings.TrimPrefix(strings.TrimSpace(value), secretsDir)
 	variable, found := secretFiles[name]
 	if !found {
 		variable, found = c.refs[name]
 	}
-	return base, variable, found
+	if !found {
+		return "", "", false, nil
+	}
+	plain, known := plainEnv[key]
+	if !known {
+		return "", "", false, fmt.Errorf("%s: %s points at a secret, and plainEnv does not say which variable the image reads for it", c.id, key)
+	}
+	return plain, variable, true, nil
 }
 
 func (c *converter) environment(env *yaml.Node, secretFiles map[string]string) error {
@@ -322,51 +347,43 @@ func (c *converter) environment(env *yaml.Node, secretFiles map[string]string) e
 	case yaml.MappingNode:
 		for i := 0; i < len(env.Content); i += 2 {
 			key, value := env.Content[i], env.Content[i+1]
-			base, variable, ok := c.secretFile(key.Value, value.Value, secretFiles)
-			if !ok {
-				continue
+			plain, variable, ok, err := c.secretFile(key.Value, value.Value, secretFiles)
+			if err != nil {
+				return err
 			}
-			c.converted = appendOnce(c.converted, key.Value)
-			key.Value = base
-			setPlain(value, placeholder(variable))
+			if ok {
+				key.Value = plain
+				setPlain(value, placeholder(variable))
+			}
 		}
 	case yaml.SequenceNode:
 		for _, item := range env.Content {
 			key, value, _ := strings.Cut(item.Value, "=")
-			if base, variable, ok := c.secretFile(key, value, secretFiles); ok {
-				c.converted = appendOnce(c.converted, key)
-				item.Value = base + "=" + placeholder(variable)
-				continue
+			plain, variable, ok, err := c.secretFile(key, value, secretFiles)
+			if err != nil {
+				return err
 			}
-			if strings.Contains(item.Value, secretsDir) {
-				return fmt.Errorf("%s: list-form environment entry %q reads a secret file and is not handled", c.id, item.Value)
+			if ok {
+				item.Value = plain + "=" + placeholder(variable)
 			}
 		}
 	}
 	return nil
 }
 
-func (c *converter) command(cmd *yaml.Node, secretFiles map[string]string) error {
-	if cmd == nil {
-		return nil
+func (c *converter) command(cmd *yaml.Node, secretFiles map[string]string) {
+	if cmd == nil || cmd.Kind != yaml.SequenceNode {
+		return
 	}
-	switch cmd.Kind {
-	case yaml.ScalarNode:
-		if strings.Contains(cmd.Value, secretsDir) {
-			return fmt.Errorf("%s: command %q is a string, so its secret files cannot be dropped", c.id, cmd.Value)
+	var kept []*yaml.Node
+	for _, arg := range cmd.Content {
+		if readsAny(arg.Value, secretFiles) {
+			c.dropped = append(c.dropped, arg.Value)
+			continue
 		}
-	case yaml.SequenceNode:
-		var kept []*yaml.Node
-		for _, arg := range cmd.Content {
-			if readsAny(arg.Value, secretFiles) {
-				c.dropped = append(c.dropped, arg.Value)
-				continue
-			}
-			kept = append(kept, arg)
-		}
-		cmd.Content = kept
+		kept = append(kept, arg)
 	}
-	return nil
+	cmd.Content = kept
 }
 
 func readsAny(value string, secretFiles map[string]string) bool {
@@ -502,11 +519,4 @@ func walk(n *yaml.Node, visit func(*yaml.Node)) {
 
 func setPlain(n *yaml.Node, value string) {
 	n.Value, n.Tag, n.Style = value, "!!str", 0
-}
-
-func appendOnce(list []string, value string) []string {
-	if slices.Contains(list, value) {
-		return list
-	}
-	return append(list, value)
 }

@@ -3,8 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/ajnart/self-host/internal/app"
@@ -54,12 +52,17 @@ func selfHostEntry(ap app.App) (selfHostApp, error) {
 func writeSelfHost() error {
 	cat := catalog.Default()
 	apps := []selfHostApp{}
+	var read []standalone.Env
 	for _, ap := range cat.Apps() {
 		entry, err := selfHostEntry(ap)
 		if err != nil {
 			return err
 		}
 		apps = append(apps, entry)
+		read = append(read, entry.Env...)
+	}
+	if err := standalone.CheckExtraEnv(read); err != nil {
+		return err
 	}
 	recipes := []selfHostRecipe{}
 	for _, r := range cat.Recipes() {
@@ -72,17 +75,9 @@ func writeSelfHost() error {
 	if err := enc.Encode(struct {
 		Apps    []selfHostApp    `json:"apps"`
 		Recipes []selfHostRecipe `json:"recipes"`
-	}{apps, recipes}); err != nil {
+		Globals []standalone.Env `json:"globals"`
+	}{apps, recipes, standalone.Globals()}); err != nil {
 		return err
 	}
-	dir := filepath.Join("dcm", "src", "data")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
-	file := filepath.Join(dir, "selfhost.json")
-	if err := os.WriteFile(file, buf.Bytes(), 0o644); err != nil {
-		return err
-	}
-	fmt.Println(file)
-	return nil
+	return writeFile(filepath.Join("dcm", "src", "data", "selfhost.json"), buf.Bytes())
 }
