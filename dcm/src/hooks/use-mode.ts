@@ -45,9 +45,33 @@ export function setMode(
   for (const listener of listeners) listener()
 }
 
+function onPopState() {
+  const next = resolve()
+  if (next === current) return
+  current = next
+  for (const listener of listeners) listener()
+}
+
+function onStorage(event: StorageEvent) {
+  if (event.key !== STORAGE_KEYS.MODE) return
+  const next = parseMode(event.newValue)
+  if (next === current) return
+  setMode(next, { persist: false })
+}
+
 function subscribe(listener: () => void) {
+  if (listeners.size === 0) {
+    window.addEventListener("popstate", onPopState)
+    window.addEventListener("storage", onStorage)
+  }
   listeners.add(listener)
-  return () => listeners.delete(listener)
+  return () => {
+    listeners.delete(listener)
+    if (listeners.size === 0) {
+      window.removeEventListener("popstate", onPopState)
+      window.removeEventListener("storage", onStorage)
+    }
+  }
 }
 
 export function useMode(): [CatalogMode, typeof setMode] {

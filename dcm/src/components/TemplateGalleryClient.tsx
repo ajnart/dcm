@@ -4,16 +4,9 @@ import FloatingBar from "@/components/floating-bar"
 import SettingsPanel from "@/components/settings-panel"
 import { TemplateGallery } from "@/components/template-gallery"
 import { Button } from "@/components/ui/button"
-import { useMode } from "@/hooks/use-mode"
-import { useSelection } from "@/hooks/use-selection"
+import { useCatalogView } from "@/hooks/use-catalog-view"
+import { type Catalog, type CatalogEntry, allTemplates } from "@/lib/catalog"
 import { routes } from "@/lib/routes"
-import {
-  type Catalog,
-  type CatalogEntry,
-  allTemplates,
-  entriesForMode,
-  partitionSelection,
-} from "@/lib/catalog"
 import type { Template } from "@/lib/templates"
 import { ArrowLeft } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -27,11 +20,10 @@ function TemplateGalleryView({
   catalog,
   templates,
 }: TemplateGalleryClientProps) {
-  const [mode, setMode] = useMode()
-  const selection = useSelection()
+  const { mode, setMode, selection, entries, visibleIds, hiddenCount } =
+    useCatalogView(catalog)
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([])
 
-  const entries = useMemo(() => entriesForMode(catalog, mode), [catalog, mode])
   const visibleTemplates = useMemo(
     () => allTemplates(catalog, templates, mode),
     [catalog, templates, mode],
@@ -42,11 +34,6 @@ function TemplateGalleryView({
       all: allTemplates(catalog, templates, "all").length,
     }),
     [catalog, templates],
-  )
-
-  const { visibleIds, hiddenCount } = useMemo(
-    () => partitionSelection(selection.ids, catalog, entries),
-    [catalog, entries, selection.ids],
   )
 
   const selectedEntries = selection.ids

@@ -1,3 +1,0 @@
-name: Authentik-Worker
-version: 2.5.0
-description: Background worker for Authentik handling email delivery, task queues, and scheduled jobs

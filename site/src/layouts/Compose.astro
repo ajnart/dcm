@@ -2,7 +2,7 @@
 import "@/styles/global.css";
 import "../styles/shared.css";
 import "../styles/transitions.css";
-import { ContainerSubmissionForm } from "@/components/container-submission-form";
+import { SuggestContainer } from "@/components/suggest-container";
 import og from "../assets/og.png";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
@@ -52,7 +52,7 @@ Astro.csp?.insertDirective("worker-src blob:");
     <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "048a529692b643f79d0b152c27926bdf"}'></script>
   </head>
   <body>
-    <SiteHeader><ContainerSubmissionForm client:idle /></SiteHeader>
+    <SiteHeader><SuggestContainer client:idle /></SiteHeader>
     <main class="container pt-6 pb-12">
       <slot />
     </main>

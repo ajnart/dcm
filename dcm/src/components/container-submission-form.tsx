@@ -4,7 +4,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Form,
@@ -44,7 +43,6 @@ import {
   ExternalLink,
   GitPullRequest,
   Info,
-  PlusCircle,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
@@ -85,8 +83,17 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
-export function ContainerSubmissionForm() {
-  const [open, setOpen] = useState(false)
+interface ContainerSubmissionDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onCloseAutoFocus?: (event: Event) => void
+}
+
+export function ContainerSubmissionDialog({
+  open,
+  onOpenChange,
+  onCloseAutoFocus,
+}: ContainerSubmissionDialogProps) {
   const [tagInput, setTagInput] = useState("")
   const [validationResult, setValidationResult] = useState<ReturnType<
     typeof validateComposeContent
@@ -137,7 +144,7 @@ export function ContainerSubmissionForm() {
 
     // Open the GitHub issue form in a new tab
     window.open(issueUrl, "_blank")
-    setOpen(false)
+    onOpenChange(false)
   }
 
   // Function to open GitHub issue template directly
@@ -152,19 +159,11 @@ export function ContainerSubmissionForm() {
     `${prefix}-${value.replace(/\s+/g, "-").toLowerCase()}`
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          aria-label="Suggest container"
-        >
-          <PlusCircle size={16} />
-          <span className="max-sm:sr-only">Suggest container</span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[95vh] max-w-4xl overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-h-[95vh] max-w-4xl overflow-y-auto"
+        onCloseAutoFocus={onCloseAutoFocus}
+      >
         <DialogHeader>
           <DialogTitle>Suggest a new container</DialogTitle>
           <DialogDescription>
@@ -439,7 +438,7 @@ export function ContainerSubmissionForm() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setOpen(false)}
+                  onClick={() => onOpenChange(false)}
                 >
                   Cancel
                 </Button>

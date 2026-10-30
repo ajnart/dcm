@@ -5,15 +5,9 @@ import DiscoveryPanel from "@/components/discovery-panel"
 import FloatingBar from "@/components/floating-bar"
 import SettingsPanel from "@/components/settings-panel"
 import { Button } from "@/components/ui/button"
-import { useMode } from "@/hooks/use-mode"
-import { useSelection } from "@/hooks/use-selection"
+import { useCatalogView } from "@/hooks/use-catalog-view"
+import { type Catalog, type CatalogMode, entriesForMode } from "@/lib/catalog"
 import { routes } from "@/lib/routes"
-import {
-  type Catalog,
-  type CatalogMode,
-  entriesForMode,
-  partitionSelection,
-} from "@/lib/catalog"
 import { SELFHOST_URL } from "@/lib/selfhost"
 import { decodeShareUrl } from "@/lib/url-utils"
 import { Palette } from "lucide-react"
@@ -30,22 +24,16 @@ const INTRO: Record<CatalogMode, string> = {
 }
 
 function DockerTools({ catalog }: DockerToolsClientProps) {
-  const [mode, setMode] = useMode()
-  const selection = useSelection()
+  const { mode, setMode, selection, entries, visibleIds, hiddenCount } =
+    useCatalogView(catalog)
   const processedShareRef = useRef(false)
 
-  const entries = useMemo(() => entriesForMode(catalog, mode), [catalog, mode])
   const counts = useMemo(
     () => ({
       "self-host": entriesForMode(catalog, "self-host").length,
       all: catalog.entries.length,
     }),
     [catalog],
-  )
-
-  const { visibleIds, hiddenCount } = useMemo(
-    () => partitionSelection(selection.ids, catalog, entries),
-    [catalog, entries, selection.ids],
   )
 
   useEffect(() => {

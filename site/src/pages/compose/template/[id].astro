@@ -1,6 +1,6 @@
 ---
 import TemplateClient from "@/components/TemplateClient"
-import { buildCatalog } from "@/lib/catalog"
+import { allTemplates, buildCatalog } from "@/lib/catalog"
 import { generateComposeContent } from "@/lib/docker-compose/generators"
 import { withStars } from "@/lib/stars"
 import { getToolsFromTemplate, templates } from "@/lib/templates"
@@ -21,13 +21,17 @@ const defaultSettings = {
 
 export async function getStaticPaths() {
   const catalog = withStars(buildCatalog(tools))
+  const counts = {
+    "self-host": allTemplates(catalog, templates, "self-host").length,
+    all: allTemplates(catalog, templates, "all").length,
+  }
   return [...catalog.recipes, ...templates].map((template) => ({
     params: { id: template.id },
-    props: { template, entries: catalog.entries },
+    props: { template, entries: catalog.entries, counts },
   }))
 }
 
-const { template, entries } = Astro.props
+const { template, entries, counts } = Astro.props
 const templateTools = getToolsFromTemplate(template, entries)
 const unavailableTools = template.tools
   .filter((toolId) => !templateTools.some((tool) => tool.id === toolId))
@@ -50,5 +54,6 @@ if (template.id.startsWith("recipe-")) {
     unavailableTools={unavailableTools}
     initialContent={content}
     selfHostRecipeId={selfHostRecipeId}
+    counts={counts}
   />
 </Compose>
