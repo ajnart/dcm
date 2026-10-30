@@ -1,0 +1,27 @@
+docs/migration/dcm-takeover.md
+  s_011d3def65e8d1::t_c34a54368171fb 4,16,27,36-39,79-80,132-138,148,161,165,167,170-171,174-176,202,210-215
+scripts/migrate/backport-releases.sh
+  s_011d3def65e8d1::t_ea92dec10124f9 15,41,59-61,82,123-124,127
+scripts/migrate/lib.sh
+  s_011d3def65e8d1::t_0f6add22c86059 48-81
+scripts/migrate/rename-repos.sh
+  s_011d3def65e8d1::t_d4ba83f58c02ba 2,9-11,17,23,26,32-33,82,179,182-190,195,197,199-207
+scripts/migrate/transfer-issues.sh
+  s_011d3def65e8d1::t_80ceff840d9380 2-3,6-7,34-38,41,43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "69761888aabb08ccd8b9308f63737f157383c160",
+  "prompts": {},
+  "sessions": {
+    "s_011d3def65e8d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c6157600-657b-40e9-a76c-b53336a4db01",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
