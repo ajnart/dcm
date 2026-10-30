@@ -1,5 +1,5 @@
-name: 📦 Container Submission
-description: Suggest a new container to add to the collection
+name: Docker Compose Maker container submission
+description: Suggest a new container for Docker Compose Maker (self-host.fyi/compose)
 title: "add "
 labels: ["container"]
 body:
@@ -10,7 +10,7 @@ body:
         
         > **💡 Automated Process:** When your submission is tagged as "accepted" by a maintainer, a GitHub Action will automatically create a pull request to add your container to the collection!
         
-        > You can also contribute directly by adding the container definition to the codebase. See [CONTRIBUTING.md](https://github.com/ajnart/dcm/blob/main/CONTRIBUTING.md) for instructions.
+        > You can also contribute directly by adding the container definition to the codebase. See [CONTRIBUTING.md](https://github.com/ajnart/self-host/blob/main/dcm/CONTRIBUTING.md) for instructions.
   
   - type: checkboxes
     id: prerequisites

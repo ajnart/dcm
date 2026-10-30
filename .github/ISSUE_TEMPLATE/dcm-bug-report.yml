@@ -1,7 +1,7 @@
-name: 🐞 Bug Report
-description: Report that something is broken or not working as intended
-title: "bug: "
-labels: ["bug"]
+name: Docker Compose Maker bug report
+description: Something in Docker Compose Maker (self-host.fyi/compose) is broken or not working as intended.
+title: "dcm: "
+labels: [bug, dcm]
 body:
   - type: textarea
     attributes:

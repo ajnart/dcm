@@ -31,6 +31,31 @@ jobs:
       - name: Installer syntax
         run: bash -n install.sh
 
+  web:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.2"
+          cache-dependency-path: go.sum
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.3
+      - name: Install
+        run: bun install --frozen-lockfile
+      - name: Generated data is current
+        run: |
+          go run ./tools/sitegen
+          git add -N site/src/data dcm/src/data site/src/styles
+          git diff --exit-code site/src/data dcm/src/data site/src/styles
+      - name: Build, test and lint
+        run: bunx turbo run build test lint
+        env:
+          DCM_BASE: /compose
+
   native-smoke:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     name: Native ${{ matrix.os }}/${{ matrix.arch }}

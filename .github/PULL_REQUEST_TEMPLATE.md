@@ -16,3 +16,7 @@ Paste the result of the local gate in `AGENTS.md` (CI cannot run).
 
 - [ ] I disclosed material AI assistance and reviewed the resulting content.
 - [ ] New third-party material is identified in `THIRD_PARTY_NOTICES.md`.
+
+## Docker Compose Maker (`dcm/`)
+
+- [ ] Not a `dcm/` change, or `bun run --cwd dcm test` passes and new containers follow `dcm/CONTRIBUTING.md`.

@@ -1,13 +1,9 @@
-FROM node:23-alpine
+FROM busybox:1.37.0
 
-WORKDIR /app
-
-COPY out /app/
-
-RUN npm install -g serve
-
-ENV DISABLE_TELEMETRY=true
+COPY dist /www
 
 EXPOSE 7576
 
-CMD ["serve", "/app", "-p", "7576"]
+USER 65534:65534
+
+CMD ["httpd", "-f", "-v", "-p", "7576", "-h", "/www"]
