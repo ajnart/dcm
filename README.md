@@ -8,7 +8,7 @@
 
 <h1 align="center">self-host</h1>
 
-<p align="center"><b>Stop renting your software.</b></p>
+<p align="center"><b>Try self-hosted apps from your terminal.</b></p>
 
 <p align="center">
   <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ajnart/self-host?style=flat-square&label=release&color=7a57d3&labelColor=14121e"></a>
@@ -21,19 +21,23 @@
   <a href="https://self-host.fyi">Website</a> · <a href="https://self-host.fyi/docs">Docs</a> · <a href="https://self-host.fyi/#reel">Showreel</a> · <a href="https://discord.gg/aCsmEV5RgA">Discord</a>
 </p>
 
-<p align="center"><a href="https://self-host.fyi/#reel"><img src="docs/assets/readme/hero-lockup.png" width="880" alt="Stop renting your software. self-host: $92 a month becomes $0 with curl -fsSL self-host.fyi/install | bash."></a></p>
+self-host is a terminal UI for getting self-hosted Apps running with Docker Compose. Pick an App, let it set up an account and connect the Apps it supports, then try it.
 
-Run self-hosted Apps on your home server or homelab without learning Docker Compose. One binary installs and runs them, with a terminal Dashboard for you and plain commands for your agent.
+It's meant for people getting started, or anyone who wants to try an App before adding it to their own setup. Think of it as a small terminal-based alternative to Portainer, with App setup included.
+
+**If you already have a setup you're happy with, you don't need this.** It manages its own Compose Project, not your existing containers.
+
+## Get started
+
+You need Docker with the Compose v2 plugin already installed. Works on Linux, macOS and WSL2.
 
 ```bash
 curl -fsSL https://self-host.fyi/install | bash
 ```
 
-That installs only the binary and deploys nothing. Needs Docker with the Compose v2 plugin on Linux, macOS or WSL2. Then run `self-host`.
+That installs only the binary, not any Apps. Run `self-host`, pick what you want to try and review the plan before anything gets installed.
 
 <p align="center"><img src="docs/assets/readme/dashboard.png" width="880" alt="The self-host Dashboard right after Onboarding installed the Media Recipe: Pull, Start, Setup, Credentials, Links and Check all done, seven Apps running and nothing needs attention."></p>
-
-<p align="center"><b>Once your Apps are running, <a href="https://github.com/ajnart/self-host/stargazers">⭐ star self-host on GitHub</a>.</b> Stars are how other people find it.</p>
 
 <details>
 <summary><b>Other ways to install</b> (wget, Homebrew, Docker, packages, Arch, archive, source)</summary>
@@ -61,15 +65,35 @@ Update with `self-host self-update` for the script and the archive. Homebrew, Do
 
 To read the install script first: `curl -fsSL https://self-host.fyi/install -o install.sh`, compare `shasum -a 256 install.sh` with `https://self-host.fyi/install.sh.sha256`, then `bash install.sh`. It verifies the archive against `checksums.txt` and installs to `~/.local/bin`. Version, folder and fork options are in the [docs](https://self-host.fyi/docs/getting-started#install).
 
-## What it replaces
+## Try an App
 
-<p align="center"><img src="docs/assets/readme/replaces-meet.svg" width="600" alt="What it replaces: Netflix to Jellyfin, Spotify to Navidrome, Drive to Nextcloud, Dropbox to Syncthing, Photos to Immich, 1Password to Vaultwarden, Notion to Docmost, ChatGPT to Open WebUI. Every App is in the Catalog, with 82 more."></p>
+Say a friend recommends Immich. You want to try it with a few photos before deciding whether to add it to your home server. Pick it in the Dashboard, or run:
 
-Choose Jellyfin for your media library, Immich for photos, Nextcloud for files or Vaultwarden for passwords, for example `self-host install immich`. Browse all 93 self-hosted Apps in the [Catalog](https://self-host.fyi/apps); see [Platforms and support](#platforms-and-support) for what has been verified.
+```bash
+self-host install immich
+```
 
-<p align="center"><img src="docs/assets/readme/hero-command.svg" width="880" alt="The install command, curl -fsSL self-host.fyi/install | bash, wired to nine Apps with data pulses travelling the wires: Jellyfin, Sonarr, Radarr, Immich, Nextcloud, Homarr, Vaultwarden, Navidrome and Home Assistant."></p>
+Your account is created for you. `self-host credentials` shows your login, and `self-host status` shows where to open the App.
 
-## What it does and doesn't do
+If it isn't for you, run `self-host remove immich`. That removes its containers but keeps its data. Deleting the data is a separate choice with `--purge`.
+
+If you like it, keep running it here or set it up yourself with Docker Compose. You can try the App before deciding how much time you want to spend on your setup.
+
+Browse the 93 Apps in the [Catalog](https://self-host.fyi/apps). See [Platforms and support](#platforms-and-support) for what has been verified.
+
+## What gets set up
+
+The main thing this adds to Docker Compose is App-specific setup. For example, `self-host install media homarr` installs a media setup and a dashboard, then connects the supported Apps:
+
+- Sonarr and Radarr get qBittorrent as their download client.
+- Seerr connects to Jellyfin, Sonarr and Radarr.
+- Homarr gets tiles for the Apps it supports.
+
+Passwords are generated by default. Some Apps still need a manual step, which the Dashboard shows. You still need to provide your own media and configure any indexers or content sources.
+
+You can do all of this with Docker Compose yourself. self-host automates the setup so you can try using the Apps first.
+
+The Compose files and App configuration live in `~/.self-host`. You can read the files it writes. It uses Docker Compose to run the containers, not a separate container engine.
 
 > [!IMPORTANT]
 > Nothing installs without your approval. Onboarding writes nothing until you approve its plan, and no single Dashboard key changes an App.
@@ -78,12 +102,12 @@ Choose Jellyfin for your media library, Immich for photos, Nextcloud for files o
 > Apps are third-party software under their own licences. self-host installs and connects them; it does not own or maintain them.
 
 <details>
-<summary><b>The honest list</b></summary>
+<summary><b>Details and limits</b></summary>
 
 | ✅ Does                                                                         | ❌ Doesn't                                                                      |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Ships the Catalog inside the binary: 93 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                           |
-| Runs headless Setup for each App: accounts, API keys, settings.                 | Touch anything outside its one Compose Project in `~/.self-host`.               |
+| Sets up accounts, API keys and settings where supported.                        | Touch anything outside its one Compose Project in `~/.self-host`.               |
 | Wires Apps together with Links, and gives Homarr native tiles.                  | Back up media libraries or data outside App folders.                            |
 | Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows. Use WSL2.                                                |
 | Offers Access from the Home network to Tailscale, Cloudflare or your own proxy. | Ship indexers, trackers or content sources.                                     |
@@ -95,8 +119,6 @@ A **Recipe** is a pre-wired bundle: `media` is qBittorrent, Sonarr, Radarr, Prow
 </details>
 
 ## With an agent
-
-<p align="center"><img src="docs/assets/readme/with-an-agent.svg" width="880" alt="With an agent. One self-host skill for Claude Code, Codex, OpenCode, Pi, Hermes Agent and OpenClaw."></p>
 
 Paste this into Claude Code, Codex, OpenCode, OpenClaw or any coding agent:
 
@@ -217,16 +239,14 @@ A Compose folder you add by hand under `~/.self-host/extra/<name>/` is an Unmana
 
 </details>
 
-## Links: Apps that wire themselves
+## App connections
 
-<p align="center"><img src="docs/assets/readme/links-graph.svg" width="880" alt="Apps that wire themselves. Apps appear and arrows draw between them: Sonarr and Radarr to qBittorrent, Prowlarr to Sonarr and Radarr, Seerr to Jellyfin, Sonarr and Radarr, Cleanuparr to Sonarr, Radarr and qBittorrent, and Homarr to a row of tiles for the other Apps."></p>
-
-Every App gets headless Setup, and Links connect them: Sonarr and Radarr get qBittorrent, Seerr gets Jellyfin, Homarr gets native tiles.
+These connections are called Links. They run when both Apps have finished their own Setup.
 
 <details>
 <summary><b>Which Apps link to which</b></summary>
 
-Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link** is the part that connects one App to another. It belongs to the consuming App and runs once both have finished Setup.
+A **Link** connects one App to another. It belongs to the App using the connection, such as Sonarr using qBittorrent as a download client.
 
 | Consumer       | Linked to                                         |
 | -------------- | ------------------------------------------------- |
@@ -315,23 +335,23 @@ To turn it off, set `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` (or `true`). 
 
 ## Docker Compose Maker
 
-Prefer to own the YAML? [Docker Compose Maker](https://self-host.fyi/compose) (DCM) turns the Apps you pick into a `docker-compose.yaml` and `.env`, with a Template gallery. [self-host.fyi/apps](https://self-host.fyi/apps) lists every App in the Catalog with the same compose self-host installs, and [self-host.fyi/compose](https://self-host.fyi/compose) adds containers only DCM defines. It lives in [`dcm/`](dcm/) and also runs standalone: `docker run -p 7576:7576 ghcr.io/ajnart/dcm`.
+Want Compose files without using the CLI? [Docker Compose Maker](https://self-host.fyi/compose) (DCM) turns the Apps you pick into a `docker-compose.yaml` and `.env`, with a Template gallery. [self-host.fyi/apps](https://self-host.fyi/apps) lists every App in the Catalog with the same compose self-host installs, and [self-host.fyi/compose](https://self-host.fyi/compose) adds containers only DCM defines. It lives in [`dcm/`](dcm/) and also runs standalone: `docker run -p 7576:7576 ghcr.io/ajnart/dcm`.
 
 ## Repository layout
 
-| Path | What it is |
-| --- | --- |
+| Path                | What it is                                                |
+| ------------------- | --------------------------------------------------------- |
 | `cmd/`, `internal/` | The Go binary: CLI, Dashboard, the Catalog and every App. |
-| `site/` | The Astro site at self-host.fyi. |
-| `dcm/` | Docker Compose Maker, served at self-host.fyi/compose. |
-| `tools/sitegen` | Writes the site's and DCM's data from the Catalog. |
-| `docs/` | Decisions, agent briefs, release notes and proofs. |
+| `site/`             | The Astro site at self-host.fyi.                          |
+| `dcm/`              | Docker Compose Maker, served at self-host.fyi/compose.    |
+| `tools/sitegen`     | Writes the site's and DCM's data from the Catalog.        |
+| `docs/`             | Decisions, agent briefs, release notes and proofs.        |
 
 `site/` and `dcm/` are one bun workspace: run `bun install` at the root. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Community and support
 
-- [Star the repo](https://github.com/ajnart/self-host/stargazers) if self-host saved you a subscription: it helps others find it.
+- [Star the repo](https://github.com/ajnart/self-host/stargazers) if you found it useful.
 - [Discord](https://discord.gg/aCsmEV5RgA): questions and show and tell.
 - [GitHub Issues](https://github.com/ajnart/self-host/issues): bugs and App requests.
 - Support the work: [GitHub Sponsors](https://github.com/sponsors/ajnart) · [Ko-fi](https://ko-fi.com/ajnart).
