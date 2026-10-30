@@ -5,11 +5,33 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   const initialRef = useRef(initialValue)
 
   useEffect(() => {
-    try {
-      const item = localStorage.getItem(key)
-      if (item) setStoredValue(JSON.parse(item))
-    } catch (error) {
-      console.error(`Error loading ${key} from localStorage:`, error)
+    const refresh = () => {
+      try {
+        const item = localStorage.getItem(key)
+        setStoredValue(item ? JSON.parse(item) : initialRef.current)
+      } catch (error) {
+        console.error(`Error loading ${key} from localStorage:`, error)
+      }
+    }
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) refresh()
+    }
+    const onStorage = (event: StorageEvent) => {
+      if (
+        event.storageArea === localStorage &&
+        (event.key === key || event.key === null)
+      ) {
+        refresh()
+      }
+    }
+
+    refresh()
+    window.addEventListener("pageshow", onPageShow)
+    window.addEventListener("storage", onStorage)
+    return () => {
+      window.removeEventListener("pageshow", onPageShow)
+      window.removeEventListener("storage", onStorage)
     }
   }, [key])
 
