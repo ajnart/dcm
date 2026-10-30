@@ -1,0 +1,19 @@
+dcm/src/components/container-upvote.tsx
+  s_c3721a1fd56bd4::t_927b0e0d10b197 3,12-14,20-23,32-35,40-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0993cd15088be6cc97c777815eb8f0b676c98ffd",
+  "prompts": {},
+  "sessions": {
+    "s_c3721a1fd56bd4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2edd0f53-966b-4fad-bffd-9714509d8077",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
