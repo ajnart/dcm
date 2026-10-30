@@ -55,10 +55,10 @@ Run the web gate only when you touch `site/`, `dcm/` or `tools/sitegen/`:
 ```bash
 bun install --frozen-lockfile
 go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/src/styles
-DCM_BASE=/compose bunx turbo run build test lint
+DCM_BASE=/compose bunx turbo run build test lint check
 ```
 
-`dcm/tests/validate-compose.test.ts` needs Docker: locally run `build lint` and only the DCM test files your change touches; CI runs the full `test`.
+Turbo caches every task: an unchanged repeat run is instant, and `DCM_BASE` is part of the build's cache key. `turbo run test` skips `dcm/tests/validate-compose.test.ts` because it runs `docker compose config`; CI runs it as `test:compose`.
 
 Never run Docker, the e2e runtime, a browser or the installer for a focused change. Add dependencies only after checking `go.mod`, and say why in the PR.
 

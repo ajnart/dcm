@@ -30,7 +30,7 @@ Issues with the `container` label and then `accepted` make `.github/workflows/dc
 
 ## Gate
 
-The web gate in `AGENTS.md` applies to every change under `dcm/`. `ci.yml`'s `web` job runs it with `DCM_BASE=/compose`; `dcm-image.yml` builds the image at `/` on `dcm/**` pushes and `dcm-v*` tags. Standalone build: `bash scripts/build-dcm-pages.sh`.
+The web gate in `AGENTS.md` applies to every change under `dcm/`. `ci.yml`'s `web` job runs it with `DCM_BASE=/compose` plus `test:compose`, and its `test` job runs the sitegen drift check; `dcm-image.yml` tests and builds the image at `/` on `dcm/**` pushes and `dcm-v*` tags. Standalone build: `bash scripts/build-dcm-pages.sh`.
 
 ## Ownership
 
