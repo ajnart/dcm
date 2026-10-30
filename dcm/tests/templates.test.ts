@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import { getToolsFromTemplate, templates } from "../lib/templates"
-import { tools } from "../tools"
+import { getToolsFromTemplate, templates } from "../src/lib/templates"
+import { tools } from "../src/tools"
 
 describe("Templates", () => {
   test("templates should have valid structure", () => {

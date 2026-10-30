@@ -1,0 +1,15 @@
+---
+import DockerToolsClient from "../components/DockerToolsClient"
+import Layout from "../layouts/Layout.astro"
+import { buildCatalog } from "../lib/catalog"
+import { fetchGitHubStars } from "../lib/docker-tools"
+
+const catalog = buildCatalog(await fetchGitHubStars())
+---
+
+<Layout
+  title="Docker Compose Maker · self-host"
+  description="Pick self-hosted apps and generate a Docker Compose file, or let self-host install them for you."
+>
+  <DockerToolsClient client:load catalog={catalog} />
+</Layout>

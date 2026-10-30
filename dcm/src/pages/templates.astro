@@ -1,0 +1,16 @@
+---
+import TemplateGalleryClient from "../components/TemplateGalleryClient"
+import Layout from "../layouts/Layout.astro"
+import { buildCatalog } from "../lib/catalog"
+import { fetchGitHubStars } from "../lib/docker-tools"
+import { templates } from "../lib/templates"
+
+const catalog = buildCatalog(await fetchGitHubStars())
+---
+
+<Layout
+  title="Template Gallery · Docker Compose Maker"
+  description="Ready-made Docker Compose stacks: media servers, monitoring, networking and more."
+>
+  <TemplateGalleryClient client:load catalog={catalog} templates={templates} />
+</Layout>

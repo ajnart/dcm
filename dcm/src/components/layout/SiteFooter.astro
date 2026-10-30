@@ -1,0 +1,25 @@
+---
+import { withBase } from "../../lib/base"
+
+const SELFHOST = "https://self-host.fyi"
+
+const links = [
+  { href: `${SELFHOST}/apps`, label: "apps" },
+  { href: `${SELFHOST}/docs`, label: "docs" },
+  { href: withBase("/templates"), label: "templates" },
+  { href: "https://github.com/ajnart/self-host", label: "github" },
+  {
+    href: "https://github.com/ajnart/self-host/tree/main/dcm",
+    label: "dcm source",
+  },
+  { href: "https://discord.gg/aCsmEV5RgA", label: "discord" },
+  { href: "https://ko-fi.com/ajnart", label: "ko-fi" },
+]
+---
+
+<footer class="site-footer">
+  <span>self-host <span class="muted">Apache-2.0</span></span>
+  <nav aria-label="Footer">
+    {links.map((link) => <a href={link.href}>{link.label}</a>)}
+  </nav>
+</footer>

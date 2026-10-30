@@ -1,198 +1,61 @@
-import { afterAll, describe, expect, test } from "bun:test"
+import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { execSync } from "node:child_process"
-import { promises as fs } from "node:fs"
+import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import path from "node:path"
-import { DEFAULT_SETTINGS } from "../lib/constants"
-import type { DockerTool } from "../lib/docker-tools"
-import { tools } from "../tools"
+import { buildCatalog } from "../src/lib/catalog"
+import { DEFAULT_SETTINGS } from "../src/lib/constants"
+import {
+  generateComposeContent,
+  generateEnvFile,
+} from "../src/lib/docker-compose/generators"
+import type { DockerTool } from "../src/lib/docker-tools"
+import { tools } from "../src/tools"
 
-// Temp files paths
-const tempComposeFilePath = path.join(process.cwd(), "docker-compose.yaml")
-const tempEnvFilePath = path.join(process.cwd(), ".env")
+const catalog = buildCatalog(tools)
+const supportedEntries = catalog.entries.filter((entry) => !entry.isUnsupported)
+
+let workDir = ""
+
+beforeAll(async () => {
+  workDir = await mkdtemp(path.join(tmpdir(), "dcm-compose-"))
+})
+
+afterAll(async () => {
+  await rm(workDir, { recursive: true, force: true })
+})
+
+async function validate(selected: DockerTool[]) {
+  const { content } = generateComposeContent(selected, DEFAULT_SETTINGS, false)
+  const env = generateEnvFile(selected, DEFAULT_SETTINGS)
+  await writeFile(path.join(workDir, "docker-compose.yaml"), content, "utf8")
+  await writeFile(path.join(workDir, ".env"), env, "utf8")
+  execSync("docker compose config --quiet", { cwd: workDir, encoding: "utf8" })
+}
 
 describe("Docker Compose Validation", () => {
-  const supportedTools = tools.filter((tool) => !tool.isUnsupported)
-
-  // Clean up temporary files after all tests
-  afterAll(async () => {
-    try {
-      await fs.unlink(tempComposeFilePath)
-      await fs.unlink(tempEnvFilePath)
-    } catch (err) {
-      // Ignore errors if files don't exist
-    }
-  })
-
   describe("Individual Services", () => {
-    // Test each service individually
-    for (const tool of supportedTools) {
-      test(`Service: ${tool.name}`, async () => {
-        // Skip tools without compose content
-        if (!tool.composeContent) {
-          return
-        }
-
+    for (const entry of supportedEntries) {
+      if (!entry.composeContent) continue
+      test(`Service: ${entry.name}`, async () => {
         try {
-          // Generate compose file with just this service
-          const composeContent = generateDockerComposeFile([tool])
-
-          // Create a temporary docker-compose.yaml file
-          await fs.writeFile(tempComposeFilePath, composeContent, "utf8")
-
-          // Generate .env file with default settings
-          const envContent = generateEnvFile()
-          await fs.writeFile(tempEnvFilePath, envContent, "utf8")
-
-          // Validate the docker-compose file - this will throw an error if validation fails
-          execSync("docker compose config --quiet", { encoding: "utf8" })
-
-          // If we get here, validation passed
-          expect(true).toBe(true)
+          await validate([entry])
         } catch (error) {
-          // Fail the test with the error message
-          const errorMsg =
-            error instanceof Error ? error.message : String(error)
+          const message = error instanceof Error ? error.message : String(error)
           throw new Error(
-            `Service "${tool.name}" validation failed: ${errorMsg}`,
+            `Service "${entry.name}" failed validation: ${message}`,
           )
         }
       })
     }
   })
 
+  test("All self-host Apps together", async () => {
+    await validate(supportedEntries.filter((entry) => entry.selfhostId))
+  })
+
   test("All services together", async () => {
-    try {
-      // Generate docker-compose content with all services
-      const composeContent = generateDockerComposeFile(supportedTools)
-
-      // Create a temporary docker-compose.yaml file
-      await fs.writeFile(tempComposeFilePath, composeContent, "utf8")
-
-      // Generate .env file with default settings
-      const envContent = generateEnvFile()
-      await fs.writeFile(tempEnvFilePath, envContent, "utf8")
-
-      // Validate the docker-compose file
-      execSync("docker compose config --quiet", { encoding: "utf8" })
-
-      // If we get here, validation passed
-      expect(true).toBe(true)
-    } catch (error) {
-      // Fail the test with the error message
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      throw new Error(`Combined services validation failed: ${errorMsg}`)
-    }
+    await validate(supportedEntries)
+    expect(supportedEntries.length).toBeGreaterThan(0)
   })
 })
-
-function generateDockerComposeFile(selectedTools: DockerTool[]): string {
-  // Create docker-compose header
-  const composeHeader = `
-#  ____   ____ __  __ 
-# |  _ \\ / ___|  \\/  |
-# | | | | |   | |\\/| |
-# | |_| | |___| |  | |
-# |____/ \\____|_|  |_|
-#
-# This compose file was generated by Docker Compose Selector: https://github.com/ajnart/docker-compose-selector 
-`
-
-  // Generate services section
-  let servicesSection = `services:
-`
-
-  // Add each selected tool
-  selectedTools.forEach((tool) => {
-    if (!tool.composeContent) return
-    // Add a blank line before each service
-    servicesSection += `
-`
-    // Add a comment with the tool description
-    servicesSection += `  # ${tool.name}: ${tool.description}
-`
-    // Process the compose content - properly indent everything
-    let toolContent = tool.composeContent.replace(/^services:\s*/gm, "") // Remove the services: line
-
-    // Create a more robust indentation system for nested YAML
-    const lines = toolContent.split("\n")
-    let currentIndentLevel = 0
-
-    const processedLines = lines.map((line, index) => {
-      // Skip empty lines
-      if (line.trim() === "") return line
-
-      const trimmedLine = line.trim()
-      const isServiceLine = index === 0 || lines[index - 1].trim() === ""
-
-      // Reset indent level for service lines
-      if (isServiceLine) {
-        currentIndentLevel = 0
-        return `  ${trimmedLine}` // 2 spaces for service name
-      }
-
-      // Determine if this line defines a new block (ends with colon)
-      const definesBlock =
-        trimmedLine.endsWith(":") && !trimmedLine.includes(": ")
-
-      // Check if previous line defined a block (which would make this line deeper)
-      const prevLine = index > 0 ? lines[index - 1].trim() : ""
-      const prevDefinesBlock =
-        prevLine.endsWith(":") && !prevLine.includes(": ")
-
-      // Increase indent level if previous line defined a block
-      if (prevDefinesBlock) {
-        currentIndentLevel++
-      }
-      // Detect decrease in indentation by checking original indentation
-      else if (!isServiceLine && index > 0) {
-        const originalIndent = line.match(/^\s*/)?.[0].length || 0
-        const prevOriginalIndent =
-          lines[index - 1].match(/^\s*/)?.[0].length || 0
-
-        // If current line has less original indentation than previous line,
-        // we need to decrease our indentation level
-        if (originalIndent < prevOriginalIndent) {
-          // Calculate how many levels to go back based on the difference
-          const levels = Math.floor((prevOriginalIndent - originalIndent) / 2)
-          currentIndentLevel = Math.max(0, currentIndentLevel - levels)
-        }
-      }
-
-      // Calculate spaces for the current indent level (base of 2 + 2 per level)
-      const spaces = 2 + currentIndentLevel * 2
-      return `${" ".repeat(spaces)}${trimmedLine}`
-    })
-
-    toolContent = processedLines.join("\n")
-    servicesSection += `${toolContent}\n`
-  })
-
-  return composeHeader + servicesSection
-}
-
-function generateEnvFile(): string {
-  // Get default settings
-  const settings = DEFAULT_SETTINGS
-
-  return `# Docker Compose Environment Variables
-# These can be overridden by setting them in your shell or in a .env file
-
-# User/Group Identifiers
-# These help avoid permission issues between host and container
-PUID=${settings.puid}
-PGID=${settings.pgid}
-UMASK=${settings.umask}
-
-# Container name prefix
-CONTAINER_PREFIX=${settings.containerNamePrefix}
-
-# Paths for persistent data
-CONFIG_PATH=${settings.configPath}
-DATA_PATH=${settings.dataPath}
-
-# Container settings
-TZ=${settings.timezone}
-RESTART_POLICY=${settings.restartPolicy}
-NETWORK_MODE=${settings.networkMode}
-`
-}

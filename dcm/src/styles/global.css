@@ -1,0 +1,328 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../../../site/src/styles/theme.css";
+
+@source "../components/ui";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --bg: #1e1d2a;
+  --panel: #23222f;
+  --deep: #171621;
+  --line: #3a3947;
+  --ink: #e4e4ea;
+  --muted: #aaa8b5;
+  --dim: #9995a6;
+  --control-border: #777185;
+  --mono: ui-monospace, "JetBrains Mono", "Berkeley Mono", "SF Mono",
+    SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (width >= 640px) {
+    padding-inline: 2rem;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+@theme inline {
+  --breakpoint-xs: 480px;
+
+  --font-sans: var(--mono);
+  --font-mono: var(--mono);
+
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+
+  --color-card: var(--panel);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--panel);
+  --color-popover-foreground: var(--ink);
+
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+
+  --color-secondary: var(--selected);
+  --color-secondary-foreground: var(--ink);
+
+  --color-muted: var(--panel);
+  --color-muted-foreground: var(--muted);
+
+  --color-accent: var(--selected);
+  --color-accent-foreground: var(--ink);
+  --color-accent-text: var(--accent-text);
+
+  --color-destructive: var(--fail);
+  --color-destructive-foreground: var(--on-accent);
+
+  --color-border: var(--line);
+  --color-input: var(--control-border);
+  --color-ring: var(--accent-text);
+
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
+
+  --radius-lg: 0;
+  --radius-md: 0;
+  --radius-sm: 0;
+
+  --animate-pulse-subtle: pulse-subtle 3s infinite;
+  --animate-shimmer: shimmer 2s infinite;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-scale-in: scale-in 0.2s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-slide-down: slide-down 0.3s ease-out;
+  --animate-slide-in-right: slide-in-right 0.3s ease-out;
+  --animate-slide-in-left: slide-in-left 0.3s ease-out;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-bounce-subtle: bounce-subtle 2s ease-in-out infinite;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes pulse-subtle {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+  @keyframes scale-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes slide-up {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-down {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-in-right {
+    0% {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes slide-in-left {
+    0% {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes bounce-subtle {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--line);
+  }
+
+  html {
+    background: var(--bg);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--mono);
+    color: var(--ink);
+    background-color: var(--bg);
+    background-image: linear-gradient(var(--deep) 1px, transparent 1px),
+      linear-gradient(90deg, var(--deep) 1px, transparent 1px);
+    background-size: 24px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--selected);
+    color: var(--ink);
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+*,
+*::before,
+*::after {
+  border-radius: 0;
+}
+
+@utility animate-pulse-subtle {
+  animation: pulse-subtle 3s infinite;
+}
+
+@utility animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.site-header a,
+.site-footer a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.site-header a:hover,
+.site-footer a:hover {
+  color: var(--ink);
+}
+
+.site-header .tag {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.site-header .pages,
+.site-header .ext {
+  display: flex;
+  align-items: center;
+}
+
+.site-header .pages a {
+  color: var(--muted);
+}
+
+.site-header .pages a[aria-current="page"] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-text);
+  text-underline-offset: 0.4em;
+}
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.25rem;
+  margin-top: 5rem;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+  border-top: 1px solid var(--line);
+  font-size: 0.8rem;
+}
+
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.site-footer a {
+  white-space: nowrap;
+}
+
+.site-footer .muted {
+  color: var(--muted);
+}
+
+@theme inline {
+  --animate-shake: shake 0.4s ease-in-out;
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-3px);
+    }
+    75% {
+      transform: translateX(3px);
+    }
+  }
+}

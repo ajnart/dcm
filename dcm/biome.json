@@ -8,8 +8,9 @@
   "files": {
     "ignoreUnknown": true,
     "ignore": [
-      "./components/ui",
-      "lib/selfhost-catalog.json",
+      "./src/components/ui",
+      "src/data/selfhost.json",
+      "src/**/*.astro",
       "tsconfig.tsbuildinfo"
     ]
   },

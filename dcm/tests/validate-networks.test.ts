@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 import {
   composeContentSchema,
   validateComposeContent,
-} from "../lib/docker-tools"
+} from "../src/lib/docker-tools"
 
 describe("Docker Compose Networks Validation", () => {
   test("should validate the exact example from issue (erugo app with networks)", () => {

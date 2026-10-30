@@ -1,0 +1,53 @@
+---
+import TemplateClient from "../../components/TemplateClient"
+import Layout from "../../layouts/Layout.astro"
+import { buildCatalog } from "../../lib/catalog"
+import { generateComposeContent } from "../../lib/docker-compose/generators"
+import { fetchGitHubStars } from "../../lib/docker-tools"
+import { getToolsFromTemplate, templates } from "../../lib/templates"
+
+const defaultSettings = {
+  configPath: "/path/to/config",
+  dataPath: "/path/to/data",
+  timezone: "Europe/Paris",
+  puid: "1000",
+  pgid: "1000",
+  umask: "022",
+  containerNamePrefix: "",
+  restartPolicy: "unless-stopped",
+  networkMode: "bridge",
+}
+
+export async function getStaticPaths() {
+  const catalog = buildCatalog(await fetchGitHubStars())
+  return [...catalog.recipes, ...templates].map((template) => ({
+    params: { id: template.id },
+    props: { template, entries: catalog.entries },
+  }))
+}
+
+const { template, entries } = Astro.props
+const templateTools = getToolsFromTemplate(template, entries)
+const unavailableTools = template.tools
+  .filter((toolId) => !templateTools.some((tool) => tool.id === toolId))
+  .map((toolId) => ({ id: toolId }))
+const { content } = generateComposeContent(templateTools, defaultSettings, true)
+let selfHostRecipeId: string | undefined
+if (template.id.startsWith("recipe-")) {
+  selfHostRecipeId = template.id.slice("recipe-".length)
+}
+---
+
+<Layout
+  title={`${template.name} · Docker Compose Maker`}
+  description={template.description}
+>
+  <TemplateClient
+    client:load
+    template={template}
+    templateTools={templateTools}
+    unavailableTools={unavailableTools}
+    initialContent={content}
+    selfHostRecipeId={selfHostRecipeId}
+  />
+</Layout>

@@ -1,0 +1,46 @@
+---
+import SiteFooter from "../components/layout/SiteFooter.astro"
+import SiteHeader from "../components/layout/SiteHeader.astro"
+import { withBase } from "../lib/base"
+import "../styles/global.css"
+
+interface Props {
+  title: string
+  description: string
+}
+
+const { title, description } = Astro.props
+const canonical = new URL(
+  Astro.url.pathname.replace(/(index)?\.html$/, ""),
+  Astro.site,
+)
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#1e1d2a" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="self-host" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <link rel="icon" href={withBase("/favicon.png")} sizes="any" />
+  </head>
+  <body>
+    <SiteHeader />
+    <main class="container pt-6 pb-12">
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

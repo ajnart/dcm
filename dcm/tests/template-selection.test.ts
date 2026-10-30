@@ -1,8 +1,8 @@
 import { describe, expect, mock, test } from "bun:test"
-import { TemplateCategory } from "../lib/template-categories"
-import { templateDefinitions } from "../lib/template-definitions"
-import { getToolsFromTemplate, templates } from "../lib/templates"
-import { tools } from "../tools"
+import { TemplateCategory } from "../src/lib/template-categories"
+import { templateDefinitions } from "../src/lib/template-definitions"
+import { getToolsFromTemplate, templates } from "../src/lib/templates"
+import { tools } from "../src/tools"
 
 describe("Template Definitions Structure", () => {
   test("template definitions should match templates export", () => {

@@ -1,0 +1,42 @@
+---
+import "../../../../site/src/styles/header.css"
+import { withBase } from "../../lib/base"
+import { ContainerSubmissionForm } from "../container-submission-form"
+
+const SELFHOST = "https://self-host.fyi"
+
+const base = withBase("/").replace(/\/$/, "")
+const here = Astro.url.pathname.slice(base.length).replace(/\/$/, "") || "/"
+
+const pages = [
+  { href: `${SELFHOST}/docs`, label: "docs", current: false },
+  { href: `${SELFHOST}/apps`, label: "apps", current: false },
+  { href: withBase("/"), label: "compose", current: here === "/" },
+  {
+    href: withBase("/templates"),
+    label: "templates",
+    current: here.startsWith("/template"),
+  },
+]
+---
+
+<header class="site-header">
+  <a class="tag" href={`${SELFHOST}/`} aria-label="self-host home">◆ self-host</a>
+  <nav aria-label="Pages" class="pages">
+    {
+      pages.map((page) => (
+        <a href={page.href} aria-current={page.current ? "page" : undefined}>
+          {page.label}
+        </a>
+      ))
+    }
+  </nav>
+  <div class="site-header-tools">
+    <ContainerSubmissionForm client:load />
+  </div>
+  <span class="ext">
+    <a href="https://github.com/ajnart/self-host">github</a>
+    <a href="https://discord.gg/aCsmEV5RgA">discord</a>
+    <a href="https://ko-fi.com/ajnart">ko-fi</a>
+  </span>
+</header>

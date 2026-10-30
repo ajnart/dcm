@@ -3,7 +3,7 @@ import {
   getValidationSummary,
   isContainerValid,
   validateAllContainers,
-} from "../lib/container-validator"
+} from "../src/lib/container-validator"
 
 describe("Container Validation", () => {
   const results = validateAllContainers()
