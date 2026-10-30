@@ -1,0 +1,19 @@
+CONTRIBUTING.md
+  s_5013180a90d48a::t_52f16a0de2e9b0 18,21,39,42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4721b2ed973a11c61a5a465dd43d3288e8eda5c0",
+  "prompts": {},
+  "sessions": {
+    "s_5013180a90d48a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e70f1b74-c1de-4a0d-bd9a-1492447bd4ee",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
