@@ -32,7 +32,7 @@ const STYLE_ATTRIBUTES = [
 
 export const styleAttributeHashes = STYLE_ATTRIBUTES.map(sha256);
 
-async function htmlFiles(dir) {
+export async function htmlFiles(dir) {
   const entries = await readdir(dir, { withFileTypes: true, recursive: true });
   return entries.filter((e) => e.isFile() && e.name.endsWith(".html")).map((e) => join(e.parentPath, e.name));
 }

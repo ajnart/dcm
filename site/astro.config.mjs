@@ -12,6 +12,8 @@ import { changelog } from "./src/lib/changelog";
 import catalog from "./src/data/catalog.json" with { type: "json" };
 import { SPECULATION_RULES } from "./src/lib/speculation.mjs";
 import { cspCheck, starlightInlineScriptHashes, styleAttributeHashes } from "./src/lib/csp.mjs";
+import { isNoindex } from "./src/lib/indexing.mjs";
+import { seoCheck } from "./src/lib/seo.mjs";
 
 export default defineConfig({
   site: "https://self-host.fyi",
@@ -77,8 +79,9 @@ export default defineConfig({
       ],
     }),
     react(),
-    sitemap({ filter: (page) => !page.endsWith("/404") }),
+    sitemap({ filter: (page) => !isNoindex(new URL(page).pathname) }),
     cspCheck(),
+    seoCheck(),
   ],
   markdown: { syntaxHighlight: false },
   devToolbar: { enabled: false },
