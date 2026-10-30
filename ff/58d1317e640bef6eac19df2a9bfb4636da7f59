@@ -1,0 +1,37 @@
+bun.lock
+  s_634c8991df5839::t_c4a920bf946e15 28,44,571-572,679-680
+dcm/src/components/compose-modal/CopyComposeModal.tsx
+  s_634c8991df5839::t_1b36c3c6ba7544 6,31,60,93-94,96,102
+dcm/src/components/copy-label.tsx
+  s_634c8991df5839::t_d04d24940061cc 1-33
+dcm/src/lib/confetti.ts
+  s_634c8991df5839::t_dd79bb18370838 1,3,5-10
+dcm/src/components/compose-modal/ActionButtons.tsx
+  s_634c8991df5839::t_9e0921e90767aa 1,3,6,30,34
+dcm/src/hooks/use-clipboard.tsx
+  s_634c8991df5839::t_843f541aad4357 1-5,8,10,15,17-22,24,26-28,31-34,37-42,45
+dcm/package.json
+  s_634c8991df5839::t_eaaeb7df61f82d 33,49
+dcm/src/components/TemplateClient.tsx
+  s_634c8991df5839::t_6009727286525a 1,12,20-21,27,64,88,94,131
+dcm/src/components/floating-bar.tsx
+  s_634c8991df5839::t_e3bba28a44d79c 1,56,100,103,106,235-240
+dcm/src/components/selfhost-command.tsx
+  s_634c8991df5839::t_1163eafbf5dd29 35-36,55-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ff58d1317e640bef6eac19df2a9bfb4636da7f59",
+  "prompts": {},
+  "sessions": {
+    "s_634c8991df5839": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "760fe647-1290-418b-b7c1-619e3f7cd7f3",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
