@@ -1,0 +1,27 @@
+dcm/src/lib/export/env.ts
+  s_5013180a90d48a::t_340750c005345b 7,95-101,103
+dcm/src/lib/selfhost.ts
+  s_5013180a90d48a::t_2aa845b20da8e9 14,42
+dcm/src/lib/settings.ts
+  s_5013180a90d48a::t_4f37a86861ca50 1-2,15-20,22-28,30
+dcm/tests/export.test.ts
+  s_5013180a90d48a::t_24c9ce29f56cd4 231,233,240,244-248,250-252,256-297
+docs/agents/dcm.md
+  s_5013180a90d48a::t_87047a3a0a2f89 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d9cb1079ea48048a5e75374e032de1d9bb50b0a6",
+  "prompts": {},
+  "sessions": {
+    "s_5013180a90d48a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e70f1b74-c1de-4a0d-bd9a-1492447bd4ee",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
