@@ -1,0 +1,19 @@
+.gitignore
+  s_a91f4b733e8ee4::t_dc0e9538ec9f25 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2ef1366749e015afc15594759bb7f8cb47bae169",
+  "prompts": {},
+  "sessions": {
+    "s_a91f4b733e8ee4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2f0f81a4-3fff-4415-afef-7b285a1a665c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
