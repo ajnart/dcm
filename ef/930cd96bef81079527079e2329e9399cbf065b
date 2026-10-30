@@ -1,0 +1,75 @@
+dcm/src/data/selfhost.json
+  s_e36409ed1a5e8d::t_7361720b80f101 69,126-127,340-341,458,713-714,839,1029,1710,1750,1962-1963,2085,2154-2155,2815-2816,3115,3148-3149,3562,3602,3763-3764,4052,4117,4150-4151,4197,4334-4335,4508-4509,4738
+internal/apps/adguard/adguard.go
+  s_9d7feaf3ca7bcc::t_30150bfe7673e9 39-40
+internal/apps/archiveteamwarrior/archiveteamwarrior.go
+  s_9d7feaf3ca7bcc::t_d11586af3649ad 112-116
+internal/apps/authentik/authentik.go
+  s_9d7feaf3ca7bcc::t_797d6c93c2daee 174-177
+internal/apps/beszel/beszel.go
+  s_9d7feaf3ca7bcc::t_250c9fdf8fcf0e 445-446
+internal/apps/cloudflaretunnel/cloudflaretunnel.go
+  s_9d7feaf3ca7bcc::t_e1880940cb533a 100-103
+internal/apps/dockge/dockge.go
+  s_9d7feaf3ca7bcc::t_412594d87f0a07 73-74
+internal/apps/forgejo/forgejo.go
+  s_9d7feaf3ca7bcc::t_e42f873d36ba06 41-44
+internal/apps/homeassistant/homeassistant.go
+  s_9d7feaf3ca7bcc::t_5b017a780567f5 47-48
+internal/apps/homebridge/homebridge.go
+  s_9d7feaf3ca7bcc::t_2308ab58ed620e 34-35
+internal/apps/kopia/kopia.go
+  s_9d7feaf3ca7bcc::t_39438ce5b0b377 165-169
+internal/apps/linkwarden/linkwarden.go
+  s_9d7feaf3ca7bcc::t_8dce256c100da0 175
+internal/apps/lldap/lldap.go
+  s_9d7feaf3ca7bcc::t_f3565411d80524 178-181
+internal/apps/openwebui/openwebui.go
+  s_9d7feaf3ca7bcc::t_c485ca1860a46d 123-126
+internal/apps/pihole/pihole.go
+  s_9d7feaf3ca7bcc::t_6d8dda266d543b 60,217-220
+internal/apps/renovate/renovate.go
+  s_9d7feaf3ca7bcc::t_28c9a75206f74d 80
+internal/apps/restic/restic.go
+  s_9d7feaf3ca7bcc::t_45e4f63eaa7cc6 95
+internal/apps/seafile/seafile.go
+  s_9d7feaf3ca7bcc::t_ca649041f65210 184-187
+internal/apps/speedtesttracker/speedtesttracker.go
+  s_9d7feaf3ca7bcc::t_3e0f12dc49ee2e 346-349
+internal/apps/stalwartmail/stalwartmail.go
+  s_9d7feaf3ca7bcc::t_b2f0d45936613c 175-177
+internal/apps/stirlingpdf/stirlingpdf.go
+  s_9d7feaf3ca7bcc::t_d03d1d30ea0cfc 55-58
+internal/apps/syncthing/syncthing.go
+  s_9d7feaf3ca7bcc::t_0aac45856f5411 55-56
+internal/apps/technitiumdns/technitiumdns.go
+  s_9d7feaf3ca7bcc::t_96ab996cab5cbb 448-451
+internal/apps/transmission/transmission.go
+  s_9d7feaf3ca7bcc::t_591a7a71b33195 224-227
+internal/apps/vaultwarden/vaultwarden.go
+  s_9d7feaf3ca7bcc::t_cf78a52796c528 196-197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ef930cd96bef81079527079e2329e9399cbf065b",
+  "prompts": {},
+  "sessions": {
+    "s_9d7feaf3ca7bcc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "eec62015-2bcb-4aba-8224-2b5584c3914d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_e36409ed1a5e8d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0851aa4b-d41c-447e-a413-b92d1c10adbe",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
