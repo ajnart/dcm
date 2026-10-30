@@ -1,0 +1,19 @@
+site/src/content/docs/docs/apps.md
+  s_7650508bcc8254::t_edb6f5e85e0184 26-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6bbee0258eccfd7a659f3b908dbae6868a075d15",
+  "prompts": {},
+  "sessions": {
+    "s_7650508bcc8254": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "892aee59-a795-4df2-98a9-674082bcc52d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
