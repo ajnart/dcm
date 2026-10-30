@@ -5,7 +5,8 @@
     "**/*"
   ],
   "exclude": [
-    "dist"
+    "dist",
+    "dist-pages"
   ],
   "compilerOptions": {
     "allowJs": true,

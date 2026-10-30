@@ -17,12 +17,15 @@ const { title, description } = Astro.props;
 const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Astro.site);
 const image = new URL(og.src, Astro.site);
 
+type CspDirective = Parameters<NonNullable<typeof Astro.csp>["insertDirective"]>[0];
+const insertDirective = (directive: string) => Astro.csp?.insertDirective(directive as CspDirective);
+
 const MONACO_CDN = "https://cdn.jsdelivr.net";
 Astro.csp?.insertScriptResource(MONACO_CDN);
-Astro.csp?.insertDirective(`style-src-elem 'self' ${MONACO_CDN} 'unsafe-inline'`);
-Astro.csp?.insertDirective("style-src-attr 'unsafe-inline'");
-Astro.csp?.insertDirective(`font-src ${MONACO_CDN} data:`);
-Astro.csp?.insertDirective("worker-src blob:");
+insertDirective(`style-src-elem 'self' ${MONACO_CDN} 'unsafe-inline'`);
+insertDirective("style-src-attr 'unsafe-inline'");
+insertDirective(`font-src ${MONACO_CDN} data:`);
+insertDirective("worker-src blob:");
 ---
 
 <!doctype html>
