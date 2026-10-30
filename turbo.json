@@ -1,15 +1,47 @@
 {
-  "$schema": "https://turbo.build/schema.json",
-  "tasks": {
-    "build": {
-      "outputs": ["dist/**"]
-    },
-    "check": {},
-    "test": {},
-    "lint": {},
-    "dev": {
-      "cache": false,
-      "persistent": true
-    }
-  }
+	"$schema": "https://turbo.build/schema.json",
+	"tasks": {
+		"self-host-site#build": {
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"../docs/telemetry.md",
+				"../video/reel/assets/agents/*.svg"
+			],
+			"outputs": ["dist/**"],
+			"env": ["SELF_HOST_SITE_VERSION"]
+		},
+		"self-host-site#check": {
+			"dependsOn": ["self-host-site#build"],
+			"passThroughEnv": ["SELF_HOST_SITE_VERSION"]
+		},
+		"dcm#build": {
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"!tests/**",
+				"!functions/**",
+				"!containers/**",
+				"!*.md",
+				"!Dockerfile",
+				"!httpd.conf",
+				"!wrangler.toml",
+				"!biome.json",
+				"../site/src/styles/theme.css",
+				"../site/src/styles/header.css"
+			],
+			"outputs": ["dist/**"],
+			"env": ["DCM_BASE"],
+			"passThroughEnv": ["GITHUB_TOKEN"]
+		},
+		"dcm#check": {
+			"dependsOn": ["dcm#build"]
+		},
+		"check": {},
+		"lint": {},
+		"test": {},
+		"test:compose": {},
+		"dev": {
+			"cache": false,
+			"persistent": true
+		}
+	}
 }

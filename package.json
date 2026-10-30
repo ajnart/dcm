@@ -8,6 +8,7 @@
     "dev": "turbo run dev",
     "check": "turbo run check",
     "test": "turbo run test",
+    "test:compose": "turbo run test:compose",
     "lint": "turbo run lint"
   },
   "devDependencies": {

@@ -13,12 +13,11 @@
     "check": "astro check",
     "lint": "biome lint",
     "format": "biome format",
-    "ci": "bun test && bun run lint && bun run format && bun run check && bun run build",
     "deploy": "astro build && wrangler pages deploy dist",
     "test:compose": "bun test tests/validate-compose.test.ts",
     "test:containers": "bun test tests/validate-all-containers.test.ts",
     "test:templates": "bun test tests/templates.test.ts",
-    "test": "bun test"
+    "test": "bun test --path-ignore-patterns='**/validate-compose.test.ts'"
   },
   "dependencies": {
     "@astrojs/react": "^7.1.1",
