@@ -1,0 +1,33 @@
+AGENTS.md
+  s_648ebbdc146794::t_2b427a614607d6 13-14
+README.md
+  s_648ebbdc146794::t_10ecd7054cb3b1 318
+bun.lock
+  s_648ebbdc146794::t_fca6c89216a44a 294,1250
+dcm/tsconfig.json
+  s_648ebbdc146794::t_89169197e86dcc 2
+docs/agents/dcm.md
+  s_648ebbdc146794::t_c28a73c2dae416 3,11-12,46
+docs/migration/dcm-takeover.md
+  s_648ebbdc146794::t_673579ef909a1b 194
+docs/releasing.md
+  s_648ebbdc146794::t_b9c15394791b2a 238,308,310-311,321,341,353-354
+scripts/build-site-pages.sh
+  s_648ebbdc146794::t_6533a5c5b77581 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aa8690540a0a9d1c54c3247237dc319025e199ed",
+  "prompts": {},
+  "sessions": {
+    "s_648ebbdc146794": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c54b0155-f3be-4cd0-bad6-129811db7d7d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
