@@ -3,15 +3,28 @@ import DockerToolsClient from "@/components/DockerToolsClient";
 import Compose from "../../layouts/Compose.astro";
 import { buildCatalog } from "@/lib/catalog";
 import { withStars } from "@/lib/stars";
+import { routes } from "@/lib/routes";
 import { tools } from "@/tools";
+import { breadcrumbs, ORIGIN, schema } from "../../lib/meta";
 
 const catalog = withStars(buildCatalog(tools));
+const title = "Docker Compose Maker · self-host";
+const description = "Pick self-hosted apps and generate a Docker Compose file, or let self-host install them for you.";
+const jsonld = schema(
+  {
+    "@type": "WebApplication",
+    name: "Docker Compose Maker",
+    description,
+    url: `${ORIGIN}${routes.compose}`,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Any",
+    browserRequirements: "Requires JavaScript",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  },
+  breadcrumbs(["self-host", "/"], ["Docker Compose Maker", routes.compose]),
+);
 ---
 
-<Compose
-  editor
-  title="Docker Compose Maker · self-host"
-  description="Pick self-hosted apps and generate a Docker Compose file, or let self-host install them for you."
->
+<Compose editor title={title} description={description} jsonld={jsonld}>
   <DockerToolsClient client:load catalog={catalog} mode="compose" />
 </Compose>

@@ -1,14 +1,16 @@
 ---
 import TemplateClient from "@/components/TemplateClient"
-import { buildCatalog } from "@/lib/catalog"
+import { allTemplates, buildCatalog } from "@/lib/catalog"
+import { routes } from "@/lib/routes"
 import { withStars } from "@/lib/stars"
 import { getToolsFromTemplate, templates } from "@/lib/templates"
 import { tools } from "@/tools"
 import Compose from "../../../layouts/Compose.astro"
+import { breadcrumbs, DESCRIPTION_MAX, fit, schema } from "../../../lib/meta"
 
 export async function getStaticPaths() {
   const catalog = withStars(buildCatalog(tools))
-  return [...catalog.recipes, ...templates].map((template) => ({
+  return allTemplates(catalog, templates).map((template) => ({
     params: { id: template.id },
     props: { template, entries: catalog.entries },
   }))
@@ -16,12 +18,23 @@ export async function getStaticPaths() {
 
 const { template, entries } = Astro.props
 const templateEntries = getToolsFromTemplate(template, entries)
+const pitch = template.description.replace(/\.$/, "")
+const description = fit(
+  DESCRIPTION_MAX,
+  `${pitch}. A Docker Compose stack of ${templateEntries.length} apps you can edit, download or install with self-host.`,
+  `${pitch}. A ready-made Docker Compose stack.`,
+  `${pitch}.`,
+)
+const jsonld = schema(
+  breadcrumbs(["self-host", "/"], ["Docker Compose Maker", routes.compose], ["Templates", routes.templates], [template.name, routes.template(template.id)]),
+)
 ---
 
 <Compose
   editor
   title={`${template.name} · Docker Compose Maker`}
-  description={template.description}
+  description={description}
+  jsonld={jsonld}
 >
   <TemplateClient
     client:load

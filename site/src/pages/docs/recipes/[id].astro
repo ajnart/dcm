@@ -2,6 +2,7 @@
 import type { GetStaticPaths } from "astro";
 import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
 import { appById, linksAmong, recipes } from "../../../lib/catalog";
+import { DESCRIPTION_MAX, fit } from "../../../lib/meta";
 
 export const getStaticPaths = (() => recipes.map((recipe) => ({ params: { id: recipe.id }, props: { recipe } }))) satisfies GetStaticPaths;
 
@@ -9,6 +10,13 @@ const { recipe } = Astro.props;
 const members = recipe.apps.flatMap((id) => appById.get(id) ?? []);
 const links = linksAmong(recipe.apps);
 const nameOf = (id: string) => appById.get(id)?.name ?? id;
+const pitch = `${recipe.description}. The ${recipe.id} Recipe installs`;
+const description = fit(
+  DESCRIPTION_MAX,
+  `${pitch} ${members.map((a) => a.name).join(", ")} with one self-host command.`,
+  `${pitch} ${members.length} Apps with one self-host command.`,
+  `${recipe.description}.`,
+);
 const headings = [
   { depth: 2, slug: "install", text: "Install" },
   { depth: 2, slug: "apps", text: "Apps" },
@@ -17,7 +25,7 @@ const headings = [
 ];
 ---
 
-<StarlightPage headings={headings} frontmatter={{ title: recipe.name, description: `${recipe.description}. The ${recipe.id} Recipe installs ${members.map((a) => a.name).join(", ")} with one self-host command.` }}>
+<StarlightPage headings={headings} frontmatter={{ title: recipe.name, description }}>
   <p>{recipe.description}. The <code>{recipe.id}</code> Recipe installs {members.map((a) => a.name).join(", ")} into your Project and runs their Setup.</p>
 
   <h2 id="install">Install</h2>

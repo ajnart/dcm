@@ -1,11 +1,16 @@
 ---
 import SuggestClient from "@/components/suggest-page";
+import { routes } from "@/lib/routes";
 import Compose from "../../layouts/Compose.astro";
+import { breadcrumbs, schema } from "../../lib/meta";
+
+const jsonld = schema(breadcrumbs(["self-host", "/"], ["Docker Compose Maker", routes.compose], ["Suggest a container", routes.suggest]));
 ---
 
 <Compose
   title="Suggest a container · Docker Compose Maker"
   description="Add a missing app to Docker Compose Maker with an AI coding agent, or open an issue."
+  jsonld={jsonld}
 >
   <SuggestClient client:load />
 </Compose>

@@ -6,8 +6,7 @@ import "../styles/site.css";
 import "../styles/transitions.css";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
-import og from "../assets/og.png";
-import { OG_HEIGHT, OG_WIDTH, ogPath } from "../lib/og";
+import SeoHead from "../components/SeoHead.astro";
 import { VERSION } from "../lib/site";
 
 interface Props {
@@ -19,12 +18,6 @@ interface Props {
 }
 
 const { title, description, video = false, jsonld, noindex = false } = Astro.props;
-const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Astro.site);
-const landingCard = { src: og.src, width: og.width, height: og.height, alt: "self-host: Stop renting your software. $92 a month becomes $0. Install any App with one command." };
-const pageCard = { src: ogPath(Astro.url.pathname), width: OG_WIDTH, height: OG_HEIGHT, alt: title };
-const card = canonical.pathname === "/" || noindex ? landingCard : pageCard;
-const image = new URL(card.src, Astro.site);
-const reel = new URL("/reel.mp4", Astro.site);
 ---
 
 <!doctype html>
@@ -32,37 +25,7 @@ const reel = new URL("/reel.mp4", Astro.site);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
-    <meta name="theme-color" content="#1e1d2a" />
-    <meta name="color-scheme" content="dark" />
-    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="en_US" />
-    <meta property="og:site_name" content="self-host" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
-    <meta property="og:image" content={image} />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content={String(card.width)} />
-    <meta property="og:image:height" content={String(card.height)} />
-    <meta property="og:image:alt" content={card.alt} />
-    {
-      video && (
-        <>
-          <meta property="og:video" content={reel} />
-          <meta property="og:video:type" content="video/mp4" />
-          <meta property="og:video:width" content="1920" />
-          <meta property="og:video:height" content="1080" />
-        </>
-      )
-    }
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={image} />
-    <meta name="twitter:image:alt" content={card.alt} />
+    <SeoHead title={title} description={description} video={video} noindex={noindex} />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

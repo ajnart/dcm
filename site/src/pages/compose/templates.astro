@@ -4,15 +4,19 @@ import Compose from "../../layouts/Compose.astro";
 import { buildCatalog } from "@/lib/catalog";
 import { withStars } from "@/lib/stars";
 import { templates } from "@/lib/templates";
+import { routes } from "@/lib/routes";
 import { tools } from "@/tools";
+import { breadcrumbs, schema } from "../../lib/meta";
 
 const catalog = withStars(buildCatalog(tools));
+const jsonld = schema(breadcrumbs(["self-host", "/"], ["Docker Compose Maker", routes.compose], ["Templates", routes.templates]));
 ---
 
 <Compose
   title="Template Gallery · Docker Compose Maker"
   description="Ready-made Docker Compose stacks: media servers, monitoring, networking and more."
   editor
+  jsonld={jsonld}
 >
   <TemplateGalleryClient client:load catalog={catalog} templates={templates} />
 </Compose>

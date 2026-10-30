@@ -1,9 +1,12 @@
 ---
 import { Content } from "../../../docs/telemetry.md";
 import Base from "../layouts/Base.astro";
+import { breadcrumbs, schema } from "../lib/meta";
+
+const jsonld = schema(breadcrumbs(["self-host", "/"], ["Telemetry", "/telemetry"]));
 ---
 
-<Base title="Telemetry and Feedback · self-host" description="What self-host sends, what it never sends, and how to turn it off.">
+<Base title="Telemetry and Feedback · self-host" description="What self-host sends, what it never sends, and how to turn it off." jsonld={jsonld}>
   <main class="page prose">
     <nav class="crumbs" aria-label="Breadcrumb"><a href="/">self-host</a> / <span>telemetry</span></nav>
     <Content />

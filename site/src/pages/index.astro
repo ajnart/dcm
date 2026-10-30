@@ -16,6 +16,22 @@ const jsonld = {
   "@context": "https://schema.org",
   "@graph": [
     {
+      "@type": "Organization",
+      "@id": "https://self-host.fyi/#organization",
+      name: "self-host",
+      url: "https://self-host.fyi/",
+      logo: "https://self-host.fyi/icon-512.png",
+      sameAs: [LINKS.github, LINKS.discord],
+    },
+    {
+      "@type": "WebSite",
+      name: "self-host",
+      url: "https://self-host.fyi/",
+      description,
+      inLanguage: "en",
+      publisher: { "@id": "https://self-host.fyi/#organization" },
+    },
+    {
       "@type": "SoftwareApplication",
       name: "self-host",
       applicationCategory: "DeveloperApplication",

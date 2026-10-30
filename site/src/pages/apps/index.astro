@@ -1,22 +1,17 @@
 ---
 import DockerToolsClient from "@/components/DockerToolsClient";
+import { routes } from "@/lib/routes";
 import { buildCatalog } from "@/lib/catalog";
 import { withStars } from "@/lib/stars";
 import { tools } from "@/tools";
 import { getCollection } from "astro:content";
 import Compose from "../../layouts/Compose.astro";
 import { linkCount } from "../../lib/catalog";
+import { breadcrumbs, schema } from "../../lib/meta";
 
 const count = (await getCollection("apps")).length;
 const catalog = withStars(buildCatalog(tools));
-const jsonld = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    { "@type": "ListItem", position: 1, name: "self-host", item: "https://self-host.fyi/" },
-    { "@type": "ListItem", position: 2, name: "Apps", item: "https://self-host.fyi/apps" },
-  ],
-};
+const jsonld = schema(breadcrumbs(["self-host", "/"], ["Apps", routes.apps]));
 ---
 
 <Compose

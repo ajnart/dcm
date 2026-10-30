@@ -6,7 +6,7 @@ import "../styles/transitions.css";
 import { buttonVariants } from "@/components/ui/button";
 import { routes } from "@/lib/routes";
 import { PlusCircle } from "lucide-react";
-import og from "../assets/og.png";
+import SeoHead from "../components/SeoHead.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { VERSION } from "../lib/site";
@@ -19,8 +19,6 @@ interface Props {
 }
 
 const { title, description, jsonld, editor = false } = Astro.props;
-const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Astro.site);
-const image = new URL(og.src, Astro.site);
 
 type CspDirective = Parameters<NonNullable<typeof Astro.csp>["insertDirective"]>[0];
 const insertDirective = (directive: string) => Astro.csp?.insertDirective(directive as CspDirective);
@@ -38,21 +36,7 @@ if (editor) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
-    <meta name="theme-color" content="#1e1d2a" />
-    <meta name="color-scheme" content="dark" />
-    <link rel="canonical" href={canonical} />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="self-host" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
-    <meta property="og:image" content={image} />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={image} />
+    <SeoHead title={title} description={description} />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

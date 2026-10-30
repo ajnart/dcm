@@ -5,6 +5,7 @@ import AppIcon from "../../components/AppIcon.astro";
 import CodeBlock from "../../components/CodeBlock.astro";
 import Base from "../../layouts/Base.astro";
 import { appById, linksInto, recipesWith } from "../../lib/catalog";
+import { breadcrumbs, DESCRIPTION_MAX, fit, ORIGIN, schema, TITLE_MAX } from "../../lib/meta";
 
 export const getStaticPaths = (async () => (await getCollection("apps")).map((app) => ({ params: { id: app.id }, props: { app } }))) satisfies GetStaticPaths;
 
@@ -13,18 +14,25 @@ const { name, description, category, image, port, icon, links } = app.data;
 const into = linksInto(app.id);
 const recipes = recipesWith(app.id);
 const nameOf = (id: string) => appById.get(id)?.name ?? id;
-const jsonld = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    { "@type": "ListItem", position: 1, name: "self-host", item: "https://self-host.fyi/" },
-    { "@type": "ListItem", position: 2, name: "Apps", item: "https://self-host.fyi/apps" },
-    { "@type": "ListItem", position: 3, name, item: `https://self-host.fyi/apps/${app.id}` },
-  ],
-};
+const wired = links.length + into.length;
+const pitch = `${description}. Install ${name} with one command`;
+const pitches = [`${pitch}; self-host signs it in and wires it to ${wired} other Apps.`, `${pitch}; self-host signs it in.`, `${pitch}.`];
+if (wired === 0) pitches.shift();
+const jsonld = schema(
+  {
+    "@type": "SoftwareApplication",
+    name,
+    description: `${description}.`,
+    applicationCategory: "UtilitiesApplication",
+    operatingSystem: "Linux, macOS, Windows (WSL)",
+    url: `${ORIGIN}/apps/${app.id}`,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  },
+  breadcrumbs(["self-host", "/"], ["Apps", "/apps"], [name, `/apps/${app.id}`]),
+);
 ---
 
-<Base title={`${name}: self-host it in one command · self-host`} description={`${description}. Install ${name} with one command; self-host signs it in and wires it to ${links.length + into.length} other Apps.`} jsonld={jsonld}>
+<Base title={fit(TITLE_MAX, `${name}: self-host it in one command · self-host`, `${name}: self-host it · self-host`)} description={fit(DESCRIPTION_MAX, ...pitches)} jsonld={jsonld}>
   <main class="page apppage">
     <nav class="crumbs" aria-label="Breadcrumb"><a href="/">self-host</a> / <a href="/apps">apps</a> / <span>{app.id}</span></nav>
     <header class="apphead">
