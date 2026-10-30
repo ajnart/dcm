@@ -162,3 +162,8 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "Sign in to the web UI with the ADMIN_USER and ADMIN_PASSWORD values, then create or connect the repository. The UI is plain HTTP (--insecure), so keep its port on a trusted network or put TLS in front of it. " +
+		"Only Kopia's own configuration is mounted: also mount the folders to back up and the repository folder."
+}

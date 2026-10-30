@@ -70,5 +70,6 @@ func (App) Check(ctx context.Context, h *helpers.H) error { return firstAdmin().
 func (App) Links() []app.Link { return nil }
 
 func (App) StandaloneGuide() string {
-	return "After the first start, create the first administrator account on the first visit."
+	return "After the first start, create the first administrator account on the first visit. " +
+		"The Docker socket is not mounted, so Dockge cannot manage stacks until you mount /var/run/docker.sock into the container."
 }

@@ -36,7 +36,8 @@ func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
 func (App) StandaloneGuide() string {
-	return "After the first start, finish the install wizard in the browser: create the administrator and keep the admin port at 3000."
+	return "After the first start, finish the install wizard in the browser: create the administrator and keep the admin port at 3000. " +
+		"This Compose publishes only that port: for DNS also publish 53/tcp and 53/udp, and if systemd-resolved already holds port 53, turn off its DNSStubListener (see the resolved section of AdGuard's Docker wiki)."
 }
 
 // Compose publishes only the private admin UI; DNS port 53 needs a separate

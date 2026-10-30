@@ -171,3 +171,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "Sign in as " + admin + " with the ADMIN_PASSWORD value; the ADMIN_USER value only forms that account's email, followed by @selfhost.local."
+}

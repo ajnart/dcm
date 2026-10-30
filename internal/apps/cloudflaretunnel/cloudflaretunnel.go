@@ -97,3 +97,7 @@ func ready(ctx context.Context, h *helpers.H) (bool, error) {
 	}
 	return result.ExitCode == 0, nil
 }
+
+func (App) StandaloneGuide() string {
+	return "Create a remotely managed tunnel in Cloudflare, put its token in CLOUDFLARE_TUNNEL_TOKEN, and add its public hostnames there. No ports are published because the tunnel connects outward."
+}

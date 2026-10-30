@@ -77,5 +77,5 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 func (App) Links() []app.Link { return nil }
 
 func (App) StandaloneGuide() string {
-	return "The container only runs renovate --version; replace the command with your own run. self-host only prepares its credentials and folders."
+	return "The container only runs renovate --version; replace the command with your own run."
 }

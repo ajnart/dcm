@@ -44,7 +44,8 @@ func (App) Inputs() []app.Input {
 func (App) Links() []app.Link { return nil }
 
 func (App) StandaloneGuide() string {
-	return "After the first start, finish the onboarding page and create the owner."
+	return "After the first start, finish the onboarding page and create the owner. " +
+		"Bridge networking publishes only the web UI, so devices found by mDNS or broadcast on your LAN do not show up; upstream's Docker install uses host networking."
 }
 
 // Compose exposes only the web UI on loopback bridge networking; LAN

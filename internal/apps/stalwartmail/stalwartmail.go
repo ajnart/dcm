@@ -172,5 +172,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 func (App) Links() []app.Link { return nil }
 
 func (App) StandaloneGuide() string {
-	return "After the first start, finish the first-run setup in the admin UI to create the administrator."
+	return "After the first start, finish the first-run setup wizard on the admin port to create the administrator; it runs again whenever the configuration folder is empty. " +
+		"STALWART_MAIL_RECOVERY_ADMIN optionally sets a recovery administrator as username:password. " +
+		"This Compose publishes only the admin port: to send and receive mail also publish ports 25, 465, 993, 995, 4190 and 443."
 }

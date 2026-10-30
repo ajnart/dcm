@@ -52,3 +52,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "Login is off (SECURITY_ENABLELOGIN is \"false\"), so anyone who can reach the page can use it; keep it on a trusted network."
+}

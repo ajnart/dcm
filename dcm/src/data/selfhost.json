@@ -66,7 +66,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, finish the install wizard in the browser: create the administrator and keep the admin port at 3000."
+   "notes": "After the first start, finish the install wizard in the browser: create the administrator and keep the admin port at 3000. This Compose publishes only that port: for DNS also publish 53/tcp and 53/udp, and if systemd-resolved already holds port 53, turn off its DNSStubListener (see the resolved section of AdGuard's Docker wiki)."
   },
   {
    "id": "archive-team-warrior",
@@ -123,7 +123,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "It starts with no project selected: choose one in the web page on port 8001, or set SELECTED_PROJECT to auto before the first start. The environment values only apply until the projects folder holds a config.json. ARCHIVE_TEAM_WARRIOR_NICKNAME is shown publicly on the project leaderboards."
   },
   {
    "id": "aria2",
@@ -336,7 +337,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Sign in as akadmin with the ADMIN_PASSWORD value; the ADMIN_USER value only forms that account's email, followed by @selfhost.local."
   },
   {
    "id": "bazarr",
@@ -453,7 +455,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, create the administrator on the hub's first visit. self-host starts the agent only after its Setup has read the hub's key and token. With plain Compose, start the hub, add a system in its web page, set BESZEL_AGENT_KEY and BESZEL_AGENT_TOKEN, then run docker compose up -d again."
+   "notes": "After the first start, create the administrator on the hub's first visit. The agent needs the key and token the hub shows when you add a system: add one in the hub's web page, set BESZEL_AGENT_KEY and BESZEL_AGENT_TOKEN, then run docker compose up -d again."
   },
   {
    "id": "bookstack",
@@ -708,7 +710,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Create a remotely managed tunnel in Cloudflare, put its token in CLOUDFLARE_TUNNEL_TOKEN, and add its public hostnames there. No ports are published because the tunnel connects outward."
   },
   {
    "id": "dashdot",
@@ -833,7 +836,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, create the first administrator account on the first visit."
+   "notes": "After the first start, create the first administrator account on the first visit. The Docker socket is not mounted, so Dockge cannot manage stacks until you mount /var/run/docker.sock into the container."
   },
   {
    "id": "docmost",
@@ -1023,7 +1026,7 @@
     }
    ],
    "standalone": true,
-   "notes": "Installation and registration are locked, and self-host creates the first administrator after the first start. With plain Compose run: docker exec -u git <container name> forgejo admin user create --admin --username selfhost-admin --email admin@forgejo.local --password <password>. Forgejo reserves the username admin, so pick another."
+   "notes": "Installation and registration are locked, so after the first start create the first administrator: docker exec -u git <container name> forgejo admin user create --admin --username <name> --email <email> --password <password>. The container is named ${CONTAINER_PREFIX}forgejo, and Forgejo reserves the username admin. The public URL defaults to localhost; add FORGEJO__server__ROOT_URL to the environment with the address you use."
   },
   {
    "id": "freshrss",
@@ -1704,7 +1707,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, finish the onboarding page and create the owner."
+   "notes": "After the first start, finish the onboarding page and create the owner. Bridge networking publishes only the web UI, so devices found by mDNS or broadcast on your LAN do not show up; upstream's Docker install uses host networking."
   },
   {
    "id": "homebridge",
@@ -1744,7 +1747,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, complete the setup wizard and create the administrator."
+   "notes": "After the first start, complete the setup wizard and create the administrator. Bridge networking publishes only the web UI, so HomeKit pairing and LAN device discovery do not work; upstream runs Homebridge with host networking for that."
   },
   {
    "id": "immich",
@@ -1956,7 +1959,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Sign in to the web UI with the ADMIN_USER and ADMIN_PASSWORD values, then create or connect the repository. The UI is plain HTTP (--insecure), so keep its port on a trusted network or put TLS in front of it. Only Kopia's own configuration is mounted: also mount the folders to back up and the repository folder."
   },
   {
    "id": "lidarr",
@@ -2078,7 +2082,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, sign up the first account on the first visit."
+   "notes": "After the first start, sign up the first account on the first visit, then set NEXT_PUBLIC_DISABLE_REGISTRATION to \"true\" and run docker compose up -d again; registration stays open until you do."
   },
   {
    "id": "lldap",
@@ -2147,7 +2151,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Sign in with the ADMIN_USER and ADMIN_PASSWORD values. The base DN is dc=example,dc=com (LLDAP_LDAP_BASE_DN); LDAP settings in other services must match it, so change it before connecting any."
   },
   {
    "id": "loki",
@@ -2807,7 +2812,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Sign in with the email made of the ADMIN_USER value and @selfhost.local, and the ADMIN_PASSWORD value."
   },
   {
    "id": "pangolin",
@@ -3106,7 +3112,7 @@
    "port": 8080,
    "docs": "https://docs.pi-hole.net/docker/",
    "links": [],
-   "compose": "services:\n  pihole:\n    image: pihole/pihole:latest\n    container_name: ${CONTAINER_PREFIX}pihole\n    restart: ${RESTART_POLICY}\n    environment:\n      TZ: ${TZ}\n      FTLCONF_webserver_api_password: ${ADMIN_PASSWORD}\n    volumes:\n      - ${CONFIG_PATH}/pihole/config:/etc/pihole\n    ports:\n      - 53:53/udp\n      - 53:53/tcp\n      - 8080:80\n",
+   "compose": "services:\n  pihole:\n    image: pihole/pihole:latest\n    container_name: ${CONTAINER_PREFIX}pihole\n    restart: ${RESTART_POLICY}\n    environment:\n      TZ: ${TZ}\n      FTLCONF_dns_listeningMode: ALL\n      FTLCONF_webserver_api_password: ${ADMIN_PASSWORD}\n    volumes:\n      - ${CONFIG_PATH}/pihole/config:/etc/pihole\n    ports:\n      - 53:53/udp\n      - 53:53/tcp\n      - 8080:80\n",
    "env": [
     {
      "key": "ADMIN_PASSWORD",
@@ -3139,7 +3145,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Sign in with the ADMIN_PASSWORD value. If systemd-resolved already holds port 53 on the host, the container cannot bind it: turn off its DNSStubListener."
   },
   {
    "id": "plex",
@@ -3552,7 +3559,7 @@
     }
    ],
    "standalone": true,
-   "notes": "The container only runs renovate --version; replace the command with your own run. self-host only prepares its credentials and folders."
+   "notes": "The container only runs renovate --version; replace the command with your own run."
   },
   {
    "id": "restic",
@@ -3592,7 +3599,7 @@
     }
    ],
    "standalone": true,
-   "notes": "The container only runs restic version; run your backups against the repository yourself. self-host only prepares its credentials and folders."
+   "notes": "The container only runs restic version; run your backups against the repository yourself."
   },
   {
    "id": "sabnzbd",
@@ -3753,7 +3760,8 @@
      "secret": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Sign in with the email made of the ADMIN_USER value and @selfhost.local, and the ADMIN_PASSWORD value."
   },
   {
    "id": "seerr",
@@ -4041,7 +4049,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files this Compose does not create before the first start (config/app.key, php-fpm-run), expected in ${CONFIG_PATH}/speedtest-tracker/; without them it does not start."
+   "notes": "Needs files this Compose does not create before the first start (config/app.key, php-fpm-run), expected in ${CONFIG_PATH}/speedtest-tracker/; without them it does not start. Sign in with the email made of the ADMIN_USER value and @selfhost.local, and the ADMIN_PASSWORD value."
   },
   {
    "id": "stalwart-mail",
@@ -4106,7 +4114,7 @@
     }
    ],
    "standalone": true,
-   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/stalwart-mail/configuration, ${CONFIG_PATH}/stalwart-mail/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them. After the first start, finish the first-run setup in the admin UI to create the administrator."
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/stalwart-mail/configuration, ${CONFIG_PATH}/stalwart-mail/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them. After the first start, finish the first-run setup wizard on the admin port to create the administrator; it runs again whenever the configuration folder is empty. STALWART_MAIL_RECOVERY_ADMIN optionally sets a recovery administrator as username:password. This Compose publishes only the admin port: to send and receive mail also publish ports 25, 465, 993, 995, 4190 and 443."
   },
   {
    "id": "stirling-pdf",
@@ -4139,7 +4147,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Login is off (SECURITY_ENABLELOGIN is \"false\"), so anyone who can reach the page can use it; keep it on a trusted network."
   },
   {
    "id": "syncthing",
@@ -4185,7 +4194,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, set the GUI administrator login in Actions > Settings > GUI."
+   "notes": "After the first start, set the GUI administrator login in Actions > Settings > GUI. Bridge networking breaks local discovery and this Compose publishes only the GUI: to sync with other devices also publish 22000 (tcp and udp) and 21027 (udp), or use host networking as upstream recommends."
   },
   {
    "id": "tailscale",
@@ -4322,7 +4331,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Sign in as admin with the ADMIN_PASSWORD value. If systemd-resolved already holds port 53 on the host, the container cannot bind it: turn off its DNSStubListener."
   },
   {
    "id": "tracearr",
@@ -4495,7 +4505,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Peers cannot connect in until you publish 51413 (tcp and udp) as well as the web port."
   },
   {
    "id": "umami",
@@ -4724,7 +4735,7 @@
     }
    ],
    "standalone": true,
-   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/vaultwarden/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them. Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value, choose Invite user, then register with that email on the home page."
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/vaultwarden/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them. Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value, choose Invite user, then register with that email on the home page. The web vault only works over HTTPS, so put a reverse proxy or TLS in front of it."
   },
   {
    "id": "vector",

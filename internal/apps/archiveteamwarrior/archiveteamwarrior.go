@@ -109,3 +109,8 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "It starts with no project selected: choose one in the web page on port 8001, or set SELECTED_PROJECT to auto before the first start. " +
+		"The environment values only apply until the projects folder holds a config.json. ARCHIVE_TEAM_WARRIOR_NICKNAME is shown publicly on the project leaderboards."
+}

@@ -52,7 +52,8 @@ func (App) Compose(rc app.RenderContext) string {
 func (App) Links() []app.Link { return nil }
 
 func (App) StandaloneGuide() string {
-	return "After the first start, set the GUI administrator login in Actions > Settings > GUI."
+	return "After the first start, set the GUI administrator login in Actions > Settings > GUI. " +
+		"Bridge networking breaks local discovery and this Compose publishes only the GUI: to sync with other devices also publish 22000 (tcp and udp) and 21027 (udp), or use host networking as upstream recommends."
 }
 
 func configXML(h *helpers.H) string {

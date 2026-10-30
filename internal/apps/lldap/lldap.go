@@ -175,3 +175,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "Sign in with the ADMIN_USER and ADMIN_PASSWORD values. The base DN is dc=example,dc=com (LLDAP_LDAP_BASE_DN); LDAP settings in other services must match it, so change it before connecting any."
+}

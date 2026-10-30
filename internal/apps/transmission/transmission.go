@@ -221,3 +221,7 @@ func rpcSemverCompatible(value any) bool {
 	semver, _ := value.(string)
 	return helpers.VersionCompatible(semver, "6.0.1")
 }
+
+func (App) StandaloneGuide() string {
+	return "Peers cannot connect in until you publish 51413 (tcp and udp) as well as the web port."
+}

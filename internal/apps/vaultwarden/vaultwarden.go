@@ -193,5 +193,6 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 func (App) Links() []app.Link { return nil }
 
 func (App) StandaloneGuide() string {
-	return "Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value, choose Invite user, then register with that email on the home page."
+	return "Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value, choose Invite user, then register with that email on the home page. " +
+		"The web vault only works over HTTPS, so put a reverse proxy or TLS in front of it."
 }

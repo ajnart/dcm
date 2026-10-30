@@ -57,6 +57,7 @@ func (App) Compose(rc app.RenderContext) string {
     restart: unless-stopped
     environment:
       TZ: ${TZ}
+      FTLCONF_dns_listeningMode: ALL
       WEBPASSWORD_FILE: admin-password
     volumes:
       - ./config:/etc/pihole
@@ -213,3 +214,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "Sign in with the ADMIN_PASSWORD value. If systemd-resolved already holds port 53 on the host, the container cannot bind it: turn off its DNSStubListener."
+}

@@ -38,9 +38,10 @@ func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
 func (App) StandaloneGuide() string {
-	return "Installation and registration are locked, and self-host creates the first administrator after the first start. " +
-		"With plain Compose run: docker exec -u git <container name> forgejo admin user create --admin --username " + adminAlias +
-		" --email " + adminEmail + " --password <password>. Forgejo reserves the username " + reservedAdminUser + ", so pick another."
+	return "Installation and registration are locked, so after the first start create the first administrator: " +
+		"docker exec -u git <container name> forgejo admin user create --admin --username <name> --email <email> --password <password>. " +
+		"The container is named ${CONTAINER_PREFIX}forgejo, and Forgejo reserves the username " + reservedAdminUser + ". " +
+		"The public URL defaults to localhost; add FORGEJO__server__ROOT_URL to the environment with the address you use."
 }
 
 func (App) Compose(rc app.RenderContext) string {
