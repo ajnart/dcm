@@ -1,0 +1,19 @@
+dcm/Dockerfile
+  s_931a5f7cfa2191::t_c6711483c13dd5 5-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e33c3335bbad6bc38f996629c1619225cc296f12",
+  "prompts": {},
+  "sessions": {
+    "s_931a5f7cfa2191": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "69c69f34-bcd2-44ed-87b1-75efcbecc66f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
