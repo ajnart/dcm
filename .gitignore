@@ -5,7 +5,8 @@ dist/
 /.sessions/
 
 # Disposable client and installer state
-/.claude/
+/.claude/*
+!/.claude/skills/
 /.codex/
 /.cursor/
 /.gemini/
