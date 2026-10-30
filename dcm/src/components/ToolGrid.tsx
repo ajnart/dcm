@@ -1,5 +1,12 @@
+import { AppCard } from "@/components/app-card"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
 import type { CatalogEntry } from "@/lib/catalog"
-import DockerCard from "./docker-card"
+import { routes } from "@/lib/routes"
+import type { ReactNode } from "react"
 
 interface ToolGridProps {
   entries: CatalogEntry[]
@@ -8,8 +15,71 @@ interface ToolGridProps {
   selfHostBadge?: boolean
 }
 
-const GRID =
-  "grid 3xl:grid-cols-7 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+function badgeFor(
+  entry: CatalogEntry,
+  selfHostBadge: boolean,
+): string | undefined {
+  if (entry.installOnly) return "Install with self-host"
+  if (selfHostBadge && entry.selfhostId) return "self-host"
+  return undefined
+}
+
+function Note({
+  entry,
+  children,
+}: { entry: CatalogEntry; children: ReactNode }) {
+  if (entry.isUnsupported) {
+    return (
+      <HoverCard openDelay={100} closeDelay={100}>
+        <HoverCardTrigger asChild>
+          <div className="appcard-slot">{children}</div>
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80 border-destructive shadow-md">
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold">Unsupported Container</p>
+            <p className="text-muted-foreground text-xs">
+              This container is not officially supported in our tool. <br />
+              We recommend following the official documentation for installation
+              instructions.
+            </p>
+            <a
+              href={entry.githubUrl || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-text text-sm hover:underline"
+            >
+              View Official Documentation
+            </a>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    )
+  }
+
+  if (entry.installOnly) {
+    return (
+      <HoverCard openDelay={100} closeDelay={100}>
+        <HoverCardTrigger asChild>
+          <div className="appcard-slot">{children}</div>
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80 shadow-md">
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold">Install with self-host</p>
+            <p className="text-muted-foreground text-xs">
+              {entry.notes ??
+                "This App has no standalone Compose file. self-host installs it for you."}
+            </p>
+            <code className="border bg-muted px-2 py-1 font-mono text-xs">
+              self-host install {entry.selfhostId}
+            </code>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    )
+  }
+
+  return <div className="appcard-slot">{children}</div>
+}
 
 export default function ToolGrid({
   entries,
@@ -17,20 +87,27 @@ export default function ToolGrid({
   onToggle,
   selfHostBadge = false,
 }: ToolGridProps) {
-  const renderCard = (entry: CatalogEntry) => (
-    <div key={entry.id} className="h-full">
-      <DockerCard
-        entry={entry}
-        isSelected={selected.includes(entry.id)}
-        onSelect={() => onToggle(entry.id)}
-        selfHostBadge={selfHostBadge}
-      />
-    </div>
-  )
-
   return (
-    <div className="before:-inset-4 before:-z-10 relative rounded-lg p-4 before:absolute before:rounded-lg before:bg-linear-to-r before:from-primary/20 before:via-primary/5 before:to-primary/20 before:blur-3xl">
-      <div className={GRID}>{entries.map(renderCard)}</div>
+    <div className="appcard-grid">
+      {entries.map((entry) => (
+        <Note key={entry.id} entry={entry}>
+          <AppCard
+            name={entry.name}
+            description={entry.description}
+            icon={entry.icon}
+            stars={entry.stars}
+            repoUrl={entry.githubUrl}
+            detailsHref={
+              entry.selfhostId ? routes.app(entry.selfhostId) : undefined
+            }
+            wires={entry.wires}
+            badge={badgeFor(entry, selfHostBadge)}
+            selected={selected.includes(entry.id)}
+            unsupported={entry.isUnsupported}
+            onSelect={() => onToggle(entry.id)}
+          />
+        </Note>
+      ))}
     </div>
   )
 }

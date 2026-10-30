@@ -140,9 +140,7 @@ export default function FloatingBar({
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 transition-colors hover:text-accent-text hover:underline"
       >
-        {selfHostMode
-          ? "Open this selection on self-host.fyi"
-          : "Rather not manage YAML? Let self-host do it"}
+        Open in the demo
         <ExternalLink className="h-3 w-3" />
       </a>
     </div>

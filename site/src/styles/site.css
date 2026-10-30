@@ -757,57 +757,6 @@ h2 {
   max-width: 65ch;
 }
 
-.card {
-  font: inherit;
-  text-align: left;
-  color: var(--ink);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  padding: 0.7rem 0.9rem;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  position: relative;
-  transition:
-    transform 0.15s,
-    border-color 0.15s,
-    background 0.15s;
-}
-
-.card::before {
-  content: "";
-  position: absolute;
-  inset: -1px -1px auto;
-  height: 3px;
-  background: transparent;
-  transition: background 0.2s;
-}
-
-.card:hover {
-  border-color: var(--muted);
-}
-
-.card:hover::before {
-  background: color-mix(in oklab, var(--accent) 40%, transparent);
-}
-
-.card[aria-pressed="true"] {
-  background: color-mix(in oklab, var(--accent) 18%, var(--panel));
-  border-color: var(--accent-text);
-}
-
-.card[aria-pressed="true"]::before {
-  background: var(--accent);
-}
-
-.card .who {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-width: 0;
-}
-
 .ico {
   flex: none;
   width: 30px;
@@ -827,104 +776,6 @@ h2 {
   margin: auto;
   width: 22px;
   height: 22px;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .card:hover,
-  .cardbox:hover .card,
-  .cardbox:hover .stars {
-    transform: translateY(-2px);
-  }
-}
-
-.card .t {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  gap: 1ch;
-}
-
-.card .t > .muted {
-  white-space: nowrap;
-}
-
-.card .t b {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.card small {
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.45;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.card .meta {
-  color: var(--dim);
-  font-size: 0.75rem;
-}
-
-.cardbox {
-  position: relative;
-  display: flex;
-}
-
-.cardbox[hidden] {
-  display: none;
-}
-
-.cardbox > .card {
-  flex: 1;
-  min-width: 0;
-}
-
-.stars {
-  position: absolute;
-  right: 0.6rem;
-  bottom: 0.55rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35ch;
-  padding: 0.1rem 0.45rem;
-  font-size: 0.8rem;
-  color: var(--ink);
-  background: var(--bg);
-  border: 1px solid var(--line);
-  text-decoration: none;
-  opacity: 0;
-  transition:
-    opacity 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    transform 0.15s;
-}
-
-.stars .star {
-  font-size: 1.25rem;
-  line-height: 1;
-  color: var(--warn);
-}
-
-.cardbox:hover .stars,
-.cardbox:focus-within .stars {
-  opacity: 1;
-}
-
-.stars:hover,
-.stars:focus-visible {
-  border-color: var(--warn);
-  color: var(--warn);
-}
-
-@media (hover: none) {
-  .stars {
-    opacity: 1;
-  }
 }
 
 .selbar {
@@ -1253,12 +1104,6 @@ h2 {
   margin-bottom: 1rem;
 }
 
-.apps {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-  gap: 0.5rem;
-}
-
 @media (max-width: 1100px) {
   .landing {
     display: block;
@@ -1528,11 +1373,6 @@ h2 {
   list-style: none;
   padding: 0;
   margin: 0;
-}
-
-.applist .card {
-  height: 100%;
-  text-decoration: none;
 }
 
 .crumbs {

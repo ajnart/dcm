@@ -64,8 +64,9 @@ export function selfHostIcon(path?: string): string | undefined {
 }
 
 export function buildSelfHostLink(ids: string[] = []): string {
-  if (ids.length === 0) return `${SELFHOST_URL}/?ref=dcm`
-  return `${SELFHOST_URL}/?apps=${ids.join(",")}&ref=dcm`
+  const params = new URLSearchParams({ ref: "dcm" })
+  if (ids.length) params.set("apps", ids.join(","))
+  return `/?${params}#play`
 }
 
 export function buildSelfHostCommand(ids: string[]): string {

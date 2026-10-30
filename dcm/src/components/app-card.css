@@ -1,0 +1,253 @@
+.appcard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.5rem;
+}
+
+.appcard-slot {
+  display: flex;
+}
+
+.appcard {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.7rem 0.9rem;
+  color: var(--ink);
+  line-height: 1.6;
+  background: radial-gradient(
+      120% 90% at 0% 0%,
+      color-mix(in oklab, var(--accent) 8%, transparent),
+      transparent 65%
+    ), color-mix(in oklab, var(--deep) 70%, black);
+  border: 1px solid var(--line);
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s,
+    background-color 0.15s;
+}
+
+.appcard::before {
+  content: "";
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 3px;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.appcard:hover {
+  border-color: var(--muted);
+  box-shadow: 0 8px 24px -14px
+    color-mix(in oklab, var(--accent) 70%, transparent);
+}
+
+.appcard:hover::before {
+  background: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+.appcard[data-selected="true"] {
+  background: radial-gradient(
+      120% 90% at 0% 0%,
+      color-mix(in oklab, var(--accent) 30%, transparent),
+      transparent 70%
+    ), color-mix(in oklab, var(--accent) 10%, var(--deep));
+  border-color: var(--accent-text);
+}
+
+.appcard[data-selected="true"]::before {
+  background: var(--accent);
+}
+
+.appcard[data-unsupported="true"]:hover {
+  border-color: color-mix(in oklab, var(--fail) 55%, transparent);
+  box-shadow: none;
+}
+
+.appcard[data-unsupported="true"]:hover::before {
+  background: color-mix(in oklab, var(--fail) 50%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .appcard:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.appcard-main {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+.appcard-main::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.appcard-main:focus-visible {
+  outline: 0;
+}
+
+.appcard-main:focus-visible::after {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+
+.appcard[data-unsupported="true"] .appcard-main {
+  cursor: default;
+}
+
+.appcard-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.appcard-title b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appcard-ico {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: var(--deep);
+  border: 1px solid var(--line);
+  font-weight: 800;
+  color: var(--accent-text);
+  position: relative;
+}
+
+.appcard-ico img {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 22px;
+  height: 22px;
+}
+
+.appcard-desc {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.appcard-foot {
+  margin-top: auto;
+  min-height: 1.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem 0.6rem;
+  color: var(--dim);
+  font-size: 0.75rem;
+}
+
+.appcard-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.5rem;
+}
+
+.appcard-badge {
+  padding: 0 0.4rem;
+  color: var(--accent-text);
+  background: color-mix(in oklab, var(--accent) 16%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent-text) 40%, transparent);
+  white-space: nowrap;
+}
+
+.appcard-details,
+.appcard-stars {
+  position: relative;
+  z-index: 1;
+}
+
+.appcard-details {
+  margin-left: auto;
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.appcard-details:hover,
+.appcard-details:focus-visible {
+  text-decoration: underline;
+}
+
+.appcard-stars {
+  position: absolute;
+  top: -0.6rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35ch;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.8rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+}
+
+.appcard-stars .star {
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--warn);
+}
+
+.appcard:hover .appcard-stars,
+.appcard:focus-within .appcard-stars {
+  opacity: 1;
+}
+
+.appcard-stars:hover,
+.appcard-stars:focus-visible {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .appcard:hover .appcard-stars,
+  .appcard:focus-within .appcard-stars {
+    transform: translateY(-2px);
+  }
+}
+
+@media (hover: none) {
+  .appcard-stars {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appcard,
+  .appcard::before,
+  .appcard-stars {
+    transition: none;
+  }
+}

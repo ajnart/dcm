@@ -22,6 +22,7 @@ export interface CatalogEntry extends DockerTool {
   env?: SelfHostEnvVar[]
   notes?: string
   installOnly?: boolean
+  wires?: number
 }
 
 export interface Catalog {
@@ -43,6 +44,7 @@ function fromSelfHost(app: SelfHostApp): CatalogEntry {
     selfhostId: app.id,
     selfhostOnly: true,
     installOnly: !standalone,
+    wires: app.links.length,
     port: app.port,
     docsUrl: app.docs,
     env: app.env,
@@ -58,6 +60,7 @@ function mergeWithSelfHost(tool: DockerTool, app: SelfHostApp): CatalogEntry {
     description: exact ? tool.description : app.description,
     icon: tool.icon ?? selfHostIcon(app.icon),
     selfhostId: app.id,
+    wires: app.links.length,
     port: app.port,
     docsUrl: app.docs,
   }

@@ -4,6 +4,9 @@ import CodeBlock from "../components/CodeBlock.astro";
 import HeroLogo from "../components/HeroLogo.astro";
 import SectionHead from "../components/SectionHead.astro";
 import AgentOptions from "../components/AgentOptions.astro";
+import HomeCatalog from "../components/HomeCatalog";
+import { buildCatalog } from "@/lib/catalog";
+import { tools } from "@/tools";
 import { apps, linkCount, linkingApps } from "../lib/catalog";
 import { AGENT_PROMPT, INSTALL_METHODS, LINKS, VERSION } from "../lib/site";
 
@@ -12,6 +15,9 @@ self-host status --json
 self-host install media --yes --json
 self-host debug sonarr`;
 const description = `Your photos, files and favourite apps, running on your own computer. Choose from ${apps.length} Apps, install them yourself or ask your agent.`;
+const selectionEntries = buildCatalog(tools).entries.flatMap((entry) =>
+  entry.selfhostId ? [{ id: entry.id, appId: entry.selfhostId, tags: entry.tags }] : [],
+);
 const jsonld = {
   "@context": "https://schema.org",
   "@graph": [
@@ -170,9 +176,7 @@ const toc = [
             <code class="sel-cmd" id="selcmd">self-host install …</code>
             <div class="wires" id="wires" hidden></div>
           </div>
-          <input id="q" class="filter" type="search" placeholder="/ filter apps" aria-label="Filter Apps" autocomplete="off" spellcheck="false">
-          <div class="apps" id="catalog"></div>
-          <p class="more-row"><button class="btn more" id="more" type="button">Show all {apps.length} Apps</button> <a class="btn" href="/apps">Browse every App</a></p>
+          <HomeCatalog client:load entries={selectionEntries} />
         </section>
 
         <section id="links" aria-labelledby="links-title">
