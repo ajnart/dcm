@@ -75,7 +75,7 @@ function DockerTools({ catalog, mode }: DockerToolsClientProps) {
       return
     }
 
-    selection.set(ids)
+    if (ids.length) selection.set(ids)
     url.searchParams.delete("share")
     window.history.replaceState(window.history.state, "", url)
   }, [catalog, selection.set, selfHostMode])

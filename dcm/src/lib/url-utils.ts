@@ -1,4 +1,4 @@
-import { routes } from "@/lib/routes"
+import { type CatalogMode, MODE_PATHS } from "@/lib/modes"
 
 /**
  * Encodes an array of tool IDs into a compressed URL-safe string
@@ -64,8 +64,8 @@ export function decodeShareUrl(
 /**
  * Generates a full share URL with the encoded tools parameter
  */
-export function generateShareUrl(toolIds: string[]): string {
-  const url = new URL(routes.compose, window.location.origin)
+export function generateShareUrl(toolIds: string[], mode: CatalogMode): string {
+  const url = new URL(MODE_PATHS[mode], window.location.origin)
   if (!toolIds.length) return url.toString()
 
   const encoded = encodeShareUrl(toolIds)

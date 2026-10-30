@@ -161,9 +161,7 @@ export function partitionSelection(
 export function allTemplates(
   catalog: Catalog,
   dcmTemplates: Template[],
-  mode: CatalogMode,
 ): Template[] {
-  if (mode === "self-host") return catalog.recipes
   return [...catalog.recipes, ...dcmTemplates]
 }
 

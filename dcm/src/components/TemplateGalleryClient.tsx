@@ -26,7 +26,7 @@ function TemplateGalleryView({
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([])
 
   const visibleTemplates = useMemo(
-    () => allTemplates(catalog, templates, "compose"),
+    () => allTemplates(catalog, templates),
     [catalog, templates],
   )
 

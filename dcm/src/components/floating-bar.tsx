@@ -100,7 +100,7 @@ export default function FloatingBar({
   const handleShare = async (event: React.MouseEvent<HTMLButtonElement>) => {
     if (shareIds.length === 0) return
 
-    const ok = await copy(generateShareUrl(shareIds), event.currentTarget)
+    const ok = await copy(generateShareUrl(shareIds, mode), event.currentTarget)
     if (ok) track({ name: "dcm_share_copied", count: shareIds.length })
   }
 
