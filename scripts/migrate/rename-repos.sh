@@ -1,33 +1,36 @@
 #!/usr/bin/env bash
-# Steps 3, 4 and 8 of docs/migration/dcm-takeover.md. Dry run unless --yes.
+# Steps 3, 4 and 7 of docs/migration/dcm-takeover.md. Dry run unless --yes.
 #
 #   rename     ajnart/self-host -> ajnart/self-host-old, then ajnart/dcm -> ajnart/self-host
 #   configure  copy description, homepage, topics, merge settings, labels, Actions policy and the
 #              'protect main' ruleset from the old repo onto the new one. The Actions allow-list is the
 #              old one plus every non-GitHub action used in .github/workflows/*.yml, and the workflow
 #              token may create pull requests (dcm-add-container.yml).
-#   private    make the old repo private (last step; erases its stars and watchers)
+#   archive    archive the old repo: it stays public and becomes read-only (last step). With --private
+#              it is made private instead, which erases its stars and watchers and hides its issues, PRs
+#              and release assets
 #
 # Ordering: the new name must be free, so the old repo moves first. GitHub then redirects
 # ajnart/self-host to self-host-old until the name is taken, and drops that redirect when dcm takes it.
 set -euo pipefail
 
-usage="usage: scripts/migrate/rename-repos.sh rename|configure|private [--yes] [--old OWNER/REPO] [--new OWNER/REPO] [--skip-release-check]"
+usage="usage: scripts/migrate/rename-repos.sh rename|configure|archive [--yes] [--private] [--old OWNER/REPO] [--new OWNER/REPO] [--skip-release-check]"
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 source "$here/lib.sh"
 
 step="${1:-}"
-[[ "$step" == rename || "$step" == configure || "$step" == private ]] || die "$usage"
+[[ "$step" == rename || "$step" == configure || "$step" == archive ]] || die "$usage"
 shift
 
-old_repo="" new_repo="" skip_release_check=false
+old_repo="" new_repo="" make_private=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --yes) YES=true ;;
     --old) old_repo="${2:?$usage}"; shift ;;
     --new) new_repo="${2:?$usage}"; shift ;;
-    --skip-release-check) skip_release_check=true ;;
+    --private) make_private=true ;;
+    --skip-release-check) SKIP_RELEASE_CHECK=true ;;
     -h|--help) say "$usage"; exit 0 ;;
     *) die "$usage" ;;
   esac
@@ -38,35 +41,6 @@ need gh
 need jq
 gh auth status >/dev/null 2>&1 || die "gh is not authenticated"
 mode_banner
-
-repo_id() {
-  local out
-  out="$(gh api "repos/$1" --jq .id 2>/dev/null)" || out=""
-  printf '%s' "$out"
-}
-release_tags() { gh release list --repo "$1" --limit 1000 --json tagName --jq '.[].tagName'; }
-
-asset_list() { gh release view "$1" --repo "$2" --json assets --jq '.assets[] | "\(.name) \(.size)"' 2>/dev/null | sort; }
-
-# check_release_parity OLD NEW: every release of OLD must exist on NEW with the same asset names and sizes, or installers break.
-check_release_parity() {
-  local missing=0 t want got lost
-  while read -r t; do
-    [[ -n "$t" ]] || continue
-    if ! gh release view "$t" --repo "$2" >/dev/null 2>&1; then
-      say "  missing on $2: $t"; missing=$((missing + 1)); continue
-    fi
-    want="$(asset_list "$t" "$1")"
-    got="$(asset_list "$t" "$2")"
-    lost="$(comm -23 <(printf '%s\n' "$want") <(printf '%s\n' "$got") | grep . || true)"
-    [[ -z "$lost" ]] || { say "  assets missing or different on $2 for $t: $(tr '\n' ';' <<<"$lost")"; missing=$((missing + 1)); }
-  done < <(release_tags "$1")
-  if [[ $missing -gt 0 ]]; then
-    $skip_release_check && { say "WARN $missing release(s) missing or with different assets (--skip-release-check)"; return 0; }
-    die "$missing release(s) of $1 are missing on $2 or differ in assets; run backport-releases.sh first (install.sh and self-update read the releases of whichever repo is named ajnart/self-host)"
-  fi
-  say "every release of $1 exists on $2 with the same assets"
-}
 
 case "$step" in
 rename)
@@ -105,7 +79,7 @@ $lost"
   check_release_parity "$old_repo" "$new_repo"
 
   say "-- things that do not move with a rename"
-  say "open issues on $old_repo: $(gh issue list --repo "$old_repo" --state open --json number --jq length) (move them with transfer-issues.sh BEFORE the private step)"
+  say "open issues on $old_repo: $(gh issue list --repo "$old_repo" --state open --json number --jq length) (move them with transfer-issues.sh BEFORE the archive step)"
   say "open PRs on $old_repo: $(gh pr list --repo "$old_repo" --state open --json number --jq length) (PRs cannot be transferred)"
   say "visibility of $old_repo: $(gh api "repos/$old_repo" --jq .visibility)"
 
@@ -202,22 +176,34 @@ configure)
   say "-- decide by hand: license ($old_repo: $(jq -r '.license.spdx_id' <<<"$old_json"), $new_repo: $(gh api "repos/$new_repo" --jq '.license.spdx_id')); GitHub shows the root LICENSE file"
   ;;
 
-private)
+archive)
   old_repo="${old_repo:-$OWNER/self-host-old}"
   new_repo="${new_repo:-$OWNER/self-host}"
-  [[ "$(repo_id "$old_repo")" != "$(repo_id "$new_repo")" ]] || die "$old_repo and $new_repo are the same repository"
-  vis="$(gh api "repos/$old_repo" --jq .visibility)"
-  [[ "$vis" == public ]] || { say "$old_repo is already $vis"; exit 0; }
+  old_id="$(repo_id "$old_repo")"
+  [[ -n "$old_id" ]] || die "$old_repo not found"
+  [[ "$old_id" != "$(repo_id "$new_repo")" ]] || die "$old_repo and $new_repo are the same repository"
+  old_json="$(gh api "repos/$old_repo")"
+  if $make_private; then
+    [[ "$(jq -r .visibility <<<"$old_json")" == public ]] || { say "$old_repo is already $(jq -r .visibility <<<"$old_json")"; exit 0; }
+  else
+    [[ "$(jq -r .archived <<<"$old_json")" == false ]] || { say "$old_repo is already archived"; exit 0; }
+  fi
 
   say "-- preflight"
   check_release_parity "$old_repo" "$new_repo"
   open_issues="$(gh issue list --repo "$old_repo" --state open --json number --jq length)"
-  [[ "$open_issues" -eq 0 ]] || die "$open_issues open issue(s) on $old_repo: run transfer-issues.sh first (a private repo's issues cannot move to a public one)"
+  [[ "$open_issues" -eq 0 ]] || die "$open_issues open issue(s) on $old_repo: run transfer-issues.sh first (an archived repo is read-only; a private repo's issues cannot move to a public one)"
   say "no open issues on $old_repo"
-  say "forks of $old_repo: $(gh api "repos/$old_repo" --jq .forks_count) (public forks detach); stars: $(gh api "repos/$old_repo" --jq .stargazers_count) (erased)"
-  say "private repos cannot serve assets anonymously: anything still linking to $old_repo release assets stops working"
+  say "stars: $(jq .stargazers_count <<<"$old_json"), forks: $(jq .forks_count <<<"$old_json")"
 
-  confirm_tty "Make $old_repo private?"
-  run_json PATCH "repos/$old_repo" '{"private":true}'
+  if $make_private; then
+    say "--private: stars and watchers are erased, public forks detach, issues and PRs are hidden, and anything still linking to $old_repo release assets stops working"
+    confirm_tty "Make $old_repo private?"
+    run_json PATCH "repos/$old_repo" '{"private":true}'
+  else
+    say "archive: $old_repo stays public with its stars, issues, PRs and release assets, but becomes read-only (undo: PATCH archived=false; it cannot be renamed while archived)"
+    confirm_tty "Archive $old_repo?"
+    run_json PATCH "repos/$old_repo" '{"archived":true}'
+  fi
   ;;
 esac

@@ -12,7 +12,7 @@
 # Release dates are the dates of this run, oldest release first so the list keeps its order.
 set -euo pipefail
 
-usage="usage: scripts/migrate/backport-releases.sh [--yes] [--old OWNER/REPO] [--new OWNER/REPO] [--only TAG] [--rename-dcm-v1]"
+usage="usage: scripts/migrate/backport-releases.sh [--yes] [--old OWNER/REPO] [--new OWNER/REPO] [--only TAG]"
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 source "$here/lib.sh"
@@ -20,14 +20,12 @@ source "$here/lib.sh"
 old_repo="$OWNER/self-host-old"
 new_repo="$OWNER/self-host"
 only=""
-rename_v1=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --yes) YES=true ;;
     --old) old_repo="${2:?$usage}"; shift ;;
     --new) new_repo="${2:?$usage}"; shift ;;
     --only) only="${2:?$usage}"; shift ;;
-    --rename-dcm-v1) rename_v1=true ;;
     -h|--help) say "$usage"; exit 0 ;;
     *) die "$usage" ;;
   esac
@@ -40,7 +38,7 @@ gh auth status >/dev/null 2>&1 || die "gh is not authenticated"
 [[ "$old_repo" != "$new_repo" ]] || die "--old and --new are the same"
 repo_exists "$old_repo" || die "$old_repo not found"
 repo_exists "$new_repo" || die "$new_repo not found"
-[[ "$(gh api "repos/$old_repo" --jq .id)" != "$(gh api "repos/$new_repo" --jq .id)" ]] \
+[[ "$(repo_id "$old_repo")" != "$(repo_id "$new_repo")" ]] \
   || die "$old_repo and $new_repo are the same repository (already renamed?); pass the real old and new names"
 mode_banner
 say "$old_repo -> $new_repo"
@@ -58,12 +56,9 @@ while IFS=$'\t' read -r tag is_draft is_latest; do
   [[ -z "$only" || "$only" == "$tag" ]] || continue
   [[ "$is_latest" == true ]] && latest_tag="$tag"
 
-  if have="$(gh release view "$tag" --repo "$new_repo" --json assets 2>/dev/null)"; then
-    want="$(gh release view "$tag" --repo "$old_repo" --json assets)"
-    fix="$(jq -r --argjson have "$have" \
-      '.assets[] | select(.name as $n | .size as $s | ($have.assets | map(select(.name == $n and .size == $s)) | length) == 0) | .name' <<<"$want")"
-    extra="$(jq -r --argjson want "$want" \
-      '.assets[] | select(.name as $n | ($want.assets | map(select(.name == $n)) | length) == 0) | .name' <<<"$have")"
+  if gh release view "$tag" --repo "$new_repo" >/dev/null 2>&1; then
+    fix="$(assets_lacking "$tag" "$old_repo" "$new_repo" | sed 's/ [0-9]*$//')"
+    extra="$(comm -13 <(asset_list "$tag" "$old_repo" | sed 's/ [0-9]*$//') <(asset_list "$tag" "$new_repo" | sed 's/ [0-9]*$//'))"
     [[ -z "$extra" ]] || say "note   $tag: assets only on $new_repo (left alone): $(tr '\n' ' ' <<<"$extra")"
     if [[ -z "$fix" ]]; then
       say "skip   $tag (exists on $new_repo, assets match)"; skipped=$((skipped + 1)); continue
@@ -84,9 +79,7 @@ while IFS=$'\t' read -r tag is_draft is_latest; do
       files+=("$dir/assets/$name")
     done <<<"$fix"
     if $ok && gh release upload "$tag" "${files[@]}" --repo "$new_repo" --clobber; then
-      got="$(gh release view "$tag" --repo "$new_repo" --json assets --jq '.assets[] | "\(.name) \(.size)"' | sort)"
-      exp="$(jq -r '.assets[] | "\(.name) \(.size)"' <<<"$want" | sort)"
-      if [[ -z "$(comm -23 <(printf '%s\n' "$exp") <(printf '%s\n' "$got"))" ]]; then
+      if [[ -z "$(assets_lacking "$tag" "$old_repo" "$new_repo")" ]]; then
         synced=$((synced + 1))
       else
         say "FAIL   $tag: assets still differ after sync"; failed=$((failed + 1))
@@ -127,12 +120,11 @@ while IFS=$'\t' read -r tag is_draft is_latest; do
   files=()
   while IFS= read -r f; do files+=("$f"); done < <(find "$dir/assets" -type f | sort)
   if gh release create "$tag" "${flags[@]}" ${files[@]+"${files[@]}"}; then
-    want="$(jq -r '.assets[] | "\(.name) \(.size)"' <<<"$info" | sort)"
-    got="$(gh release view "$tag" --repo "$new_repo" --json assets --jq '.assets[] | "\(.name) \(.size)"' | sort)"
-    if [[ "$want" == "$got" ]]; then
+    lost="$(assets_lacking "$tag" "$old_repo" "$new_repo")"
+    if [[ -z "$lost" ]]; then
       created=$((created + 1))
     else
-      say "FAIL   $tag: assets differ after upload"; diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") || true; failed=$((failed + 1))
+      say "FAIL   $tag: assets differ after upload: $(tr '\n' ';' <<<"$lost")"; failed=$((failed + 1))
     fi
   else
     say "FAIL   $tag: gh release create failed; rerun to retry (a half-created release must be deleted by hand first)"; failed=$((failed + 1))
@@ -149,15 +141,6 @@ elif [[ -n "$latest_tag" ]]; then
   fi
 else
   say "WARN $old_repo has no release marked Latest"
-fi
-
-if $rename_v1; then
-  say "-- DCM's own v1 release"
-  if gh release view v1 --repo "$new_repo" >/dev/null 2>&1; then
-    run gh release edit v1 --repo "$new_repo" --title "DCM v1"
-  else
-    say "no v1 release on $new_repo"
-  fi
 fi
 
 say "-- summary: created $created, assets synced $synced, unchanged $skipped, failed $failed"
