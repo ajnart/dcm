@@ -1,0 +1,37 @@
+dcm/functions/api/stats.ts
+  s_9f91917b83a9da::t_fbbe6516fdea9c 7,17-19
+dcm/functions/api/vote.ts
+  s_9f91917b83a9da::t_2a0849d5b6e835 10
+dcm/wrangler.toml
+  s_9f91917b83a9da::t_0469d415bd1304 2
+docs/releasing.md
+  s_9f91917b83a9da::t_73ed1f3deb4438 238,250-253,257,260-266,306-352,359-362
+functions/compose/api/stats.ts
+  s_9f91917b83a9da::t_fd4ea3b461a605 1
+functions/compose/api/vote.ts
+  s_9f91917b83a9da::t_3d78c4db53ef69 1
+scripts/build-dcm-pages.sh
+  s_9f91917b83a9da::t_5f868595c83451 1-24
+scripts/build-installer-site.sh
+  s_9f91917b83a9da::t_62986017ec991b 16-21
+scripts/build-site-pages.sh
+  s_9f91917b83a9da::t_8c9630c0f6c5e0 6-8
+scripts/publish-site.sh
+  s_9f91917b83a9da::t_75dff86eb8011e 13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "edf5122d88ea3c945a297c6c2102a7bef71307f7",
+  "prompts": {},
+  "sessions": {
+    "s_9f91917b83a9da": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "500bf54a-f9a2-4507-b122-a67c8b07af36",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
