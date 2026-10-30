@@ -46,7 +46,8 @@ is a maintainer-controlled setting, not something the CLI verifies.
 
 self-host.fyi (the site, the docs and Docker Compose Maker at `/compose`) sends
 a few anonymous usage events to the same EU PostHog proxy as the CLI. It sets no
-cookie and stores nothing in your browser, builds no person profile, records no
+cookie and stores nothing in your browser for analytics (Docker Compose Maker
+keeps only your own settings and selection in local storage), builds no person profile, records no
 sessions, and sends nothing when your browser asks not to be tracked. It runs
 only on `self-host.fyi`: a local copy of the site, a preview or the
 `ghcr.io/ajnart/dcm` image sends nothing. This is separate from the CLI
