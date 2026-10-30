@@ -29,7 +29,7 @@ It's meant for people getting started, or anyone who wants to try an App before 
 
 ## Get started
 
-You need Docker with the Compose v2 plugin already installed. Works on Linux, macOS and WSL2.
+You need Docker with a Compose v2 plugin that supports `include`. See [Platforms and support](#platforms-and-support) for tested Linux, macOS and WSL2 setups.
 
 ```bash
 curl -fsSL https://self-host.fyi/install | bash
@@ -107,7 +107,7 @@ The Compose files and App configuration live in `~/.self-host`. You can read the
 | ✅ Does                                                                         | ❌ Doesn't                                                                      |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Ships the Catalog inside the binary: 93 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                           |
-| Sets up accounts, API keys and settings where supported.                        | Touch anything outside its one Compose Project in `~/.self-host`.               |
+| Sets up accounts, API keys and settings where supported.                        | Change another Project's Compose files or App configuration.                    |
 | Wires Apps together with Links, and gives Homarr native tiles.                  | Back up media libraries or data outside App folders.                            |
 | Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows. Use WSL2.                                                |
 | Offers Access from the Home network to Tailscale, Cloudflare or your own proxy. | Ship indexers, trackers or content sources.                                     |
