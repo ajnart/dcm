@@ -68,6 +68,9 @@ Preserve concurrent work: check `git status` before and after edits and stage on
 
 ## Agent skills
 
+- Catalog: before adding an App, changing an App's image, port, Compose, env or notes, editing a Recipe or hiding an App, load the `edit-catalog` skill (`.claude/skills/edit-catalog/SKILL.md`).
+- DCM Container: before adding or editing a Container in `dcm/src/tools/`, load the `add-container` skill (`.claude/skills/add-container/SKILL.md`).
+- Generated data: before changing `site/src/data/`, `dcm/src/data/`, `site/src/styles/theme.css`, an icon, a star repository or an App count, read `docs/agents/generated-data.md`.
 - DCM (`dcm/`): before adding or editing a container, a template, the generated data or the DCM build, read `docs/agents/dcm.md`.
 - Homarr integrations: before adding, repairing or verifying native wiring, read `docs/agents/homarr-integrations.md`.
 - Issue tracker: GitHub Issues for `ajnart/self-host`. Read `docs/agents/issue-tracker.md` before tracker operations.

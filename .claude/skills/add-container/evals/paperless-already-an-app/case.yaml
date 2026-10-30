@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: paperless-already-an-app
+expected_outcome: |
+  The run notices Paperless-ngx is already a Catalog App (paperless-ngx) that DCM shows from selfhost.json, adds no compose Container for it, and tells the user to change the App through the Catalog instead (or reports that nothing needed adding).

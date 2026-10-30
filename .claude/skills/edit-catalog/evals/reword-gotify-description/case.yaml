@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: reword-gotify-description
+expected_outcome: |
+  Only the Gotify App description changes in Go, and both generated JSON files carry the new text, with every count and unrelated file untouched.

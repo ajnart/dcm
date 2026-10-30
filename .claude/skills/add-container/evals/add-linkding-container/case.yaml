@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: add-linkding-container
+expected_outcome: |
+  One DockerTool for linkding in the right category file of dcm/src/tools/, with a unique lowercase id, valid compose that uses the shared variables, a githubUrl, no stars field, and the DCM tests passing, with no change to generated data or Go files.

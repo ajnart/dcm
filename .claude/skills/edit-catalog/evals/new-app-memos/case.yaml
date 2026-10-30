@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: new-app-memos
+expected_outcome: |
+  A Memos App package with a passing test, registered in a batch file, with its trap note, icon and stars repository declared in sitegen, the generated site and DCM data regenerated, and every hand-kept App count moved by one (README 93 to 94, e2e/acceptance.md 94 to 95, fixture and inventory 102 to 103, both TUI goldens' 'N more' line one higher).
