@@ -9,7 +9,7 @@ import og from "../assets/og.png";
 import SiteFooter from "../components/SiteFooter.astro";
 import ExtLink from "../components/ExtLink.astro";
 import SiteHeader from "../components/SiteHeader.astro";
-import { VERSION } from "../lib/site";
+import { LINKS, SOURCE_REF, VERSION } from "../lib/site";
 
 interface Props {
   title: string;
@@ -73,8 +73,8 @@ insertDirective("worker-src blob:");
       <slot />
     </main>
     <SiteFooter>
-      <Fragment slot="license">Apache-2.0 · compose AGPL-3.0</Fragment>
-      <ExtLink href="https://github.com/ajnart/self-host/tree/main/dcm">compose source</ExtLink>
+      <Fragment slot="license">Apache-2.0 · DCM AGPL-3.0</Fragment>
+      <ExtLink href={`${LINKS.github}/tree/${SOURCE_REF}/dcm`}>DCM source</ExtLink>
     </SiteFooter>
   </body>
 </html>

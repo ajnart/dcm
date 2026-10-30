@@ -1,6 +1,6 @@
-import { VERSION } from "./version";
+import { SOURCE_REF, VERSION } from "./version";
 
-export { VERSION };
+export { SOURCE_REF, VERSION };
 
 export const INSTALL = "curl -fsSL https://self-host.fyi/install | bash";
 
