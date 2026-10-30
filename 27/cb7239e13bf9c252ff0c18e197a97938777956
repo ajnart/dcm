@@ -1,0 +1,41 @@
+.github/workflows/ci.yml
+  s_0ccc0b5fe43235::t_d74a16965d5d8c 61,70-74
+.github/workflows/dcm-add-container.yml
+  s_bebeaf5c248617::t_c839d5d1fa064b 10-13,21,30-31,44,53-67,74-75,80-92,305,313,317
+.github/workflows/dcm-image.yml
+  s_1a7479eea066df::t_cdd3a35c82ab7e 11-15,23-26,50-56,59-67,79-82,92,95
+.github/workflows/stars.yml
+  s_bebeaf5c248617::t_b207059d08f323 20-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "27cb7239e13bf9c252ff0c18e197a97938777956",
+  "prompts": {},
+  "sessions": {
+    "s_0ccc0b5fe43235": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5aa2188f-21d4-4355-a28c-418878c9ab13",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_1a7479eea066df": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e74437a-7eab-47ac-ae87-562599ce118d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_bebeaf5c248617": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6a436ed6-fd8b-49ae-8b0f-506193f684b2",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
