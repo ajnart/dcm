@@ -11,6 +11,9 @@ import (
 const (
 	maxListedLinks   = 3
 	minNoteKeyLength = 6
+	// dockerSocket is the one host path a guide may name without the Compose mounting it,
+	// for an App that cannot do its job until the person mounts it.
+	dockerSocket = "/var/run/docker.sock"
 )
 
 var (
@@ -33,6 +36,10 @@ func notesFor(ap app.App, c *converter, vars []variable, links []Link) (string, 
 			notes = append(notes, fmt.Sprintf("Set %s before the first start (%s); the default %s is only a placeholder, and without a file there the container does not start.",
 				v.Key, v.prompt, v.Default))
 		}
+	}
+	if len(c.owned) > 0 {
+		notes = append(notes, fmt.Sprintf("Before the first start, create the folders it writes to (%s) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them.",
+			strings.Join(c.owned, ", ")))
 	}
 	if len(c.dropped) > 0 {
 		notes = append(notes, fmt.Sprintf("The option %s reads a password file this Compose does not provide, so it is left out; set the password in the web page on the first visit.",
@@ -70,7 +77,7 @@ func checkGuide(id, guide string, f facts) error {
 	}
 	for _, match := range notePath.FindAllStringSubmatch(guide, -1) {
 		target := strings.TrimRight(match[1], ".")
-		if !coveredBy(target, f.mounts) {
+		if target != dockerSocket && !coveredBy(target, f.mounts) {
 			return fmt.Errorf("%s: guide names %s, which its compose does not mount", id, target)
 		}
 	}

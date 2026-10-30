@@ -66,7 +66,10 @@ type converter struct {
 	refs    map[string]string
 	missing []string
 	dropped []string
-	facts   facts
+	// owned are the folders a container running as PUID:PGID writes to, which Docker would
+	// create owned by root.
+	owned []string
+	facts facts
 }
 
 func (c *converter) convert(raw string) (string, error) {
@@ -158,7 +161,7 @@ func (c *converter) service(name string, svc *yaml.Node) error {
 	remove(svc, "secrets")
 	restart(lookup(svc, "restart"))
 	ports(lookup(svc, "ports"))
-	if err := c.volumes(svc, pure); err != nil {
+	if err := c.volumes(svc, pure, runsAsOwner(lookup(svc, "user"))); err != nil {
 		return err
 	}
 	if err := c.environment(lookup(svc, "environment"), secretFiles); err != nil {
@@ -205,6 +208,7 @@ func ports(list *yaml.Node) {
 // volume is one volume entry in either spelling.
 type volume struct {
 	source, target string
+	readOnly       bool
 	setSource      func(string)
 }
 
@@ -212,8 +216,8 @@ func parseVolume(item *yaml.Node) (volume, error) {
 	switch item.Kind {
 	case yaml.ScalarNode:
 		source, rest, _ := strings.Cut(item.Value, ":")
-		target, _, _ := strings.Cut(rest, ":")
-		return volume{source: source, target: target,
+		target, mode, _ := strings.Cut(rest, ":")
+		return volume{source: source, target: target, readOnly: slices.Contains(strings.Split(mode, ","), "ro"),
 			setSource: func(s string) { item.Value = s + ":" + rest }}, nil
 	case yaml.MappingNode:
 		kind := lookup(item, "type")
@@ -223,6 +227,9 @@ func parseVolume(item *yaml.Node) (volume, error) {
 			return volume{}, fmt.Errorf("long-form volume at line %d has no source or target", item.Line)
 		}
 		v := volume{target: target.Value}
+		if readOnly := lookup(item, "read_only"); readOnly != nil {
+			v.readOnly = readOnly.Value == "true"
+		}
 		if source != nil {
 			v.source = source.Value
 			v.setSource = func(s string) { source.Value = s }
@@ -278,7 +285,23 @@ func (c *converter) coverFiles(rel string) {
 	}
 }
 
-func (c *converter) volumes(svc *yaml.Node, pure map[*yaml.Node]bool) error {
+// declares reports whether the App fills rel with content, so the person supplies it (the
+// missing-files note) rather than Docker creating it. An empty placeholder such as .keep only
+// makes the folder in a real install.
+func (c *converter) declares(rel string) bool {
+	for _, f := range c.files {
+		if !f.empty && (f.path == rel || strings.HasPrefix(f.path, rel+"/")) {
+			return true
+		}
+	}
+	return false
+}
+
+func runsAsOwner(user *yaml.Node) bool {
+	return user != nil && strings.Contains(user.Value, "${PUID}")
+}
+
+func (c *converter) volumes(svc *yaml.Node, pure map[*yaml.Node]bool, owner bool) error {
 	list := lookup(svc, "volumes")
 	if list == nil {
 		return nil
@@ -299,14 +322,25 @@ func (c *converter) volumes(svc *yaml.Node, pure map[*yaml.Node]bool) error {
 		if err != nil {
 			return fmt.Errorf("%s: %w", c.id, err)
 		}
+		source := rootVars.Replace(v.source)
 		switch {
 		case !isRelative:
 		case rel == "media-library":
 			// self-host fills this folder with the shared media library, which DCM keeps in one place.
-			v.setSource("${DATA_PATH}/media")
+			source = "${DATA_PATH}/media"
+			v.setSource(source)
+		case rel == "media-data":
+			// Likewise the shared downloads folder.
+			source = "${DATA_PATH}/downloads"
+			v.setSource(source)
 		default:
 			c.coverFiles(rel)
-			v.setSource("${CONFIG_PATH}/" + c.id + "/" + rel)
+			source = "${CONFIG_PATH}/" + c.id + "/" + rel
+			v.setSource(source)
+		}
+		writesFolder := strings.HasPrefix(source, "${CONFIG_PATH}/") || strings.HasPrefix(source, "${DATA_PATH}/")
+		if owner && !v.readOnly && writesFolder && !c.declares(rel) && !slices.Contains(c.owned, source) {
+			c.owned = append(c.owned, source)
 		}
 		kept = append(kept, item)
 	}

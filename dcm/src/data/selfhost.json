@@ -135,7 +135,7 @@
    "port": 6800,
    "docs": "https://aria2.github.io/manual/en/html/",
    "links": [],
-   "compose": "services:\n  aria2:\n    image: snowdreamtech/aria2:debian\n    container_name: ${CONTAINER_PREFIX}aria2\n    entrypoint: [\"/usr/bin/aria2c\"]\n    command: [\"--conf-path=/run/secrets/rpc-config\"]\n    restart: ${RESTART_POLICY}\n    volumes:\n      - ${CONFIG_PATH}/aria2/media-data:/var/lib/aria2/downloads\n      - ${CONFIG_PATH}/aria2/rpc-config:/run/secrets/rpc-config:ro\n    ports:\n      - 6800:6800\n",
+   "compose": "services:\n  aria2:\n    image: snowdreamtech/aria2:debian\n    container_name: ${CONTAINER_PREFIX}aria2\n    entrypoint: [\"/usr/bin/aria2c\"]\n    command: [\"--conf-path=/run/secrets/rpc-config\"]\n    restart: ${RESTART_POLICY}\n    volumes:\n      - ${DATA_PATH}/downloads:/var/lib/aria2/downloads\n      - ${CONFIG_PATH}/aria2/rpc-config:/run/secrets/rpc-config:ro\n    ports:\n      - 6800:6800\n",
    "env": [
     {
      "key": "CONFIG_PATH",
@@ -147,6 +147,12 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
+     "secret": false
+    },
+    {
+     "key": "DATA_PATH",
+     "default": "/opt/appdata/data",
+     "description": "Host folder that holds every App's data, media and downloads",
      "secret": false
     },
     {
@@ -741,7 +747,7 @@
    "port": 8112,
    "docs": "https://deluge.readthedocs.io/en/latest/",
    "links": [],
-   "compose": "services:\n  deluge:\n    image: lscr.io/linuxserver/deluge:latest\n    container_name: ${CONTAINER_PREFIX}deluge\n    restart: ${RESTART_POLICY}\n    environment:\n      PUID: ${PUID}\n      PGID: ${PGID}\n      TZ: ${TZ}\n    volumes:\n      - ${CONFIG_PATH}/deluge/config:/config\n      - ${CONFIG_PATH}/deluge/media-data:/downloads\n    ports:\n      - 8112:8112\n",
+   "compose": "services:\n  deluge:\n    image: lscr.io/linuxserver/deluge:latest\n    container_name: ${CONTAINER_PREFIX}deluge\n    restart: ${RESTART_POLICY}\n    environment:\n      PUID: ${PUID}\n      PGID: ${PGID}\n      TZ: ${TZ}\n    volumes:\n      - ${CONFIG_PATH}/deluge/config:/config\n      - ${DATA_PATH}/downloads:/downloads\n    ports:\n      - 8112:8112\n",
    "env": [
     {
      "key": "CONFIG_PATH",
@@ -753,6 +759,12 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
+     "secret": false
+    },
+    {
+     "key": "DATA_PATH",
+     "default": "/opt/appdata/data",
+     "description": "Host folder that holds every App's data, media and downloads",
      "secret": false
     },
     {
@@ -1320,7 +1332,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/grafana/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them."
   },
   {
    "id": "haproxy",
@@ -1955,7 +1968,7 @@
    "port": 8686,
    "docs": "https://wiki.servarr.com/lidarr",
    "links": [],
-   "compose": "services:\n  lidarr:\n    image: lscr.io/linuxserver/lidarr:latest\n    container_name: ${CONTAINER_PREFIX}lidarr\n    restart: ${RESTART_POLICY}\n    environment:\n      PUID: ${PUID}\n      PGID: ${PGID}\n      TZ: ${TZ}\n      UMASK: ${UMASK}\n    volumes:\n      - ${CONFIG_PATH}/lidarr/config:/config\n      - ${CONFIG_PATH}/lidarr/media-data:/data\n    ports:\n      - 8686:8686\n    healthcheck:\n      test: [\"CMD-SHELL\", \"curl -fs -o /dev/null http://localhost:8686/ping || exit 1\"]\n      interval: 30s\n      timeout: 10s\n      retries: 3\n      start_period: 30s\n",
+   "compose": "services:\n  lidarr:\n    image: lscr.io/linuxserver/lidarr:latest\n    container_name: ${CONTAINER_PREFIX}lidarr\n    restart: ${RESTART_POLICY}\n    environment:\n      PUID: ${PUID}\n      PGID: ${PGID}\n      TZ: ${TZ}\n      UMASK: ${UMASK}\n    volumes:\n      - ${CONFIG_PATH}/lidarr/config:/config\n      - ${DATA_PATH}/downloads:/data\n    ports:\n      - 8686:8686\n    healthcheck:\n      test: [\"CMD-SHELL\", \"curl -fs -o /dev/null http://localhost:8686/ping || exit 1\"]\n      interval: 30s\n      timeout: 10s\n      retries: 3\n      start_period: 30s\n",
    "env": [
     {
      "key": "CONFIG_PATH",
@@ -1967,6 +1980,12 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
+     "secret": false
+    },
+    {
+     "key": "DATA_PATH",
+     "default": "/opt/appdata/data",
+     "description": "Host folder that holds every App's data, media and downloads",
      "secret": false
     },
     {
@@ -2173,7 +2192,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/loki/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them."
   },
   {
    "id": "mayan-edms",
@@ -2249,7 +2269,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files this Compose does not create before the first start (redis-config), expected in ${CONFIG_PATH}/mayan-edms/; without them it does not start."
+   "notes": "Needs files this Compose does not create before the first start (redis-config), expected in ${CONFIG_PATH}/mayan-edms/; without them it does not start. Before the first start, create the folders it writes to (${CONFIG_PATH}/mayan-edms/redis) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them."
   },
   {
    "id": "minio",
@@ -2576,7 +2596,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files this Compose does not create before the first start (settings), expected in ${CONFIG_PATH}/node-red/; without them it does not start."
+   "notes": "Needs files this Compose does not create before the first start (settings), expected in ${CONFIG_PATH}/node-red/; without them it does not start. Before the first start, create the folders it writes to (${CONFIG_PATH}/node-red/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them."
   },
   {
    "id": "ntfy",
@@ -2634,7 +2654,7 @@
     }
    ],
    "standalone": true,
-   "notes": "Access is deny-all and login is on, so create the administrator inside the container: docker exec -it <container name> ntfy user add --role=admin <username>."
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/ntfy/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them. Access is deny-all and login is on, so create the administrator inside the container: docker exec -it <container name> ntfy user add --role=admin <username>."
   },
   {
    "id": "nzbget",
@@ -2984,7 +3004,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files this Compose does not create before the first start (redis-config), expected in ${CONFIG_PATH}/patchmon/; without them it does not start. After the first start, create the administrator on the first visit."
+   "notes": "Needs files this Compose does not create before the first start (redis-config), expected in ${CONFIG_PATH}/patchmon/; without them it does not start. Before the first start, create the folders it writes to (${CONFIG_PATH}/patchmon/redis) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them. After the first start, create the administrator on the first visit."
   },
   {
    "id": "peanut",
@@ -3302,7 +3322,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/prometheus/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them."
   },
   {
    "id": "prowlarr",
@@ -3583,7 +3604,7 @@
    "port": 8080,
    "docs": "https://sabnzbd.org/wiki/",
    "links": [],
-   "compose": "services:\n  sabnzbd:\n    image: linuxserver/sabnzbd:latest\n    container_name: ${CONTAINER_PREFIX}sabnzbd\n    restart: ${RESTART_POLICY}\n    environment:\n      PUID: ${PUID}\n      PGID: ${PGID}\n      TZ: ${TZ}\n    volumes:\n      - ${CONFIG_PATH}/sabnzbd/config:/config\n      - ${CONFIG_PATH}/sabnzbd/media-data:/data\n    ports:\n      - 8080:8080\n",
+   "compose": "services:\n  sabnzbd:\n    image: linuxserver/sabnzbd:latest\n    container_name: ${CONTAINER_PREFIX}sabnzbd\n    restart: ${RESTART_POLICY}\n    environment:\n      PUID: ${PUID}\n      PGID: ${PGID}\n      TZ: ${TZ}\n    volumes:\n      - ${CONFIG_PATH}/sabnzbd/config:/config\n      - ${DATA_PATH}/downloads:/data\n    ports:\n      - 8080:8080\n",
    "env": [
     {
      "key": "CONFIG_PATH",
@@ -3595,6 +3616,12 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
+     "secret": false
+    },
+    {
+     "key": "DATA_PATH",
+     "default": "/opt/appdata/data",
+     "description": "Host folder that holds every App's data, media and downloads",
      "secret": false
     },
     {
@@ -3797,7 +3824,7 @@
     }
    ],
    "standalone": true,
-   "notes": "It works with other Apps (media server: Jellyfin; requests go to Sonarr; requests go to Radarr), but this Compose does not connect them; do that in each App's settings."
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/seerr/config) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them. It works with other Apps (media server: Jellyfin; requests go to Sonarr; requests go to Radarr), but this Compose does not connect them; do that in each App's settings."
   },
   {
    "id": "slskd",
@@ -3880,7 +3907,8 @@
      "external": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/slskd/app, ${DATA_PATH}/downloads) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them."
   },
   {
    "id": "sonarr",
@@ -4078,7 +4106,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, finish the first-run setup in the admin UI to create the administrator."
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/stalwart-mail/configuration, ${CONFIG_PATH}/stalwart-mail/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them. After the first start, finish the first-run setup in the admin UI to create the administrator."
   },
   {
    "id": "stirling-pdf",
@@ -4410,7 +4438,7 @@
    "port": 9091,
    "docs": "https://github.com/transmission/transmission/tree/main/docs",
    "links": [],
-   "compose": "services:\n  transmission:\n    image: linuxserver/transmission:latest\n    container_name: ${CONTAINER_PREFIX}transmission\n    restart: ${RESTART_POLICY}\n    environment:\n      PUID: ${PUID}\n      PGID: ${PGID}\n      TZ: ${TZ}\n      USER: ${ADMIN_USER}\n      PASS: ${ADMIN_PASSWORD}\n    volumes:\n      - ${CONFIG_PATH}/transmission/config:/config\n      - ${CONFIG_PATH}/transmission/media-data:/downloads\n    ports:\n      - 9091:9091\n",
+   "compose": "services:\n  transmission:\n    image: linuxserver/transmission:latest\n    container_name: ${CONTAINER_PREFIX}transmission\n    restart: ${RESTART_POLICY}\n    environment:\n      PUID: ${PUID}\n      PGID: ${PGID}\n      TZ: ${TZ}\n      USER: ${ADMIN_USER}\n      PASS: ${ADMIN_PASSWORD}\n    volumes:\n      - ${CONFIG_PATH}/transmission/config:/config\n      - ${DATA_PATH}/downloads:/downloads\n    ports:\n      - 9091:9091\n",
    "env": [
     {
      "key": "ADMIN_PASSWORD",
@@ -4434,6 +4462,12 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
+     "secret": false
+    },
+    {
+     "key": "DATA_PATH",
+     "default": "/opt/appdata/data",
+     "description": "Host folder that holds every App's data, media and downloads",
      "secret": false
     },
     {
@@ -4626,7 +4660,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files this Compose does not create before the first start (valkey.conf), expected in ${CONFIG_PATH}/valkey/; without them it does not start."
+   "notes": "Needs files this Compose does not create before the first start (valkey.conf), expected in ${CONFIG_PATH}/valkey/; without them it does not start. Before the first start, create the folders it writes to (${CONFIG_PATH}/valkey/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them."
   },
   {
    "id": "vaultwarden",
@@ -4690,7 +4724,7 @@
     }
    ],
    "standalone": true,
-   "notes": "Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value, choose Invite user, then register with that email on the home page."
+   "notes": "Before the first start, create the folders it writes to (${CONFIG_PATH}/vaultwarden/data) owned by ${PUID}:${PGID}; Docker would create them owned by root, and the container runs as that user, so it could not write to them. Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value, choose Invite user, then register with that email on the home page."
   },
   {
    "id": "vector",
