@@ -1,0 +1,31 @@
+dcm/Dockerfile
+  s_46b365c48ffb7f::t_0063c55d99ef49 1-10,13
+turbo.json
+  s_46b365c48ffb7f::t_46a3a152a9bf50 8-11,14-15
+package.json
+  s_46b365c48ffb7f::t_5ef49d97112935 12-13
+.github/workflows/dcm-image.yml
+  s_46b365c48ffb7f::t_69b09fa880c280 9-10,45-46,72
+.github/workflows/stars.yml
+  s_46b365c48ffb7f::t_ec26324aa4bc7a 1-52
+scripts/publish-site.sh
+  s_46b365c48ffb7f::t_af68426f682afc 13-15
+dcm/httpd.conf
+  s_46b365c48ffb7f::t_16bc8a21c2b0eb 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "da5cfd5dad2596e3109562277e8c1e178c46113f",
+  "prompts": {},
+  "sessions": {
+    "s_46b365c48ffb7f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "31dccce5-06cc-4fa0-87f6-8c0450b8be0d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
