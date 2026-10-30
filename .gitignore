@@ -28,3 +28,4 @@ dist/
 evals/self-host/runs/
 node_modules/
 .turbo/
+.wrangler/
