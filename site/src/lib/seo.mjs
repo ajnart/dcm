@@ -1,7 +1,11 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { htmlFiles } from "./csp.mjs";
+
+async function htmlFiles(dir) {
+  const entries = await readdir(dir, { withFileTypes: true, recursive: true });
+  return entries.filter((e) => e.isFile() && e.name.endsWith(".html")).map((e) => join(e.parentPath, e.name));
+}
 
 const ORIGIN = "https://self-host.fyi";
 const CARD = { width: 1200, height: 630 };

@@ -291,14 +291,10 @@ after every release** so the page and the playground show the new version.
 
 Nothing reads a `wrangler.toml`: the Git integration takes its settings from the table above, and every Wrangler call here passes `--project-name self-host-fyi`. `public/_headers` sets `nosniff`,
 `no-referrer`, `frame-ancestors`, plain-text types for the installer and CORS
-for `catalog.json`; Astro adds the rest of the Content Security Policy as a
-`<meta>` tag with hashes (`security.csp` in `astro.config.mjs`). Starlight's
-inline scripts are hashed from its installed components, its inline `style`
-attributes are allowed by hash through `'unsafe-hashes'`, and `img-src` allows
-`data:` for its search icons; `src/lib/csp.mjs` fails the build when any inline
-script, style or style attribute is not covered. Pages move
-with native cross-document view transitions, which need no script and work
-under that policy; Astro's `<ClientRouter />` does not support its CSP.
+for `catalog.json`. `src/lib/seo.mjs` fails the build when a page lacks its
+title, description, canonical or share tags. Pages outside the docs move with
+native cross-document view transitions, and links are preloaded as described in
+`docs/agents/dcm.md` (Preloading).
 `404.astro` makes unknown paths such as `/go.mod` return 404.
 
 ### Docker Compose Maker at /compose
@@ -311,10 +307,6 @@ site build and is served by the same Pages project at
 `/compose/template/<id>`). The site is fully static: there are no Pages
 Functions, so there is no `_routes.json` and no binding to configure. The
 `_astro/*` immutable cache rule in the site's `_headers` covers DCM's assets too.
-
-The site's Content Security Policy is the hashed one from `astro.config.mjs`;
-which DCM pages widen it, and how, is in `docs/agents/dcm.md` (Content Security
-Policy).
 
 `scripts/publish-site.sh` refuses to deploy a build that has no `/compose` page.
 
@@ -363,8 +355,7 @@ The image serves the same site as Pages with these differences:
   `/compose/templates/` (busybox cannot serve extensionless `.html`), and `/`
   is a small page that forwards to `/compose/` with the query and hash kept.
 - `og/`, `reel.mp4`, `reel.jpg` and `_headers` are dropped. busybox cannot add
-  headers, so the image sends no `nosniff` or other `_headers` rules; the
-  Content Security Policy still applies through its `<meta>` tag.
+  headers, so the image sends no `nosniff` or other `_headers` rules.
 - `dcm/httpd.conf` maps the extensions busybox does not know (`.js`, `.json`,
   `.svg`, `.webmanifest`, `.xml`, `.md`, `.txt`, `.pagefind`, `.pf_*`) and
   serves `404.html` for unknown paths.

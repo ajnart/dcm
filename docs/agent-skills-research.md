@@ -102,8 +102,8 @@ counts and declarations that no generator writes. That is where drift enters.
 - **Catalog tests.** `internal/catalog/`: `descriptions_test`, `parity_test`,
   `ownership_test`, `generated_test`, `secondary_ports_test`, `unavailable_test`,
   `homarr_recipe_test`.
-- **Site schema and CSP.** `site/src/content.config.ts` validates `catalog.json`;
-  `site/src/lib/csp.mjs` fails the build on an uncovered inline script or style.
+- **Site schema and SEO.** `site/src/content.config.ts` validates `catalog.json`;
+  `site/src/lib/seo.mjs` fails the build on a page missing its SEO or share tags.
 - **DCM tests.** `dcm/tests`: `validate-all-containers`, `templates`,
   `validate-networks`, `compose-dedupe`, `compose-env`, and `validate-compose`
   (runs `docker compose config`; CI as `test:compose`).
@@ -251,7 +251,7 @@ Steps:
 
 Replaces: the "Add or edit a Container" section of `docs/agents/dcm.md`. Move its
 five steps here and leave a one-line pointer, so the steps live once. The rest of
-`dcm.md` (where things live, CSP, image, gate) stays as disclosed reference.
+`dcm.md` (where things live, preloading, image, gate) stays as disclosed reference.
 Drift checks it owns: collision and alias check, no hand-edited `stars`.
 
 ### 3. `release` (user-invoked, optional)

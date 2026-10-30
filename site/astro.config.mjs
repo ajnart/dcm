@@ -11,7 +11,6 @@ import starlightChangelogs, { makeChangelogsSidebarLinks } from "starlight-chang
 import { changelog } from "./src/lib/changelog";
 import catalog from "./src/data/catalog.json" with { type: "json" };
 import { SPECULATION_RULES } from "./src/lib/speculation.mjs";
-import { cspCheck, starlightInlineScriptHashes, styleAttributeHashes } from "./src/lib/csp.mjs";
 import { isNoindex } from "./src/lib/indexing.mjs";
 import { seoCheck } from "./src/lib/seo.mjs";
 
@@ -80,25 +79,9 @@ export default defineConfig({
     }),
     react(),
     sitemap({ filter: (page) => !isNoindex(new URL(page).pathname) }),
-    cspCheck(),
     seoCheck(),
   ],
   markdown: { syntaxHighlight: false },
   devToolbar: { enabled: false },
   vite: { plugins: [tailwindcss()] },
-  security: {
-    csp: {
-      directives: [
-        "default-src 'none'",
-        "connect-src 'self' https://hog.ajnart.dev",
-        "media-src 'self'",
-        "manifest-src 'self'",
-        "img-src 'self' data: https://cdn.jsdelivr.net",
-        "base-uri 'none'",
-        "form-action 'none'",
-      ],
-      scriptDirective: { resources: ["'self'", "'inline-speculation-rules'"], hashes: await starlightInlineScriptHashes() },
-      styleDirective: { resources: ["'self'", "'unsafe-hashes'"], hashes: styleAttributeHashes },
-    },
-  },
 });

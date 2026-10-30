@@ -16,18 +16,13 @@
 - Tests: `dcm/tests`, run with `bun test`.
 - Dev: root `bun run dev` starts one Astro server on http://localhost:4321 serving `/` and `/compose`. Edits in `dcm/src` hot-reload there. Astro 7 daemonizes `astro dev` without a TTY: start it with `bunx astro dev --background` in `site/` and stop strays with `bunx astro dev stop`.
 
-## Content Security Policy
+## Preloading
 
-The site sets one CSP through Astro's `security.csp` (`site/astro.config.mjs`), and `site/src/lib/csp.mjs` fails the build when an inline script, style or style attribute is not covered. Monaco is bundled with the site, so no script, style or font comes from a CDN; the only jsDelivr origin is in `img-src`, for the icons served from the pinned dashboard-icons commit. `Compose.astro` widens the policy:
-
-- Every page on that layout gets `style-src-attr 'unsafe-inline'`, because React sets `style` attributes at runtime, which hashes cannot cover.
-- A page that passes `editor` to the layout also gets `style-src-elem 'self' 'unsafe-inline'` (Monaco injects `<style>` elements), `font-src 'self'` (its bundled icon font) and `worker-src 'self'` (its workers). Those pages are `/apps`, `/compose`, `/compose/templates` and `/compose/template/*`; `/compose/suggest` has no editor and keeps the strict policy apart from the style attributes.
-
-`cspCheck` skips the style-attribute hash check on pages whose policy allows it and still checks every inline script and `<style>`. `/`, `/docs` and the rest keep the strict policy. Every page's `script-src` also has `'inline-speculation-rules'` (`astro.config.mjs`) so the viewport prefetch and `clientPrerender` rules Astro injects run. `canvas-confetti` works under it: it draws with a canvas and needs no worker.
+Every layout and the Starlight head carry the speculation rules from `site/src/lib/speculation.mjs`: Chromium prefetches every same-site link on load and prerenders a link on first hover. Astro's `prefetch` (viewport) covers the other browsers. The site sets no Content Security Policy beyond `frame-ancestors` in `site/public/_headers`.
 
 ## How an App reaches DCM
 
-`go run ./tools/sitegen` reads the Go Catalog (`internal/apps/`, `internal/catalog/`) and writes `dcm/src/data/selfhost.json`: per App a standalone compose, ports, env and notes, plus the Recipes. DCM's **self-host** mode (`/apps`) lists only those Apps, grouped by category; **docker compose** (`/compose`) adds the Containers defined in `dcm/src/tools`, with the settings and discovery panels. The mode comes from the URL (`dcm/src/lib/modes.ts`); `?mode=all` and `?mode=self-host` links redirect to the right page, and the selection is shared between the two in the browser. The template pages are docker compose only. A tool whose `id` equals an App's `id` (or an alias in `dcm/src/lib/selfhost.ts`) takes the App's compose, so a Container never competes with its App.
+`go run ./tools/sitegen` reads the Go Catalog (`internal/apps/`, `internal/catalog/`) and writes `dcm/src/data/selfhost.json`: per App a standalone compose, ports, env and notes, plus the Recipes. DCM's **self-host** mode (`/apps`) lists only those Apps; **docker compose** (`/compose`) adds the Containers defined in `dcm/src/tools`, with the settings and discovery panels. The mode comes from the URL (`dcm/src/lib/modes.ts`); `?mode=all` and `?mode=self-host` links redirect to the right page, and the selection is shared between the two in the browser. The template pages are docker compose only. A tool whose `id` equals an App's `id` (or an alias in `dcm/src/lib/selfhost.ts`) takes the App's compose, so a Container never competes with its App.
 
 To change an App's compose or metadata in DCM, change the App under `internal/apps/<id>/` and rerun sitegen. Never hand-edit `dcm/src/data/selfhost.json`; CI fails on drift.
 

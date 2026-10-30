@@ -15,20 +15,10 @@ interface Props {
   title: string;
   description: string;
   jsonld?: Record<string, unknown>;
-  editor?: boolean;
 }
 
-const { title, description, jsonld, editor = false } = Astro.props;
+const { title, description, jsonld } = Astro.props;
 
-type CspDirective = Parameters<NonNullable<typeof Astro.csp>["insertDirective"]>[0];
-const insertDirective = (directive: string) => Astro.csp?.insertDirective(directive as CspDirective);
-
-insertDirective("style-src-attr 'unsafe-inline'");
-if (editor) {
-  insertDirective("style-src-elem 'self' 'unsafe-inline'");
-  insertDirective("font-src 'self'");
-  insertDirective("worker-src 'self'");
-}
 ---
 
 <!doctype html>
