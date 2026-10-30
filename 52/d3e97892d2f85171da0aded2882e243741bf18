@@ -1,0 +1,31 @@
+site/src/layouts/Compose.astro
+  s_a91f4b733e8ee4::t_86648f6ceb1773 64
+site/src/lib/analytics.ts
+  s_5013180a90d48a::t_1c1e72cc939345 1,58
+site/src/scripts/compose-analytics.ts
+  s_a91f4b733e8ee4::t_a265d799d23327 1-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "52d3e97892d2f85171da0aded2882e243741bf18",
+  "prompts": {},
+  "sessions": {
+    "s_5013180a90d48a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e70f1b74-c1de-4a0d-bd9a-1492447bd4ee",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_a91f4b733e8ee4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2f0f81a4-3fff-4415-afef-7b285a1a665c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
