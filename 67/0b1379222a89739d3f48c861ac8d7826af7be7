@@ -1,0 +1,81 @@
+bun.lock
+  s_4fefd702959d2b::t_96ab2831cba689 54,58,60-61,66,69-70,76-77,125,361,1461-1468,1475-1478,1499-1500,1517-1518
+dcm/README.md
+  s_4fefd702959d2b::t_1f15740cad7095 2,323,327
+dcm/package.json
+  s_4fefd702959d2b::t_188736a7e385a6 10,13
+dcm/scripts/stars.ts
+  s_4fefd702959d2b::t_00e9ae15c21b3e 1-73
+dcm/src/components/DockerToolsClient.tsx
+  s_4fefd702959d2b::t_22dbaaab6bf44c 10,95
+dcm/src/components/TemplateClient.tsx
+  s_4fefd702959d2b::t_6c5340020400f0 29,162
+dcm/src/components/TemplateGalleryClient.tsx
+  s_4fefd702959d2b::t_9ec0f57a0e30ca 9,75
+dcm/src/components/container-submission-form.tsx
+  s_c3721a1fd56bd4::t_521e3fa4fbe2e1 157-162,164
+dcm/src/components/template-card.tsx
+  s_4fefd702959d2b::t_df24e0c07520f2 4,93
+dcm/src/data/stars.json
+  s_4fefd702959d2b::t_6f615fc8b650d3 1-474
+dcm/src/hooks/use-upvotes.ts
+  s_4fefd702959d2b::t_59e5e8ee961b6a 2,30,64
+dcm/src/lib/routes.ts
+  s_4fefd702959d2b::t_38106b0339fab6 1,3-7
+dcm/src/lib/stars.ts
+  s_4fefd702959d2b::t_0a5d91a62e01dc 1-21
+dcm/src/lib/url-utils.ts
+  s_4fefd702959d2b::t_461f8762f394e7 1,55
+dcm/src/styles/global.css
+  s_4fefd702959d2b::t_1fb95c9076a6c2 1,5-9
+dcm/tsconfig.json
+  s_4fefd702959d2b::t_b114b056a2963f 2-3,5-16
+site/astro.config.mjs
+  s_4fefd702959d2b::t_ede06e7172a295 1,4,85,91
+site/package.json
+  s_4fefd702959d2b::t_742be6b62b5f73 12,16,18-19,24,27-28,34-35
+site/src/components/PageLinks.astro
+  s_4fefd702959d2b::t_20056564f1d89e 5
+site/src/components/SiteFooter.astro
+  s_4fefd702959d2b::t_4d5c2ba74e153c 2,6-7,9
+site/src/layouts/Compose.astro
+  s_c3721a1fd56bd4::t_f7b60b130339b1 2-9,12-13,16-25,29,43-44,47-52,55,59-62
+site/src/lib/csp.mjs
+  s_c3721a1fd56bd4::t_7533a05fe015ca 50,55-58
+site/src/lib/site.ts
+  s_4fefd702959d2b::t_17bfd67e02723d 65
+site/src/pages/compose/index.astro
+  s_4fefd702959d2b::t_806351da1136d5 2-6,8,11,16
+site/src/pages/compose/template/[id].astro
+  s_4fefd702959d2b::t_bb777ef56b4682 2-8,23,42,54
+site/src/pages/compose/templates.astro
+  s_4fefd702959d2b::t_c1e01e52ff83c7 2-7,9,12,17
+site/src/styles/footer.css
+  s_c3721a1fd56bd4::t_3f38f442060992 1-31
+site/tsconfig.json
+  s_4fefd702959d2b::t_46877c2bd39b7c 13-14,17-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "670b1379222a89739d3f48c861ac8d7826af7be7",
+  "prompts": {},
+  "sessions": {
+    "s_4fefd702959d2b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ad09d590-5ba4-4701-92bf-dc06d909370e",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_c3721a1fd56bd4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2edd0f53-966b-4fad-bffd-9714509d8077",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
