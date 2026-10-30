@@ -17,7 +17,8 @@ export default defineConfig({
   output: "static",
   trailingSlash: "never",
   build: { format: "file", inlineStylesheets: "never" },
-  prefetch: { prefetchAll: true, defaultStrategy: "hover" },
+  prefetch: { prefetchAll: true, defaultStrategy: "viewport" },
+  experimental: { clientPrerender: true },
   integrations: [
     starlight({
       title: "self-host docs",
@@ -92,7 +93,7 @@ export default defineConfig({
         "base-uri 'none'",
         "form-action 'none'",
       ],
-      scriptDirective: { resources: ["'self'"], hashes: await starlightInlineScriptHashes() },
+      scriptDirective: { resources: ["'self'", "'inline-speculation-rules'"], hashes: await starlightInlineScriptHashes() },
       styleDirective: { resources: ["'self'", "'unsafe-hashes'"], hashes: styleAttributeHashes },
     },
   },

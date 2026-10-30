@@ -64,6 +64,12 @@ export function initAnalytics(): void {
 	if (active) return;
 	if (typeof window === "undefined") return;
 	if (window.location.hostname !== PRODUCTION_HOST) return;
+	if ((document as Document & { prerendering?: boolean }).prerendering) {
+		document.addEventListener("prerenderingchange", initAnalytics, {
+			once: true,
+		});
+		return;
+	}
 	active = true;
 	void import("posthog-js").then(({ default: posthog }) => {
 		posthog.init(PROJECT_KEY, {
