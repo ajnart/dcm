@@ -58,7 +58,9 @@ go test -race ./internal/tui/ ./internal/activity/
 bash -n install.sh
 
 bun install --frozen-lockfile
-go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/src/styles
+go run ./tools/sitegen
+git add -N site/src/data dcm/src/data site/src/styles
+git diff --exit-code site/src/data dcm/src/data site/src/styles
 bunx turbo run build test lint check
 
 git merge-base --is-ancestor "$(git ls-remote origin refs/heads/main | cut -f1)" HEAD && echo "old main is in HEAD"
@@ -234,6 +236,7 @@ Nothing to change: the final name is `ajnart/self-host`.
 - Update docs that name the old repo's issue tracker or numbers (`docs/agents/*`) if you change their meaning.
 - `gh repo view ajnart/self-host-old --json isArchived,isPrivate` (`true,false` after the default Step 7). Do not delete it for a while.
 - Watch `gh run list --repo ajnart/self-host` for the first `ci` and the nightly `e2e` (03:17 UTC).
+- Mark this runbook historical once its last step has run: change the `docs/migration/` line in `AGENTS.md` from "will make" to "made" and drop its "becomes historical" clause.
 
 ## Rollback
 

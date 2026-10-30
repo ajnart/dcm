@@ -53,7 +53,7 @@ only on `self-host.fyi`: a local copy of the site, a preview or the
 `ghcr.io/ajnart/dcm` image sends nothing. This is separate from the CLI
 Telemetry above, and `SELF_HOST_NO_TELEMETRY` does not control it.
 
-Every page sends `$pageview`. PostHog's browser library adds properties to every
+Every page you see sends `$pageview`; a page your browser only prerenders sends it once you open it. PostHog's browser library adds properties to every
 event: the page URL, referrer and path (query string and fragment removed before
 sending), browser name and version, OS, device type, viewport and screen size,
 time zone, language and library version. The request also reaches the proxy

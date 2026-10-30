@@ -23,7 +23,7 @@ The site sets one CSP through Astro's `security.csp` (`site/astro.config.mjs`), 
 - Every page on that layout gets `style-src-attr 'unsafe-inline'`, because React sets `style` attributes at runtime, which hashes cannot cover.
 - A page that passes `editor` to the layout also gets `style-src-elem 'self' 'unsafe-inline'` (Monaco injects `<style>` elements), `font-src 'self'` (its bundled icon font) and `worker-src 'self'` (its workers). Those pages are `/apps`, `/compose`, `/compose/templates` and `/compose/template/*`; `/compose/suggest` has no editor and keeps the strict policy apart from the style attributes.
 
-`cspCheck` skips the style-attribute hash check on pages whose policy allows it and still checks every inline script and `<style>`. `/`, `/docs` and the rest keep the strict policy. `canvas-confetti` works under it: it draws with a canvas and needs no worker.
+`cspCheck` skips the style-attribute hash check on pages whose policy allows it and still checks every inline script and `<style>`. `/`, `/docs` and the rest keep the strict policy. Every page's `script-src` also has `'inline-speculation-rules'` (`astro.config.mjs`) so the viewport prefetch and `clientPrerender` rules Astro injects run. `canvas-confetti` works under it: it draws with a canvas and needs no worker.
 
 ## How an App reaches DCM
 
