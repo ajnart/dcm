@@ -13,7 +13,7 @@ export default function SelfHostCallout({
 
   const lead =
     yamlMissing.length > 0
-      ? `No YAML for ${yamlMissing.map((entry) => entry.name).join(", ")}? self-host covers it:`
+      ? `No standalone YAML for ${yamlMissing.map((entry) => entry.name).join(", ")}. Install with self-host:`
       : "Rather not manage YAML? Let self-host do it:"
 
   return (

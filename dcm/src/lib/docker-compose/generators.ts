@@ -2,6 +2,7 @@ import type { DockerSettings } from "@/components/settings-panel"
 import type { DockerTool } from "@/lib/docker-tools"
 import type { SelfHostEnvVar } from "@/lib/selfhost"
 import { detectAndFixPortConflicts } from "./port-conflicts"
+import { type ServiceBlock, splitServiceBlocks } from "./services"
 
 type ComposeSource = DockerTool & { env?: SelfHostEnvVar[] }
 
@@ -213,6 +214,32 @@ function renderSections(sections: Sections): string {
   return output
 }
 
+interface PreparedTool {
+  tool: DockerTool
+  blocks: ServiceBlock[]
+  skipped: Map<ServiceBlock, string>
+}
+
+function claimServices(prepared: PreparedTool[]) {
+  const owners = new Map<string, string>()
+  const ordered = [
+    ...prepared.filter((item) => item.tool.verbatim),
+    ...prepared.filter((item) => !item.tool.verbatim),
+  ]
+  for (const item of ordered) {
+    for (const block of item.blocks) {
+      const keys = [`service:${block.name}`]
+      if (block.containerName) keys.push(`container:${block.containerName}`)
+      const owner = keys.map((key) => owners.get(key)).find(Boolean)
+      if (owner) {
+        item.skipped.set(block, owner)
+        continue
+      }
+      for (const key of keys) owners.set(key, item.tool.name)
+    }
+  }
+}
+
 export function generateComposeContent(
   selectedTools: DockerTool[],
   settings: DockerSettings,
@@ -221,23 +248,39 @@ export function generateComposeContent(
   content: string
   portConflicts: { fixed: number; conflicts: string[] } | null
 } {
-  let servicesSection = `services:
-`
   const sections: Sections = new Map()
 
-  selectedTools.forEach((tool) => {
-    if (!tool.composeContent) return
+  const prepared: PreparedTool[] = selectedTools.flatMap((tool) => {
+    if (!tool.composeContent) return []
+    let body = tool.verbatim
+      ? splitVerbatim(tool.composeContent, sections)
+      : reindentServices(tool.composeContent)
+    if (showInterpolated) body = interpolate(body, settings)
+    return [{ tool, blocks: splitServiceBlocks(body), skipped: new Map() }]
+  })
+
+  claimServices(prepared)
+
+  let servicesSection = `services:
+`
+  for (const { tool, blocks, skipped } of prepared) {
+    const kept = blocks.filter((block) => !skipped.has(block))
+    if (kept.length === 0) {
+      const owners = new Set(skipped.values())
+      servicesSection += `
+  # ${tool.name} skipped: already provided by ${[...owners].join(", ")}
+`
+      continue
+    }
     servicesSection += `
   # ${tool.name}: ${tool.description}
 `
-    let toolContent = tool.verbatim
-      ? splitVerbatim(tool.composeContent, sections)
-      : reindentServices(tool.composeContent)
-
-    if (showInterpolated) toolContent = interpolate(toolContent, settings)
-
-    servicesSection += `${toolContent}\n`
-  })
+    const body = kept.flatMap((block) => block.lines).join("\n")
+    servicesSection += `${body}\n`
+    for (const [block, owner] of skipped) {
+      servicesSection += `  # ${block.name} skipped: already provided by ${owner}\n`
+    }
+  }
 
   const completeCompose = COMPOSE_HEADER + servicesSection
   const withSections = completeCompose + renderSections(sections)

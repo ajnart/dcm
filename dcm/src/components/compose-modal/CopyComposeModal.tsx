@@ -1,5 +1,4 @@
 import { File } from "lucide-react"
-import type { editor } from "monaco-editor"
 import { useEffect, useRef, useState } from "react"
 import { siDocker } from "simple-icons"
 
@@ -26,6 +25,7 @@ import { Settings } from "lucide-react"
 import {
   ComposeEditor,
   EnvEditor,
+  type MonacoEditorInstance,
   configureMonacoThemes,
 } from "@/components/editors/MonacoEditor"
 import {
@@ -39,6 +39,7 @@ import {
 import ActionButtons from "./ActionButtons"
 import PortConflictsAlert from "./PortConflictsAlert"
 import SelfHostCallout from "./SelfHostCallout"
+import SelfHostNotes from "./SelfHostNotes"
 
 interface CopyComposeModalProps {
   isOpen: boolean
@@ -66,8 +67,8 @@ export function CopyComposeModal({
     conflicts: string[]
   } | null>(null)
 
-  const composeEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
-  const envEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const composeEditorRef = useRef<MonacoEditorInstance | null>(null)
+  const envEditorRef = useRef<MonacoEditorInstance | null>(null)
 
   const { settings } = useSettings()
 
@@ -128,13 +129,11 @@ export function CopyComposeModal({
     downloadFile(content, activeTab as "compose" | "env", selectedTools)
   }
 
-  const handleComposeEditorDidMount = (
-    editor: editor.IStandaloneCodeEditor,
-  ) => {
+  const handleComposeEditorDidMount = (editor: MonacoEditorInstance) => {
     composeEditorRef.current = editor
   }
 
-  const handleEnvEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
+  const handleEnvEditorDidMount = (editor: MonacoEditorInstance) => {
     envEditorRef.current = editor
   }
 
@@ -169,6 +168,8 @@ export function CopyComposeModal({
           {portConflicts && (
             <PortConflictsAlert portConflicts={portConflicts} />
           )}
+
+          <SelfHostNotes notes={[...selectedTools, ...yamlMissing]} />
 
           <Tabs
             className="w-full"

@@ -25,6 +25,7 @@ export interface SelfHostApp {
   links: { target: string; title: string }[]
   compose: string
   env: SelfHostEnvVar[]
+  standalone: boolean
   notes?: string
 }
 

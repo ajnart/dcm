@@ -1,10 +1,11 @@
 import {
   ComposeEditor,
+  type Monaco,
+  type MonacoEditorInstance,
   configureMonacoThemes,
 } from "@/components/editors/MonacoEditor"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
-import type { editor } from "monaco-editor"
 import { useEffect, useRef, useState } from "react"
 
 interface TemplateViewerProps {
@@ -23,19 +24,17 @@ export function TemplateViewer({
   readOnly = true,
 }: TemplateViewerProps) {
   const [mounted, setMounted] = useState(false)
-  const composeEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const composeEditorRef = useRef<MonacoEditorInstance | null>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  const handleComposeEditorDidMount = (
-    editor: editor.IStandaloneCodeEditor,
-  ) => {
+  const handleComposeEditorDidMount = (editor: MonacoEditorInstance) => {
     composeEditorRef.current = editor
   }
 
-  const handleBeforeMount = (monaco: typeof import("monaco-editor")) => {
+  const handleBeforeMount = (monaco: Monaco) => {
     configureMonacoThemes(monaco)
   }
 

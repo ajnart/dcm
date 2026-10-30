@@ -102,7 +102,15 @@ export default function DockerCard({
           <TruncatedText text={entry.description} />
         </div>
         <div className="mt-auto flex flex-wrap gap-1">
-          {selfHostBadge && entry.selfhostId && (
+          {entry.installOnly && (
+            <Badge
+              variant="default"
+              className="rounded-md px-1 font-normal text-xs"
+            >
+              Install with self-host
+            </Badge>
+          )}
+          {selfHostBadge && entry.selfhostId && !entry.installOnly && (
             <Badge
               variant="default"
               className="rounded-md px-1 font-normal text-xs"
@@ -145,6 +153,26 @@ export default function DockerCard({
             >
               View Official Documentation
             </a>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    )
+  }
+
+  if (entry.installOnly) {
+    return (
+      <HoverCard openDelay={100} closeDelay={100}>
+        <HoverCardTrigger asChild>{CardComponent}</HoverCardTrigger>
+        <HoverCardContent className="w-80 shadow-md">
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold">Install with self-host</p>
+            <p className="text-muted-foreground text-xs">
+              {entry.notes ??
+                "This App has no standalone Compose file. self-host installs it for you."}
+            </p>
+            <code className="border bg-muted px-2 py-1 font-mono text-xs">
+              self-host install {entry.selfhostId}
+            </code>
           </div>
         </HoverCardContent>
       </HoverCard>

@@ -3,6 +3,8 @@ import PortConflictsAlert from "@/components/compose-modal/PortConflictsAlert"
 import {
   ComposeEditor,
   EnvEditor,
+  type Monaco,
+  type MonacoEditorInstance,
   configureMonacoThemes,
 } from "@/components/editors/MonacoEditor"
 import SettingsForm from "@/components/settings/SettingsForm"
@@ -38,7 +40,6 @@ import {
   Settings,
   Star,
 } from "lucide-react"
-import type { editor } from "monaco-editor"
 import { useEffect, useRef, useState } from "react"
 import { siDocker } from "simple-icons"
 
@@ -69,8 +70,9 @@ function TemplateView({
     conflicts: string[]
   } | null>(null)
 
-  const composeEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
-  const envEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const withoutYaml = templateTools.filter((tool) => !tool.composeContent)
+  const composeEditorRef = useRef<MonacoEditorInstance | null>(null)
+  const envEditorRef = useRef<MonacoEditorInstance | null>(null)
 
   // Handle download of docker-compose file
   const handleDownload = () => {
@@ -109,17 +111,15 @@ function TemplateView({
     }
   }
 
-  const handleComposeEditorDidMount = (
-    editor: editor.IStandaloneCodeEditor,
-  ) => {
+  const handleComposeEditorDidMount = (editor: MonacoEditorInstance) => {
     composeEditorRef.current = editor
   }
 
-  const handleEnvEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
+  const handleEnvEditorDidMount = (editor: MonacoEditorInstance) => {
     envEditorRef.current = editor
   }
 
-  const handleBeforeMount = (monaco: typeof import("monaco-editor")) => {
+  const handleBeforeMount = (monaco: Monaco) => {
     configureMonacoThemes(monaco)
   }
 
@@ -227,6 +227,15 @@ function TemplateView({
                 <div className="mt-4">
                   <SelfHostCommand ids={[selfHostRecipeId]} prominent />
                 </div>
+              )}
+
+              {withoutYaml.length > 0 && (
+                <p className="mt-3 text-muted-foreground text-sm">
+                  {withoutYaml.map((tool) => tool.name).join(", ")} ha
+                  {withoutYaml.length === 1 ? "s" : "ve"} no standalone Compose
+                  file, so {withoutYaml.length === 1 ? "it is" : "they are"}{" "}
+                  left out of the YAML. Install with self-host instead.
+                </p>
               )}
             </div>
           </div>

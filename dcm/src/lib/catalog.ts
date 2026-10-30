@@ -1,3 +1,4 @@
+import { serviceNames } from "@/lib/docker-compose/services"
 import type { DockerTool } from "@/lib/docker-tools"
 import {
   type SelfHostApp,
@@ -26,6 +27,7 @@ export interface CatalogEntry extends DockerTool {
   docsUrl?: string
   env?: SelfHostEnvVar[]
   notes?: string
+  installOnly?: boolean
 }
 
 export interface Catalog {
@@ -34,6 +36,7 @@ export interface Catalog {
 }
 
 function fromSelfHost(app: SelfHostApp): CatalogEntry {
+  const standalone = app.standalone !== false
   return {
     id: app.id,
     name: app.name,
@@ -41,10 +44,11 @@ function fromSelfHost(app: SelfHostApp): CatalogEntry {
     category: app.category,
     tags: [],
     icon: selfHostIcon(app.icon),
-    composeContent: app.compose,
-    verbatim: true,
+    composeContent: standalone ? app.compose : undefined,
+    verbatim: standalone,
     selfhostId: app.id,
     selfhostOnly: true,
+    installOnly: !standalone,
     port: app.port,
     docsUrl: app.docs,
     env: app.env,
@@ -54,20 +58,37 @@ function fromSelfHost(app: SelfHostApp): CatalogEntry {
 
 function mergeWithSelfHost(tool: DockerTool, app: SelfHostApp): CatalogEntry {
   const exact = tool.id === app.id
-  return {
+  const shared = {
     ...tool,
     name: exact ? tool.name : app.name,
     description: exact ? tool.description : app.description,
     icon: tool.icon ?? selfHostIcon(app.icon),
-    composeContent: app.compose,
-    verbatim: true,
-    isUnsupported: false,
     selfhostId: app.id,
     port: app.port,
     docsUrl: app.docs,
+  }
+  if (app.standalone === false) return shared
+  return {
+    ...shared,
+    composeContent: app.compose,
+    verbatim: true,
+    isUnsupported: false,
     env: app.env,
     notes: app.notes,
   }
+}
+
+function coveredByApp(tool: DockerTool, apps: SelfHostApp[]): boolean {
+  if (!tool.composeContent) return false
+  const names = serviceNames(tool.composeContent)
+  if (names.length === 0) return false
+  return apps.some((app) => {
+    if (app.standalone === false || !tool.id.startsWith(`${app.id}-`)) {
+      return false
+    }
+    const provided = serviceNames(app.compose)
+    return names.every((name) => provided.includes(name))
+  })
 }
 
 function recipeTemplates(entries: CatalogEntry[]): Template[] {
@@ -106,9 +127,9 @@ export function buildCatalog(tools: DockerTool[]): Catalog {
     merged.set(tool.id, mergeWithSelfHost(tool, app))
   }
 
-  const dcmEntries: CatalogEntry[] = tools.map(
-    (tool) => merged.get(tool.id) ?? tool,
-  )
+  const dcmEntries: CatalogEntry[] = tools
+    .filter((tool) => merged.has(tool.id) || !coveredByApp(tool, selfHostApps))
+    .map((tool) => merged.get(tool.id) ?? tool)
   const selfHostOnly = selfHostApps
     .filter((app) => !claimed.has(app.id))
     .map(fromSelfHost)
@@ -128,6 +149,19 @@ export function entriesForMode(
 ): CatalogEntry[] {
   if (mode === "all") return catalog.entries
   return catalog.entries.filter((entry) => entry.selfhostId)
+}
+
+export function partitionSelection(
+  ids: string[],
+  catalog: Catalog,
+  entries: CatalogEntry[],
+): { visibleIds: string[]; hiddenCount: number } {
+  const visible = new Set(entries.map((entry) => entry.id))
+  const known = new Set(catalog.entries.map((entry) => entry.id))
+  return {
+    visibleIds: ids.filter((id) => visible.has(id)),
+    hiddenCount: ids.filter((id) => known.has(id) && !visible.has(id)).length,
+  }
 }
 
 export function canGenerateYaml(entry: CatalogEntry): boolean {

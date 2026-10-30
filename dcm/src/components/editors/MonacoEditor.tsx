@@ -1,9 +1,10 @@
-import Editor from "@monaco-editor/react"
+import Editor, { type Monaco, type OnMount } from "@monaco-editor/react"
 import { memo } from "react"
 
-export const configureMonacoThemes = (
-  monaco: typeof import("monaco-editor"),
-) => {
+export type { Monaco }
+export type MonacoEditorInstance = Parameters<OnMount>[0]
+
+export const configureMonacoThemes = (monaco: Monaco) => {
   monaco.editor.defineTheme("tailwind-dark", {
     base: "vs-dark",
     inherit: true,
@@ -23,10 +24,9 @@ export const configureMonacoThemes = (
 interface BaseEditorProps {
   value?: string
   content?: string
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  onMount?: (editor: any) => void
+  onMount?: (editor: MonacoEditorInstance) => void
   theme?: string
-  beforeMount?: (monaco: typeof import("monaco-editor")) => void
+  beforeMount?: (monaco: Monaco) => void
   readOnly?: boolean
 }
 
