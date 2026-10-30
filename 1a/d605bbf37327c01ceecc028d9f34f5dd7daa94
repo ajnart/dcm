@@ -1,0 +1,20 @@
+.github/workflows/ci.yml
+  h_d6e478ca18e517 108
+.github/workflows/release.yml
+  h_d6e478ca18e517 83
+go.mod
+  h_d6e478ca18e517 14
+go.sum
+  h_d6e478ca18e517 70-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1ad605bbf37327c01ceecc028d9f34f5dd7daa94",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
