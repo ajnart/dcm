@@ -23,7 +23,7 @@ Nothing here pushes or renames on its own; you run it.
 | Actions secrets and variables, deploy keys, webhooks | none                                                                | none                                            |
 | environments                                         | none                                                                | `copilot` (the Copilot coding agent)            |
 
-- `ajnart/dcm` `main` (`e499c2fd`) is an ancestor of the merged branch, so the push is a **fast-forward**. No force push is needed, and the script refuses one without `--force`.
+- `ajnart/dcm` `main` (`e499c2fd`) is an ancestor of the merged branch, so the push is a **fast-forward**. The script refuses all non-fast-forward pushes; there is no force-push option.
 - Both repos use only the automatic `GITHUB_TOKEN` in workflows. **No secret has to be recreated.**
 - Everything else authenticates from your machine: the GHCR push uses your `docker login`, `publish-aur.sh` your AUR SSH key, `publish-homebrew.sh` and `publish-site.sh` your `gh` and `wrangler` logins. `POSTHOG_PROJECT_KEY` stays unset (see `docs/releasing.md`).
 - Cloudflare Pages: `self-host-fyi` is Git-connected to repo id 1349952104 (old repo), production branch `main`, build `bash scripts/build-site-pages.sh`, output `site/dist-pages`, domains `self-host.fyi` and `self-host-fyi.pages.dev`. `dcm` is a direct-upload project (no Git source), domains `compose.ajnart.dev`, `compose.homarr.dev`, `docker-compose-maker.pages.dev`; it is retired, because the site is now one Astro app with DCM at `/compose` (no Pages Functions or KV).
@@ -43,6 +43,27 @@ Nothing here pushes or renames on its own; you run it.
 0 preflight, 1 push, 2 backport releases into `ajnart/dcm`, 3 configure `ajnart/dcm`, 4 move open issues, 5 rename, 6 recheck releases, 7 archive the old repo, 8 package channels, 9 Cloudflare, 10 after the dust settles.
 
 Configure runs before the rename so the new repo is never live as `ajnart/self-host` with Actions on "all", merge commits and no ruleset. `rename-repos.sh rename` refuses until it ran.
+
+### One-command GitHub migration
+
+Finish and commit all concurrent work first, then run from this checkout with Bash 4.4 or later:
+
+```bash
+scripts/migrate/run-all.sh
+scripts/migrate/run-all.sh --yes
+```
+
+The first command only checks local history and GitHub access and prints the plan. It writes local logs, but does not fetch, run generators or gates, change Git configuration, run Docker or the installer, or mutate GitHub. The second runs the Go/web gates, captures rollback snapshots and the original DCM image digest, and executes the GitHub steps in order. It needs `git`, authenticated `gh` with admin access to both repositories, `jq`, `curl`, Docker with buildx, Python 3, `tar`, Go and Bun. HTTPS uses your existing `gh` login through a process-scoped credential helper; no SSH key or `gh auth setup-git` is needed. Run `--yes` in a terminal: each rename and the final archive/private operation still requires a typed confirmation. The default keeps `self-host-old` public and archived; `--private` hides it instead.
+
+Logs and checkpoints live under the printed `.scratch/migration/<run>/` directory with private permissions. Commands are not traced, tokens are never retrieved for logging, and original snapshots are preserved on retries. A failure stops execution and prints a resume command, for example:
+
+```bash
+scripts/migrate/run-all.sh --yes --from 6 --log-dir "$PWD/.scratch/migration/<run>"
+```
+
+Keep the original commit, log directory and `--private`/`--skip-gates` options when resuming. Completed checkpoints are required before skipping steps. Repository IDs are pinned to the two repositories above, including a partially completed rename; a changed identity, branch or commit aborts. `--skip-gates` is an explicit escape hatch for gates already run on that exact commit, not the default.
+
+Wrapper step numbers are 0 gates, 1 snapshots, 2 push, 3 releases, 4 configure, 5 issues, 6 rename, 7 public installer/self-update verification, 8 release recheck, 9 archive/private. They differ from the section numbers below. Installer verification uses the published raw installer without a token, so authentication cannot hide a broken public download. This wrapper does **not** create a new release, deploy Cloudflare Pages or install redirect rules. Complete sections 8–10 separately, choosing the unused release version and deployment strategy first. Do not enable legacy-domain redirects until the merged `/compose` destination is deployed and verified.
 
 ## 0. Preflight
 
@@ -84,7 +105,7 @@ scripts/migrate/push-merged-history.sh            # read it
 scripts/migrate/push-merged-history.sh --yes
 ```
 
-It checks a clean tree and the branch, shows all three root commits (`init` 2025-03-17 is dcm's, `startup` and the scaffold are self-host's), confirms old main and dcm main are ancestors of `HEAD`, confirms every CLI tag is an ancestor and equals the tag on the old repo, then makes **two pushes**: `HEAD:main` first, then all 39 tags together in one push. dcm's `v1` is left alone and the script stops if a tag name clashes with a different commit.
+It checks a clean tree and the branch, shows all three root commits (`init` 2025-03-17 is dcm's, `startup` and the scaffold are self-host's), confirms old main and dcm main are ancestors of `HEAD`, confirms every CLI tag is an ancestor and equals the tag on the old repo, then makes **two pushes**: `HEAD:main` first, then all 39 tags together in one atomic push. Automatic follow-tags is disabled for both pushes. dcm's `v1` is left alone and the script stops if a tag name clashes with a different commit.
 
 What the pushes start:
 

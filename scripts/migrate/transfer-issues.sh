@@ -54,5 +54,5 @@ printf '%s\n' "$issues" | sed 's/^/  #/'
 say "(open PRs stay: $(gh pr list --repo "$old_repo" --state open --json number --jq length))"
 
 while IFS=$'\t' read -r number _; do
-  run gh issue transfer "$number" "$new_repo"
+  run gh issue transfer "$number" "$new_repo" --repo "$old_repo"
 done <<<"$issues"

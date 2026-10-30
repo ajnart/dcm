@@ -9,6 +9,20 @@ say() { printf '%s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
 
+github_git_auth() {
+  need gh
+  gh auth status --hostname github.com >/dev/null 2>&1 || die "gh is not authenticated on github.com"
+  local count="${GIT_CONFIG_COUNT:-0}" key
+  [[ "$count" =~ ^[0-9]+$ ]] || die "invalid GIT_CONFIG_COUNT"
+  for key in '' '!gh auth git-credential'; do
+    printf -v "GIT_CONFIG_KEY_$count" '%s' credential.https://github.com.helper
+    printf -v "GIT_CONFIG_VALUE_$count" '%s' "$key"
+    export "GIT_CONFIG_KEY_$count" "GIT_CONFIG_VALUE_$count"
+    count=$((count + 1))
+  done
+  export GIT_CONFIG_COUNT="$count" GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never
+}
+
 # run prints the command, and executes it only with --yes.
 run() {
   printf '+ %s\n' "$*"
@@ -58,21 +72,28 @@ release_tags() { gh release list --repo "$1" --limit 1000 --json tagName --jq '.
 asset_list() { gh release view "$1" --repo "$2" --json assets --jq '.assets[] | "\(.name) \(.size)"' 2>/dev/null | sort; }
 
 # assets_lacking TAG OLD NEW prints the "name size" lines of OLD's release that NEW lacks or has with another size.
-assets_lacking() { comm -23 <(asset_list "$1" "$2") <(asset_list "$1" "$3"); }
+assets_lacking() {
+  local old_assets new_assets
+  old_assets="$(asset_list "$1" "$2")" || return 1
+  new_assets="$(asset_list "$1" "$3")" || return 1
+  comm -23 <(printf '%s\n' "$old_assets") <(printf '%s\n' "$new_assets")
+}
 
 SKIP_RELEASE_CHECK=false
 
 # check_release_parity OLD NEW: every release of OLD must exist on NEW with the same asset names and sizes, or installers break.
 check_release_parity() {
-  local missing=0 t lost
+  local missing=0 t lost tags
+  tags="$(release_tags "$1")" || die "cannot list releases on $1"
+  [[ -n "$tags" ]] || die "no releases on $1; refusing an empty parity check"
   while read -r t; do
     [[ -n "$t" ]] || continue
     if ! gh release view "$t" --repo "$2" >/dev/null 2>&1; then
       say "  missing on $2: $t"; missing=$((missing + 1)); continue
     fi
-    lost="$(assets_lacking "$t" "$1" "$2")"
+    lost="$(assets_lacking "$t" "$1" "$2")" || die "cannot compare assets for $t"
     [[ -z "$lost" ]] || { say "  assets missing or different on $2 for $t: $(tr '\n' ';' <<<"$lost")"; missing=$((missing + 1)); }
-  done < <(release_tags "$1")
+  done <<<"$tags"
   if [[ $missing -gt 0 ]]; then
     $SKIP_RELEASE_CHECK && { say "WARN $missing release(s) missing or with different assets (--skip-release-check)"; return 0; }
     die "$missing release(s) of $1 are missing on $2 or differ in assets; run backport-releases.sh first (install.sh and self-update read the releases of whichever repo is named ajnart/self-host)"

@@ -3,20 +3,18 @@
 # Dry run unless --yes. Uses a URL, never touches your remotes.
 set -euo pipefail
 
-usage="usage: scripts/migrate/push-merged-history.sh [--yes] [--force] [--branch dev-dcm-merge] [--dcm-url URL] [--self-host-url URL] [--skip-origin-check]"
+usage="usage: scripts/migrate/push-merged-history.sh [--yes] [--branch dev-dcm-merge] [--dcm-url URL] [--self-host-url URL] [--skip-origin-check]"
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 source "$here/lib.sh"
 
 expected_branch=dev-dcm-merge
-dcm_url="git@github.com:$OWNER/dcm.git"
-self_host_url="git@github.com:$OWNER/self-host.git"
-force=false
+dcm_url="https://github.com/$OWNER/dcm.git"
+self_host_url="https://github.com/$OWNER/self-host.git"
 skip_origin=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --yes) YES=true ;;
-    --force) force=true ;;
     --skip-origin-check) skip_origin=true ;;
     --branch) expected_branch="${2:?$usage}"; shift ;;
     --dcm-url) dcm_url="${2:?$usage}"; shift ;;
@@ -28,6 +26,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 need git
+github_git_auth
 cd "$(git rev-parse --show-toplevel)"
 mode_banner
 
@@ -48,17 +47,14 @@ say "commits reachable from HEAD: $(git rev-list --count HEAD)"
 
 say "-- ajnart/dcm main"
 dcm_main="$(git ls-remote "$dcm_url" refs/heads/main | awk '{print $1}')"
-fast_forward=false
 if [[ -z "$dcm_main" ]]; then
   say "dcm has no main branch; the push creates it"
 else
   git cat-file -e "$dcm_main^{commit}" 2>/dev/null || die "dcm main $dcm_main is not in this clone; run: git fetch $dcm_url main"
   if git merge-base --is-ancestor "$dcm_main" HEAD; then
-    fast_forward=true
     say "dcm main $dcm_main is an ancestor of HEAD: the push is a fast-forward, no force needed"
   else
-    say "dcm main $dcm_main is NOT an ancestor of HEAD: pushing needs --force and discards dcm-only commits"
-    $force || die "refusing a non-fast-forward push without --force"
+    die "dcm main $dcm_main is not an ancestor of HEAD; merge it first; force pushes are never allowed"
   fi
 fi
 
@@ -115,13 +111,11 @@ else
   say "push 2: ${#to_push[@]} tags in ONE push: GitHub creates no workflow events when more than three tags are pushed at once, so release.yml and e2e.yml do not run"
 fi
 
-push_args=(push "$dcm_url")
-$fast_forward || [[ -z "$dcm_main" ]] || push_args+=("--force-with-lease=refs/heads/main:$dcm_main")
-run git "${push_args[@]}" "$head_sha:refs/heads/main"
+run git -c push.followTags=false push "$dcm_url" "$head_sha:refs/heads/main"
 if [[ ${#to_push[@]} -gt 0 ]]; then
   refspecs=()
   for t in "${to_push[@]}"; do refspecs+=("refs/tags/$t:refs/tags/$t"); done
-  run git push "$dcm_url" "${refspecs[@]}"
+  run git -c push.followTags=false push --atomic "$dcm_url" "${refspecs[@]}"
 fi
 
 if $YES; then
