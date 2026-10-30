@@ -34,10 +34,10 @@ export const ServiceCircles = ({
           className="group relative cursor-pointer select-none"
         >
           <div className="relative block">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-primary-foreground ring-1 ring-primary/50 transition-all duration-200 group-hover:z-10 group-hover:scale-110 group-hover:ring-2 group-hover:ring-primary dark:border-gray-800">
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full! border-2 border-border bg-card ring-1 ring-primary/50 transition-all duration-200 group-hover:z-10 group-hover:scale-110 group-hover:ring-2 group-hover:ring-primary">
               {service.icon ? (
                 <img
-                  className="h-full w-full rounded-full object-contain p-0.5"
+                  className="h-full w-full rounded-full! object-contain p-1.5"
                   src={service.icon}
                   width={40}
                   height={40}
@@ -51,7 +51,7 @@ export const ServiceCircles = ({
                 />
               ) : (
                 <div
-                  className="flex h-full w-full items-center justify-center rounded-full font-bold text-accent-text"
+                  className="flex h-full w-full items-center justify-center rounded-full! font-bold text-accent-text"
                   onClick={() => onToggleServiceSelection?.(service.id)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -63,7 +63,7 @@ export const ServiceCircles = ({
                 </div>
               )}
             </div>
-            <div className="-translate-x-1/2 pointer-events-none absolute bottom-full left-1/2 mb-2 whitespace-nowrap rounded bg-black/80 px-2 py-1 text-white text-xs opacity-0 transition-opacity group-hover:opacity-100 dark:bg-white/80 dark:text-black">
+            <div className="-translate-x-1/2 pointer-events-none absolute bottom-full left-1/2 mb-2 whitespace-nowrap rounded border border-border bg-popover px-2 py-1 text-popover-foreground text-xs opacity-0 transition-opacity group-hover:opacity-100">
               {service.name}
             </div>
           </div>
@@ -75,7 +75,7 @@ export const ServiceCircles = ({
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-black text-center text-white text-xs transition-all duration-200 hover:z-10 hover:scale-110 hover:bg-gray-600 hover:ring-2 hover:ring-primary dark:border-gray-800 dark:bg-white dark:text-black"
+              className="z-10 flex h-10 w-10 items-center justify-center rounded-full! border-2 border-border bg-card text-center text-muted-foreground text-xs transition-all duration-200 hover:z-10 hover:scale-110 hover:bg-secondary hover:text-foreground hover:ring-2 hover:ring-primary"
             >
               +{numRemaining}
             </button>
@@ -85,14 +85,14 @@ export const ServiceCircles = ({
             align="center"
             side="top"
           >
-            <h3 className="mb-2 font-medium text-gray-900 text-sm dark:text-gray-100">
+            <h3 className="mb-2 font-medium text-foreground text-sm">
               More services
             </h3>
             <ul className="space-y-1">
               {remainingServices.map((service) => (
                 <li
                   key={service.id}
-                  className="flex cursor-pointer select-none items-center gap-2 rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  className="flex cursor-pointer select-none items-center gap-2 rounded p-1 hover:bg-secondary"
                   onClick={() => onToggleServiceSelection?.(service.id)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -100,22 +100,22 @@ export const ServiceCircles = ({
                     }
                   }}
                 >
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-foreground">
+                  <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full! border border-border bg-card">
                     {service.icon ? (
                       <img
-                        className="h-full w-full rounded-full object-contain p-0.5"
+                        className="h-full w-full rounded-full! object-contain p-1"
                         src={service.icon}
                         width={24}
                         height={24}
                         alt={`Icon of ${service.name}`}
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center rounded-full font-bold text-accent-text text-xs">
+                      <div className="flex h-full w-full items-center justify-center rounded-full! font-bold text-accent-text text-xs">
                         {service.name.charAt(0)}
                       </div>
                     )}
                   </div>
-                  <span className="text-gray-800 text-xs dark:text-gray-200">
+                  <span className="text-foreground text-xs">
                     {service.name}
                   </span>
                 </li>
