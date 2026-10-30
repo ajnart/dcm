@@ -1,0 +1,21 @@
+site/src/layouts/Compose.astro
+  s_46b365c48ffb7f::t_390492fbacef56 20-22,25-28
+site/tsconfig.json
+  s_46b365c48ffb7f::t_9e36b3151bf0d9 8-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6a319db8ca33d6be791a57974b2511b76d050a8f",
+  "prompts": {},
+  "sessions": {
+    "s_46b365c48ffb7f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "31dccce5-06cc-4fa0-87f6-8c0450b8be0d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
