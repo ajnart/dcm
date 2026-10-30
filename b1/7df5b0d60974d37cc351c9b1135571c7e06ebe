@@ -1,0 +1,29 @@
+dcm/README.md
+  s_a91f4b733e8ee4::t_8cde2ad20aee62 179-180
+dcm/package.json
+  s_a91f4b733e8ee4::t_28de35991fa606 10
+dcm/src/components/layout/SiteFooter.astro
+  s_a91f4b733e8ee4::t_30b5274efcfb70 4
+dcm/src/components/layout/SiteHeader.astro
+  s_a91f4b733e8ee4::t_2c1b36e2a447a2 6
+docs/agents/dcm.md
+  s_a91f4b733e8ee4::t_adc6254b21dd57 13
+site/src/lib/site.ts
+  s_a91f4b733e8ee4::t_3491915612c0fd 65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b17df5b0d60974d37cc351c9b1135571c7e06ebe",
+  "prompts": {},
+  "sessions": {
+    "s_a91f4b733e8ee4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2f0f81a4-3fff-4415-afef-7b285a1a665c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
