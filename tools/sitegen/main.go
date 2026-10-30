@@ -9,7 +9,7 @@ import (
 func main() {
 	stars := flag.Bool("stars", false, "also refresh GitHub star counts (needs GITHUB_TOKEN)")
 	flag.Parse()
-	steps := []func() error{writeCatalog, writeTheme}
+	steps := []func() error{writeCatalog, writeSelfHost, writeTheme}
 	if *stars {
 		steps = append(steps, writeStars)
 	}
