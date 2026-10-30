@@ -235,7 +235,7 @@ not involved. Its build settings:
 | Build command          | `bash scripts/build-site-pages.sh`                                                                                                                |
 | Build output directory | `site/dist-pages`                                                                                                                                 |
 | Root directory         | (repository root)                                                                                                                                 |
-| Build watch paths      | include `site/*`, `dcm/*`, `tools/sitegen/*`, `install.sh`, `scripts/build-*.sh`, `package.json`, `bun.lock`, `turbo.json`            |
+| Build watch paths      | include `site/*`, `dcm/*`, `tools/sitegen/*`, `install.sh`, `scripts/build-*`, `docs/telemetry.md`, `video/reel/assets/agents/*`, `package.json`, `bun.lock`, `turbo.json` |
 | `BUN_VERSION`          | `1.4.3`                                                                                                                                           |
 | `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `vX.Y.Z` tag of the Go CLI from the checkout, since the releases API is private while the repo is |
 
@@ -255,8 +255,8 @@ wrangler pages deploy "$stage/deploy/public" --project-name self-host-fyi --bran
 
 The repository is a bun workspace (`site`, `dcm`) with turbo at the root:
 `bun install --frozen-lockfile` runs once at the root (`bun.lock` there only),
-and `bunx turbo run build test lint` runs the web checks that `ci.yml`'s `web`
-job also runs, after `go run ./tools/sitegen` and a check that the generated
+and `bunx turbo run build test test:compose lint check` runs the web checks that
+`ci.yml`'s `web` job also runs. The `test` job checks that the generated
 `site/src/data`, `dcm/src/data` and `site/src/styles` are committed.
 `site/` is a static Astro project (`bun run dev`, `bun run check` inside
 it) that also renders Docker Compose Maker at `/compose`. Its definitions come from the Go code:
@@ -288,7 +288,7 @@ or `gh auth token` while the repository is private, and fails rather than show
 a stale version; `SELF_HOST_SITE_VERSION` overrides it. **Redeploy the site
 after every release** so the page and the playground show the new version.
 
-`site/wrangler.toml` names the Pages project. `public/_headers` sets `nosniff`,
+Nothing reads a `wrangler.toml`: the Git integration takes its settings from the table above, and every Wrangler call here passes `--project-name self-host-fyi`. `public/_headers` sets `nosniff`,
 `no-referrer`, `frame-ancestors`, plain-text types for the installer and CORS
 for `catalog.json`; Astro adds the rest of the Content Security Policy as a
 `<meta>` tag with hashes (`security.csp` in `astro.config.mjs`). Starlight's
@@ -305,11 +305,11 @@ under that policy; Astro's `<ClientRouter />` does not support its CSP.
 Docker Compose Maker (`dcm/`, merged from `ajnart/dcm`) is part of the one
 site build and is served by the same Pages project at
 `https://self-host.fyi/compose`: its pages are `site/src/pages/compose/` and
-`dcm/` holds the components and libraries they use.
-`scripts/build-installer-site.sh` builds the site once, straight into
-`public/`. The site is fully static: there are no Pages Functions, so there is
-no `_routes.json` and no binding to configure. The `_astro/*`
-immutable cache rule in the site's `_headers` covers DCM's assets too.
+`dcm/` holds the components and libraries they use. The build lands as
+`public/compose.html` plus `public/compose/` (`/compose/templates`,
+`/compose/template/<id>`). The site is fully static: there are no Pages
+Functions, so there is no `_routes.json` and no binding to configure. The
+`_astro/*` immutable cache rule in the site's `_headers` covers DCM's assets too.
 
 The site's Content Security Policy is the hashed one from `astro.config.mjs`.
 `/compose` alone widens it for Monaco: scripts, styles and fonts from the
@@ -323,25 +323,73 @@ strict policy; tighten `/compose` only together with self-hosting Monaco.
 GitHub star counts are committed, not fetched at build time:
 `.github/workflows/stars.yml` runs `bun run stars` weekly (and on demand) and
 opens a pull request with the refreshed `site/src/data/stars.json` and
-`dcm/src/data/stars.json`.
+`dcm/src/data/stars.json`. That needs the repository setting
+Settings → Actions → General → "Allow GitHub Actions to create and approve
+pull requests". Pull requests opened with `GITHUB_TOKEN` (the stars refresh and
+`dcm-add-container.yml`) do not trigger `ci.yml`: close and reopen the pull
+request, or push to its branch, to run CI before merging.
 
 The standalone `dcm` Pages project is retired: its `wrangler.toml` and
 `scripts/build-dcm-pages.sh` are gone. After the merge `compose.ajnart.dev`
-should not serve its own copy: add a Cloudflare redirect rule on the
-`ajnart.dev` zone sending `compose.ajnart.dev`, path and query preserved, to
-`concat("https://self-host.fyi/compose", http.request.uri.path)` with a 301,
-then check `curl -I https://compose.ajnart.dev/`. DCM's own paths
-(`/template/<id>`) are the same under `/compose`.
+(zone `ajnart.dev`) and `compose.homarr.dev` (zone `homarr.dev`) should not
+serve their own copy. On each zone add two Single Redirects, 301, "Preserve
+query string", for that host, in this order:
 
-The image `ghcr.io/ajnart/dcm` is built by `.github/workflows/dcm-image.yml`
-on pushes to `main` that touch `dcm/**`, `site/**` or `tools/sitegen/**`, on
-manual runs, and on `dcm-v*` tags (`dcm-v1.2.3` pushes `1.2.3`, `1.2`, `1` and
-`latest` comes from `main`). It builds the site with bun, then packs
-`site/dist` (the named build context `site`) into a busybox static server on
-port 7576 (`dcm/Dockerfile`): `/` forwards to `/compose`. CLI `vX.Y.Z` tags never trigger
-it. Issue-driven container submissions are handled by
-`dcm-add-container.yml`, which adds the container to `dcm/src/tools/` and
-opens a pull request.
+| Rule | When                                     | Redirect to                                                        |
+| ---- | ---------------------------------------- | ------------------------------------------------------------------ |
+| 1    | `http.request.uri.path eq "/"`           | static `https://self-host.fyi/compose`                             |
+| 2    | any other path on the host               | dynamic `concat("https://self-host.fyi/compose", http.request.uri.path)` |
+
+The site uses no trailing slash, so the root must not become `/compose/`. DCM's
+own paths (`/template/<id>`) are the same under `/compose`. Check with
+`curl -I "https://compose.ajnart.dev/?x=1"` and
+`curl -I https://compose.homarr.dev/template/recipe-full`.
+
+The image `ghcr.io/ajnart/dcm` is built by `.github/workflows/dcm-image.yml` on
+pushes to `main` that touch `dcm/**`, `site/**`, `tools/sitegen/**`,
+`docs/telemetry.md`, `video/reel/assets/agents/**`, `LICENSE`, `package.json`,
+`turbo.json`, `bun.lock` or the workflow, on manual runs, and on `dcm-v*` tags
+(`dcm-v1.2.3` pushes `1.2.3`, `1.2`, `1` and `latest` comes from `main`; path
+filters do not apply to tag pushes). CLI `vX.Y.Z` tags never trigger it. The
+workflow runs `bunx turbo run test test:compose build` and packs `site/dist`
+(the named build context `site`, with the repository root as the main
+context) into a busybox static server on port 7576. busybox is pinned by
+digest in `dcm/Dockerfile`; `dcm/Dockerfile.dockerignore` limits the root
+context to the licenses and `dcm/httpd.conf`. The three platforms need no
+QEMU: the only stage that runs commands uses the build platform, and the final
+stage has no `RUN`.
+
+The image serves the same site as Pages with these differences:
+
+- `X.html` is moved to `X/index.html`, so `/compose/templates` redirects to
+  `/compose/templates/` (busybox cannot serve extensionless `.html`), and `/`
+  is a small page that forwards to `/compose/` with the query and hash kept.
+- `og/`, `reel.mp4`, `reel.jpg` and `_headers` are dropped. busybox cannot add
+  headers, so the image sends no `nosniff` or other `_headers` rules; the
+  Content Security Policy still applies through its `<meta>` tag.
+- `dcm/httpd.conf` maps the extensions busybox does not know (`.js`, `.json`,
+  `.svg`, `.webmanifest`, `.xml`, `.md`, `.txt`, `.pagefind`, `.pf_*`) and
+  serves `404.html` for unknown paths.
+- It runs as `USER 65534:65534` and carries `LICENSE-Apache-2.0.txt`,
+  `LICENSE-AGPL-3.0.txt` and `SOURCE.txt` (repository URL and the commit,
+  from the `REVISION` build argument) at `/`. The OCI labels name the licenses
+  (`AGPL-3.0-only AND Apache-2.0`), the source and the revision.
+
+To try it locally, after `bun run --cwd site build`:
+
+```bash
+docker buildx build --load --build-context site=site/dist \
+  --build-arg REVISION="$(git rev-parse HEAD)" -t dcm-test -f dcm/Dockerfile .
+docker run --rm -p 7576:7576 dcm-test
+```
+
+The `Latest CLI release` step in the workflow sets `SELF_HOST_SITE_VERSION` from
+the newest release, because turbo cannot hash the GitHub lookup the site build
+does and a cache hit would otherwise show a stale version.
+
+Issue-driven container submissions are handled by `dcm-add-container.yml`,
+which validates the form (Container ID, `https://` URLs), adds the container to
+`dcm/src/tools/` and opens a pull request.
 
 The old `selfhost.ajnart.dev` host keeps working for installs already in the
 wild: a Cloudflare redirect rule on the `ajnart.dev` zone sends it, path and
@@ -352,7 +400,7 @@ Check with `curl -I https://selfhost.ajnart.dev/install.sh`.
 The builder needs `bun`. It runs `bun install --frozen-lockfile` at the
 repository root and `astro build` straight into `public/` (DCM included, under
 `public/compose/`), adds `install`, `install.sh` and
-`install.sh.sha256`, and puts `wrangler.toml` beside it. The showreel reaches
+`install.sh.sha256`. The showreel reaches
 the build as the committed file `site/public/reel.mp4`, which Astro copies.
 Renders in `video/reel/out/` are git-ignored; after a new render, copy the
 mp4 over `site/public/reel.mp4` and commit that. It refuses a

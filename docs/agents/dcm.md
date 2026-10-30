@@ -44,17 +44,19 @@ Issues with the `container` label and then `accepted` make `.github/workflows/dc
 
 ## The image
 
-`dcm/Dockerfile` packs the built site (`site/dist`, passed as the named build context `site`) into busybox httpd on port 7576. busybox cannot map `/compose` to `compose.html`, so the first stage, which runs on the build platform and never under QEMU, moves every `X.html` to `X/index.html`, drops the heavy social images and reel, and writes a `/` page that forwards to `/compose` with the query kept. httpd then redirects `/compose` to `/compose/` and keeps the query. `dcm/httpd.conf` holds the MIME types and `E404:404.html` (the path must be relative; an absolute one is ignored). Build and try it locally:
+`dcm/Dockerfile` packs the built site (`site/dist`, the named build context `site`) into busybox httpd on port 7576. Build and try it locally:
 
 ```bash
 SELF_HOST_SITE_VERSION=0.0.0 bun run --cwd site build
-docker buildx build --load --build-context site=site/dist -t dcm-test -f dcm/Dockerfile dcm
+docker buildx build --load --build-context site=site/dist --build-arg REVISION="$(git rev-parse HEAD)" -t dcm-test -f dcm/Dockerfile .
 docker run --rm -p 7576:7576 dcm-test
 ```
 
+What the image changes and how it is published: `docs/releasing.md` (Docker Compose Maker at /compose).
+
 ## Gate
 
-The web gate in `AGENTS.md` applies to every change under `dcm/`. `ci.yml`'s `web` job runs it plus `test:compose`, and its `test` job runs the sitegen drift check. `dcm-image.yml` tests, builds the site and pushes the image on pushes to `dcm/**`, `site/**` and `tools/sitegen/**`, and on `dcm-v*` tags.
+The web gate in `AGENTS.md` applies to every change under `dcm/`. `ci.yml`'s `web` job runs it plus `test:compose`, and its `test` job runs the sitegen drift check.
 
 ## Ownership
 

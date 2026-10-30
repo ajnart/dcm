@@ -58,7 +58,7 @@ go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/s
 bunx turbo run build test lint check
 ```
 
-Turbo caches every task: an unchanged repeat run is instant, and the site build's inputs include `dcm/src`. `turbo run test` skips `dcm/tests/validate-compose.test.ts` because it runs `docker compose config`; CI runs it as `test:compose`.
+Turbo caches every task: an unchanged repeat run is instant, and the site build's inputs include `dcm/src`. `turbo run test` skips `dcm/tests/validate-compose.test.ts` because it runs `docker compose config`; CI runs it as `test:compose`. The site build reads the version and changelog from git and GitHub, which turbo cannot hash, so a local cache hit can show a stale release: set `SELF_HOST_SITE_VERSION` (CI uses `0.0.0`) or run with `--force`.
 
 Never run Docker, the e2e runtime, a browser or the installer for a focused change. Add dependencies only after checking `go.mod`, and say why in the PR.
 
