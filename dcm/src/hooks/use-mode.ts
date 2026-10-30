@@ -27,11 +27,20 @@ function getMode(): CatalogMode {
   return current
 }
 
-export function setMode(mode: CatalogMode) {
+export interface SetModeOptions {
+  persist?: boolean
+}
+
+export function setMode(
+  mode: CatalogMode,
+  { persist = true }: SetModeOptions = {},
+) {
   current = mode
-  try {
-    localStorage.setItem(STORAGE_KEYS.MODE, mode)
-  } catch {}
+  if (persist) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.MODE, mode)
+    } catch {}
+  }
   syncUrl(mode)
   for (const listener of listeners) listener()
 }
@@ -41,7 +50,7 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener)
 }
 
-export function useMode(): [CatalogMode, (mode: CatalogMode) => void] {
+export function useMode(): [CatalogMode, typeof setMode] {
   const mode = useSyncExternalStore(subscribe, getMode, () => DEFAULT_MODE)
   return [mode, setMode]
 }

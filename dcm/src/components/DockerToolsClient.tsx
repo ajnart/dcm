@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button"
 import { useMode } from "@/hooks/use-mode"
 import { useSelection } from "@/hooks/use-selection"
 import { withBase } from "@/lib/base"
-import { type Catalog, type CatalogMode, entriesForMode } from "@/lib/catalog"
+import {
+  type Catalog,
+  type CatalogMode,
+  entriesForMode,
+  partitionSelection,
+} from "@/lib/catalog"
 import { SELFHOST_URL } from "@/lib/selfhost"
 import { decodeShareUrl } from "@/lib/url-utils"
 import { Palette } from "lucide-react"
@@ -38,6 +43,11 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
     [catalog],
   )
 
+  const { visibleIds, hiddenCount } = useMemo(
+    () => partitionSelection(selection.ids, catalog, entries),
+    [catalog, entries, selection.ids],
+  )
+
   useEffect(() => {
     if (processedShareRef.current) return
     const url = new URL(window.location.href)
@@ -51,9 +61,11 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
     const selfHostIds = new Set(
       entriesForMode(catalog, "self-host").map((entry) => entry.id),
     )
+    const knownIds = new Set(catalog.entries.map((entry) => entry.id))
     url.searchParams.delete("share")
     window.history.replaceState(window.history.state, "", url)
-    if (ids.some((id) => !selfHostIds.has(id))) setMode("all")
+    if (ids.some((id) => knownIds.has(id) && !selfHostIds.has(id)))
+      setMode("all", { persist: false })
   }, [catalog, selection.set, setMode])
 
   const toggle = (id: string) => {
@@ -103,7 +115,10 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
         catalog={catalog}
         entries={entries}
         mode={mode}
-        ids={selection.ids}
+        ids={visibleIds}
+        shareIds={selection.ids}
+        hiddenCount={hiddenCount}
+        onShowAll={() => setMode("all")}
         onToggle={toggle}
         onClear={selection.clear}
       />

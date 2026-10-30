@@ -10,8 +10,9 @@ interface Props {
 }
 
 const { title, description } = Astro.props
+const pathname = Astro.url.pathname.replace(/(index)?\.html$/, "")
 const canonical = new URL(
-  Astro.url.pathname.replace(/(index)?\.html$/, ""),
+  pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname,
   Astro.site,
 )
 ---

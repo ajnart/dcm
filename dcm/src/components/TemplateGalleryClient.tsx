@@ -12,6 +12,7 @@ import {
   type CatalogEntry,
   allTemplates,
   entriesForMode,
+  partitionSelection,
 } from "@/lib/catalog"
 import type { Template } from "@/lib/templates"
 import { ArrowLeft } from "lucide-react"
@@ -41,6 +42,11 @@ function TemplateGalleryView({
       all: allTemplates(catalog, templates, "all").length,
     }),
     [catalog, templates],
+  )
+
+  const { visibleIds, hiddenCount } = useMemo(
+    () => partitionSelection(selection.ids, catalog, entries),
+    [catalog, entries, selection.ids],
   )
 
   const selectedEntries = selection.ids
@@ -82,7 +88,10 @@ function TemplateGalleryView({
         catalog={catalog}
         entries={entries}
         mode={mode}
-        ids={selection.ids}
+        ids={visibleIds}
+        shareIds={selection.ids}
+        hiddenCount={hiddenCount}
+        onShowAll={() => setMode("all")}
         onToggle={selection.toggle}
         onClear={handleClear}
       />

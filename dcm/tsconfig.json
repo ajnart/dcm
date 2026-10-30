@@ -4,8 +4,7 @@
     ".astro/types.d.ts",
     "src/**/*",
     "tests/**/*",
-    "functions/**/*",
-    "lib/**/*"
+    "functions/**/*"
   ],
   "exclude": ["dist", "node_modules"],
   "compilerOptions": {

@@ -29,6 +29,9 @@ interface FloatingBarProps {
   entries: CatalogEntry[]
   mode: CatalogMode
   ids: string[]
+  shareIds: string[]
+  hiddenCount: number
+  onShowAll: () => void
   onToggle: (id: string) => void
   onClear: () => void
   scrollPosition?: number
@@ -39,6 +42,9 @@ export default function FloatingBar({
   entries,
   mode,
   ids,
+  shareIds,
+  hiddenCount,
+  onShowAll,
   onToggle,
   onClear,
   scrollPosition = 200,
@@ -93,10 +99,10 @@ export default function FloatingBar({
   }
 
   const handleShare = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (selectedCount === 0) return
+    if (shareIds.length === 0) return
 
     const target = event.currentTarget
-    const success = await copy(generateShareUrl(ids))
+    const success = await copy(generateShareUrl(shareIds))
 
     if (success) {
       confetti(target)
@@ -191,6 +197,19 @@ export default function FloatingBar({
               <span className="font-xs text-muted-foreground">
                 {selectedCount} service{selectedCount !== 1 ? "s" : ""} selected
               </span>
+              {hiddenCount > 0 && (
+                <span className="ml-2 text-muted-foreground text-xs">
+                  {hiddenCount} selected item{hiddenCount !== 1 ? "s" : ""}{" "}
+                  hidden in this mode.{" "}
+                  <button
+                    type="button"
+                    onClick={onShowAll}
+                    className="font-medium text-accent-text hover:underline"
+                  >
+                    Show all
+                  </button>
+                </span>
+              )}
               <div className="sm:w-auto">
                 {selectedCount > 0 && (
                   <div className="flex max-w-full flex-wrap gap-1.5 sm:max-w-[600px]">
@@ -224,7 +243,7 @@ export default function FloatingBar({
 
                 <Button
                   variant="outline"
-                  disabled={selectedCount === 0}
+                  disabled={shareIds.length === 0}
                   className="flex xs:min-w-16 items-center gap-2 transition-transform motion-safe:hover:scale-105"
                   onClick={handleShare}
                 >
@@ -234,7 +253,7 @@ export default function FloatingBar({
 
                 <Button
                   variant={isResetActive ? "destructive" : "outline"}
-                  disabled={selectedCount === 0}
+                  disabled={shareIds.length === 0}
                   onClick={handleResetClick}
                   onMouseLeave={handleResetMouseLeave}
                   className="group relative flex items-center gap-2 transition-all motion-safe:hover:scale-105"
