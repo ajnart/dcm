@@ -263,7 +263,7 @@ and `bunx turbo run build test lint` runs the web checks that `ci.yml`'s `web`
 job also runs, after `go run ./tools/sitegen` and a check that the generated
 `site/src/data`, `dcm/src/data` and `site/src/styles` are committed.
 `site/` is a static Astro project (`bun run dev`, `bun run check` inside
-it). Its definitions come from the Go code:
+it) that also renders Docker Compose Maker at `/compose`. Its definitions come from the Go code:
 `go run ./tools/sitegen` writes `site/src/data/catalog.json` from the
 Catalog and `site/src/styles/theme.css` from the Dashboard's dark palette.
 `src/lib/catalog.ts` is the one typed model of the catalog, shared by the
@@ -279,9 +279,10 @@ icon CDN, with the App's initial as fallback); the landing keeps
 `src/assets/og.png`.
 `go run ./tools/introframes` writes `site/public/intro.json`, the onboarding
 Intro recorded from `internal/intro`. The theme makes the site's
-accent and state colours the CLI's. `GITHUB_TOKEN=$(gh auth token) go run
-./tools/sitegen -stars` also writes `site/src/data/stars.json`, the GitHub stars that
-order Apps by popularity; give a new App its repository in `tools/sitegen/stars.go`, or it
+accent and state colours the CLI's. `GITHUB_TOKEN=$(gh auth token) bun run stars`
+at the root writes `site/src/data/stars.json`, the GitHub stars that
+order Apps by popularity, and `dcm/src/data/stars.json` for DCM's Containers;
+give a new App its repository in `tools/sitegen/stars.go`, or it
 sorts last.
 
 The version the site shows is looked up at build time the way the installer
@@ -305,22 +306,26 @@ under that policy; Astro's `<ClientRouter />` does not support its CSP.
 
 ### Docker Compose Maker at /compose
 
-`dcm/` (Docker Compose Maker, merged from `ajnart/dcm`) is an Astro site served
-by the same Pages project at `https://self-host.fyi/compose`.
-`scripts/build-installer-site.sh` runs `scripts/build-dcm-pages.sh` with
-`DCM_BASE=/compose` and copies `dcm/dist` into `public/compose/`. The
-site's `_routes.json` is written by the builder and lets only
-`/compose/api/*` invoke Functions; everything else is served as static assets.
-`_headers` gets one extra rule so `/compose/_astro/*` is immutable. The
-site's Content Security Policy only sets `frame-ancestors`, so DCM's Monaco
-editor can still load from the jsDelivr CDN; tighten it only together with
-self-hosting Monaco.
+Docker Compose Maker (`dcm/`, merged from `ajnart/dcm`) is part of the one
+site build and is served by the same Pages project at
+`https://self-host.fyi/compose`: its pages are `site/src/pages/compose/` and
+`dcm/` holds the components, libraries and Functions they use.
+`scripts/build-installer-site.sh` builds the site once, straight into
+`public/`, and writes `_routes.json`, which lets only `/compose/api/*` invoke
+Functions; everything else is served as static assets. The `_astro/*`
+immutable cache rule in the site's `_headers` covers DCM's assets too.
+
+The site's Content Security Policy is the hashed one from `astro.config.mjs`.
+`/compose` alone widens it for Monaco: scripts, styles and fonts from the
+jsDelivr CDN, `data:` fonts, `blob:` workers and `'unsafe-inline'` for
+`style-src-elem` and `style-src-attr`, because Monaco injects `<style>`
+elements and `style` attributes at runtime. `/`, `/apps` and `/docs` keep the
+strict policy; tighten `/compose` only together with self-hosting Monaco.
 
 Community upvotes are two Pages Functions, `dcm/functions/api/vote.ts` and
-`stats.ts`. The merged site mounts them through the thin re-exports in
+`stats.ts`. The site mounts them through the thin re-exports in
 `functions/compose/api/`, which Pages Git builds (root directory = repository
-root) and a `wrangler pages deploy` run from the root both pick up; the
-standalone DCM project keeps using `dcm/functions` at `/api/*`. Add to the
+root) and a `wrangler pages deploy` run from the root both pick up. Add to the
 `self-host-fyi` Pages project (Settings, Bindings and Variables, production and
 preview):
 
@@ -329,26 +334,35 @@ preview):
 | `UPVOTES`        | KV namespace binding (reuse the one the `dcm` project uses)  |
 | `VOTE_IP_SECRET` | secret, the same value as in the `dcm` project keeps existing ballots valid |
 
-Without them the API answers 503 and DCM hides the upvote counts. Check
-the functions bundle with `npx wrangler pages functions build functions --outdir "$(mktemp -d)"`.
+Without them the API answers 503 and DCM hides the upvote control. Check
+the functions bundle with `npx wrangler pages functions build functions --outdir "$(mktemp -d)"`,
+and try voting locally as described in `docs/agents/dcm.md`.
+`scripts/publish-site.sh` refuses to deploy a build that has no `/compose`
+page, no `/compose/api/*` route or no `functions/compose/api/vote.ts`.
 
-`scripts/build-dcm-pages.sh [output]` builds DCM alone at base `/` (`DCM_BASE`
-overrides it) for the standalone `dcm` Pages project (`dcm/wrangler.toml`,
-output `dcm/dist`, functions from `dcm/functions`) and for the image below.
-After the merge `compose.ajnart.dev` should not serve its own copy: add a
-Cloudflare redirect rule on the `ajnart.dev` zone sending `compose.ajnart.dev`,
-path and query preserved, to `concat("https://self-host.fyi/compose", http.request.uri.path)`
-with a 301, then check `curl -I https://compose.ajnart.dev/`. DCM's own paths
+GitHub star counts are committed, not fetched at build time:
+`.github/workflows/stars.yml` runs `bun run stars` weekly (and on demand) and
+opens a pull request with the refreshed `site/src/data/stars.json` and
+`dcm/src/data/stars.json`.
+
+The standalone `dcm` Pages project is retired: its `wrangler.toml` and
+`scripts/build-dcm-pages.sh` are gone. After the merge `compose.ajnart.dev`
+should not serve its own copy: add a Cloudflare redirect rule on the
+`ajnart.dev` zone sending `compose.ajnart.dev`, path and query preserved, to
+`concat("https://self-host.fyi/compose", http.request.uri.path)` with a 301,
+then check `curl -I https://compose.ajnart.dev/`. DCM's own paths
 (`/template/<id>`) are the same under `/compose`.
 
 The image `ghcr.io/ajnart/dcm` is built by `.github/workflows/dcm-image.yml`
-on pushes to `main` that touch `dcm/**` or `tools/sitegen/**`, on manual runs,
-and on `dcm-v*` tags (`dcm-v1.2.3` pushes `1.2.3`, `1.2`, `1` and `latest`
-comes from `main`). It builds `dcm/` at base `/` with bun, then packs
-`dcm/dist` into a busybox static server on port 7576
-(`dcm/Dockerfile`). CLI `vX.Y.Z` tags never trigger it. Issue-driven
-container submissions are handled by `dcm-add-container.yml`, which adds the
-container to `dcm/src/tools/` and opens a pull request.
+on pushes to `main` that touch `dcm/**`, `site/**` or `tools/sitegen/**`, on
+manual runs, and on `dcm-v*` tags (`dcm-v1.2.3` pushes `1.2.3`, `1.2`, `1` and
+`latest` comes from `main`). It builds the site with bun, then packs
+`site/dist` (the named build context `site`) into a busybox static server on
+port 7576 (`dcm/Dockerfile`): `/` forwards to `/compose`, and the image has no
+Functions, so the upvote control is hidden. CLI `vX.Y.Z` tags never trigger
+it. Issue-driven container submissions are handled by
+`dcm-add-container.yml`, which adds the container to `dcm/src/tools/` and
+opens a pull request.
 
 The old `selfhost.ajnart.dev` host keeps working for installs already in the
 wild: a Cloudflare redirect rule on the `ajnart.dev` zone sends it, path and

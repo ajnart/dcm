@@ -176,9 +176,9 @@ bun install
 bun run dev
 ```
 
-From the repository root this starts both apps: the self-host site at http://localhost:4321 and DCM at http://localhost:4322/compose/, linked to each other. `bun run dev` inside `dcm/` starts DCM alone.
+From the repository root this starts the self-host site, which also serves DCM, at http://localhost:4321: the home page at `/` and DCM at http://localhost:4321/compose. Edits under `dcm/src` hot-reload there.
 
-DCM is an Astro app with React islands. `bun run build` writes a static site to `dist/`, and `bun run preview` serves it. The site is mounted at `self-host.fyi/compose`, so build with `DCM_BASE=/compose` to prefix every link, asset and API call; without it the site is served from `/`.
+DCM has no Astro app of its own: its pages are `site/src/pages/compose/`, and `bun run build` in `site/` writes the whole static site, DCM included, to `site/dist/`. `bun run preview` in `site/` serves it. Every link, asset and API call lives under the fixed `/compose` prefix (`dcm/src/lib/routes.ts`).
 
 #### Self-host catalog and mode toggle
 
@@ -186,38 +186,27 @@ The home page and the template gallery have a segmented control: **self-host** s
 
 ### Community upvotes on Cloudflare Pages
 
-The gallery supports anonymous community upvotes through Pages Functions and Workers KV. No accounts, traditional database, or application server are required. Docker, `bun run preview`, `bun run dev`, and other static hosts remain fully usable without an API: upvote buttons show an unavailable state rather than inventing counts. Nothing contacts the public DCM instance.
+The gallery supports anonymous community upvotes through Pages Functions and Workers KV. No accounts, traditional database, or application server are required. Docker, `bun run dev`, and other static hosts remain fully usable without an API: the upvote control is hidden rather than showing invented counts. Nothing contacts the public DCM instance.
 
-Voting is opt-in. The default `wrangler.toml` has no KV binding and voting stays disabled until both bindings below exist:
+Voting is opt-in: it stays disabled until both bindings below exist on the `self-host-fyi` Pages project.
 
-1. Create a Workers KV namespace for votes in your Cloudflare account. Add its binding to `wrangler.toml`, replacing the namespace ID with your own. Use a separate namespace for preview deployments so previews cannot change production votes:
+1. Create a Workers KV namespace for votes in your Cloudflare account and bind it as `UPVOTES`. Use a separate namespace for preview deployments so previews cannot change production votes.
+2. Add an encrypted runtime secret named `VOTE_IP_SECRET`, independently for production and preview. Generate a random value of at least 32 bytes and keep it stable. Never commit the secret.
+3. Deploy from the repository root: `bash scripts/publish-site.sh X.Y.Z` builds the site and runs `wrangler pages deploy`, which includes the root `functions/` alongside the static output. `functions/compose/api/` re-exports `dcm/functions/api/{vote,stats}.ts` at `/compose/api/*`, and the site's `_routes.json` limits Function invocation to `/compose/api/*`, leaving the pages and assets static. See `docs/releasing.md`.
 
-```toml
-[[kv_namespaces]]
-binding = "UPVOTES"
-id = "YOUR_PRODUCTION_NAMESPACE_ID"
-
-[[env.preview.kv_namespaces]]
-binding = "UPVOTES"
-id = "YOUR_PREVIEW_NAMESPACE_ID"
-```
-
-2. In the Pages project's **Settings → Variables and Secrets**, add an encrypted runtime secret named `VOTE_IP_SECRET`, independently for production and preview. Generate a random value of at least 32 bytes and keep it stable. Never commit the secret. Wrangler configuration is the source of truth for KV bindings; do not rely on a dashboard-only KV binding when deploying with this file.
-3. Build and deploy from `dcm/` with `bun run deploy`. Wrangler includes `functions/` alongside `dist/`; uploading only `dist/` to a static host does not deploy the API. On self-host.fyi the same Functions are mounted at `/compose/api/*` by `functions/compose/api/` at the repository root (see `docs/releasing.md`). `public/_routes.json` limits Function invocation to `/api/*`, leaving the gallery and other assets static.
-
-For local-only development, put `VOTE_IP_SECRET="local-development-only"` in `dcm/.dev.vars` (gitignored), build the static site, and run from `dcm/`:
+For local-only development, build the site and serve it through Wrangler with a local KV store, from the repository root:
 
 ```bash
-bun run build
-bunx wrangler pages dev dist --kv=UPVOTES
+SELF_HOST_SITE_VERSION=0.0.0 bash scripts/build-site-pages.sh
+bunx wrangler pages dev site/dist-pages --kv=UPVOTES --binding VOTE_IP_SECRET=local-development-only
 ```
 
-Wrangler uses local KV storage by default; this does not create or deploy cloud resources. Test the API and gallery through Wrangler's URL, not `astro dev`. API calls without Cloudflare's `CF-Connecting-IP` header cannot vote. For manual local requests, provide a test IP in that header and an `Origin` matching the local URL.
+Wrangler uses local KV storage by default; this does not create or deploy cloud resources. Test the API and gallery through Wrangler's URL, not `astro dev`, which serves no Functions. API calls without Cloudflare's `CF-Connecting-IP` header cannot vote. For manual local requests, provide a test IP in that header and an `Origin` matching the local URL. `GET /compose/api/stats` is cached for 60 seconds, so a count lags a vote by up to a minute.
 
 #### API and storage
 
-- `GET /api/stats` returns `{ "counts": { "jellyfin": 0, ... } }` for the current merged catalog, including the Apps taken from self-host. One gallery request loads all counts. Responses are cached for 60 seconds in the browser and per Cloudflare edge location; query strings do not bypass the edge cache.
-- `POST /api/vote` accepts `{ "containerId": "jellyfin" }` as JSON, with a same-origin `Origin` header and a body of at most 1 KiB. IDs must exist in the same catalog used by the gallery. It returns `{ "accepted": true }`, or `{ "accepted": false }` if that network has already voted for the container. Votes cannot be removed.
+- `GET /compose/api/stats` returns `{ "counts": { "jellyfin": 0, ... } }` for the current merged catalog, including the Apps taken from self-host. One gallery request loads all counts. Responses are cached for 60 seconds in the browser and per Cloudflare edge location; query strings do not bypass the edge cache.
+- `POST /compose/api/vote` accepts `{ "containerId": "jellyfin" }` as JSON, with a same-origin `Origin` header and a body of at most 1 KiB. IDs must exist in the same catalog used by the gallery. It returns `{ "accepted": true }`, or `{ "accepted": false }` if that network has already voted for the container. Votes cannot be removed.
 - Each vote writes `vote:{containerId}:{HMAC}`. HMAC-SHA-256 uses the server secret, container ID, and Cloudflare-provided IP. Raw IPs are not stored, sent back, or logged by voting code. A separate `rate:{HMAC}` key expires after 60 seconds and limits new votes across containers from the same IP; rejected votes return `429` with `Retry-After`. Changing forwarded-IP headers does not select the voting identity.
 - Browser storage remembers successful votes only as a UX hint; clearing it does not bypass server deduplication. Failed writes do not show a successful vote. Missing bindings, unavailable KV, or exhausted quotas return `503`, without breaking compose generation.
 

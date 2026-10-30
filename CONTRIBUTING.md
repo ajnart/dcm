@@ -36,7 +36,7 @@ For optional workflow execution on macOS, see [Local CI with act](docs/local-ci.
 ```bash
 bun install --frozen-lockfile
 go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/src/styles
-DCM_BASE=/compose bunx turbo run build test lint
+bunx turbo run build test lint
 ```
 
 `dcm/tests/validate-compose.test.ts` needs Docker; CI runs it.

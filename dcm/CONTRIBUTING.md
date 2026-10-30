@@ -168,7 +168,7 @@ When writing the `composeContent` for a container:
 
 After adding your container definition:
 
-1. Install at the repository root with `bun install` (one bun workspace; there is no `dcm/bun.lock`), then run `bun run --cwd dcm dev` to verify the container appears in **All** mode.
+1. Install at the repository root with `bun install` (one bun workspace; there is no `dcm/bun.lock`), then run `bun run dev` at the root and open http://localhost:4321/compose to verify the container appears in **All** mode.
 2. Test generating a docker-compose file with your container.
 3. Verify the generated docker-compose file works correctly when deployed.
 4. Run the automated tests from `dcm/` to ensure your container passes validation:

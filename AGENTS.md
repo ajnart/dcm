@@ -10,7 +10,7 @@
 - `skills/self-host/SKILL.md`: the one discoverable skill, a router to `self-host skill`.
 - `internal/system/` holds every outside dependency; `internal/systemtest/` and `internal/clitest/` fake it for tests.
 - `site/`: the static Astro site at self-host.fyi; `go run ./tools/sitegen` writes its `src/data/catalog.json` from the Catalog and `theme.css` from the Dashboard theme; `-stars` also refreshes GitHub star counts. `video/`: the showreel; renders in `video/reel/out/` are git-ignored, the served file is the committed `site/public/reel.mp4`.
-- `dcm/`: DCM (Docker Compose Maker), an Astro app with React islands, served at self-host.fyi/compose and as the `ghcr.io/ajnart/dcm` image; AGPL-3.0, the rest of the repository is Apache-2.0. Container definitions are `dcm/src/tools/*.ts`, tests are `dcm/tests`. `go run ./tools/sitegen` also writes `dcm/src/data/selfhost.json`, one compose per App. Read `docs/agents/dcm.md` before touching it.
+- `dcm/`: DCM (Docker Compose Maker), the source library behind self-host.fyi/compose and the `ghcr.io/ajnart/dcm` image (React components, hooks, Container definitions, tests, upvote Functions, generated data); AGPL-3.0, the rest of the repository is Apache-2.0. It has no Astro app: `site/src/pages/compose/` renders it, and `@/` in `site/` means `dcm/src`. Container definitions are `dcm/src/tools/*.ts`, tests are `dcm/tests`. `go run ./tools/sitegen` also writes `dcm/src/data/selfhost.json`, one compose per App. Read `docs/agents/dcm.md` before touching it.
 - Root `package.json` and `turbo.json` make `site/` and `dcm/` one bun workspace with one `bun.lock`; run `bun install` at the root only. `functions/compose/api/` re-exports DCM's upvote Functions for the self-host.fyi Pages project.
 - `docs/migration/` is the runbook that made this repository the home of `ajnart/dcm`'s history.
 - `e2e/` (build tag `e2e`, runs Docker), `tools/` (development generators), `scripts/verify-install.sh`, `install.sh`, `.goreleaser.yaml`.
@@ -55,10 +55,10 @@ Run the web gate only when you touch `site/`, `dcm/` or `tools/sitegen/`:
 ```bash
 bun install --frozen-lockfile
 go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/src/styles
-DCM_BASE=/compose bunx turbo run build test lint check
+bunx turbo run build test lint check
 ```
 
-Turbo caches every task: an unchanged repeat run is instant, and `DCM_BASE` is part of the build's cache key. `turbo run test` skips `dcm/tests/validate-compose.test.ts` because it runs `docker compose config`; CI runs it as `test:compose`.
+Turbo caches every task: an unchanged repeat run is instant, and the site build's inputs include `dcm/src`. `turbo run test` skips `dcm/tests/validate-compose.test.ts` because it runs `docker compose config`; CI runs it as `test:compose`.
 
 Never run Docker, the e2e runtime, a browser or the installer for a focused change. Add dependencies only after checking `go.mod`, and say why in the PR.
 
