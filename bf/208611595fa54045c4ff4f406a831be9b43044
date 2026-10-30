@@ -1,0 +1,21 @@
+.github/workflows/ci.yml
+  s_a3a9aabc23e9a1::t_66e9026b61294e 12-15,31-35,47-49,55-59,62-68,70
+.github/workflows/dcm-image.yml
+  s_a3a9aabc23e9a1::t_7cc603ea7fee3c 9-11,34-38,43-44,49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bf208611595fa54045c4ff4f406a831be9b43044",
+  "prompts": {},
+  "sessions": {
+    "s_a3a9aabc23e9a1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8018f5e-5f27-4e77-80b1-dfe78e40bdb1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
