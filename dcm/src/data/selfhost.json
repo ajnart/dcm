@@ -34,7 +34,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, open the web page and set the server password."
   },
   {
    "id": "adguard-home",
@@ -70,7 +71,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, finish the install wizard in the browser: create the administrator and keep the admin port at 3000."
   },
   {
    "id": "archive-team-warrior",
@@ -211,7 +213,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, create the root account on the first visit."
   },
   {
    "id": "authelia",
@@ -424,7 +427,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, turn on authentication in Settings > General > Authentication (Basic, with a username and password)."
   },
   {
    "id": "beszel",
@@ -479,7 +483,7 @@
     }
    ],
    "standalone": true,
-   "notes": "self-host starts the agent only after its Setup has read the hub's key and token. With plain Compose, start the hub, add a system in its web page, set BESZEL_AGENT_KEY and BESZEL_AGENT_TOKEN, then run docker compose up -d again."
+   "notes": "After the first start, create the administrator on the hub's first visit. self-host starts the agent only after its Setup has read the hub's key and token. With plain Compose, start the hub, add a system in its web page, set BESZEL_AGENT_KEY and BESZEL_AGENT_TOKEN, then run docker compose up -d again."
   },
   {
    "id": "bookstack",
@@ -561,7 +565,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (php-fpm-run), mounted from ${CONFIG_PATH}/bookstack/; without them it does not start. Use self-host install bookstack for the full setup."
+   "notes": "Needs files that only self-host generates before the first start (php-fpm-run), mounted from ${CONFIG_PATH}/bookstack/; without them it does not start. Use self-host install bookstack for the full setup. BookStack starts with a seeded administrator account (admin@admin.com, password \"password\"); sign in and replace it."
   },
   {
    "id": "borgmatic",
@@ -712,7 +716,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After its first start, self-host also wires it to other Apps (clean Sonarr's queue; clean Radarr's queue; download client: qBittorrent); plain Compose leaves that to you."
+   "notes": "After the first start, create the account on the first visit. After its first start, self-host also wires it to other Apps (clean Sonarr's queue; clean Radarr's queue; download client: qBittorrent); plain Compose leaves that to you."
   },
   {
    "id": "cloudflare-tunnel",
@@ -840,7 +844,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "The Web UI starts with the password \"deluge\"; change it on the first sign-in."
   },
   {
    "id": "dockge",
@@ -883,7 +888,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, create the first administrator account on the first visit."
   },
   {
    "id": "docmost",
@@ -937,7 +943,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, create the first workspace owner on the first visit."
   },
   {
    "id": "emby",
@@ -980,7 +987,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, finish the first-run wizard and create the administrator."
   },
   {
    "id": "firefly-iii",
@@ -1047,7 +1055,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, register the first owner at /register."
   },
   {
    "id": "forgejo",
@@ -1127,7 +1136,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, finish the install page and create the administrator."
   },
   {
    "id": "frigate",
@@ -1170,7 +1180,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (bootstrap-config), mounted from ${CONFIG_PATH}/frigate/; without them it does not start. Use self-host install frigate for the full setup."
+   "notes": "Needs files that only self-host generates before the first start (bootstrap-config), mounted from ${CONFIG_PATH}/frigate/; without them it does not start. Use self-host install frigate for the full setup. Frigate generates the first administrator (admin) and prints its password once in the container logs; sign in with it and change it."
   },
   {
    "id": "gatus",
@@ -1759,7 +1769,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After its first start, self-host also wires it to 48 other Apps; plain Compose leaves that to you."
+   "notes": "After the first start, finish the onboarding wizard and create the administrator. After its first start, self-host also wires it to 48 other Apps; plain Compose leaves that to you."
   },
   {
    "id": "home-assistant",
@@ -1802,7 +1812,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, finish the onboarding page and create the owner."
   },
   {
    "id": "homebridge",
@@ -1845,7 +1856,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, complete the setup wizard and create the administrator."
   },
   {
    "id": "immich",
@@ -1887,7 +1899,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, create the administrator on the first visit."
   },
   {
    "id": "jellyfin",
@@ -1964,7 +1977,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, finish the startup wizard: create the administrator and add your media library."
   },
   {
    "id": "keycloak",
@@ -2136,7 +2150,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, turn on authentication in Settings > General (Forms, with a username and password)."
   },
   {
    "id": "linkwarden",
@@ -2196,7 +2211,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, sign up the first account on the first visit."
   },
   {
    "id": "lldap",
@@ -2500,7 +2516,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, create the first administrator on the sign-in page."
   },
   {
    "id": "netbird",
@@ -2550,7 +2567,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (server-config), mounted from ${CONFIG_PATH}/netbird/; without them it does not start. Use self-host install netbird for the full setup."
+   "notes": "Needs files that only self-host generates before the first start (server-config), mounted from ${CONFIG_PATH}/netbird/; without them it does not start. Use self-host install netbird for the full setup. After the first start, create the administrator on the first visit."
   },
   {
    "id": "netdata",
@@ -2690,7 +2707,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, create the administrator on the first visit."
   },
   {
    "id": "node-red",
@@ -2817,7 +2835,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Access is deny-all and login is on, so create the administrator inside the container: docker exec -it <container name> ntfy user add --role=admin <username>."
   },
   {
    "id": "nzbget",
@@ -3039,7 +3058,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (dynamic.yml, config.yml), mounted from ${CONFIG_PATH}/pangolin/; without them it does not start. Use self-host install pangolin for the full setup. self-host hands secrets to the container as files (SERVER_SECRET_FILE); this Compose passes them as plain environment variables (SERVER_SECRET) instead."
+   "notes": "Needs files that only self-host generates before the first start (dynamic.yml, config.yml), mounted from ${CONFIG_PATH}/pangolin/; without them it does not start. Use self-host install pangolin for the full setup. self-host hands secrets to the container as files (SERVER_SECRET_FILE); this Compose passes them as plain environment variables (SERVER_SECRET) instead. After the first start, create the first administrator on the setup page with the PANGOLIN_SETUP_TOKEN value."
   },
   {
    "id": "paperless-ngx",
@@ -3195,7 +3214,7 @@
     }
    ],
    "standalone": false,
-   "notes": "Needs files that only self-host generates before the first start (redis-config), mounted from ${CONFIG_PATH}/patchmon/; without them it does not start. Use self-host install patchmon for the full setup."
+   "notes": "Needs files that only self-host generates before the first start (redis-config), mounted from ${CONFIG_PATH}/patchmon/; without them it does not start. Use self-host install patchmon for the full setup. After the first start, create the administrator on the first visit."
   },
   {
    "id": "peanut",
@@ -3404,7 +3423,7 @@
     }
    ],
    "standalone": true,
-   "notes": "self-host hands secrets to the container as files (PLEX_CLAIM_FILE); this Compose passes them as plain environment variables (PLEX_CLAIM) instead."
+   "notes": "self-host hands secrets to the container as files (PLEX_CLAIM_FILE); this Compose passes them as plain environment variables (PLEX_CLAIM) instead. Create a claim token at https://www.plex.tv/claim (valid 4 minutes) and set PLEX_CLAIM_TOKEN before the first start, or the server stays unclaimed."
   },
   {
    "id": "portainer",
@@ -3614,7 +3633,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After its first start, self-host also wires it to other Apps (sync indexers to Sonarr; sync indexers to Radarr); plain Compose leaves that to you."
+   "notes": "After the first start, turn on authentication in Settings > General (Forms, with a username and password). After its first start, self-host also wires it to other Apps (sync indexers to Sonarr; sync indexers to Radarr); plain Compose leaves that to you."
   },
   {
    "id": "qbittorrent",
@@ -3685,7 +3704,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "The WebUI starts with a temporary administrator password printed in the container logs; sign in with it, set your own and set the default save path to the downloads folder."
   },
   {
    "id": "radarr",
@@ -3762,7 +3782,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
+   "notes": "After the first start, turn on authentication in Settings > General (Forms, with a username and password) and add the root folder /media/movies. After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
   },
   {
    "id": "renovate",
@@ -3790,7 +3810,8 @@
      "secret": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "The container only runs renovate --version; replace the command with your own run. self-host only prepares its credentials and folders."
   },
   {
    "id": "restic",
@@ -3832,7 +3853,7 @@
     }
    ],
    "standalone": true,
-   "notes": "self-host hands secrets to the container as files (RESTIC_PASSWORD_FILE); this Compose passes them as plain environment variables (RESTIC_PASSWORD) instead."
+   "notes": "self-host hands secrets to the container as files (RESTIC_PASSWORD_FILE); this Compose passes them as plain environment variables (RESTIC_PASSWORD) instead. The container only runs restic version; run your backups against the repository yourself. self-host only prepares its credentials and folders."
   },
   {
    "id": "sabnzbd",
@@ -3889,7 +3910,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, set the WebUI username and password in Config > General."
   },
   {
    "id": "scrypted",
@@ -3925,7 +3947,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, create the first administrator on the login page."
   },
   {
    "id": "seafile",
@@ -4238,7 +4261,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
+   "notes": "After the first start, turn on authentication in Settings > General (Forms, with a username and password) and add the root folder /media/tv. After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
   },
   {
    "id": "speedtest-tracker",
@@ -4306,7 +4329,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": false,
+   "notes": "Needs files that only self-host generates before the first start (config/app.key, php-fpm-run), mounted from ${CONFIG_PATH}/speedtest-tracker/; without them it does not start. Use self-host install speedtest-tracker for the full setup."
   },
   {
    "id": "stalwart-mail",
@@ -4375,7 +4399,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, finish the first-run setup in the admin UI to create the administrator."
   },
   {
    "id": "stirling-pdf",
@@ -4461,7 +4486,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, set the GUI administrator login in Actions > Settings > GUI."
   },
   {
    "id": "tailscale",
@@ -4568,7 +4594,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, register the first administrator on the first-run page."
   },
   {
    "id": "technitium-dns",
@@ -4678,7 +4705,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, create the first owner on the first visit."
   },
   {
    "id": "traefik",
@@ -4844,7 +4872,8 @@
      "secret": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Umami starts with the seeded administrator admin and password \"umami\"; sign in and change the password right away."
   },
   {
    "id": "unbound",
@@ -4916,7 +4945,8 @@
      "global": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, create the administrator on the first visit."
   },
   {
    "id": "valkey",
@@ -5036,7 +5066,8 @@
      "secret": true
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value and invite yourself to get an account."
   },
   {
    "id": "vector",
@@ -5170,7 +5201,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "WUD watches a remote Docker endpoint over TLS: set WUD_DOCKER_HOST and put its CA certificate at ${CONFIG_PATH}/wud/tls/ca.pem."
   },
   {
    "id": "zerotier",

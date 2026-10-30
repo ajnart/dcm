@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -80,11 +81,64 @@ var extraEnv = map[string]envJSON{
 	"STALWART_MAIL_RECOVERY_ADMIN": {Secret: true, Description: "Optional recovery administrator as username:password, used only while bootstrapping. Leave empty to skip it"},
 }
 
+const (
+	firstVisitAdmin    = "After the first start, create the administrator on the first visit."
+	firstVisitOwner    = "After the first start, create the first owner on the first visit."
+	arrAuthentication  = "After the first start, turn on authentication in Settings > General (Forms, with a username and password)"
+	inertComposeSuffix = "self-host only prepares its credentials and folders."
+)
+
+// extraNotes is what plain Compose leaves to the user because self-host does it after the
+// App starts (its Setup) or before it (its Files). Each one comes from the App's package.
 var extraNotes = map[string]string{
-	"beszel": "self-host starts the agent only after its Setup has read the hub's key and token. With plain Compose, start the hub, " +
-		"add a system in its web page, set BESZEL_AGENT_KEY and BESZEL_AGENT_TOKEN, then run docker compose up -d again.",
+	"actual-budget":  "After the first start, open the web page and set the server password.",
+	"adguard-home":   "After the first start, finish the install wizard in the browser: create the administrator and keep the admin port at 3000.",
+	"audiobookshelf": "After the first start, create the root account on the first visit.",
+	"bazarr":         "After the first start, turn on authentication in Settings > General > Authentication (Basic, with a username and password).",
+	"beszel": "After the first start, create the administrator on the hub's first visit. self-host starts the agent only after its Setup has read the hub's key and token. " +
+		"With plain Compose, start the hub, add a system in its web page, set BESZEL_AGENT_KEY and BESZEL_AGENT_TOKEN, then run docker compose up -d again.",
+	"bookstack":   "BookStack starts with a seeded administrator account (admin@admin.com, password \"password\"); sign in and replace it.",
+	"cleanuparr":  "After the first start, create the account on the first visit.",
+	"deluge":      "The Web UI starts with the password \"deluge\"; change it on the first sign-in.",
+	"dockge":      "After the first start, create the first administrator account on the first visit.",
+	"docmost":     "After the first start, create the first workspace owner on the first visit.",
+	"emby":        "After the first start, finish the first-run wizard and create the administrator.",
+	"firefly-iii": "After the first start, register the first owner at /register.",
 	"forgejo": "Installation and registration are locked, and self-host creates the first administrator after the first start. With plain Compose run: " +
 		"docker exec -u git <container name> forgejo admin user create --admin --username admin --email admin@example.com --password <password>.",
+	"freshrss":            "After the first start, finish the install page and create the administrator.",
+	"frigate":             "Frigate generates the first administrator (admin) and prints its password once in the container logs; sign in with it and change it.",
+	"home-assistant":      "After the first start, finish the onboarding page and create the owner.",
+	"homarr":              "After the first start, finish the onboarding wizard and create the administrator.",
+	"homebridge":          "After the first start, complete the setup wizard and create the administrator.",
+	"immich":              firstVisitAdmin,
+	"jellyfin":            "After the first start, finish the startup wizard: create the administrator and add your media library.",
+	"lidarr":              arrAuthentication + ".",
+	"linkwarden":          "After the first start, sign up the first account on the first visit.",
+	"navidrome":           "After the first start, create the first administrator on the sign-in page.",
+	"netbird":             firstVisitAdmin,
+	"nginx-proxy-manager": firstVisitAdmin,
+	"ntfy": "Access is deny-all and login is on, so create the administrator inside the container: " +
+		"docker exec -it <container name> ntfy user add --role=admin <username>.",
+	"pangolin":      "After the first start, create the first administrator on the setup page with the PANGOLIN_SETUP_TOKEN value.",
+	"patchmon":      firstVisitAdmin,
+	"plex":          "Create a claim token at https://www.plex.tv/claim (valid 4 minutes) and set PLEX_CLAIM_TOKEN before the first start, or the server stays unclaimed.",
+	"prowlarr":      arrAuthentication + ".",
+	"qbittorrent":   "The WebUI starts with a temporary administrator password printed in the container logs; sign in with it, set your own and set the default save path to the downloads folder.",
+	"radarr":        arrAuthentication + " and add the root folder /media/movies.",
+	"renovate":      "The container only runs renovate --version; replace the command with your own run. " + inertComposeSuffix,
+	"restic":        "The container only runs restic version; run your backups against the repository yourself. " + inertComposeSuffix,
+	"sabnzbd":       "After the first start, set the WebUI username and password in Config > General.",
+	"scrypted":      "After the first start, create the first administrator on the login page.",
+	"sonarr":        arrAuthentication + " and add the root folder /media/tv.",
+	"stalwart-mail": "After the first start, finish the first-run setup in the admin UI to create the administrator.",
+	"syncthing":     "After the first start, set the GUI administrator login in Actions > Settings > GUI.",
+	"tdarr":         "After the first start, register the first administrator on the first-run page.",
+	"tracearr":      firstVisitOwner,
+	"umami":         "Umami starts with the seeded administrator admin and password \"umami\"; sign in and change the password right away.",
+	"uptime-kuma":   firstVisitAdmin,
+	"vaultwarden":   "Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value and invite yourself to get an account.",
+	"wud":           "WUD watches a remote Docker endpoint over TLS: set WUD_DOCKER_HOST and put its CA certificate at ${CONFIG_PATH}/wud/tls/ca.pem.",
 }
 
 const maxListedLinks = 3
@@ -183,23 +237,79 @@ func declaredFiles(ap app.App, rc app.RenderContext) []fileSpec {
 	if !ok {
 		return nil
 	}
-	id := ap.Info().ID
-	secret := func(name string) string {
-		if name == "ADMIN_USER" || name == "ADMIN_PASSWORD" {
-			return placeholder(name)
-		}
-		return placeholder(service.SecretKey(id, name))
-	}
+	stand := newStandIns(ap)
 	var specs []fileSpec
-	for _, f := range declarer.Files(rc, secret) {
+	for _, f := range declarer.Files(rc, stand.value) {
 		content := strings.TrimSpace(f.Content)
-		spec := fileSpec{path: path.Clean(f.Path), empty: content == ""}
+		spec := fileSpec{path: path.Clean(f.Path), empty: content == "", secret: stand.variables[content]}
 		if match := soleVar.FindStringSubmatch(content); match != nil {
 			spec.secret = match[1]
 		}
 		specs = append(specs, spec)
 	}
 	return specs
+}
+
+const (
+	standInAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+	hexAlphabet     = "0123456789abcdef"
+	adminUserLength = 12
+	otherLength     = 24
+)
+
+// standIns hands an App's Files the same kind of value a real install would: valid for the
+// secret's spec, but derived from the App and name so the output never changes. Files may
+// decode or measure a secret, which a "${NAME}" placeholder would break.
+type standIns struct {
+	id    string
+	specs map[string]app.SecretSpec
+	// variables maps a value handed out to the variable it stands for.
+	variables map[string]string
+}
+
+func newStandIns(ap app.App) *standIns {
+	s := &standIns{id: ap.Info().ID, specs: map[string]app.SecretSpec{}, variables: map[string]string{}}
+	if declarer, ok := ap.(app.SecretDeclarer); ok {
+		for _, spec := range declarer.Secrets() {
+			s.specs[spec.Name] = spec
+		}
+	}
+	return s
+}
+
+func (s *standIns) value(name string) string {
+	variable := service.SecretKey(s.id, name)
+	length := otherLength
+	hexDigits := false
+	switch spec, declared := s.specs[name]; {
+	case name == "ADMIN_USER":
+		variable, length = name, adminUserLength
+	case name == "ADMIN_PASSWORD":
+		variable = name
+	case declared && spec.Length > 0:
+		length, hexDigits = spec.Length, spec.Hex
+	}
+	value := standInValue(s.id+"/"+variable, length, hexDigits)
+	s.variables[value] = variable
+	return value
+}
+
+func standInValue(seed string, length int, hexDigits bool) string {
+	alphabet := standInAlphabet
+	if hexDigits {
+		alphabet = hexAlphabet
+	}
+	out := make([]byte, 0, length)
+	for round := 0; len(out) < length; round++ {
+		sum := sha256.Sum256(fmt.Appendf(nil, "%s/%d", seed, round))
+		for _, b := range sum {
+			if len(out) == length {
+				break
+			}
+			out = append(out, alphabet[int(b)%len(alphabet)])
+		}
+	}
+	return string(out)
 }
 
 type block struct {
@@ -572,6 +682,11 @@ func writeSelfHost() error {
 			return err
 		}
 		apps = append(apps, entry)
+	}
+	for id := range extraNotes {
+		if _, found := cat.App(id); !found {
+			return fmt.Errorf("extraNotes names %q, which is not in the Catalog", id)
+		}
 	}
 	recipes := []selfHostRecipe{}
 	for _, r := range cat.Recipes() {
