@@ -1,0 +1,35 @@
+tools/sitegen/catalog.go
+  s_da1467ef11df92::t_8e9b02d85c3416 8,54,71
+tools/sitegen/icons.go
+  s_da1467ef11df92::t_ba18d83a2799e8 11-12,14-15,18-23,25,29-30,32-51,53-68,70-81,83,85-88,90-107,111-113,115
+tools/sitegen/stars.go
+  s_da1467ef11df92::t_57864b395da122 146-148,159-161,176
+tools/sitegen/theme.go
+  s_da1467ef11df92::t_c9bf9441b54a27 29
+tools/sitegen/write.go
+  s_6e28df53fda45d::t_8dc17cc33bbcd5 1-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "01f53295329d3353c5d3b8fe6a55eb8882d410b2",
+  "prompts": {},
+  "sessions": {
+    "s_6e28df53fda45d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f7bf7804-90e3-4a4c-bd35-0f9571525ee0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_da1467ef11df92": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "55461a27-c229-4d21-902a-96fe6ec2d7c9",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
