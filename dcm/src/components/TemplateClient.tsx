@@ -2,6 +2,7 @@ import { ModeToggle } from "@/components/ModeToggle"
 import Providers from "@/components/Providers"
 import ActionButtons from "@/components/compose-modal/ActionButtons"
 import PortConflictsAlert from "@/components/compose-modal/PortConflictsAlert"
+import SelfHostNotes from "@/components/compose-modal/SelfHostNotes"
 import {
   ComposeEditor,
   EnvEditor,
@@ -21,13 +22,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { useMode } from "@/hooks/use-mode"
 import { track } from "@/lib/analytics"
-import type { CatalogMode } from "@/lib/catalog"
-import { downloadFile } from "@/lib/docker-compose/file-operations"
 import {
-  generateComposeContent,
-  generateEnvFile,
-} from "@/lib/docker-compose/generators"
-import type { DockerTool } from "@/lib/docker-tools"
+  type CatalogEntry,
+  type CatalogMode,
+  selfHostRecipeId,
+} from "@/lib/catalog"
+import { buildExport } from "@/lib/export"
+import { downloadFile } from "@/lib/export/download"
 import { routes } from "@/lib/routes"
 import { useSettings } from "@/lib/settings-context"
 import type { Template } from "@/lib/templates"
@@ -41,44 +42,45 @@ import {
   Settings,
   Star,
 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { siDocker } from "simple-icons"
 
 interface TemplateClientProps {
   template: Template
-  templateTools: DockerTool[]
-  unavailableTools: { id: string }[]
-  initialContent: string
-  selfHostRecipeId?: string
+  templateEntries: CatalogEntry[]
   counts: Record<CatalogMode, number>
 }
 
 function TemplateView({
   template,
-  templateTools,
-  unavailableTools,
-  initialContent,
-  selfHostRecipeId,
+  templateEntries,
   counts,
 }: TemplateClientProps) {
   const [mode, setMode] = useMode()
-  const [content, setContent] = useState(initialContent)
-  const [envContent, setEnvContent] = useState("")
-  const { settings, isLoading } = useSettings()
+  const { settings } = useSettings()
   const [hasMounted, setHasMounted] = useState(false)
   const [activeTab, setActiveTab] = useState("services")
   const [interpolateEnv, setInterpolateEnv] = useState(true)
   const { copy, copied, reset } = useClipboard()
-  const [portConflicts, setPortConflicts] = useState<{
-    fixed: number
-    conflicts: string[]
-  } | null>(null)
+
+  const recipe = selfHostRecipeId(template)
+  const exported = useMemo(
+    () =>
+      buildExport(template.tools, { entries: templateEntries }, settings, {
+        recipe,
+      }),
+    [template, templateEntries, settings, recipe],
+  )
+  const content = interpolateEnv
+    ? exported.composeInterpolated
+    : exported.compose
+  const envContent = exported.env
+  const entryIds = exported.entries.map((entry) => entry.id)
 
   useEffect(() => {
     track({ name: "dcm_template_opened", id: template.id })
   }, [template.id])
 
-  const withoutYaml = templateTools.filter((tool) => !tool.composeContent)
   const composeEditorRef = useRef<MonacoEditorInstance | null>(null)
   const envEditorRef = useRef<MonacoEditorInstance | null>(null)
 
@@ -89,15 +91,11 @@ function TemplateView({
         ? composeEditorRef.current?.getValue() || content
         : envEditorRef.current?.getValue() || envContent
 
-    downloadFile(
-      contentToDownload,
-      activeTab as "compose" | "env",
-      templateTools,
-    )
+    downloadFile(contentToDownload, activeTab as "compose" | "env")
     track({
       name: "dcm_compose_downloaded",
-      count: templateTools.length,
-      ids: templateTools.map((tool) => tool.id),
+      count: entryIds.length,
+      ids: entryIds,
       file: activeTab as "compose" | "env",
     })
   }
@@ -127,22 +125,6 @@ function TemplateView({
   useEffect(() => {
     setHasMounted(true)
   }, [])
-
-  // Update content when settings change (from localStorage) or interpolation toggle changes
-  useEffect(() => {
-    if (!hasMounted || isLoading) return
-
-    // Generate content with user settings from localStorage
-    const { content: composeContent, portConflicts: conflicts } =
-      generateComposeContent(templateTools, settings, interpolateEnv)
-
-    setContent(composeContent)
-    setPortConflicts(conflicts)
-
-    // Generate env file
-    const envFileContent = generateEnvFile(templateTools, settings)
-    setEnvContent(envFileContent)
-  }, [templateTools, settings, isLoading, hasMounted, interpolateEnv])
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
@@ -200,16 +182,16 @@ function TemplateView({
                   variant="secondary"
                 >
                   <Info size={14} />
-                  {templateTools.length} tools included
+                  {exported.entries.length} tools included
                 </Badge>
 
-                {unavailableTools.length > 0 && (
+                {exported.unresolved.length > 0 && (
                   <Badge
                     className="flex items-center gap-1 text-amber-500 text-sm"
                     variant="outline"
                   >
                     <AlertTriangle size={14} />
-                    {unavailableTools.length} unavailable
+                    {exported.unresolved.length} unavailable
                   </Badge>
                 )}
 
@@ -221,23 +203,30 @@ function TemplateView({
                 </Badge>
               </div>
 
-              {selfHostRecipeId && (
+              {recipe && (
                 <div className="mt-4">
-                  <SelfHostCommand ids={[selfHostRecipeId]} prominent />
+                  <SelfHostCommand
+                    command={exported.selfHostCommand}
+                    ids={exported.selfHostIds}
+                    prominent
+                  />
                 </div>
               )}
 
-              {withoutYaml.length > 0 && (
+              {exported.installOnly.length > 0 && (
                 <p className="mt-3 text-muted-foreground text-sm">
-                  {withoutYaml.map((tool) => tool.name).join(", ")} ha
-                  {withoutYaml.length === 1 ? "s" : "ve"} no standalone Compose
-                  file, so {withoutYaml.length === 1 ? "it is" : "they are"}{" "}
+                  {exported.installOnly.map((tool) => tool.name).join(", ")} ha
+                  {exported.installOnly.length === 1 ? "s" : "ve"} no standalone
+                  Compose file, so{" "}
+                  {exported.installOnly.length === 1 ? "it is" : "they are"}{" "}
                   left out of the YAML. Install with self-host instead.
                 </p>
               )}
             </div>
           </div>
         </div>
+
+        <SelfHostNotes notes={exported.notes} />
 
         <Card className="mb-8 border shadow-xs">
           <Tabs
@@ -287,7 +276,7 @@ function TemplateView({
             <CardContent className="pt-6">
               <TabsContent value="services" className="mt-0">
                 <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                  {templateTools.map((tool) => (
+                  {exported.entries.map((tool) => (
                     <div
                       key={tool.id}
                       className="flex flex-col items-start gap-4 rounded-md border bg-card p-4 shadow-xs transition-colors hover:bg-accent/10 sm:flex-row sm:items-center"
@@ -348,21 +337,19 @@ function TemplateView({
                   ))}
                 </div>
 
-                {unavailableTools.length > 0 && (
+                {exported.unresolved.length > 0 && (
                   <div className="mt-8">
                     <h3 className="mb-4 font-medium text-lg">
                       Unavailable Services
                     </h3>
                     <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                      {unavailableTools.map((tool) => (
+                      {exported.unresolved.map((id) => (
                         <div
-                          key={tool.id}
+                          key={id}
                           className="flex items-center gap-3 rounded-md border bg-muted/30 p-4 shadow-xs"
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="truncate font-medium">
-                              {tool.id}
-                            </div>
+                            <div className="truncate font-medium">{id}</div>
                             <div className="line-clamp-2 text-muted-foreground text-sm">
                               This service is currently unavailable
                             </div>
@@ -375,9 +362,7 @@ function TemplateView({
               </TabsContent>
 
               <TabsContent value="compose" className="mt-0">
-                {portConflicts && (
-                  <PortConflictsAlert portConflicts={portConflicts} />
-                )}
+                <PortConflictsAlert changes={exported.portChanges} />
 
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -403,7 +388,7 @@ function TemplateView({
 
                 <div className="h-[750px] w-full rounded-md border bg-card shadow-xs">
                   <ComposeEditor
-                    value={content}
+                    content={content}
                     onMount={handleComposeEditorDidMount}
                     beforeMount={handleBeforeMount}
                     theme={currentTheme}
@@ -427,7 +412,7 @@ function TemplateView({
 
                 <div className="h-[750px] w-full rounded-md border bg-card shadow-xs">
                   <EnvEditor
-                    value={envContent}
+                    content={envContent}
                     onMount={handleEnvEditorDidMount}
                     beforeMount={handleBeforeMount}
                     theme={currentTheme}

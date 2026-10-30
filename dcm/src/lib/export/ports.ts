@@ -1,3 +1,5 @@
+import type { PortChange } from "./types"
+
 const TOP_LEVEL_KEY = /^([A-Za-z0-9_-]+):\s*$/
 const SERVICE_KEY = /^ {2}([^\s#][^:]*):\s*(?:#.*)?$/
 const SERVICE_PROPERTY = /^ {4}([A-Za-z0-9_-]+):/
@@ -48,15 +50,14 @@ function rewriteEnvironmentPort(
     .join("\n")
 }
 
-export function detectAndFixPortConflicts(content: string): {
-  fixedContent: string
-  conflicts: { fixed: number; conflicts: string[] } | null
+export function fixPortConflicts(content: string): {
+  content: string
+  changes: PortChange[]
 } {
   const portMappingRegex = /- ["']?(\d+):(\d+)["']?/g
 
   const externalPorts: Record<string, Set<string>> = {}
-  const conflicts: string[] = []
-  let fixedCount = 0
+  const changes: PortChange[] = []
 
   let result = content.slice()
 
@@ -67,7 +68,7 @@ export function detectAndFixPortConflicts(content: string): {
     const externalPort = portMatch[1]
     allocatedPorts.add(externalPort)
 
-    let serviceContext = content.substring(0, portMatch.index!)
+    let serviceContext = content.substring(0, portMatch.index)
     const lastServicesSectionIndex = serviceContext.lastIndexOf("services:")
     if (lastServicesSectionIndex >= 0) {
       serviceContext = serviceContext.substring(lastServicesSectionIndex)
@@ -77,7 +78,6 @@ export function detectAndFixPortConflicts(content: string): {
     let serviceName = "unknown"
 
     for (let i = serviceLines.length - 1; i >= 0; i--) {
-      const line = serviceLines[i].trim()
       const serviceNameMatch = serviceLines[i].match(
         /^\s{2}([a-zA-Z0-9_-]+):\s*(?:#.*)?$/,
       )
@@ -93,52 +93,45 @@ export function detectAndFixPortConflicts(content: string): {
     externalPorts[externalPort].add(serviceName)
   }
 
-  Object.entries(externalPorts).forEach(([port, servicesSet]) => {
+  for (const [port, servicesSet] of Object.entries(externalPorts)) {
     const services = Array.from(servicesSet)
-    if (services.length > 1) {
-      const keptService = services[0]
+    if (services.length < 2) continue
 
-      conflicts.push(`Port ${port} was used by: ${services.join(", ")}`)
+    const keptService = services[0]
 
-      for (let i = 1; i < services.length; i++) {
-        const serviceToFix = services[i]
+    for (const serviceToFix of services.slice(1)) {
+      const servicePortRegex = new RegExp(
+        `(\\s{2}${serviceToFix}:[\\s\\S]*?ports:[\\s\\S]*?- ["']?)(${port})(:(?:\\d+)["']?)`,
+        "gm",
+      )
 
-        const servicePortRegex = new RegExp(
-          `(\\s{2}${serviceToFix}:[\\s\\S]*?ports:[\\s\\S]*?- ["']?)(${port})(:(?:\\d+)["']?)`,
-          "gm",
-        )
-
-        let match: RegExpExecArray | null
-        while ((match = servicePortRegex.exec(result)) !== null) {
-          let newPort = Number(port) + 1
-          while (allocatedPorts.has(String(newPort))) {
-            newPort++
-          }
-
-          allocatedPorts.add(String(newPort))
-
-          const replacement = `${match[1]}${newPort}${match[3]}`
-
-          conflicts[conflicts.length - 1] +=
-            `\n  → Changed ${serviceToFix}: ${port} → ${newPort}`
-
-          result =
-            result.substring(0, match.index) +
-            replacement +
-            result.substring(match.index + match[0].length)
-
-          result = rewriteEnvironmentPort(result, serviceToFix, port, newPort)
-
-          fixedCount++
-
-          servicePortRegex.lastIndex = 0
+      let match: RegExpExecArray | null = servicePortRegex.exec(result)
+      while (match !== null) {
+        let newPort = Number(port) + 1
+        while (allocatedPorts.has(String(newPort))) {
+          newPort++
         }
+
+        allocatedPorts.add(String(newPort))
+
+        changes.push({
+          service: serviceToFix,
+          keptBy: keptService,
+          from: Number(port),
+          to: newPort,
+        })
+
+        const head = result.substring(0, match.index)
+        const tail = result.substring(match.index + match[0].length)
+        result = `${head}${match[1]}${newPort}${match[3]}${tail}`
+
+        result = rewriteEnvironmentPort(result, serviceToFix, port, newPort)
+
+        servicePortRegex.lastIndex = 0
+        match = servicePortRegex.exec(result)
       }
     }
-  })
-
-  return {
-    fixedContent: result,
-    conflicts: conflicts.length > 0 ? { fixed: fixedCount, conflicts } : null,
   }
+
+  return { content: result, changes }
 }

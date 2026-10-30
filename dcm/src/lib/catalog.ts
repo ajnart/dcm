@@ -1,5 +1,5 @@
-import { serviceNames } from "@/lib/docker-compose/services"
 import type { DockerTool } from "@/lib/docker-tools"
+import { serviceNames } from "@/lib/export/services"
 import {
   type SelfHostApp,
   type SelfHostEnvVar,
@@ -15,6 +15,7 @@ export type CatalogMode = "self-host" | "all"
 export const CATALOG_MODES: CatalogMode[] = ["self-host", "all"]
 export const DEFAULT_MODE: CatalogMode = "self-host"
 export const RECIPE_CATEGORY = "self-host Recipe"
+const RECIPE_PREFIX = "recipe-"
 
 export function parseMode(value: string | null | undefined): CatalogMode {
   return value === "all" || value === "self-host" ? value : DEFAULT_MODE
@@ -98,7 +99,7 @@ function recipeTemplates(entries: CatalogEntry[]): Template[] {
     ),
   )
   return selfHostRecipes.map((recipe) => ({
-    id: `recipe-${recipe.id}`,
+    id: `${RECIPE_PREFIX}${recipe.id}`,
     name: recipe.name,
     description: recipe.description,
     category: RECIPE_CATEGORY,
@@ -164,39 +165,6 @@ export function partitionSelection(
   }
 }
 
-export function canGenerateYaml(entry: CatalogEntry): boolean {
-  return Boolean(entry.composeContent) && !entry.isUnsupported
-}
-
-export interface ResolvedSelection {
-  entries: CatalogEntry[]
-  yamlTools: CatalogEntry[]
-  yamlMissing: CatalogEntry[]
-}
-
-export function resolveSelection(
-  ids: string[],
-  catalog: Catalog,
-): ResolvedSelection {
-  const entryById = new Map(catalog.entries.map((entry) => [entry.id, entry]))
-  const entries = ids.flatMap((id) => entryById.get(id) ?? [])
-  return {
-    entries,
-    yamlTools: entries.filter(canGenerateYaml),
-    yamlMissing: entries.filter((entry) => !canGenerateYaml(entry)),
-  }
-}
-
-export function toSelfHostIds(ids: string[], catalog: Catalog): string[] {
-  const entryById = new Map(catalog.entries.map((entry) => [entry.id, entry]))
-  const result = new Set<string>()
-  for (const id of ids) {
-    const selfhostId = entryById.get(id)?.selfhostId
-    if (selfhostId) result.add(selfhostId)
-  }
-  return [...result]
-}
-
 export function allTemplates(
   catalog: Catalog,
   dcmTemplates: Template[],
@@ -204,4 +172,9 @@ export function allTemplates(
 ): Template[] {
   if (mode === "self-host") return catalog.recipes
   return [...catalog.recipes, ...dcmTemplates]
+}
+
+export function selfHostRecipeId(template: Template): string | undefined {
+  if (!template.id.startsWith(RECIPE_PREFIX)) return undefined
+  return template.id.slice(RECIPE_PREFIX.length)
 }

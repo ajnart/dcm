@@ -5,8 +5,6 @@ import { siDocker } from "simple-icons"
 import SettingsForm from "@/components/settings/SettingsForm"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { track } from "@/lib/analytics"
-import type { CatalogEntry } from "@/lib/catalog"
-import { useSettings } from "@/lib/settings-context"
 
 import {
   AlertDialog,
@@ -29,11 +27,8 @@ import {
   type MonacoEditorInstance,
   configureMonacoThemes,
 } from "@/components/editors/MonacoEditor"
-import { downloadFile } from "@/lib/docker-compose/file-operations"
-import {
-  generateComposeContent,
-  generateEnvFile,
-} from "@/lib/docker-compose/generators"
+import type { ExportResult } from "@/lib/export"
+import { downloadFile } from "@/lib/export/download"
 import ActionButtons from "./ActionButtons"
 import PortConflictsAlert from "./PortConflictsAlert"
 import SelfHostCallout from "./SelfHostCallout"
@@ -42,53 +37,31 @@ import SelfHostNotes from "./SelfHostNotes"
 interface CopyComposeModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  selectedTools: CatalogEntry[]
-  yamlMissing: CatalogEntry[]
-  selfHostIds: string[]
+  exported: ExportResult
 }
 
 export function CopyComposeModal({
   isOpen,
   onOpenChange,
-  selectedTools,
-  yamlMissing,
-  selfHostIds,
+  exported,
 }: CopyComposeModalProps) {
   const [showInterpolated, setShowInterpolated] = useState(false)
-  const [composeContent, setComposeContent] = useState<string>("")
-  const [envFileContent, setEnvFileContent] = useState<string>("")
   const [activeTab, setActiveTab] = useState<string>("compose")
   const { copy, copied, reset } = useClipboard()
   const [mounted, setMounted] = useState(false)
-  const [portConflicts, setPortConflicts] = useState<{
-    fixed: number
-    conflicts: string[]
-  } | null>(null)
 
   const composeEditorRef = useRef<MonacoEditorInstance | null>(null)
   const envEditorRef = useRef<MonacoEditorInstance | null>(null)
 
-  const { settings } = useSettings()
+  const composeContent = showInterpolated
+    ? exported.composeInterpolated
+    : exported.compose
+  const envFileContent = exported.env
+  const composedIds = exported.composable.map((entry) => entry.id)
 
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  useEffect(() => {
-    if (!isOpen) return
-
-    const envContent = generateEnvFile(selectedTools, settings)
-    setEnvFileContent(envContent)
-
-    const { content, portConflicts } = generateComposeContent(
-      selectedTools,
-      settings,
-      showInterpolated,
-    )
-
-    setComposeContent(content)
-    setPortConflicts(portConflicts)
-  }, [isOpen, selectedTools, settings, showInterpolated])
 
   useEffect(() => {
     reset()
@@ -104,8 +77,8 @@ export function CopyComposeModal({
     if (ok)
       track({
         name: "dcm_compose_copied",
-        count: selectedTools.length,
-        ids: selectedTools.map((tool) => tool.id),
+        count: composedIds.length,
+        ids: composedIds,
         file: activeTab as "compose" | "env",
       })
   }
@@ -116,11 +89,11 @@ export function CopyComposeModal({
         ? composeEditorRef.current?.getValue() || composeContent
         : envEditorRef.current?.getValue() || envFileContent
 
-    downloadFile(content, activeTab as "compose" | "env", selectedTools)
+    downloadFile(content, activeTab as "compose" | "env")
     track({
       name: "dcm_compose_downloaded",
-      count: selectedTools.length,
-      ids: selectedTools.map((tool) => tool.id),
+      count: composedIds.length,
+      ids: composedIds,
       file: activeTab as "compose" | "env",
     })
   }
@@ -142,8 +115,8 @@ export function CopyComposeModal({
           <div>
             <AlertDialogTitle>Docker Compose Configuration</AlertDialogTitle>
             <AlertDialogDescription>
-              Generated docker-compose files for {selectedTools.length} selected
-              service{selectedTools.length !== 1 ? "s" : ""}.
+              Generated docker-compose files for {composedIds.length} selected
+              service{composedIds.length !== 1 ? "s" : ""}.
             </AlertDialogDescription>
           </div>
           <div className="flex items-center gap-4">
@@ -161,11 +134,9 @@ export function CopyComposeModal({
         </AlertDialogHeader>
 
         <div className="flex-1">
-          {portConflicts && (
-            <PortConflictsAlert portConflicts={portConflicts} />
-          )}
+          <PortConflictsAlert changes={exported.portChanges} />
 
-          <SelfHostNotes notes={[...selectedTools, ...yamlMissing]} />
+          <SelfHostNotes notes={exported.notes} />
 
           <Tabs
             className="w-full"
@@ -240,7 +211,11 @@ export function CopyComposeModal({
         </div>
 
         <AlertDialogFooter className="mt-4 sm:items-center">
-          <SelfHostCallout ids={selfHostIds} yamlMissing={yamlMissing} />
+          <SelfHostCallout
+            command={exported.selfHostCommand}
+            ids={exported.selfHostIds}
+            installOnly={exported.installOnly}
+          />
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={onOpenChange.bind(null, false)}>
             Done

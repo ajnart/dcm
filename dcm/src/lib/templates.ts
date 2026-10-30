@@ -1,4 +1,3 @@
-import type { DockerTool } from "./docker-tools"
 import { TemplateCategory } from "./template-categories"
 import { templateDefinitions } from "./template-definitions"
 
@@ -12,13 +11,13 @@ export interface Template {
 }
 
 // Helper function to find tools by their IDs
-export function getToolsFromTemplate(
+export function getToolsFromTemplate<T extends { id: string }>(
   template: Template,
-  allTools: DockerTool[],
-): DockerTool[] {
+  allTools: T[],
+): T[] {
   return template.tools
     .map((toolId) => allTools.find((tool) => tool.id === toolId))
-    .filter((tool): tool is DockerTool => tool !== undefined)
+    .filter((tool): tool is T => tool !== undefined)
 }
 
 // Export TemplateCategory for backward compatibility

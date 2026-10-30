@@ -1,4 +1,3 @@
-import type { DockerSettings } from "@/components/settings-panel"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -8,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import type { DockerSettings } from "@/lib/settings"
 import { Fragment } from "react"
 
 interface EnvironmentVariablesSectionProps {

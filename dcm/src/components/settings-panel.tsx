@@ -15,18 +15,6 @@ interface SettingsPanelProps {
   onSavingChange?: (saving: boolean) => void
 }
 
-export interface DockerSettings {
-  configPath: string
-  dataPath: string
-  timezone: string
-  puid: string
-  pgid: string
-  umask: string
-  restartPolicy: string
-  networkMode: string
-  containerNamePrefix: string
-}
-
 export default function SettingsPanel({
   isEmbedded = false,
   className = "",

@@ -1,116 +1,7 @@
-import type { DockerSettings } from "@/components/settings-panel"
-import type { DockerTool } from "@/lib/docker-tools"
-import type { SelfHostEnvVar } from "@/lib/selfhost"
-import { detectAndFixPortConflicts } from "./port-conflicts"
+import type { CatalogEntry } from "@/lib/catalog"
+import type { DockerSettings } from "@/lib/settings"
 import { type ServiceBlock, splitServiceBlocks } from "./services"
-
-type ComposeSource = DockerTool & { env?: SelfHostEnvVar[] }
-
-const SECRET_PLACEHOLDER = "change-me"
-
-const VARIABLE_REFERENCE =
-  /(?<!\$)\$\{([A-Za-z_][A-Za-z0-9_]*)(:?[-+?=][^}]*)?\}/g
-
-function hasKey(content: string, key: string): boolean {
-  return new RegExp(`^${key}=`, "m").test(content)
-}
-
-function requiredVariables(content: string): string[] {
-  const names = new Set<string>()
-  for (const line of content.split("\n")) {
-    if (line.trim().startsWith("#")) continue
-    for (const match of line.matchAll(VARIABLE_REFERENCE)) {
-      const operator = match[2]?.replace(/^:/, "")[0]
-      if (!operator || operator === "?") names.add(match[1])
-    }
-  }
-  return [...names]
-}
-
-function selfHostEnvBlock(tool: ComposeSource, existing: string): string {
-  const missing = (tool.env ?? []).filter(
-    (variable) => !hasKey(existing, variable.key),
-  )
-  if (missing.length === 0) return ""
-  const lines = missing.flatMap((variable) => {
-    const note = variable.description ? [`# ${variable.description}`] : []
-    if (variable.secret) {
-      return [
-        ...note,
-        "# Secret: replace before starting",
-        `${variable.key}=${SECRET_PLACEHOLDER}`,
-      ]
-    }
-    return [...note, `${variable.key}=${variable.default}`]
-  })
-  return `\n# ${tool.name} specific environment variables\n${lines.join("\n")}\n`
-}
-
-function generateEnvFileContent(settings: DockerSettings): string {
-  return `# Docker Compose Environment Variables
-# These can be overridden by setting them in your shell or in a .env file
-
-# User/Group Identifiers
-# These help avoid permission issues between host and container
-PUID=${settings.puid}
-PGID=${settings.pgid}
-UMASK=${settings.umask}
-
-# Container name prefix
-CONTAINER_PREFIX=${settings.containerNamePrefix}
-
-# Paths for persistent data
-CONFIG_PATH=${settings.configPath}
-DATA_PATH=${settings.dataPath}
-
-# Container settings
-TZ=${settings.timezone}
-RESTART_POLICY=${settings.restartPolicy}
-NETWORK_MODE=${settings.networkMode}
-`
-}
-
-function composeEnvBlock(tool: ComposeSource, existing: string): string {
-  const content = tool.composeContent ?? ""
-  const lines: string[] = []
-  const has = (key: string) =>
-    hasKey(existing, key) || lines.some((line) => line.startsWith(`${key}=`))
-
-  if (/environment:(?:\s*-\s*([A-Z0-9_]+)=.+)+/ms.test(content)) {
-    for (const match of content.matchAll(/^\s*-\s*([A-Z0-9_]+)=(.+)$/gm)) {
-      const value = match[2].trim().replace(/^(["'])(.*)\1$/, "$2")
-      if (value.includes("${") || has(match[1])) continue
-      lines.push(`${match[1]}=${value}`)
-    }
-  }
-
-  const required = requiredVariables(content).filter((name) => !has(name))
-  if (required.length > 0) {
-    lines.push(
-      "# Required: set a value before starting",
-      ...required.map((name) => `${name}=`),
-    )
-  }
-
-  if (lines.length === 0) return ""
-  return `\n# ${tool.name} specific environment variables\n${lines.join("\n")}\n`
-}
-
-export function generateEnvFile(
-  selectedTools: ComposeSource[],
-  settings: DockerSettings,
-): string {
-  let envContent = generateEnvFileContent(settings)
-
-  for (const tool of selectedTools) {
-    if (!tool.composeContent) continue
-    envContent += tool.verbatim
-      ? selfHostEnvBlock(tool, envContent)
-      : composeEnvBlock(tool, envContent)
-  }
-
-  return envContent
-}
+import type { SkippedService } from "./types"
 
 const COMPOSE_HEADER = `#  ____   ____ __  __ 
 # |  _ \\ / ___|  \\/  |
@@ -120,7 +11,29 @@ const COMPOSE_HEADER = `#  ____   ____ __  __
 #
 `
 
-type Sections = Map<string, Map<string, string[]>>
+type TopLevelBlocks = Map<string, string[]>
+
+interface PreparedTool {
+  tool: CatalogEntry
+  blocks: ServiceBlock[]
+  topLevel: TopLevelBlocks
+}
+
+export type PlacedTool =
+  | {
+      kind: "emitted"
+      tool: CatalogEntry
+      kept: ServiceBlock[]
+      skipped: SkippedService[]
+      topLevel: TopLevelBlocks
+    }
+  | { kind: "duplicate"; tool: CatalogEntry; skipped: SkippedService[] }
+
+export type EmittedTool = Extract<PlacedTool, { kind: "emitted" }>
+
+export function keptContent(placed: EmittedTool): string {
+  return placed.kept.flatMap((block) => block.lines).join("\n")
+}
 
 function reindentServices(content: string): string {
   const lines = content.replace(/^services:\s*/gm, "").split("\n")
@@ -161,6 +74,110 @@ function reindentServices(content: string): string {
     .join("\n")
 }
 
+function splitVerbatim(content: string): {
+  services: string
+  topLevel: TopLevelBlocks
+} {
+  const serviceLines: string[] = []
+  let current: string | undefined
+  const topLevel: TopLevelBlocks = new Map()
+
+  for (const line of content.split("\n")) {
+    const header = line.match(/^([A-Za-z0-9_-]+):\s*$/)
+    if (header) {
+      current = header[1]
+      continue
+    }
+    if (current === "services") serviceLines.push(line)
+    else if (current) {
+      topLevel.set(current, [...(topLevel.get(current) ?? []), line])
+    }
+  }
+
+  return { services: serviceLines.join("\n").trimEnd(), topLevel }
+}
+
+function prepare(tool: CatalogEntry): PreparedTool[] {
+  if (!tool.composeContent) return []
+  if (tool.verbatim) {
+    const { services, topLevel } = splitVerbatim(tool.composeContent)
+    return [{ tool, blocks: splitServiceBlocks(services), topLevel }]
+  }
+  return [
+    {
+      tool,
+      blocks: splitServiceBlocks(reindentServices(tool.composeContent)),
+      topLevel: new Map(),
+    },
+  ]
+}
+
+interface Claim {
+  prepared: PreparedTool
+  kept: ServiceBlock[]
+  skipped: SkippedService[]
+}
+
+function place({ prepared, kept, skipped }: Claim): PlacedTool {
+  if (kept.length === 0)
+    return { kind: "duplicate", tool: prepared.tool, skipped }
+  return {
+    kind: "emitted",
+    tool: prepared.tool,
+    kept,
+    skipped,
+    topLevel: prepared.topLevel,
+  }
+}
+
+function claimServices(prepared: PreparedTool[]): PlacedTool[] {
+  const claims: Claim[] = prepared.map((item) => ({
+    prepared: item,
+    kept: [],
+    skipped: [],
+  }))
+  const verbatimFirst = [
+    ...claims.filter((claim) => claim.prepared.tool.verbatim),
+    ...claims.filter((claim) => !claim.prepared.tool.verbatim),
+  ]
+  const owners = new Map<string, string>()
+
+  for (const claim of verbatimFirst) {
+    for (const block of claim.prepared.blocks) {
+      const keys = [`service:${block.name}`]
+      if (block.containerName) keys.push(`container:${block.containerName}`)
+      const owner = keys.map((key) => owners.get(key)).find(Boolean)
+      if (owner) {
+        claim.skipped.push({ service: block.name, providedBy: owner })
+        continue
+      }
+      claim.kept.push(block)
+      for (const key of keys) owners.set(key, claim.prepared.tool.name)
+    }
+  }
+
+  return claims.map(place)
+}
+
+export function placeTools(tools: CatalogEntry[]): PlacedTool[] {
+  return claimServices(tools.flatMap(prepare))
+}
+
+export function interpolate(content: string, settings: DockerSettings): string {
+  return content
+    .replace(/\$\{CONFIG_PATH\}/g, settings.configPath)
+    .replace(/\$\{DATA_PATH\}/g, settings.dataPath)
+    .replace(/\$\{TZ\}/g, settings.timezone)
+    .replace(/\$\{PUID\}/g, settings.puid)
+    .replace(/\$\{PGID\}/g, settings.pgid)
+    .replace(/\$\{UMASK\}/g, settings.umask)
+    .replace(/\$\{RESTART_POLICY\}/g, settings.restartPolicy)
+    .replace(/\$\{NETWORK_MODE\}/g, settings.networkMode)
+    .replace(/\$\{CONTAINER_PREFIX\}/g, settings.containerNamePrefix)
+}
+
+type Sections = Map<string, Map<string, string[]>>
+
 function addSection(sections: Sections, name: string, lines: string[]) {
   const blocks = sections.get(name) ?? new Map<string, string[]>()
   sections.set(name, blocks)
@@ -177,38 +194,6 @@ function addSection(sections: Sections, name: string, lines: string[]) {
   }
 }
 
-function splitVerbatim(content: string, sections: Sections): string {
-  const serviceLines: string[] = []
-  let current: string | undefined
-  const other = new Map<string, string[]>()
-
-  for (const line of content.split("\n")) {
-    const header = line.match(/^([A-Za-z0-9_-]+):\s*$/)
-    if (header) {
-      current = header[1]
-      continue
-    }
-    if (current === "services") serviceLines.push(line)
-    else if (current) other.set(current, [...(other.get(current) ?? []), line])
-  }
-
-  other.forEach((lines, name) => addSection(sections, name, lines))
-  return serviceLines.join("\n").trimEnd()
-}
-
-function interpolate(content: string, settings: DockerSettings): string {
-  return content
-    .replace(/\$\{CONFIG_PATH\}/g, settings.configPath)
-    .replace(/\$\{DATA_PATH\}/g, settings.dataPath)
-    .replace(/\$\{TZ\}/g, settings.timezone)
-    .replace(/\$\{PUID\}/g, settings.puid)
-    .replace(/\$\{PGID\}/g, settings.pgid)
-    .replace(/\$\{UMASK\}/g, settings.umask)
-    .replace(/\$\{RESTART_POLICY\}/g, settings.restartPolicy)
-    .replace(/\$\{NETWORK_MODE\}/g, settings.networkMode)
-    .replace(/\$\{CONTAINER_PREFIX\}/g, settings.containerNamePrefix)
-}
-
 function renderSections(sections: Sections): string {
   let output = ""
   sections.forEach((blocks, name) => {
@@ -219,81 +204,26 @@ function renderSections(sections: Sections): string {
   return output
 }
 
-interface PreparedTool {
-  tool: DockerTool
-  blocks: ServiceBlock[]
-  skipped: Map<ServiceBlock, string>
-}
-
-function claimServices(prepared: PreparedTool[]) {
-  const owners = new Map<string, string>()
-  const ordered = [
-    ...prepared.filter((item) => item.tool.verbatim),
-    ...prepared.filter((item) => !item.tool.verbatim),
-  ]
-  for (const item of ordered) {
-    for (const block of item.blocks) {
-      const keys = [`service:${block.name}`]
-      if (block.containerName) keys.push(`container:${block.containerName}`)
-      const owner = keys.map((key) => owners.get(key)).find(Boolean)
-      if (owner) {
-        item.skipped.set(block, owner)
-        continue
-      }
-      for (const key of keys) owners.set(key, item.tool.name)
-    }
-  }
-}
-
-export function generateComposeContent(
-  selectedTools: DockerTool[],
-  settings: DockerSettings,
-  showInterpolated: boolean,
-): {
-  content: string
-  portConflicts: { fixed: number; conflicts: string[] } | null
-} {
+export function renderCompose(
+  placed: PlacedTool[],
+  transform: (services: string) => string,
+): string {
   const sections: Sections = new Map()
+  let services = "services:\n"
 
-  const prepared: PreparedTool[] = selectedTools.flatMap((tool) => {
-    if (!tool.composeContent) return []
-    let body = tool.verbatim
-      ? splitVerbatim(tool.composeContent, sections)
-      : reindentServices(tool.composeContent)
-    if (showInterpolated) body = interpolate(body, settings)
-    return [{ tool, blocks: splitServiceBlocks(body), skipped: new Map() }]
-  })
-
-  claimServices(prepared)
-
-  let servicesSection = `services:
-`
-  for (const { tool, blocks, skipped } of prepared) {
-    const kept = blocks.filter((block) => !skipped.has(block))
-    if (kept.length === 0) {
-      const owners = new Set(skipped.values())
-      servicesSection += `
-  # ${tool.name} skipped: already provided by ${[...owners].join(", ")}
-`
+  for (const entry of placed) {
+    if (entry.kind === "duplicate") {
+      const owners = new Set(entry.skipped.map((skip) => skip.providedBy))
+      services += `\n  # ${entry.tool.name} skipped: already provided by ${[...owners].join(", ")}\n`
       continue
     }
-    servicesSection += `
-  # ${tool.name}: ${tool.description}
-`
-    const body = kept.flatMap((block) => block.lines).join("\n")
-    servicesSection += `${body}\n`
-    for (const [block, owner] of skipped) {
-      servicesSection += `  # ${block.name} skipped: already provided by ${owner}\n`
+    services += `\n  # ${entry.tool.name}: ${entry.tool.description}\n`
+    services += `${transform(keptContent(entry))}\n`
+    for (const skip of entry.skipped) {
+      services += `  # ${skip.service} skipped: already provided by ${skip.providedBy}\n`
     }
+    entry.topLevel.forEach((lines, name) => addSection(sections, name, lines))
   }
 
-  const completeCompose = COMPOSE_HEADER + servicesSection
-  const withSections = completeCompose + renderSections(sections)
-
-  const { fixedContent, conflicts } = detectAndFixPortConflicts(withSections)
-
-  return {
-    content: fixedContent,
-    portConflicts: conflicts,
-  }
+  return COMPOSE_HEADER + services + renderSections(sections)
 }

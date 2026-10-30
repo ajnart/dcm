@@ -5,14 +5,10 @@ import { SelfHostCommand } from "@/components/selfhost-command"
 import { Button } from "@/components/ui/button"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { track } from "@/lib/analytics"
-import {
-  type Catalog,
-  type CatalogEntry,
-  type CatalogMode,
-  resolveSelection,
-  toSelfHostIds,
-} from "@/lib/catalog"
+import type { Catalog, CatalogEntry, CatalogMode } from "@/lib/catalog"
+import { buildExport } from "@/lib/export"
 import { buildSelfHostLink } from "@/lib/selfhost"
+import { useSettings } from "@/lib/settings-context"
 import { generateShareUrl } from "@/lib/url-utils"
 import { cn } from "@/lib/utils"
 import { ExternalLink, RefreshCw, Search, Share2 } from "lucide-react"
@@ -56,9 +52,12 @@ export default function FloatingBar({
   const [isResetActive, setIsResetActive] = useState(false)
   const { copy, copied } = useClipboard()
 
-  const resolved = useMemo(() => resolveSelection(ids, catalog), [ids, catalog])
-  const selfHostIds = useMemo(() => toSelfHostIds(ids, catalog), [ids, catalog])
-  const selectedCount = resolved.entries.length
+  const { settings } = useSettings()
+  const exported = useMemo(
+    () => buildExport(ids, catalog, settings),
+    [ids, catalog, settings],
+  )
+  const selectedCount = exported.entries.length
   const selfHostMode = mode === "self-host"
 
   useEffect(() => {
@@ -130,9 +129,13 @@ export default function FloatingBar({
         selfHostMode ? "mb-4 border-b pb-4" : "mt-4 border-t pt-3",
       )}
     >
-      <SelfHostCommand ids={selfHostIds} prominent={selfHostMode} />
+      <SelfHostCommand
+        command={exported.selfHostCommand}
+        ids={exported.selfHostIds}
+        prominent={selfHostMode}
+      />
       <a
-        href={buildSelfHostLink(selfHostIds)}
+        href={buildSelfHostLink(exported.selfHostIds)}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 transition-colors hover:text-accent-text hover:underline"
@@ -154,9 +157,7 @@ export default function FloatingBar({
           <CopyComposeModal
             isOpen={isCopyDialogOpen}
             onOpenChange={setIsCopyDialogOpen}
-            selectedTools={resolved.yamlTools}
-            yamlMissing={resolved.yamlMissing}
-            selfHostIds={selfHostIds}
+            exported={exported}
           />
         </Suspense>
       )}
@@ -201,7 +202,7 @@ export default function FloatingBar({
                 {selectedCount > 0 && (
                   <div className="flex max-w-full flex-wrap gap-1.5 sm:max-w-[600px]">
                     <ServiceCircles
-                      selectedServices={resolved.entries}
+                      selectedServices={exported.entries}
                       spacing="-space-x-1 xs:-space-x-2 sm:-space-x-4"
                       onToggleServiceSelection={onToggle}
                       className="mt-1"
@@ -268,7 +269,7 @@ export default function FloatingBar({
               </div>
               <Button
                 variant={selfHostMode ? "outline" : "default"}
-                disabled={resolved.yamlTools.length === 0}
+                disabled={exported.composable.length === 0}
                 className="xs:w-auto font-semibold"
                 onClick={handleCopyCompose}
               >
@@ -277,7 +278,7 @@ export default function FloatingBar({
             </div>
           </div>
 
-          {!selfHostMode && selfHostIds.length > 0 && commandRow}
+          {!selfHostMode && exported.selfHostIds.length > 0 && commandRow}
         </div>
       </div>
     </>

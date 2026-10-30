@@ -10,32 +10,29 @@ import {
 } from "@/components/ui/dialog"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { track } from "@/lib/analytics"
-import {
-  SELFHOST_INSTALL,
-  SELFHOST_URL,
-  buildSelfHostCommand,
-} from "@/lib/selfhost"
+import { SELFHOST_INSTALL, SELFHOST_URL } from "@/lib/selfhost"
 import { cn } from "@/lib/utils"
 import { Check, CircleHelp, Copy, ExternalLink } from "lucide-react"
 import { useRef } from "react"
 
 interface SelfHostCommandProps {
+  command: string | null
   ids: string[]
   prominent?: boolean
 }
 
 export function SelfHostCommand({
+  command,
   ids,
   prominent = false,
 }: SelfHostCommandProps) {
   const { copy, copied } = useClipboard()
   const indicatorRef = useRef<HTMLSpanElement>(null)
-  const empty = ids.length === 0
-  const command = empty
-    ? "self-host install <apps…>"
-    : buildSelfHostCommand(ids)
+  const empty = command === null
+  const shown = command ?? "self-host install <apps…>"
 
   const handleCopy = async () => {
+    if (command === null) return
     const ok = await copy(command, indicatorRef.current ?? undefined)
     if (ok)
       track({
@@ -59,7 +56,7 @@ export function SelfHostCommand({
         )}
       >
         <span className="text-accent-text">$</span>
-        <span className="truncate">{command}</span>
+        <span className="truncate">{shown}</span>
         <span ref={indicatorRef} className="flex shrink-0 items-center">
           {copied ? (
             <span

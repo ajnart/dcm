@@ -1,12 +1,11 @@
-import type { DockerTool } from "@/lib/docker-tools"
 import { toast } from "sonner"
+import { EXPORT_FILENAMES } from "./types"
 
 export function downloadFile(
   content: string,
-  fileType: "compose" | "env",
-  selectedTools: DockerTool[],
+  fileType: keyof typeof EXPORT_FILENAMES,
 ): void {
-  const filename = fileType === "compose" ? "docker-compose.yaml" : ".env"
+  const filename = EXPORT_FILENAMES[fileType]
 
   try {
     const blob = new Blob([content], { type: "text/plain" })

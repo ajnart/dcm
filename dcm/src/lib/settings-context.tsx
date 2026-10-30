@@ -1,5 +1,5 @@
-import type { DockerSettings } from "@/components/settings-panel"
-import { DEFAULT_SETTINGS, STORAGE_KEYS } from "@/lib/constants"
+import { STORAGE_KEYS } from "@/lib/constants"
+import { DEFAULT_SETTINGS, type DockerSettings } from "@/lib/settings"
 import { createContext, useContext, useEffect, useState } from "react"
 
 type SettingsContextType = {
