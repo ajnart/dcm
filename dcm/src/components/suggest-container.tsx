@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { track } from "@/lib/analytics"
 import { PlusCircle } from "lucide-react"
 import { Suspense, lazy, useRef, useState } from "react"
 
@@ -13,6 +14,7 @@ export function SuggestContainer() {
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const handleClick = () => {
+    track({ name: "dcm_suggest_opened" })
     setLoaded(true)
     setOpen(true)
   }

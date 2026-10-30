@@ -1,5 +1,6 @@
 import { useMode } from "@/hooks/use-mode"
 import { useSelection } from "@/hooks/use-selection"
+import { track } from "@/lib/analytics"
 import { type Catalog, entriesForMode, partitionSelection } from "@/lib/catalog"
 import { useMemo } from "react"
 
@@ -13,5 +14,24 @@ export function useCatalogView(catalog: Catalog) {
     [catalog, entries, selection.ids],
   )
 
-  return { mode, setMode, selection, entries, visibleIds, hiddenCount }
+  const toggle = (id: string) => {
+    const selecting = !selection.ids.includes(id)
+    selection.toggle(id)
+    const entry = catalog.entries.find((item) => item.id === id)
+    if (!entry) return
+    track({
+      name: selecting ? "dcm_item_selected" : "dcm_item_unselected",
+      id,
+      source: entry.selfhostId ? "self-host" : "dcm",
+    })
+  }
+
+  return {
+    mode,
+    setMode,
+    selection: { ...selection, toggle },
+    entries,
+    visibleIds,
+    hiddenCount,
+  }
 }

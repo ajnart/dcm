@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { track } from "@/lib/analytics"
 import {
   composeContentSchema,
   validateComposeContent,
@@ -144,6 +145,7 @@ export function ContainerSubmissionDialog({
 
     // Open the GitHub issue form in a new tab
     window.open(issueUrl, "_blank")
+    track({ name: "dcm_suggest_submitted" })
     onOpenChange(false)
   }
 

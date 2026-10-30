@@ -4,6 +4,7 @@ import { siDocker } from "simple-icons"
 
 import SettingsForm from "@/components/settings/SettingsForm"
 import { useClipboard } from "@/hooks/use-clipboard"
+import { track } from "@/lib/analytics"
 import type { CatalogEntry } from "@/lib/catalog"
 import { useSettings } from "@/lib/settings-context"
 
@@ -93,13 +94,20 @@ export function CopyComposeModal({
     reset()
   }, [activeTab, reset])
 
-  const handleCopy = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleCopy = async (event: React.MouseEvent<HTMLButtonElement>) => {
     const content =
       activeTab === "compose"
         ? composeEditorRef.current?.getValue() || composeContent
         : envEditorRef.current?.getValue() || envFileContent
 
-    copy(content, event.currentTarget)
+    const ok = await copy(content, event.currentTarget)
+    if (ok)
+      track({
+        name: "dcm_compose_copied",
+        count: selectedTools.length,
+        ids: selectedTools.map((tool) => tool.id),
+        file: activeTab as "compose" | "env",
+      })
   }
 
   const handleDownload = () => {
@@ -109,6 +117,12 @@ export function CopyComposeModal({
         : envEditorRef.current?.getValue() || envFileContent
 
     downloadFile(content, activeTab as "compose" | "env", selectedTools)
+    track({
+      name: "dcm_compose_downloaded",
+      count: selectedTools.length,
+      ids: selectedTools.map((tool) => tool.id),
+      file: activeTab as "compose" | "env",
+    })
   }
 
   const handleComposeEditorDidMount = (editor: MonacoEditorInstance) => {

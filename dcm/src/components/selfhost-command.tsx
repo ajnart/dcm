@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useClipboard } from "@/hooks/use-clipboard"
+import { track } from "@/lib/analytics"
 import {
   SELFHOST_INSTALL,
   SELFHOST_URL,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/selfhost"
 import { cn } from "@/lib/utils"
 import { Check, CircleHelp, Copy, ExternalLink } from "lucide-react"
+import { useRef } from "react"
 
 interface SelfHostCommandProps {
   ids: string[]
@@ -27,13 +29,20 @@ export function SelfHostCommand({
   prominent = false,
 }: SelfHostCommandProps) {
   const { copy, copied } = useClipboard()
+  const indicatorRef = useRef<HTMLSpanElement>(null)
   const empty = ids.length === 0
   const command = empty
     ? "self-host install <apps…>"
     : buildSelfHostCommand(ids)
 
-  const handleCopy = (event: React.MouseEvent<HTMLButtonElement>) => {
-    copy(command, event.currentTarget)
+  const handleCopy = async () => {
+    const ok = await copy(command, indicatorRef.current ?? undefined)
+    if (ok)
+      track({
+        name: "dcm_selfhost_command_copied",
+        count: ids.length,
+        ids,
+      })
   }
 
   return (
@@ -51,17 +60,19 @@ export function SelfHostCommand({
       >
         <span className="text-accent-text">$</span>
         <span className="truncate">{command}</span>
-        {copied ? (
-          <span
-            aria-live="polite"
-            className="flex shrink-0 items-center gap-1 text-ok motion-safe:animate-scale-in"
-          >
-            <Check className="h-3 w-3" />
-            Copied
-          </span>
-        ) : (
-          <Copy className="h-3 w-3 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
-        )}
+        <span ref={indicatorRef} className="flex shrink-0 items-center">
+          {copied ? (
+            <span
+              aria-live="polite"
+              className="flex items-center gap-1 text-ok motion-safe:animate-scale-in"
+            >
+              <Check className="h-3 w-3" />
+              Copied
+            </span>
+          ) : (
+            <Copy className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-foreground" />
+          )}
+        </span>
       </button>
       <SelfHostInfo />
     </div>

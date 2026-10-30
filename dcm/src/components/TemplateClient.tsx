@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { useMode } from "@/hooks/use-mode"
+import { track } from "@/lib/analytics"
 import type { CatalogMode } from "@/lib/catalog"
 import { downloadFile } from "@/lib/docker-compose/file-operations"
 import {
@@ -73,6 +74,10 @@ function TemplateView({
     conflicts: string[]
   } | null>(null)
 
+  useEffect(() => {
+    track({ name: "dcm_template_opened", id: template.id })
+  }, [template.id])
+
   const withoutYaml = templateTools.filter((tool) => !tool.composeContent)
   const composeEditorRef = useRef<MonacoEditorInstance | null>(null)
   const envEditorRef = useRef<MonacoEditorInstance | null>(null)
@@ -89,15 +94,22 @@ function TemplateView({
       activeTab as "compose" | "env",
       templateTools,
     )
+    track({
+      name: "dcm_compose_downloaded",
+      count: templateTools.length,
+      ids: templateTools.map((tool) => tool.id),
+      file: activeTab as "compose" | "env",
+    })
   }
 
-  const handleCopy = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleCopy = async (event: React.MouseEvent<HTMLButtonElement>) => {
     const contentToCopy =
       activeTab === "compose"
         ? composeEditorRef.current?.getValue() || content
         : envEditorRef.current?.getValue() || envContent
 
-    copy(contentToCopy, event.currentTarget)
+    const ok = await copy(contentToCopy, event.currentTarget)
+    if (ok) track({ name: "dcm_template_copied", id: template.id })
   }
 
   const handleComposeEditorDidMount = (editor: MonacoEditorInstance) => {

@@ -6,7 +6,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useState } from "react"
+import { track } from "@/lib/analytics"
+import { useEffect, useState } from "react"
 
 interface SettingsPanelProps {
   isEmbedded?: boolean
@@ -33,6 +34,10 @@ export default function SettingsPanel({
 }: SettingsPanelProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) track({ name: "dcm_settings_opened" })
+  }, [isOpen])
 
   // Handle saving state change from SettingsForm
   const handleSavingChange = (saving: boolean) => {

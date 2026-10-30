@@ -69,7 +69,9 @@ const reel = new URL("/reel.mp4", Astro.site);
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
     {jsonld && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
-    <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "048a529692b643f79d0b152c27926bdf"}'></script>
+    <script>
+      import "../scripts/analytics";
+    </script>
   </head>
   <body>
     <SiteHeader />

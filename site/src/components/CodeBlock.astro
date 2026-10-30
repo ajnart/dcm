@@ -9,19 +9,22 @@ interface Props {
   label?: string;
   id?: string;
   variants?: Variant[];
+  track?: "install" | "app" | "recipe";
+  trackId?: string;
 }
 
-const { code = "", lang = "bash", label, id } = Astro.props;
+const { code = "", lang = "bash", label, id, track, trackId } = Astro.props;
+const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const variants = Astro.props.variants ?? [{ label: label ?? lang, code }];
 ---
 
-<figure class="codeblock" id={id}>
+<figure class="codeblock" id={id} data-track={track} data-track-id={trackId}>
   <figcaption>
     {
       variants.length > 1 ? (
         <select class="variant" aria-label={label ?? "Variant"}>
           {variants.map((v, i) => (
-            <option value={i}>{v.label}</option>
+            <option value={i} data-method={slug(v.label)}>{v.label}</option>
           ))}
         </select>
       ) : (

@@ -1,3 +1,4 @@
+import { track } from "@/lib/analytics"
 import { CATALOG_MODES, type CatalogMode } from "@/lib/catalog"
 import { cn } from "@/lib/utils"
 
@@ -21,7 +22,10 @@ export function ModeToggle({ mode, counts, onChange }: ModeToggleProps) {
           key={item}
           type="button"
           aria-pressed={mode === item}
-          onClick={() => onChange(item)}
+          onClick={() => {
+            if (item !== mode) track({ name: "dcm_mode_changed", mode: item })
+            onChange(item)
+          }}
           className={cn(
             "px-3 py-1.5 text-sm transition-colors",
             mode === item

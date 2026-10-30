@@ -42,11 +42,43 @@ disabled; payloads contain no IP addresses or locations. Receiving network
 infrastructure still sees the source IP. Server-side "Discard client IP data"
 is a maintainer-controlled setting, not something the CLI verifies.
 
-## This website
+## Website
 
-self-host.fyi counts page views with Cloudflare Web Analytics: no cookies, no
-fingerprinting, no personal data, and nothing shared with the CLI telemetry
-above.
+self-host.fyi (the site, the docs and Docker Compose Maker at `/compose`) sends
+a few anonymous usage events to the same EU PostHog proxy as the CLI. It sets no
+cookie and stores nothing in your browser, builds no person profile, records no
+sessions, and sends nothing when your browser asks not to be tracked. It runs
+only on `self-host.fyi`: a local copy of the site, a preview or the
+`ghcr.io/ajnart/dcm` image sends nothing. This is separate from the CLI
+Telemetry above, and `SELF_HOST_NO_TELEMETRY` does not control it.
+
+Every page sends `$pageview` (the page URL, the referrer, and the browser, OS and
+screen size PostHog adds to every event). The named events carry Catalog or
+Container ids, counts and fixed values only:
+
+| Event                         | Sent when                                                  | Properties                          |
+| ----------------------------- | ---------------------------------------------------------- | ----------------------------------- |
+| `install_command_copied`      | you copy the install command on the home or 404 page       | `method` (curl, wget, ...)          |
+| `app_install_copied`          | you copy `self-host install <app>` on an App page          | `app`                               |
+| `recipe_install_copied`       | you copy a Recipe's install command on an App page         | `recipe`                            |
+| `share_link_copied`           | you copy the share link of the home page selection         | `count`                             |
+| `dcm_mode_changed`            | you switch Docker Compose Maker between self-host and All  | `mode`                              |
+| `dcm_item_selected`           | you select a container                                     | `id`, `source` (`self-host`, `dcm`) |
+| `dcm_item_unselected`         | you unselect a container                                   | `id`, `source`                      |
+| `dcm_compose_copied`          | you copy the Compose file or the `.env`                    | `count`, `ids`, `file`              |
+| `dcm_compose_downloaded`      | you download the Compose file or the `.env`                | `count`, `ids`, `file`              |
+| `dcm_share_copied`            | you copy the share link of your selection                  | `count`                             |
+| `dcm_selfhost_command_copied` | you copy the `self-host install` command                   | `count`, `ids`                      |
+| `dcm_template_opened`         | you open a Template page                                   | `id`                                |
+| `dcm_template_copied`         | you copy a Template's Compose file or `.env`               | `id`                                |
+| `dcm_search_opened`           | you open the search dialog                                 | none                                |
+| `dcm_settings_opened`         | you open the settings panel                                | none                                |
+| `dcm_suggest_opened`          | you open Suggest container                                 | none                                |
+| `dcm_suggest_submitted`       | you submit Suggest container                               | none                                |
+
+`file` is `compose` or `env`. Never sent: what you type, the search
+query, Compose or `.env` content, settings values and the Suggest container
+fields. See [ADR 0013](https://github.com/ajnart/self-host/blob/main/docs/adr/0013-website-analytics.md).
 
 ## What is never sent automatically
 

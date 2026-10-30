@@ -42,7 +42,7 @@ const jsonld = {
       {recipes.length > 0 && (<><dt>recipe</dt><dd>{recipes.map((r) => r.id).join(", ")}</dd></>)}
     </dl>
 
-    <CodeBlock lang="bash" label="install" code={`self-host install ${app.id}`} />
+    <CodeBlock lang="bash" label="install" code={`self-host install ${app.id}`} track="app" trackId={app.id} />
     <p class="aside"><a class="btn primary" href={`/?apps=${app.id}#play`}>▶ try it in the playground</a></p>
 
     {
@@ -67,7 +67,7 @@ const jsonld = {
         <section aria-label={`Recipe ${r.name}`}>
           <h2>In the <code>{r.id}</code> Recipe</h2>
           <p class="muted">{r.description}.</p>
-          <CodeBlock lang="bash" label={r.name} code={`self-host install ${r.id}`} />
+          <CodeBlock lang="bash" label={r.name} code={`self-host install ${r.id}`} track="recipe" trackId={r.id} />
         </section>
       ))
     }

@@ -1,3 +1,4 @@
+import { track } from "@/lib/analytics";
 import { apps as APPS, appById, starLabel } from "../lib/catalog";
 import { selection } from "./selection.js";
 import { $, copy, esc, iconEl, toast } from "./util.js";
@@ -125,6 +126,7 @@ export function mountCatalog({ onInstall, onSearch }) {
   });
   $("#share").addEventListener("click", async () => {
     const copied = await copy(selection.shareUrl());
+    if (copied) track({ name: "share_link_copied", count: selection.size });
     toast(copied ? "Share link copied. Whoever opens it gets these Apps picked." : selection.shareUrl());
   });
   unselect.addEventListener("click", () => {

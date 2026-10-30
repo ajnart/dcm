@@ -4,6 +4,7 @@ import { SearchCommand } from "@/components/search-command"
 import { SelfHostCommand } from "@/components/selfhost-command"
 import { Button } from "@/components/ui/button"
 import { useClipboard } from "@/hooks/use-clipboard"
+import { track } from "@/lib/analytics"
 import {
   type Catalog,
   type CatalogEntry,
@@ -97,10 +98,11 @@ export default function FloatingBar({
     }
   }
 
-  const handleShare = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleShare = async (event: React.MouseEvent<HTMLButtonElement>) => {
     if (shareIds.length === 0) return
 
-    copy(generateShareUrl(shareIds), event.currentTarget)
+    const ok = await copy(generateShareUrl(shareIds), event.currentTarget)
+    if (ok) track({ name: "dcm_share_copied", count: shareIds.length })
   }
 
   const handleCopyCompose = () => {

@@ -52,7 +52,9 @@ insertDirective("worker-src blob:");
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "048a529692b643f79d0b152c27926bdf"}'></script>
+    <script>
+      import "../scripts/analytics";
+    </script>
   </head>
   <body>
     <SiteHeader><SuggestContainer client:idle /></SiteHeader>

@@ -7,6 +7,7 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { DialogTitle } from "@/components/ui/dialog"
+import { track } from "@/lib/analytics"
 import type { CatalogEntry } from "@/lib/catalog"
 import { Check } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -23,6 +24,10 @@ export function SearchCommand({
   onToggle,
 }: SearchCommandProps) {
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (open) track({ name: "dcm_search_opened" })
+  }, [open])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

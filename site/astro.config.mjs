@@ -50,14 +50,6 @@ export default defineConfig({
         { tag: "link", attrs: { rel: "apple-touch-icon", href: "/apple-touch-icon.png" } },
         { tag: "link", attrs: { rel: "manifest", href: "/site.webmanifest" } },
         { tag: "link", attrs: { rel: "alternate", type: "text/plain", href: "/llms.txt", title: "llms.txt" } },
-        {
-          tag: "script",
-          attrs: {
-            defer: true,
-            src: "https://static.cloudflareinsights.com/beacon.min.js",
-            "data-cf-beacon": '{"token": "048a529692b643f79d0b152c27926bdf"}',
-          },
-        },
       ],
       sidebar: [
         {
@@ -93,14 +85,14 @@ export default defineConfig({
     csp: {
       directives: [
         "default-src 'none'",
-        "connect-src 'self' https://cloudflareinsights.com",
+        "connect-src 'self' https://hog.ajnart.dev",
         "media-src 'self'",
         "manifest-src 'self'",
         "img-src 'self' data: https://cdn.jsdelivr.net",
         "base-uri 'none'",
         "form-action 'none'",
       ],
-      scriptDirective: { resources: ["'self'", "https://static.cloudflareinsights.com"], hashes: await starlightInlineScriptHashes() },
+      scriptDirective: { resources: ["'self'"], hashes: await starlightInlineScriptHashes() },
       styleDirective: { resources: ["'self'", "'unsafe-hashes'"], hashes: styleAttributeHashes },
     },
   },

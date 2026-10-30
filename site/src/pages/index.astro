@@ -73,7 +73,7 @@ const toc = [
               <a class="btn" href="#agents">Use your agent</a>
             </div>
             <div class="hero-install">
-              <CodeBlock label="Install method" variants={INSTALL_METHODS} id="hero-install" />
+              <CodeBlock label="Install method" variants={INSTALL_METHODS} id="hero-install" track="install" />
             </div>
             <nav class="hero-notes" aria-label="Learn more">
               <a href="/docs">Read the docs</a>
@@ -192,7 +192,7 @@ const toc = [
 
         <section id="install" aria-labelledby="install-title">
           <SectionHead id="install" num="06" title="Install">Linux, macOS or WSL2, with Docker Compose. The installer adds the CLI; it does not deploy Apps.</SectionHead>
-          <CodeBlock label="Install method" variants={INSTALL_METHODS} id="oneliner" />
+          <CodeBlock label="Install method" variants={INSTALL_METHODS} id="oneliner" track="install" />
           <ul class="install-links" aria-label="Installer reference"><li><a href="/install">Read the installer</a></li><li><a href="/install.sh.sha256">Check its sha256</a></li><li><a href={LINKS.releases}>Browse releases</a></li></ul>
           <p class="aside">Want the YAML instead? <a href={LINKS.dcm}>DCM</a> builds a <code>docker-compose.yaml</code> for you to run yourself.</p>
         </section>
