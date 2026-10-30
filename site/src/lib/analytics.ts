@@ -1,4 +1,4 @@
-import { type DcmEvent, onTrack } from "@/lib/track";
+import type { DcmEvent } from "@/lib/track";
 import type { CaptureResult, PostHog, Properties } from "posthog-js";
 import type { InstallMethodSlug } from "./site";
 
@@ -55,7 +55,7 @@ function record(event: AnalyticsEvent): void {
 	if (pending.length < MAX_PENDING) pending.push(event);
 }
 
-export function track(event: SiteEvent): void {
+export function track(event: AnalyticsEvent): void {
 	if (!active) return;
 	record(event);
 }
@@ -65,7 +65,6 @@ export function initAnalytics(): void {
 	if (typeof window === "undefined") return;
 	if (window.location.hostname !== PRODUCTION_HOST) return;
 	active = true;
-	onTrack(record);
 	void import("posthog-js").then(({ default: posthog }) => {
 		posthog.init(PROJECT_KEY, {
 			api_host: "https://hog.ajnart.dev",
