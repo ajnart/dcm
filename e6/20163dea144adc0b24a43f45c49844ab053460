@@ -1,0 +1,23 @@
+dcm/src/components/ToolGrid.tsx
+  s_7dd442681ffc56::t_f27407bea068a2 1-6,8-9,18-82,91-110
+dcm/src/lib/catalog.ts
+  s_7dd442681ffc56::t_324c338000ec6c 25,47,63
+site/src/scripts/catalog-view.js
+  s_7dd442681ffc56::t_cf7d96763b8b78 2,4,7-16,20-50,54,56-66,68-71,73-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e620163dea144adc0b24a43f45c49844ab053460",
+  "prompts": {},
+  "sessions": {
+    "s_7dd442681ffc56": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39bc43a7-f4c7-4301-84a2-6844ddbb1792",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
