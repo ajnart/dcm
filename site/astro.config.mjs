@@ -41,7 +41,7 @@ export default defineConfig({
         starlightGitHubAlerts(),
         starlightHeadingBadges(),
         starlightChangelogs(),
-        starlightLinksValidator({ exclude: ["/apps", "/apps/**", "/docs/recipes", "/docs/recipes/**", "/telemetry"] }),
+        starlightLinksValidator({ exclude: ["/apps", "/apps/**", "/compose", "/compose/**", "/docs/recipes", "/docs/recipes/**", "/telemetry"] }),
         starlightPageActions({ actions: { markdown: true, chatgpt: true, claude: true, cursor: true } }),
       ],
       head: [

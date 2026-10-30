@@ -1,6 +1,6 @@
 :root {
-  --scrollbar-thumb: var(--control-border, var(--dim));
-  --scrollbar-thumb-hover: var(--muted);
+  --scrollbar-thumb: var(--control-border, var(--dim, var(--sl-color-gray-4)));
+  --scrollbar-thumb-hover: var(--muted, var(--sl-color-gray-3));
 }
 
 * {
@@ -219,7 +219,6 @@ a.ext-link {
 
 .ver {
   color: var(--dim);
-  text-decoration: none;
 }
 
 .tag {

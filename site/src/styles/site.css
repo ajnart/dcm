@@ -1259,7 +1259,6 @@ h2 {
   gap: 0.5rem;
 }
 
-
 @media (max-width: 1100px) {
   .landing {
     display: block;
@@ -1616,6 +1615,11 @@ h2 {
   border: 1px solid var(--line);
   background: var(--deep);
   padding: 0.9rem 1rem;
+  overflow-x: auto;
+}
+
+.prose table {
+  display: block;
   overflow-x: auto;
 }
 
