@@ -1,0 +1,103 @@
+dcm/src/components/TemplateClient.tsx
+  s_568306d1f439e1::t_3655035d818369 5,26-31,45,50,56,60,65-78,94,97-98,185,188,194,206,208-212,216,218-221,229-230,279,340,346,348,352,365,391,415
+dcm/src/components/compose-modal/CopyComposeModal.tsx
+  s_93fdca51b7e21f::t_71b12102ffc317 30-31,40,46,56-60,80-81,92,95-96,118-119,137,139,214-218
+dcm/src/components/compose-modal/PortConflictsAlert.tsx
+  s_93fdca51b7e21f::t_932baa8a52005b 2,6,9-20,24,26,28,37-38,40,42,45-65,67-68
+dcm/src/components/compose-modal/SelfHostCallout.tsx
+  s_93fdca51b7e21f::t_cfd1233f1a40ba 4,6,10,12,14,17-18,24
+dcm/src/components/compose-modal/SelfHostNotes.tsx
+  s_93fdca51b7e21f::t_57a2279ceafe2a 6,10,14,20-21,26-27,29,31
+dcm/src/components/floating-bar.tsx
+  s_568306d1f439e1::t_b3cf379d2b065d 8-9,11,55-60,132-136,138,160,205,272,281
+dcm/src/components/selfhost-command.tsx
+  s_12e2973ba402c3::t_89a2f29a820eaa 13,19,25,31-32,35,59
+dcm/src/components/settings/ContainerSettingsSection.tsx
+  s_12e2973ba402c3::t_f55f14d9e7fea5 10
+dcm/src/components/settings/EnvironmentVariablesSection.tsx
+  s_12e2973ba402c3::t_af973e1e11d7a2 10
+dcm/src/components/settings/SettingsForm.tsx
+  s_12e2973ba402c3::t_aa4a3249ba6f66 5
+dcm/src/components/settings/VolumePathsSection.tsx
+  s_12e2973ba402c3::t_cdc8d2644978a2 3
+dcm/src/lib/catalog.ts
+  s_9435af2fe4f779::t_2a76b3d7aba1c8 2,18,102,176-180
+dcm/src/lib/export/compose.ts
+  s_9435af2fe4f779::t_28dc949bc13cb2 1-2,4,14-36,77-80,83,92-94,97-112,115-166,179-196,207-210,212,214-217,220-223,225,228
+dcm/src/lib/export/download.ts
+  s_9435af2fe4f779::t_a473dc5f5c4363 2,6,8
+dcm/src/lib/export/env.ts
+  s_9435af2fe4f779::t_5243994b4feb0e 1-122
+dcm/src/lib/export/index.ts
+  s_93fdca51b7e21f::t_ac952be0f539cb 1-72
+dcm/src/lib/export/ports.ts
+  s_9435af2fe4f779::t_7549adaac76603 1-2,53-55,60,71,96,98,100,102-106,108-113,115,117-122,124-126,128,130-131,135-136
+dcm/src/lib/export/types.ts
+  s_93fdca51b7e21f::t_5a603b365f1f4a 1-43
+dcm/src/lib/settings-context.tsx
+  s_12e2973ba402c3::t_132db4d03aa1f1 1-2
+dcm/src/lib/settings.ts
+  s_9435af2fe4f779::t_9eaafeacdfc2d1 1-23
+dcm/src/lib/templates.ts
+  s_0ccc0b5fe43235::t_a31cefae241e0e 14,16-17,20
+docs/agents/dcm.md
+  s_12e2973ba402c3::t_24716a2647eacc 10
+site/src/pages/compose/template/[id].astro
+  s_70efc1e7d5e5ca::t_6e967bb4a9db47 22,32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "82abd13cc92e50463d1be3aa2210679357991110",
+  "prompts": {},
+  "sessions": {
+    "s_0ccc0b5fe43235": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5aa2188f-21d4-4355-a28c-418878c9ab13",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_12e2973ba402c3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2e90ab90-be6c-4fe1-adb4-1bad94b800f3",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_568306d1f439e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "94a73de5-3164-4678-a07f-6164d9553ff4",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_70efc1e7d5e5ca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d818505-e804-47e5-9514-10be7ed11044",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_93fdca51b7e21f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "beff4c3e-d5b6-467e-a0b1-4278651e5d11",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_9435af2fe4f779": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bd9baeba-43cb-47f2-9ee4-3213629c745f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
