@@ -606,6 +606,9 @@ func envFor(id, compose string, meta map[string]envJSON) ([]envJSON, error) {
 		if !found {
 			return nil, fmt.Errorf("%s: ${%s} has no description; declare it or add it to extraEnv", id, key)
 		}
+		if entry.Default == "" && !entry.Secret && strings.Contains(compose, "- ${"+key+"}:") {
+			entry.Default = "./" + strings.ToLower(strings.ReplaceAll(key, "_", "-"))
+		}
 		env = append(env, entry)
 	}
 	slices.SortFunc(env, func(a, b envJSON) int { return strings.Compare(a.Key, b.Key) })

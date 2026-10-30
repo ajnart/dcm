@@ -2460,7 +2460,7 @@
     },
     {
      "key": "MINIO_LICENSE_FILE",
-     "default": "",
+     "default": "./minio-license-file",
      "description": "Path to the AIStor license file you obtained from MinIO. Download the license from MinIO and pass its absolute path. See https://docs.min.io/aistor/installation/container/install/",
      "secret": false
     },
