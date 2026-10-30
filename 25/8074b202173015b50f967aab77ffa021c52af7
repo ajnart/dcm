@@ -1,0 +1,21 @@
+dcm/package.json
+  s_a3a9aabc23e9a1::t_122f6ba792b3d5 20
+package.json
+  s_a3a9aabc23e9a1::t_a0530f8cabe64b 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "258074b202173015b50f967aab77ffa021c52af7",
+  "prompts": {},
+  "sessions": {
+    "s_a3a9aabc23e9a1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8018f5e-5f27-4e77-80b1-dfe78e40bdb1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
