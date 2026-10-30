@@ -1,5 +1,5 @@
-import { tools } from "@/tools"
 import { writeFile } from "node:fs/promises"
+import { tools } from "@/tools"
 
 const BATCH = 50
 const OUTPUT = new URL("../src/data/stars.json", import.meta.url)
