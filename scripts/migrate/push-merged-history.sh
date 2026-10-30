@@ -102,7 +102,7 @@ git ls-remote --tags "$dcm_url" | awk '{print "  " $2 " " $1}'
 say "-- plan"
 say "push 1: HEAD -> main"
 say "  triggers .github/workflows/ci.yml, and dcm-image.yml (push to main touching dcm/**): that publishes ghcr.io/ajnart/dcm:latest early."
-say "  Expected and harmless: same image name, same content the next dcm change would publish. To stop it: gh run list --repo $OWNER/dcm --workflow dcm-image.yml, then gh run cancel RUN_ID."
+say "  This replaces the DCM latest image before the repository swap; preserve its original digest for rollback."
 if [[ ${#to_push[@]} -eq 0 ]]; then
   say "push 2: none (no tags to push)"
 elif [[ ${#to_push[@]} -le 3 ]]; then

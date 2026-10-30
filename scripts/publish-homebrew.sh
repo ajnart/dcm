@@ -17,7 +17,7 @@ gh repo view "$tap" --json name >/dev/null 2>&1 \
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-gh repo clone "$tap" "$work" -- -q
+git clone -q "https://github.com/$tap.git" "$work"
 mkdir -p "$work/Casks"
 cp "$cask" "$work/Casks/self-host.rb"
 git -C "$work" add Casks/self-host.rb

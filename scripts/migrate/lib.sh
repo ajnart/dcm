@@ -4,6 +4,7 @@
 # shellcheck disable=SC2034
 OWNER=ajnart
 YES=false
+CONFIRMED=false
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -47,6 +48,7 @@ mode_banner() {
 # confirm_tty asks for a typed confirmation before something hard to reverse, only with --yes.
 confirm_tty() {
   $YES || return 0
+  if $CONFIRMED; then say "$1 Explicit confirmation supplied with --confirmed."; return 0; fi
   [[ -t 0 ]] || die "$1 needs an interactive terminal for confirmation"
   local reply
   read -r -p "$1 Type 'yes' to continue: " reply

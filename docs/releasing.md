@@ -271,8 +271,8 @@ From it Astro renders the landing page, one page per App under `/apps`,
 Starlight serves the docs at `/docs` from `src/content/docs/docs/`, plus one
 page per Recipe under `/docs/recipes`; `src/lib/docs-route.ts` strips `.html`
 from its links and adds share tags. `src/pages/og/` renders every page's
-1200×630 share image with sharp at build time (App icons are fetched from the
-icon CDN, with the App's initial as fallback); the landing keeps
+1200×630 share image with sharp at build time (bundled local App icons,
+with the App's initial as fallback and no icon-network fetch); the landing keeps
 `src/assets/og.png`.
 `go run ./tools/introframes` writes `site/public/intro.json`, the onboarding
 Intro recorded from `internal/intro`. The theme makes the site's
@@ -289,11 +289,11 @@ or `gh auth token` while the repository is private, and fails rather than show
 a stale version; `SELF_HOST_SITE_VERSION` overrides it. **Redeploy the site
 after every release** so the page and the playground show the new version.
 
-Nothing reads a `wrangler.toml`: the Git integration takes its settings from the table above, and every Wrangler call here passes `--project-name self-host-fyi`. `public/_headers` sets `nosniff`,
+Nothing reads a `wrangler.toml`: the Git integration takes its settings from the table above. `publish-site.sh` defaults to `--project-name self-host-fyi`; `SELF_HOST_PAGES_PROJECT` overrides that existing project for the migration wrapper. `public/_headers` sets `nosniff`,
 `no-referrer`, `frame-ancestors`, plain-text types for the installer and CORS
 for `catalog.json`. `src/lib/seo.mjs` fails the build when a page lacks its
-title, description, canonical or share tags. Pages outside the docs move with
-native cross-document view transitions, and links are preloaded as described in
+title, description, canonical or share tags. Pages move with
+native cross-document view transitions, including the docs, and links are preloaded as described in
 `docs/agents/dcm.md` (Preloading).
 `404.astro` makes unknown paths such as `/go.mod` return 404.
 

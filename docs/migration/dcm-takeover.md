@@ -44,26 +44,63 @@ Nothing here pushes or renames on its own; you run it.
 
 Configure runs before the rename so the new repo is never live as `ajnart/self-host` with Actions on "all", merge commits and no ruleset. `rename-repos.sh rename` refuses until it ran.
 
-### One-command GitHub migration
+### Agent-assisted migration, release and Cloudflare cutover
 
-Finish and commit all concurrent work first, then run from this checkout with Bash 4.4 or later:
+The entry point is `scripts/migrate/run-all.sh`. It reuses the existing migration and channel scripts; `release.sh` owns releases and `agent.sh` owns handoffs/public verification. **The agent waits for the user to say go before executing it.** The expanded release/handoff path has not been rehearsed against production.
+
+Finish and commit all concurrent work first. Choose an unused release version newer than every stable CLI release; the script never guesses it. Requirements for a later execution:
+
+- Bash 4.4+, Git, authenticated `gh` with admin access to both repositories and write access to `ajnart/homebrew-tap`, `jq`, `curl`, Python 3, `tar`, `shasum`, Go and Bun.
+- Docker with a working daemon/buildx and your existing GHCR login with `write:packages`. The script never extracts Docker credentials. A readable image does not prove permission to push it.
+- The agent's authenticated Cloudflare MCP connection for Pages, domains, DNS and redirects; PostHog MCP only if migration-related configuration needs checking/changing. The script needs no provider API token. If asset upload requires Wrangler, use its managed login, never token extraction.
+
+When you are ready, from this checkout:
 
 ```bash
-scripts/migrate/run-all.sh
-scripts/migrate/run-all.sh --yes
+scripts/migrate/run-all.sh --version X.Y.Z
+scripts/migrate/run-all.sh --version X.Y.Z --yes
 ```
 
-The first command only checks local history and GitHub access and prints the plan. It writes local logs, but does not fetch, run generators or gates, change Git configuration, run Docker or the installer, or mutate GitHub. The second runs the Go/web gates, captures rollback snapshots and the original DCM image digest, and executes the GitHub steps in order. It needs `git`, authenticated `gh` with admin access to both repositories, `jq`, `curl`, Docker with buildx, Python 3, `tar`, Go and Bun. HTTPS uses your existing `gh` login through a process-scoped credential helper; no SSH key or `gh auth setup-git` is needed. Run `--yes` in a terminal: each rename and the final archive/private operation still requires a typed confirmation. The default keeps `self-host-old` public and archived; `--private` hides it instead.
+Replace `X.Y.Z`; no version is guessed. Without `--yes`, this is a local plan only: no network requests, builds, Docker, installer or remote changes. With `--yes`, it validates GitHub access, identities and release availability, runs Go/web/Compose gates and the full `E2E_TARGETS=all` suite (up to 340 minutes), captures snapshots and proceeds in order. GitHub HTTPS uses the existing `gh` login without persistent Git configuration changes. Default: publicly archive `self-host-old`; `--private` hides it instead.
 
-Logs and checkpoints live under the printed `.scratch/migration/<run>/` directory with private permissions. Commands are not traced, tokens are never retrieved for logging, and original snapshots are preserved on retries. A failure stops execution and prints a resume command, for example:
+Manual terminal runs ask for typed confirmations before swapping names and parking the old repository. The agent's noninteractive shell cannot answer those prompts: **only after the user's explicit go**, it supplies `--approve-swap --approve-parking` with `--yes`. These separate approvals are pinned in the run state and included in resume commands. Merely loading a skill, writing the script or recording MCP evidence does not authorize these flags. The lower-level rename helper receives `--confirmed` only for its explicitly approved operation.
+
+Cloudflare is not an embedded API-token script. The agent inspects the live project, saves rollback snapshots, prevents stale Git deployments during the swap, and carries out the agreed Pages strategy through MCP (section 9). It deploys and verifies the exact prepared site bundle before enabling legacy redirects. No Pages project, domain or DNS record is deleted by the script. PostHog work is limited to configuration actually required by the migration.
+
+Logs stay under `.scratch/migration/<run>/` with private permissions: `run.log`, append-only `step-N.log`, structured `events.jsonl`, `state.json`, original snapshots, preserved release/site bytes and agent evidence. Failures log source lines and exit status and stop immediately. Missing agent evidence returns **75**, prints **PAUSED** and an `agent-request-<name>.json` checklist, and releases the run lock. That is an intentional handoff, not a failed migration. No shell tracing, credential headers or token values are logged.
+
+After actual MCP work and live verification, record its redacted evidence:
 
 ```bash
-scripts/migrate/run-all.sh --yes --from 6 --log-dir "$PWD/.scratch/migration/<run>"
+scripts/migrate/run-all.sh --record-agent-step cloudflare-ready \
+  --evidence /absolute/path/to/verified-evidence.json --log-dir "$PWD/.scratch/migration/<run>"
 ```
 
-Keep the original commit, log directory and `--private`/`--skip-gates` options when resuming. Completed checkpoints are required before skipping steps. Repository IDs are pinned to the two repositories above, including a partially completed rename; a changed identity, branch or commit aborts. `--skip-gates` is an explicit escape hatch for gates already run on that exact commit, not the default.
+Evidence contains `checkpoint`, the pinned `head`/`version`, `checkedAt`, `verified: true`, and an `evidence` object. `agent.sh` requires checkpoint-specific Pages/deployment/rollback IDs and public checks, both redirect hosts/zone IDs and preservation of unrelated rules, or the telemetry review's concrete reason/action. **Never manufacture evidence just to bypass a pause.** Existing evidence and original snapshots are not silently overwritten. Resume with the command printed by the script, for example:
 
-Wrapper step numbers are 0 gates, 1 snapshots, 2 push, 3 releases, 4 configure, 5 issues, 6 rename, 7 public installer/self-update verification, 8 release recheck, 9 archive/private. They differ from the section numbers below. Installer verification uses the published raw installer without a token, so authentication cannot hide a broken public download. This wrapper does **not** create a new release, deploy Cloudflare Pages or install redirect rules. Complete sections 8–10 separately, choosing the unused release version and deployment strategy first. Do not enable legacy-domain redirects until the merged `/compose` destination is deployed and verified.
+```bash
+scripts/migrate/run-all.sh --version X.Y.Z --yes \
+  --from 7 --log-dir "$PWD/.scratch/migration/<run>"
+```
+
+Keep the original commit, release version, notes file contents and `--private`/`--skip-gates` options when resuming. State schema 2 rejects old prototype checkpoints. Completed checkpoints are required before skipping steps. Repository IDs are pinned, including partial renames; cloud resource IDs/strategy are recorded in agent evidence. A changed repository identity, branch or commit aborts. `--skip-gates` explicitly skips all local gates including Compose/e2e; it is not the default.
+
+Wrapper step numbers differ from the individual runbook sections below:
+
+| Steps | Operation                                                                                                                       |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 0–2   | Local gates, rollback snapshots, agent/MCP handoff to prevent stale Cloudflare deployments                                      |
+| 3–6   | Fast-forward push, copy old releases, configure settings/Actions/labels, transfer open issues                                   |
+| 7–9   | Swap names, verify pinned IDs/public installer, recheck releases                                                                |
+| 10–11 | Package with pinned GoReleaser, verify binaries/checksums, draft, download/cmp every asset, publish Latest                      |
+| 12–16 | Publish Docker/Homebrew, prepare site bundle, pause for agent/MCP deployment, independently verify public pages/install/upgrade |
+| 17–18 | Refresh DCM image and verify the release through Actions using `gh run watch --compact --exit-status`                           |
+| 19–21 | Agent/MCP redirects, independent path/query checks, telemetry configuration review only as needed                               |
+| 22    | Archive/private the old repository last, after preceding steps succeeded                                                        |
+
+Use `--notes FILE` for custom release notes; otherwise GitHub generates notes since the previous stable CLI tag. Existing `dist/` is preserved as `dist-before` before packaging. The completed release build is saved as `release-dist`; retries reuse it rather than rebuilding or clobbering published assets. A failed draft can have missing assets added, but different existing assets stop the script for inspection. AUR publication is intentionally excluded because no available account is assumed; the release includes `PKGBUILD` and Arch packages.
+
+Redirects are gated behind deployment and public installer verification. The agent preserves unrelated rules and proxied DNS and retains the old `dcm` Pages project for rollback. Issue/PR-number collisions and the changed DCM image remain compatibility costs; an entry-point script cannot remove them.
 
 ## 0. Preflight
 

@@ -18,7 +18,7 @@
 # ajnart/self-host to self-host-old until the name is taken, and drops that redirect when dcm takes it.
 set -euo pipefail
 
-usage="usage: scripts/migrate/rename-repos.sh configure|rename|archive [--yes] [--private] [--old OWNER/REPO] [--new OWNER/REPO] [--skip-release-check] [--skip-configure-check]"
+usage="usage: scripts/migrate/rename-repos.sh configure|rename|archive [--yes] [--confirmed] [--private] [--old OWNER/REPO] [--new OWNER/REPO] [--skip-release-check] [--skip-configure-check]"
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 source "$here/lib.sh"
@@ -31,6 +31,7 @@ old_repo="" new_repo="" make_private=false skip_configure_check=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --yes) YES=true ;;
+    --confirmed) CONFIRMED=true ;;
     --old) old_repo="${2:?$usage}"; shift ;;
     --new) new_repo="${2:?$usage}"; shift ;;
     --private) make_private=true ;;
