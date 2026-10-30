@@ -1,0 +1,20 @@
+site/astro.config.mjs
+  h_d6e478ca18e517 31
+site/src/styles/docs.css
+  h_d6e478ca18e517 118-123
+site/src/styles/header.css
+  h_d6e478ca18e517 14
+site/src/styles/transitions.css
+  h_d6e478ca18e517 5-6,10-17,19-22,24,26-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0c0441bbeee9d79748928edd1723d2e9dc1b2d56",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
