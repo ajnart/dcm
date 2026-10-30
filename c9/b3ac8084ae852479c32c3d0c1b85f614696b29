@@ -1,0 +1,23 @@
+docs/migration/dcm-takeover.md
+  s_011d3def65e8d1::t_e1113a741d2f1a 30,64,66-71,82,91-101,104,136-138,148,165
+scripts/migrate/backport-releases.sh
+  s_011d3def65e8d1::t_ac9690053faa62 4-6,56,61-98,163
+scripts/migrate/push-merged-history.sh
+  s_011d3def65e8d1::t_1ef32f0de3104c 110-113,115,117,119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c9b3ac8084ae852479c32c3d0c1b85f614696b29",
+  "prompts": {},
+  "sessions": {
+    "s_011d3def65e8d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c6157600-657b-40e9-a76c-b53336a4db01",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
