@@ -94,7 +94,7 @@ counts and declarations that no generator writes. That is where drift enters.
   `site/src/data/stars.json`. CI's `test` job runs it and `git diff --exit-code`
   on `site/src/data dcm/src/data site/src/styles` (`.github/workflows/ci.yml`,
   step "Generated data is current").
-- **Icons.** `tools/sitegen/icons.go`: an App must be in `svgIcons` or `icons`
+- **Icons.** `tools/sitegen/icons.go`: an App must be in `icons`
   (`""` means no icon); a missing, unknown or duplicated id fails sitegen.
 - **Standalone guide.** `app.StandaloneGuide` is an optional App interface;
   `checkGuide` in sitegen fails when the guide names a variable or folder the
@@ -207,7 +207,7 @@ Steps, each with its completion criterion:
    `go test ./internal/apps/<id>/` passes.
 4. **Register** in a `internal/catalog/batch_*.go` (Recipes through
    `registerRecipes`). _Done:_ `go test ./internal/catalog/` passes.
-5. **Declare site metadata** in `tools/sitegen`: icon in `svgIcons` or `icons`
+5. **Declare site metadata** in `tools/sitegen`: icon in `icons`
    (`""` for none), upstream repo in `stars.go`'s `repos`. _Done:_ both entries
    exist; a missing `repos` entry would not fail anything, so check it by hand.
 6. **Regenerate.** `go run ./tools/sitegen`. Add a `StandaloneGuide` only when the
@@ -297,7 +297,7 @@ when they disagree.
 | ------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | App id, name, description, category, ports, image | `internal/apps/<id>/`, registered in `internal/catalog/batch_*.go`     | `site/src/data/catalog.json`, `dcm/src/data/selfhost.json`                                                                           | CI "Generated data is current"; `site/src/content.config.ts`; `descriptions_test`, `ownership_test`, `secondary_ports_test`, `generated_test` |
 | Standalone Compose, env, notes                    | App plus optional `StandaloneGuide` through `tools/sitegen/standalone` | `dcm/src/data/selfhost.json`                                                                                                         | `checkGuide` in sitegen; `dcm/tests/validate-compose.test.ts` (CI `test:compose`)                                                             |
-| Icon                                              | `tools/sitegen/icons.go` (`svgIcons`, `icons`)                         | icon path in both JSON files                                                                                                         | `checkIcons` fails sitegen                                                                                                                    |
+| Icon                                              | `tools/sitegen/icons.go` (`icons`)                                     | icon path in both JSON files                                                                                                         | `checkIcons` fails sitegen                                                                                                                    |
 | Stars                                             | `tools/sitegen/stars.go` `repos`                                       | `site/src/data/stars.json`, `dcm/src/data/stars.json`                                                                                | `stars.yml` weekly PR; **none** for a missing `repos` entry                                                                                   |
 | Recipes                                           | `registerRecipes` in `internal/catalog/batch_recipes.go`               | `selfhost.json` recipes, DCM Templates                                                                                               | `parity_test`, `homarr_recipe_test`                                                                                                           |
 | Hidden App | `unavailable` map, `internal/catalog/catalog.go:42` | omitted from `Catalog.Apps()`, so from the site and new installs; `AllApps()` keeps it | `unavailable_test` |
