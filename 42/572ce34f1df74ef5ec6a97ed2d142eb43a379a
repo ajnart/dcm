@@ -1,0 +1,33 @@
+dcm/Dockerfile
+  s_165ad23a552bf4::t_3034c60a2261f8 6
+dcm/astro.config.mjs
+  s_165ad23a552bf4::t_d7277befa833b2 9-10
+dcm/src/components/DockerToolsClient.tsx
+  s_165ad23a552bf4::t_560bf0556d2695 95
+dcm/src/components/TemplateClient.tsx
+  s_165ad23a552bf4::t_b438190d42ac02 162
+dcm/src/components/layout/SiteFooter.astro
+  s_165ad23a552bf4::t_2068ff12d229b1 9
+dcm/src/components/layout/SiteHeader.astro
+  s_165ad23a552bf4::t_bedba2a5ed83d6 16
+dcm/src/components/template-card.tsx
+  s_165ad23a552bf4::t_e1a2247234f5ff 93
+dcm/src/layouts/Layout.astro
+  s_165ad23a552bf4::t_2368e4b7659be8 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "42572ce34f1df74ef5ec6a97ed2d142eb43a379a",
+  "prompts": {},
+  "sessions": {
+    "s_165ad23a552bf4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f53539b5-dc9b-49a6-954e-d9926e70b676",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
