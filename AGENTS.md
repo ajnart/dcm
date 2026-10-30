@@ -12,7 +12,7 @@
 - `site/`: the static Astro site at self-host.fyi; `go run ./tools/sitegen` writes its `src/data/catalog.json` from the Catalog and `theme.css` from the Dashboard theme; `-stars` also refreshes GitHub star counts. `video/`: the showreel; renders in `video/reel/out/` are git-ignored, the served file is the committed `site/public/reel.mp4`.
 - `dcm/`: DCM (Docker Compose Maker), the source library behind self-host.fyi/compose and the `ghcr.io/ajnart/dcm` image (React components, hooks, Container definitions, tests, generated data). It has no Astro app: `site/src/pages/compose/` renders it, and `@/` in `site/` means `dcm/src`. Container definitions are `dcm/src/tools/*.ts`, tests are `dcm/tests`. `go run ./tools/sitegen` also writes `dcm/src/data/selfhost.json`, one compose per App. Read `docs/agents/dcm.md` before touching it.
 - Root `package.json` and `turbo.json` make `site/` and `dcm/` one bun workspace with one `bun.lock`; run `bun install` at the root only.
-- `docs/migration/` is the runbook that made this repository the home of `ajnart/dcm`'s history.
+- `docs/migration/` is the runbook that will make this repository the home of `ajnart/dcm`'s history; it becomes historical once its last step has run.
 - `e2e/` (build tag `e2e`, runs Docker), `tools/` (development generators), `scripts/verify-install.sh`, `install.sh`, `.goreleaser.yaml`.
 - `docs/`: `adr/` decisions, `agents/` briefs for agents, `releasing.md`, `spec.md`, and proofs under `docs/*-proof.*`. Files named `legacy-*`, `where-to-look.md` and `handoff.md` describe the removed TypeScript product and are historical.
 
@@ -54,7 +54,9 @@ Run the web gate only when you touch `site/`, `dcm/` or `tools/sitegen/`:
 
 ```bash
 bun install --frozen-lockfile
-go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/src/styles
+go run ./tools/sitegen
+git add -N site/src/data dcm/src/data site/src/styles
+git diff --exit-code site/src/data dcm/src/data site/src/styles
 bunx turbo run build test lint check
 ```
 
