@@ -1,0 +1,19 @@
+site/src/lib/csp.mjs
+  s_e4c0dda40a95f7::t_b79a02f2f3a201 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "82ab1d9c67bcb8d3780a8c3c35c05410cf8f64f8",
+  "prompts": {},
+  "sessions": {
+    "s_e4c0dda40a95f7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7b2a0644-5e7f-4741-8fcb-06672c1d0f5e",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
