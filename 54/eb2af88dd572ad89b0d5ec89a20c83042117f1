@@ -1,0 +1,129 @@
+.claude/skills/add-container/SKILL.md
+  s_083df46f63aec4::t_875303570ffedb 1-49
+.claude/skills/add-container/evals/add-linkding-container/case.yaml
+  s_19d4260ebccd31::t_3c3390b7bd4cfc 1-4
+.claude/skills/add-container/evals/add-linkding-container/graders/01-container-added.md
+  s_19d4260ebccd31::t_d09f7ba52c0250 1-7
+.claude/skills/add-container/evals/add-linkding-container/graders/02-compose-conventions.md
+  s_19d4260ebccd31::t_1b4bc2666d50af 1-7
+.claude/skills/add-container/evals/add-linkding-container/graders/03-github-url-no-stars.md
+  s_19d4260ebccd31::t_18d0ae422f9fee 1-7
+.claude/skills/add-container/evals/add-linkding-container/graders/04-only-tools-changed.md
+  s_19d4260ebccd31::t_e6e7f0d32d07dd 1-7
+.claude/skills/add-container/evals/add-linkding-container/graders/05-dcm-tests-pass.md
+  s_19d4260ebccd31::t_45e9586c14b3d3 1-7
+.claude/skills/add-container/evals/add-linkding-container/graders/06-upstream-verified.md
+  s_083df46f63aec4::t_8ff202b15783a7 1-7
+.claude/skills/add-container/evals/add-linkding-container/prompt.md
+  s_19d4260ebccd31::t_dbeac7f6a4fb98 1-8
+.claude/skills/add-container/evals/paperless-already-an-app/case.yaml
+  s_19d4260ebccd31::t_a862ea3c022931 1-4
+.claude/skills/add-container/evals/paperless-already-an-app/graders/01-no-new-container.md
+  s_19d4260ebccd31::t_5462f6a9f5d250 1-7
+.claude/skills/add-container/evals/paperless-already-an-app/graders/02-explains-existing-app.md
+  s_19d4260ebccd31::t_5774928b6e45e6 1-7
+.claude/skills/add-container/evals/paperless-already-an-app/graders/03-no-collateral-edits.md
+  s_19d4260ebccd31::t_a4a9d9bef2fa0f 1-7
+.claude/skills/add-container/evals/paperless-already-an-app/prompt.md
+  s_19d4260ebccd31::t_86e0e15b264217 1-8
+.claude/skills/edit-catalog/SKILL.md
+  s_e36409ed1a5e8d::t_df154f596aaef8 1-67
+.claude/skills/edit-catalog/evals/hide-peanut/case.yaml
+  s_19d4260ebccd31::t_7bf04035fdc903 1-4
+.claude/skills/edit-catalog/evals/hide-peanut/graders/01-unavailable-entry.md
+  s_19d4260ebccd31::t_0451e385cf04e6 1-7
+.claude/skills/edit-catalog/evals/hide-peanut/graders/02-app-package-kept.md
+  s_19d4260ebccd31::t_65681eda9adbe5 1-7
+.claude/skills/edit-catalog/evals/hide-peanut/graders/03-generated-data-drops-peanut.md
+  s_19d4260ebccd31::t_b190e0ed122ddb 1-7
+.claude/skills/edit-catalog/evals/hide-peanut/graders/04-readme-count-92.md
+  s_19d4260ebccd31::t_b70da15be8d45b 1-7
+.claude/skills/edit-catalog/evals/hide-peanut/graders/05-all-app-counts-unchanged.md
+  s_19d4260ebccd31::t_ad489387f42d69 1-7
+.claude/skills/edit-catalog/evals/hide-peanut/graders/06-tui-goldens-updated.md
+  s_19d4260ebccd31::t_fbf75f91425902 1-7
+.claude/skills/edit-catalog/evals/hide-peanut/prompt.md
+  s_19d4260ebccd31::t_96403b32e2e7ce 1-8
+.claude/skills/edit-catalog/evals/new-app-memos/case.yaml
+  s_19d4260ebccd31::t_c0ea7fa36d50e6 1-4
+.claude/skills/edit-catalog/evals/new-app-memos/graders/01-app-package-and-test.md
+  s_19d4260ebccd31::t_37cdfb9a9af6f2 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/graders/02-registered-in-batch-file.md
+  s_19d4260ebccd31::t_85bc0f5b8bce69 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/graders/03-trap-note.md
+  s_19d4260ebccd31::t_c2a003fc8d4a28 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/graders/04-sitegen-declarations.md
+  s_19d4260ebccd31::t_28790d6145b064 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/graders/05-generated-data-regenerated.md
+  s_19d4260ebccd31::t_5c6236f244f192 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/graders/06-readme-count-94.md
+  s_19d4260ebccd31::t_284c5cc89ad7f5 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/graders/07-acceptance-count-95.md
+  s_19d4260ebccd31::t_c30582b1df9022 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/graders/08-inventory-103.md
+  s_19d4260ebccd31::t_9532a413c4d5f1 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/graders/09-tui-goldens-updated.md
+  s_19d4260ebccd31::t_21e5094fc1a9ca 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/graders/10-description-rules.md
+  s_19d4260ebccd31::t_b7e0ebbe3845fc 1-7
+.claude/skills/edit-catalog/evals/new-app-memos/prompt.md
+  s_19d4260ebccd31::t_b0aa4efe4c1357 1-8
+.claude/skills/edit-catalog/evals/reword-gotify-description/case.yaml
+  s_19d4260ebccd31::t_22af6520d09524 1-4
+.claude/skills/edit-catalog/evals/reword-gotify-description/graders/01-go-description-changed.md
+  s_19d4260ebccd31::t_cb57aa6e3ec39d 1-7
+.claude/skills/edit-catalog/evals/reword-gotify-description/graders/02-site-data-regenerated.md
+  s_19d4260ebccd31::t_b3714f02cfb6c3 1-7
+.claude/skills/edit-catalog/evals/reword-gotify-description/graders/03-dcm-data-regenerated.md
+  s_19d4260ebccd31::t_11d1b5e9611a7b 1-7
+.claude/skills/edit-catalog/evals/reword-gotify-description/graders/04-no-count-or-fixture-edits.md
+  s_19d4260ebccd31::t_9d97f6ffd7e236 1-7
+.claude/skills/edit-catalog/evals/reword-gotify-description/graders/05-catalog-tests-pass.md
+  s_19d4260ebccd31::t_73faa113a33e8d 1-7
+.claude/skills/edit-catalog/evals/reword-gotify-description/prompt.md
+  s_19d4260ebccd31::t_90b7190ddc660b 1-8
+AGENTS.md
+  s_6e28df53fda45d::t_df6c10792b7540 71-73
+docs/agents/generated-data.md
+  s_e36409ed1a5e8d::t_d89baa28a6c003 1-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "54eb2af88dd572ad89b0d5ec89a20c83042117f1",
+  "prompts": {},
+  "sessions": {
+    "s_083df46f63aec4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bddf89dc-371d-4633-9a1b-342733d02a35",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_19d4260ebccd31": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7890a6b6-ce79-48e1-bce3-4c94ee3ec86a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_6e28df53fda45d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f7bf7804-90e3-4a4c-bd35-0f9571525ee0",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_e36409ed1a5e8d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0851aa4b-d41c-447e-a413-b92d1c10adbe",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
