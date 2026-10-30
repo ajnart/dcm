@@ -54,6 +54,10 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, set the WebUI username and password in Config > General."
+}
+
 // readAPIKey waits for the key SABnzbd writes to its config on first start.
 func readAPIKey(ctx context.Context, h *helpers.H) (string, error) {
 	key, err := h.ConfigValue(ctx, "config/sabnzbd.ini", helpers.INIKey("misc", "api_key"), 2*time.Minute)

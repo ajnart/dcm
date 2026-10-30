@@ -34,6 +34,10 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, turn on authentication in Settings > General > Authentication (Basic, with a username and password)."
+}
+
 // Compose mounts the shared media root at /media, the path Sonarr and
 // Radarr file into, so subtitles need no remote path mapping.
 func (App) Compose(rc app.RenderContext) string {

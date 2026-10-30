@@ -440,3 +440,8 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "After the first start, create the administrator on the hub's first visit. self-host starts the agent only after its Setup has read the hub's key and token. " +
+		"With plain Compose, start the hub, add a system in its web page, set BESZEL_AGENT_KEY and BESZEL_AGENT_TOKEN, then run docker compose up -d again."
+}

@@ -90,3 +90,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "The container only runs restic version; run your backups against the repository yourself. self-host only prepares its credentials and folders."
+}

@@ -170,3 +170,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "After the first start, finish the first-run setup in the admin UI to create the administrator."
+}

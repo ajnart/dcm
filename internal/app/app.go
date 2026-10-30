@@ -171,6 +171,15 @@ type FileDeclarer interface {
 	Files(rc RenderContext, secret func(name string) string) []File
 }
 
+// StandaloneGuide is an optional interface for Apps whose first start leaves
+// the person a step that Setup does after the container runs, such as creating
+// the first administrator. The standalone Compose export prints the sentence or
+// sentences it returns. It may name only variables and folders that the App's
+// Compose uses; the export fails when it names anything else.
+type StandaloneGuide interface {
+	StandaloneGuide() string
+}
+
 // DeferredStarter is implemented by an App with services that only its Setup
 // may start, because they need settings Setup obtains from the running App.
 // Every Compose up of the Project leaves them out while Deferred lists them.

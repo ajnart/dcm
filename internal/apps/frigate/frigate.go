@@ -35,6 +35,10 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
+func (App) StandaloneGuide() string {
+	return "Frigate generates the first administrator (admin) and prints its password once in the container logs; sign in with it and change it."
+}
+
 // Secrets declares the JWT secret Frigate requires before its first start.
 func (App) Secrets() []app.SecretSpec {
 	return []app.SecretSpec{{Name: "jwt_secret", Length: 32, Hex: true}}

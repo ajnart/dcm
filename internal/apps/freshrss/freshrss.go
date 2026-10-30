@@ -31,6 +31,10 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, finish the install page and create the administrator."
+}
+
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:

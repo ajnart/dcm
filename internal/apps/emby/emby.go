@@ -33,6 +33,10 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, finish the first-run wizard and create the administrator."
+}
+
 // Compose mounts the shared media root read-only at /mnt/media.
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)

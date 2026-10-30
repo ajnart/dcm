@@ -84,6 +84,8 @@ func (a App) Info() app.Info    { return a.info }
 func (App) Inputs() []app.Input { return nil }
 func (a App) Links() []app.Link { return a.links }
 
+func (a App) StandaloneGuide() string { return a.servarr().StandaloneGuide(a.rootFolder) }
+
 func (a App) Compose(rc app.RenderContext) string {
 	id := a.info.ID
 	inner := strconv.Itoa(a.info.ContainerPort)

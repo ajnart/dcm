@@ -75,6 +75,10 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, register the first administrator on the first-run page."
+}
+
 func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 	resp, err := h.HTTP(ctx, helpers.Request{
 		Method: "POST", Path: "/api/v2/public/auth/login",

@@ -192,3 +192,8 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "Access is deny-all and login is on, so create the administrator inside the container: " +
+		"docker exec -it <container name> ntfy user add --role=admin <username>."
+}

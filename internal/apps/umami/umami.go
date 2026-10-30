@@ -204,3 +204,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return `Umami starts with the seeded administrator ` + username + ` and password "` + seededPassword + `"; sign in and change the password right away.`
+}

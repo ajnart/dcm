@@ -35,6 +35,10 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, finish the install wizard in the browser: create the administrator and keep the admin port at 3000."
+}
+
 // Compose publishes only the private admin UI; DNS port 53 needs a separate
 // owner-approved cutover.
 func (App) Compose(rc app.RenderContext) string {

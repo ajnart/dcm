@@ -431,3 +431,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "BookStack starts with a seeded administrator account (admin@admin.com, password \"password\"); sign in and replace it."
+}

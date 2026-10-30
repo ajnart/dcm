@@ -33,6 +33,8 @@ func (App) Info() app.Info {
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
 
+func (App) StandaloneGuide() string { return lidarrServarr.StandaloneGuide("") }
+
 var lidarrServarr = servarr.Servarr{Name: "Lidarr", API: servarr.V1}
 
 const recoveryHint = "Preserve Lidarr's configuration and review Settings > General > Security. This Setup supports Lidarr 3.x API v1 with Forms authentication required for every address; unsupported or externally managed authentication needs review. Run self-host setup lidarr to reread its generated API key and retry; do not reinstall to retry."

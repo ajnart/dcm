@@ -13,6 +13,12 @@ import (
 	"github.com/ajnart/self-host/internal/helpers"
 )
 
+const (
+	reservedAdminUser = "admin"
+	adminAlias        = "selfhost-admin"
+	adminEmail        = "admin@forgejo.local"
+)
+
 // App is Forgejo. Traps: docs/catalog/traps/forgejo.md.
 type App struct{}
 
@@ -30,6 +36,12 @@ func (App) Info() app.Info {
 
 func (App) Inputs() []app.Input { return nil }
 func (App) Links() []app.Link   { return nil }
+
+func (App) StandaloneGuide() string {
+	return "Installation and registration are locked, and self-host creates the first administrator after the first start. " +
+		"With plain Compose run: docker exec -u git <container name> forgejo admin user create --admin --username " + adminAlias +
+		" --email " + adminEmail + " --password <password>. Forgejo reserves the username " + reservedAdminUser + ", so pick another."
+}
 
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
@@ -87,7 +99,7 @@ func adminExists(ctx context.Context, h *helpers.H) (bool, error) {
 func createAdmin(ctx context.Context, h *helpers.H, user, password string) error {
 	env := map[string]string{"FORGEJO_ADMIN_PASSWORD": password}
 	script := `su-exec git forgejo admin user create --username "` + user + `"` +
-		` --email "admin@forgejo.local" --admin --must-change-password=false` +
+		` --email "` + adminEmail + `" --admin --must-change-password=false` +
 		` --password "$FORGEJO_ADMIN_PASSWORD"`
 	res, err := h.ExecSecret(ctx, env, script)
 	if err != nil {
@@ -117,7 +129,7 @@ func adminUser(ctx context.Context, h *helpers.H) (string, error) {
 		return user, nil
 	}
 	user := h.AdminUser()
-	if user != "admin" {
+	if user != reservedAdminUser {
 		return user, nil
 	}
 	works, err := loginWorks(ctx, h, user, h.AdminPassword())
@@ -134,7 +146,7 @@ func adminUser(ctx context.Context, h *helpers.H) (string, error) {
 	if exists {
 		return user, nil
 	}
-	user = "selfhost-admin"
+	user = adminAlias
 	// A username belongs in credentials, but is not a redacted secret.
 	if err := h.Secrets.Set(h.Key("admin_user"), user); err != nil {
 		return "", err

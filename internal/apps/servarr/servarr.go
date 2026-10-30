@@ -47,6 +47,16 @@ func (s Servarr) Setup(ctx context.Context, h *helpers.H) error {
 	})
 }
 
+// StandaloneGuide is what plain Compose leaves after the first start: Setup
+// requires forms authentication and, for an App with a library, adds rootFolder.
+func (s Servarr) StandaloneGuide(rootFolder string) string {
+	guide := "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password)"
+	if rootFolder != "" {
+		guide += " and add the root folder " + rootFolder
+	}
+	return guide + "."
+}
+
 func (s Servarr) Check(ctx context.Context, h *helpers.H) error {
 	if ok, err := h.APIKeyAccepted(ctx, s.APIKey(h)); !ok {
 		return fmt.Errorf("the %s API key is not accepted: %v", s.Name, err)

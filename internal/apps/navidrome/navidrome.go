@@ -44,6 +44,10 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, create the first administrator on the sign-in page."
+}
+
 // loginWorks verifies the shared administrator, separately from Homarr's user.
 func loginWorks(ctx context.Context, h *helpers.H, user, password string) (bool, error) {
 	account, err := login(ctx, h, user, password)

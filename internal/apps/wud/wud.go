@@ -325,6 +325,10 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 
 func (App) Links() []app.Link { return nil }
 
+func (App) StandaloneGuide() string {
+	return "WUD watches a remote Docker endpoint over TLS: set WUD_DOCKER_HOST and put its CA certificate at ${CONFIG_PATH}/wud/tls/ca.pem."
+}
+
 func boundedInventoryCount(count int) int {
 	if count > 1024 {
 		return -1

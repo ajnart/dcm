@@ -377,3 +377,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return `The Web UI starts with the password "` + initialPassword + `"; change it on the first sign-in.`
+}

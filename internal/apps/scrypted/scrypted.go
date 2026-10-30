@@ -44,6 +44,10 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, create the first administrator on the login page."
+}
+
 // identity is what POST /login returns; hasLogin is present only on the empty
 // first-run probe.
 type identity struct {

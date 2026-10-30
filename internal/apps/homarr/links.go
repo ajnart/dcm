@@ -147,6 +147,10 @@ func (App) Links() []app.Link {
 	return links
 }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, finish the onboarding wizard and create the administrator."
+}
+
 func iconURL(id string) string {
 	return "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/" + id + ".svg"
 }

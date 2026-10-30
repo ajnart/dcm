@@ -43,6 +43,10 @@ func (App) Inputs() []app.Input {
 
 func (App) Links() []app.Link { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, finish the onboarding page and create the owner."
+}
+
 // Compose exposes only the web UI on loopback bridge networking; LAN
 // discovery, radios and microphones need separate approval.
 func (App) Compose(rc app.RenderContext) string {

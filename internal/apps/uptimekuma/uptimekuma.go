@@ -67,6 +67,10 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, create the administrator on the first visit."
+}
+
 func setup() firstadmin.FirstAdmin {
 	return firstadmin.FirstAdmin{
 		Ready: firstadmin.Probe{Path: "/"},

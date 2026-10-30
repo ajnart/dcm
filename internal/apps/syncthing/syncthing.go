@@ -51,6 +51,10 @@ func (App) Compose(rc app.RenderContext) string {
 
 func (App) Links() []app.Link { return nil }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, set the GUI administrator login in Actions > Settings > GUI."
+}
+
 func configXML(h *helpers.H) string {
 	return filepath.Join(h.Dir, "syncthing-data", "config", "config.xml")
 }

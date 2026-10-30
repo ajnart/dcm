@@ -251,3 +251,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "The WebUI starts with a temporary administrator password printed in the container logs; sign in with it, set your own and set the default save path to " + downloadsPath + "."
+}

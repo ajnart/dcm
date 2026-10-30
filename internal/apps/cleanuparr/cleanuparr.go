@@ -36,6 +36,10 @@ func (App) Links() []app.Link {
 	return []app.Link{arrLink("sonarr", "Sonarr", 4), arrLink("radarr", "Radarr", 6), qbittorrentLink()}
 }
 
+func (App) StandaloneGuide() string {
+	return "After the first start, create the account on the first visit."
+}
+
 func (App) Compose(rc app.RenderContext) string {
 	port := strconv.Itoa(rc.Port)
 	return `services:
