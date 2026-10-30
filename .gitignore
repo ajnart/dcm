@@ -26,3 +26,5 @@ dist/
 
 # self-host skill eval runs
 evals/self-host/runs/
+node_modules/
+.turbo/
