@@ -2897,7 +2897,8 @@
      "secret": false
     }
    ],
-   "standalone": true
+   "standalone": true,
+   "notes": "After the first start, sign in as admin@example.com with the password oxynote-admin-1234 and change it in the account settings."
   },
   {
    "id": "pangolin",

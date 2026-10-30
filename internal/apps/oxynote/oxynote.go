@@ -166,3 +166,7 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 }
 
 func (App) Links() []app.Link { return nil }
+
+func (App) StandaloneGuide() string {
+	return "After the first start, sign in as " + email + " with the password " + defaultPassword + " and change it in the account settings."
+}
