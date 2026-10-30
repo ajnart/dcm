@@ -69,6 +69,7 @@ const reel = new URL("/reel.mp4", Astro.site);
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <script is:inline type="speculationrules" set:html={SPECULATION_RULES} />
     {jsonld && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
     <script>

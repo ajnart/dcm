@@ -9,6 +9,6 @@ const sameSitePages = {
 };
 
 export const SPECULATION_RULES = JSON.stringify({
-  prefetch: [{ source: "document", where: sameSitePages, eagerness: "eager" }],
-  prerender: [{ source: "document", where: sameSitePages, eagerness: "moderate" }],
+  prefetch: [{ source: "document", where: sameSitePages, eagerness: "immediate" }],
+  prerender: [{ source: "document", where: sameSitePages, eagerness: "eager" }],
 });

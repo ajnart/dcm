@@ -2,7 +2,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Content-Security-Policy: frame-ancestors 'none'
-  Cache-Control: public, max-age=0, s-maxage=300, stale-while-revalidate=60
+  Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
 
 /_astro/*
   ! Cache-Control
