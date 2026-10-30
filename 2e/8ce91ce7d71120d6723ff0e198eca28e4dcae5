@@ -1,0 +1,19 @@
+dcm/src/components/magicui/avatar-circles.tsx
+  s_c9c6b5e9f2f876::t_c97dcec544fd4a 37,40,54,66,78,88,95,103,106,113,118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2e8ce91ce7d71120d6723ff0e198eca28e4dcae5",
+  "prompts": {},
+  "sessions": {
+    "s_c9c6b5e9f2f876": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "33989e35-9f30-443a-bbd4-ae5a2bf09548",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
