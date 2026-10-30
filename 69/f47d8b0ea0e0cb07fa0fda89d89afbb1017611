@@ -1,0 +1,48 @@
+app/globals.css
+  h_d6e478ca18e517 1-50,52-60,62-67,69,71-79,82-84,86-87,92-104,106-123,126-130,132-136,138-140,142-152,154-162,164-167,169-174,177-178,181-186,189-190,193-199,202-203,206-207
+app/layout.tsx
+  h_d6e478ca18e517 9-11,20,24-32
+app/template/[id]/template-client.tsx
+  h_d6e478ca18e517 5,144-145,378,380,400,402
+components/compose-modal/PortConflictsAlert.tsx
+  h_d6e478ca18e517 19-28,30-43,74-75,108-109
+components/container-submission-form.tsx
+  h_d6e478ca18e517 47,158-160,162-163,287-289,295-296,432
+components/editors/MonacoEditor.tsx
+  h_d6e478ca18e517 3,6,8-10,12-18,20-29,34-36,40-63,65-66
+components/layout/Footer.tsx
+  h_d6e478ca18e517 5-8,12,17-27
+components/layout/Header.tsx
+  h_d6e478ca18e517 3,5-8,12-24,27-35,37-39,41-45
+components/layout/SelfHostButton.tsx
+  h_d6e478ca18e517 2,6,8-10,12-14
+components/magicui/avatar-circles.tsx
+  h_d6e478ca18e517 10-16,18-20,23-44,46-51,54-62,64-65,67-68,72,74,78,80,83-92
+components/mcp-setup-dialog.tsx
+  h_d6e478ca18e517 140-147
+components/template-viewer.tsx
+  h_d6e478ca18e517 3,43,68
+components/ui/badge.tsx
+  h_d6e478ca18e517 7,12,14,16
+components/ui/button.tsx
+  h_d6e478ca18e517 8,13,15,17,19-21,25-26
+components/ui/github-link.tsx
+  h_d6e478ca18e517 12,18
+components/ui/sonner.tsx
+  h_d6e478ca18e517 10
+hooks/useLocalStorage.tsx
+  h_d6e478ca18e517 7,11-12,14,16,19-20,22,24,27,31,33,37
+lib/docker-compose/file-operations.ts
+  h_d6e478ca18e517 12-14,31-32,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "69f47d8b0ea0e0cb07fa0fda89d89afbb1017611",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+README.md
+  h_d6e478ca18e517 44,46,217
+lib/selfhost.ts
+  h_d6e478ca18e517 3
+scripts/sync-selfhost.ts
+  h_d6e478ca18e517 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8d36fe254e29b75c0803e7ad2c59931d58294b85",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

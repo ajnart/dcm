@@ -1,0 +1,39 @@
+app/template/[id]/template-client.tsx
+  s_18984404331c67::t_9772a9508c8f16 229,231,287,300,329,342
+tools/automation.ts
+  s_18984404331c67::t_2c2f11fc949875 27-32
+  s_18984404331c67::t_44b41238461f48 58-63
+components/layout/Header.tsx
+  s_18984404331c67::t_3d7b1c93af91c4 21
+  s_18984404331c67::t_2e1a26159bdb16 2
+components/theme-toggle.tsx
+  s_18984404331c67::t_9772a9508c8f16 1-69
+tools/database.ts
+  s_18984404331c67::t_e2e65c117873c9 27-31
+  s_18984404331c67::t_663fcaee8b60d8 134,138,141,144-171
+  s_18984404331c67::t_a79f1780d22c35 116-120
+  s_18984404331c67::t_73bae5c74106a0 86-90
+components/compose-modal/PortConflictsAlert.tsx
+  s_18984404331c67::t_9772a9508c8f16 57
+  s_18984404331c67::t_10a1c964455c0c 4,13-33,39-40,42-46,48-56,58-80,82-88
+tools/monitoring.ts
+  s_18984404331c67::t_f70ffeb1831867 55,58-62
+  s_18984404331c67::t_ee6b6736b94394 131-136
+  s_18984404331c67::t_04bc9128174e4d 24-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "f84baa662d74f3038c5e8bab1d354446b541eea0",
+  "prompts": {},
+  "sessions": {
+    "s_18984404331c67": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1cfb3e668ffeTiqiz9DTCJKmHs",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+README.md
+  h_d6e478ca18e517 71,75,82,98,123,157,166,180,190-194,196-200,204-213,215-217,261,272,276,284,294,310
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ab5f79d9009754833849d02053e83c9da72f0e4f",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

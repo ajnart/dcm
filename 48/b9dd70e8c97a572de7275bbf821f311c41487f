@@ -1,0 +1,43 @@
+containers/authentik.yaml
+  s_18984404331c67::t_45d76a638e1173 3
+containers/alloy.yaml
+  s_18984404331c67::t_8bd441f5e1ad9e 1,3
+containers/authentik-worker.yaml
+  s_18984404331c67::t_3dd6bf8c5bfcd0 3
+tools/management.ts
+  s_18984404331c67::t_c8a5b7ff91cd03 201-202
+  s_18984404331c67::t_641a6a9150a711 261
+  s_18984404331c67::t_c8b6b6bc1c7acf 306
+tools/other.ts
+  s_18984404331c67::t_2821984954ff82 878
+containers/authentik-proxy.yaml
+  s_18984404331c67::t_eea2f276c7d26a 3
+containers/healarr.yaml
+  s_18984404331c67::t_4d85fd5dd9cdcc 3
+containers/autoxpose.yaml
+  s_18984404331c67::t_e9f10189d0b181 3
+containers/shadowbroker.yaml
+  s_18984404331c67::t_ebf73e26a48273 3
+tools/monitoring.ts
+  s_18984404331c67::t_5759e813d13552 334,338-339,344
+tools/automation.ts
+  s_18984404331c67::t_6875e01bb95d1c 379
+containers/portracker.yaml
+  s_18984404331c67::t_426af5c073f8b2 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "48b9dd70e8c97a572de7275bbf821f311c41487f",
+  "prompts": {},
+  "sessions": {
+    "s_18984404331c67": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1cfb3e668ffeTiqiz9DTCJKmHs",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}

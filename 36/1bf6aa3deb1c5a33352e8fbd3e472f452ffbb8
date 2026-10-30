@@ -1,0 +1,16 @@
+components/theme-toggle.tsx
+  h_d6e478ca18e517 3,7,10-18
+components/ui/dialog.tsx
+  h_d6e478ca18e517 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "361bf6aa3deb1c5a33352e8fbd3e472f452ffbb8",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
