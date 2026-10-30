@@ -16,22 +16,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -53,22 +50,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -108,29 +102,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -151,22 +141,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -188,29 +175,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -250,43 +233,37 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -338,22 +315,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -374,57 +348,49 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "UMASK",
      "default": "022",
      "description": "Permission mask for files the App creates",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -458,15 +424,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -478,8 +442,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -519,15 +482,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -539,29 +500,25 @@
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -589,15 +546,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -619,22 +574,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -669,50 +621,43 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "UMASK",
      "default": "022",
      "description": "Permission mask for files the App creates",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -740,22 +685,19 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -776,15 +718,13 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -805,43 +745,37 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -863,29 +797,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -907,15 +837,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DOCMOST_APP_SECRET",
@@ -939,8 +867,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -962,29 +889,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -1006,15 +929,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "FIREFLY_III_APP_KEY",
@@ -1044,15 +965,13 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -1074,22 +993,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -1111,29 +1027,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -1155,15 +1067,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "FRIGATE_JWT_SECRET",
@@ -1175,8 +1085,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -1198,22 +1107,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -1235,15 +1141,13 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -1264,15 +1168,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "GLUETUN_OPENVPN_PASSWORD",
@@ -1296,15 +1198,13 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -1338,29 +1238,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -1394,36 +1290,31 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -1456,29 +1347,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -1500,29 +1387,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -1737,15 +1620,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "HOMARR_SECRET_ENCRYPTION_KEY",
@@ -1757,15 +1638,13 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -1787,29 +1666,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -1831,29 +1706,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -1875,15 +1746,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "IMMICH_DB_PASSWORD",
@@ -1895,8 +1764,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -1918,22 +1786,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -1945,36 +1810,31 @@
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "UMASK",
      "default": "022",
      "description": "Permission mask for files the App creates",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -2008,15 +1868,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "KEYCLOAK_DB_PASSWORD",
@@ -2028,8 +1886,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -2062,15 +1919,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "KOPIA_REPOSITORY_PASSWORD",
@@ -2082,8 +1937,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -2104,50 +1958,43 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "UMASK",
      "default": "022",
      "description": "Permission mask for files the App creates",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -2169,15 +2016,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -2207,8 +2052,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -2242,15 +2086,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LLDAP_JWT_SECRET",
@@ -2268,22 +2110,19 @@
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -2305,36 +2144,31 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -2367,15 +2201,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "MAYAN_EDMS_BROKER_PASSWORD",
@@ -2399,22 +2231,19 @@
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -2448,15 +2277,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "MINIO_LICENSE_FILE",
@@ -2468,19 +2295,17 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
-   "notes": "self-host hands secrets to the container as files (MINIO_ROOT_PASSWORD_FILE); this Compose passes them as plain environment variables (MINIO_ROOT_PASSWORD) instead."
+   "notes": "Set MINIO_LICENSE_FILE before the first start (Path to the AIStor license file you obtained from MinIO); the default ./minio-license-file is only a placeholder, and without a file there the container does not start. self-host hands secrets to the container as files (MINIO_ROOT_PASSWORD_FILE); this Compose passes them as plain environment variables (MINIO_ROOT_PASSWORD) instead."
   },
   {
    "id": "navidrome",
@@ -2498,22 +2323,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -2535,15 +2357,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "NETBIRD_CANONICAL_ORIGIN",
@@ -2555,15 +2375,13 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -2585,22 +2403,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -2634,15 +2449,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -2666,8 +2479,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -2689,22 +2501,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -2732,43 +2541,37 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -2790,15 +2593,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -2810,29 +2611,25 @@
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -2866,50 +2663,43 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -2930,22 +2720,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -2978,15 +2765,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "OPEN_WEBUI_SECRET_KEY",
@@ -2998,8 +2783,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -3020,15 +2804,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PANGOLIN_SERVER_SECRET",
@@ -3046,15 +2828,13 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -3088,15 +2868,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PAPERLESS_NGX_APP_KEY",
@@ -3114,22 +2892,19 @@
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3151,15 +2926,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PATCHMON_AI_ENCRYPTION_KEY",
@@ -3195,22 +2968,19 @@
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -3244,22 +3014,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -3292,22 +3059,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -3334,29 +3098,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3378,22 +3138,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -3411,15 +3168,13 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3441,22 +3196,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3490,22 +3242,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3527,36 +3276,31 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -3586,50 +3330,43 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "UMASK",
      "default": "022",
      "description": "Permission mask for files the App creates",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3651,57 +3388,49 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "UMASK",
      "default": "022",
      "description": "Permission mask for files the App creates",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3728,57 +3457,49 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "UMASK",
      "default": "022",
      "description": "Permission mask for files the App creates",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3800,8 +3521,7 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RENOVATE_TOKEN",
@@ -3829,15 +3549,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTIC_REPOSITORY",
@@ -3871,43 +3589,37 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3929,22 +3641,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -3978,15 +3687,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -3998,8 +3705,7 @@
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "SEAFILE_DB_PASSWORD",
@@ -4051,36 +3757,31 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "SEERR_API_KEY",
@@ -4092,8 +3793,7 @@
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -4127,43 +3827,37 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "SLSKD_API_KEY",
@@ -4207,57 +3901,49 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "UMASK",
      "default": "022",
      "description": "Permission mask for files the App creates",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -4291,15 +3977,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -4311,22 +3995,19 @@
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -4348,36 +4029,31 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "STALWART_HOSTNAME",
@@ -4395,8 +4071,7 @@
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -4418,22 +4093,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -4454,36 +4126,31 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -4505,22 +4172,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -4542,43 +4206,37 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "DATA_PATH",
      "default": "/opt/appdata/data",
      "description": "Host folder that holds every App's data, media and downloads",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TDARR_API_KEY_SEED",
@@ -4590,8 +4248,7 @@
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -4619,22 +4276,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -4656,22 +4310,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TRACEARR_AUTH_SECRET",
@@ -4701,8 +4352,7 @@
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -4730,22 +4380,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -4779,43 +4426,37 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -4836,22 +4477,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "UMAMI_APP_SECRET",
@@ -4891,22 +4529,19 @@
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -4927,22 +4562,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true,
@@ -4964,36 +4596,31 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -5015,15 +4642,13 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "LAN_IP",
@@ -5035,29 +4660,25 @@
      "key": "PGID",
      "default": "1000",
      "description": "Group ID the container runs as (run `id -g`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "PUID",
      "default": "1000",
      "description": "User ID the container runs as (run `id -u`)",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "VAULTWARDEN_ADMIN_TOKEN",
@@ -5085,22 +4706,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": false,
@@ -5122,22 +4740,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     }
    ],
    "standalone": true
@@ -5170,29 +4785,25 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "TZ",
      "default": "Etc/UTC",
      "description": "Time zone, for example Europe/Paris",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "WUD_DOCKER_HOST",
@@ -5220,22 +4831,19 @@
      "key": "CONFIG_PATH",
      "default": "/opt/appdata/config",
      "description": "Host folder that holds every App's configuration",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "CONTAINER_PREFIX",
      "default": "",
      "description": "Prefix put in front of every container name",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "RESTART_POLICY",
      "default": "unless-stopped",
      "description": "Docker restart policy",
-     "secret": false,
-     "global": true
+     "secret": false
     },
     {
      "key": "ZEROTIER_API_SECRET",
