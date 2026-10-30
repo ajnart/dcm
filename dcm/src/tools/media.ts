@@ -81,7 +81,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Streaming", "Media Server", "Transcoding"],
     githubUrl: "https://github.com/jellyfin/jellyfin",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyfin.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/jellyfin.svg",
     composeContent: `services:
   jellyfin:
     image: ghcr.io/hotio/jellyfin:latest
@@ -106,7 +106,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Streaming", "Media Server", "Transcoding"],
     githubUrl: "https://github.com/plexinc/pms-docker",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/plex.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/plex.svg",
     composeContent: `services:
   plex:
     image: ghcr.io/hotio/plex:latest
@@ -135,7 +135,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Streaming", "Media Server", "Live TV"],
     githubUrl: "https://github.com/MediaBrowser/Emby",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/emby.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/emby.svg",
     composeContent: `services:
   emby:
     image: lscr.io/linuxserver/emby:latest
@@ -163,7 +163,7 @@ export const media: DockerTool[] = [
     category: "Monitoring",
     tags: ["Plex", "Monitoring", "Statistics"],
     githubUrl: "https://github.com/Tautulli/Tautulli",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/tautulli.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/tautulli.svg",
     composeContent: `services:
   tautulli:
     image: ghcr.io/hotio/tautulli:latest
@@ -187,7 +187,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Requests", "Media Management", "Jellyfin"],
     githubUrl: "https://github.com/Fallenbagel/jellyseerr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyseerr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/jellyseerr.svg",
     composeContent: `services:
   jellyseerr:
     image: ghcr.io/hotio/jellyseerr:latest
@@ -211,7 +211,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Requests", "Media Management", "Plex"],
     githubUrl: "https://github.com/sct/overseerr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/overseerr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/overseerr.svg",
     composeContent: `services:
   overseerr:
     image: ghcr.io/hotio/overseerr:latest
@@ -235,7 +235,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Adult", "Media Management", "Organization"],
     githubUrl: "https://github.com/stashapp/stash",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/stash.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/stash.svg",
     composeContent: `services:
   stash:
     image: ghcr.io/hotio/stash:latest
@@ -284,7 +284,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Discord", "Requests", "Bot"],
     githubUrl: "https://github.com/darkalfx/requestrr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/requestrr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/requestrr.svg",
     composeContent: `services:
   requestrr:
     image: linuxserver/requestrr:latest
@@ -307,7 +307,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Requests", "Media Management", "Integration"],
     githubUrl: "https://github.com/Ombi-app/Ombi",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ombi.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/ombi.svg",
     composeContent: `services:
   ombi:
     image: ghcr.io/hotio/ombi:latest
@@ -330,7 +330,7 @@ export const media: DockerTool[] = [
     category: "Download",
     tags: ["Usenet", "Download", "NZB"],
     githubUrl: "https://github.com/sabnzbd/sabnzbd",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/sabnzbd.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/sabnzbd.svg",
     composeContent: `services:
   sabnzbd:
     image: ghcr.io/hotio/sabnzbd:latest
@@ -355,7 +355,7 @@ export const media: DockerTool[] = [
     category: "Download",
     tags: ["BitTorrent", "Download", "P2P"],
     githubUrl: "https://github.com/transmission/transmission",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/transmission.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/transmission.svg",
     composeContent: `services:
   transmission:
     image: linuxserver/transmission:latest
@@ -384,7 +384,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["YouTube", "Download", "Video"],
     githubUrl: "https://github.com/alexta69/metube",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/metube.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/metube.svg",
     composeContent: `services:
   metube:
     image: alexta69/metube:latest
@@ -407,7 +407,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["TV", "Automation", "YouTube"],
     githubUrl: "https://github.com/dmunozv04/iSponsorBlockTV",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/youtube.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/youtube.svg",
     composeContent: `services:
   isponsorblocktv:
     image: ghcr.io/dmunozv04/isponsorblocktv:latest
@@ -429,7 +429,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Music", "Streaming", "Audio"],
     githubUrl: "https://github.com/navidrome/navidrome",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/navidrome.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/navidrome.svg",
     composeContent: `services:
   navidrome:
     image: deluan/navidrome:latest
@@ -454,7 +454,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Music", "Streaming", "Audio"],
     githubUrl: "https://github.com/airsonic-advanced/airsonic-advanced",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/airsonic.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/airsonic.svg",
     composeContent: `services:
   airsonic:
     image: airsonicadvanced/airsonic-advanced:latest
@@ -481,7 +481,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Audiobooks", "Podcasts", "Library"],
     githubUrl: "https://github.com/advplyr/audiobookshelf",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/audiobookshelf.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/audiobookshelf.svg",
     composeContent: `services:
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf:latest
@@ -506,7 +506,7 @@ export const media: DockerTool[] = [
     category: "Download",
     tags: ["Proxy", "Cloudflare", "Bypass"],
     githubUrl: "https://github.com/FlareSolverr/FlareSolverr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/flaresolverr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/flaresolverr.svg",
     composeContent: `services:
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
@@ -527,7 +527,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Photos", "Videos", "Backup"],
     githubUrl: "https://github.com/immich-app/immich",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/immich.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/immich.svg",
     composeContent: `services:
   immich:
     image: ghcr.io/immich-app/immich-server:latest
@@ -554,7 +554,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Photos", "AI", "Gallery"],
     githubUrl: "https://github.com/photoprism/photoprism",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/photoprism.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/photoprism.svg",
     composeContent: `services:
   photoprism:
     image: photoprism/photoprism:latest
@@ -641,7 +641,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Comics", "Manga", "eBooks"],
     githubUrl: "https://github.com/Kareadita/Kavita",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/kavita.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/kavita.svg",
     composeContent: `services:
   kavita:
     image: kizaing/kavita:latest
@@ -734,7 +734,7 @@ export const media: DockerTool[] = [
     category: "Media",
     tags: ["Rom", "Emulator", "Management Software"],
     githubUrl: "https://github.com/rommapp/romm",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/romm.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/romm.svg",
     composeContent: `services:
   romm:
     image: rommapp/romm:latest

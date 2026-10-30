@@ -18,7 +18,7 @@ type App = {
 
 type Recipe = { id: string; name: string; description: string; apps: string[] };
 
-const ICONS = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/";
+const ICONS = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/";
 
 const github: Record<string, { repo: string; stars: number }> = starCounts;
 

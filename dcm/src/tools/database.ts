@@ -8,7 +8,7 @@ export const databases: DockerTool[] = [
     category: "Database",
     tags: ["SQL", "Database", "MySQL"],
     githubUrl: "https://github.com/MariaDB/server",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mariadb.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/mariadb.svg",
     composeContent: `services:
   mariadb:
     image: mariadb:latest
@@ -39,7 +39,7 @@ export const databases: DockerTool[] = [
     category: "Database",
     tags: ["SQL", "Database", "Relational"],
     githubUrl: "https://github.com/mysql/mysql-server",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mysql.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/mysql.svg",
     composeContent: `services:
   mysql:
     image: mysql:8.0
@@ -67,7 +67,7 @@ export const databases: DockerTool[] = [
     category: "Database",
     tags: ["SQL", "Database", "Relational"],
     githubUrl: "https://github.com/postgres/postgres",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/postgres.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/postgres.svg",
     composeContent: `services:
   postgres:
     image: postgres:latest
@@ -98,7 +98,7 @@ export const databases: DockerTool[] = [
     category: "Database",
     tags: ["NoSQL", "Database", "Document"],
     githubUrl: "https://github.com/mongodb/mongo",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mongodb.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/mongodb.svg",
     composeContent: `services:
   mongodb:
     image: mongo:latest
@@ -129,7 +129,7 @@ export const databases: DockerTool[] = [
     category: "Database",
     tags: ["Cache", "Database", "In-Memory"],
     githubUrl: "https://github.com/redis/redis",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/redis.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/redis.svg",
     composeContent: `services:
   redis:
     image: redis:8.0.2
@@ -157,7 +157,7 @@ export const databases: DockerTool[] = [
     category: "Database",
     tags: ["Redis", "GUI", "Management", "Visualization"],
     githubUrl: "https://github.com/RedisInsight/RedisInsight",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/redis.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/redis.svg",
     composeContent: `services:
   redisinsight:
     image: redis/redisinsight:latest
@@ -180,7 +180,7 @@ export const databases: DockerTool[] = [
     category: "Database",
     tags: ["Database", "MySQL", "MariaDB", "Database Viewer", "Admin"],
     githubUrl: "https://github.com/phpmyadmin/phpmyadmin",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/phpmyadmin.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/phpmyadmin.svg",
     composeContent: `services:
   phpmyadmin:
     image: phpmyadmin:latest

@@ -25,7 +25,7 @@ export const other: DockerTool[] = [
     category: "Other",
     tags: ["Social", "Birthday", "Calendar", "Reminders"],
     githubUrl: "https://github.com/ellite/candlr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/candlr.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/candlr.png",
     composeContent: `services:
   candlr:
     image: bellamy/candlr:latest
@@ -48,7 +48,7 @@ export const other: DockerTool[] = [
     category: "Storage",
     tags: ["Cloud Storage", "File Sharing", "Collaboration"],
     githubUrl: "https://github.com/nextcloud/server",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nextcloud.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/nextcloud.svg",
     composeContent: `services:
   nextcloud:
     image: nextcloud:latest
@@ -112,7 +112,7 @@ export const other: DockerTool[] = [
     category: "Security",
     tags: ["Password Manager", "Security", "Bitwarden"],
     githubUrl: "https://github.com/dani-garcia/vaultwarden",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/vaultwarden.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/vaultwarden.svg",
     composeContent: `services:
   vaultwarden:
     image: vaultwarden/server:latest
@@ -134,7 +134,7 @@ export const other: DockerTool[] = [
     category: "Networking",
     tags: ["Security", "Network", "VPN"],
     githubUrl: "https://github.com/qdm12/gluetun",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/gluetun.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/gluetun.svg",
     composeContent: `services:
   gluetun:
     image: qmcgaw/gluetun
@@ -171,7 +171,7 @@ export const other: DockerTool[] = [
     category: "Development",
     tags: ["Git", "Version Control", "CI/CD"],
     githubUrl: "https://github.com/go-gitea/gitea",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/gitea.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/gitea.svg",
     composeContent: `services:
   gitea:
     image: gitea/gitea:latest
@@ -197,7 +197,7 @@ export const other: DockerTool[] = [
     category: "Development",
     tags: ["IDE", "Development", "VS Code"],
     githubUrl: "https://github.com/coder/code-server",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/code-server.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/code-server.png",
     composeContent: `services:
   code-server:
     image: codercom/code-server:latest
@@ -316,7 +316,7 @@ export const other: DockerTool[] = [
     category: "Database",
     tags: ["Search", "Analytics", "Full-Text"],
     githubUrl: "https://github.com/elastic/elasticsearch",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/elasticsearch.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/elasticsearch.svg",
     composeContent: `services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
@@ -348,7 +348,7 @@ export const other: DockerTool[] = [
     category: "Backup",
     tags: ["Backup", "Deduplication", "Cloud"],
     githubUrl: "https://github.com/gilbertchen/duplicacy",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/duplicacy.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/duplicacy.png",
     composeContent: `services:
   duplicacy:
     image: ghcr.io/hotio/duplicacy:latest
@@ -372,7 +372,7 @@ export const other: DockerTool[] = [
     category: "Backup",
     tags: ["Monitoring", "Backup", "UI", "Integration", "Automation"],
     githubUrl: "https://github.com/borgmatic-collective/docker-borgmatic",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/borgmatic.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/borgmatic.png",
     composeContent: `services:
   borgmatic:
     image: ghcr.io/borgmatic-collective/borgmatic
@@ -426,7 +426,7 @@ export const other: DockerTool[] = [
     category: "Home Automation",
     tags: ["IoT", "Smart Home", "Automation"],
     githubUrl: "https://github.com/home-assistant/core",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/home-assistant.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/home-assistant.svg",
     composeContent: `services:
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:stable
@@ -450,7 +450,7 @@ export const other: DockerTool[] = [
     category: "Home Automation",
     tags: ["IoT", "Automation", "Flow Programming"],
     githubUrl: "https://github.com/node-red/node-red",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/node-red.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/node-red.svg",
     composeContent: `services:
   nodered:
     image: nodered/node-red:latest
@@ -471,7 +471,7 @@ export const other: DockerTool[] = [
     category: "Home Automation",
     tags: ["IoT", "MQTT", "Messaging"],
     githubUrl: "https://github.com/eclipse/mosquitto",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mosquitto.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/mosquitto.svg",
     composeContent: `services:
   mosquitto:
     image: eclipse-mosquitto:latest
@@ -495,7 +495,7 @@ export const other: DockerTool[] = [
     category: "Home Automation",
     tags: ["IoT", "Zigbee", "Smart Home"],
     githubUrl: "https://github.com/Koenkk/zigbee2mqtt",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/zigbee2mqtt.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/zigbee2mqtt.svg",
     composeContent: `services:
   zigbee2mqtt:
     image: koenkk/zigbee2mqtt:latest
@@ -518,7 +518,7 @@ export const other: DockerTool[] = [
     category: "Productivity",
     tags: ["RSS", "News", "Reading"],
     githubUrl: "https://github.com/FreshRSS/FreshRSS",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/freshrss.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/freshrss.svg",
     composeContent: `services:
   freshrss:
     image: freshrss/freshrss:latest
@@ -541,7 +541,7 @@ export const other: DockerTool[] = [
     category: "Productivity",
     tags: ["RSS", "News", "Reading"],
     githubUrl: "https://github.com/TheBigRoomXXL/tinyfeed",
-    icon: "https://github.com/TheBigRoomXXL/tinyfeed/blob/main/.images/icon.png?raw=true",
+    icon: "/images/containers/tinyfeed.svg",
     composeContent: `services:
   tinyfeed:
     image: thebigroomxxl/tinyfeed:latest
@@ -560,7 +560,7 @@ export const other: DockerTool[] = [
     category: "Productivity",
     tags: ["Reading", "Bookmark", "Archive"],
     githubUrl: "https://github.com/wallabag/wallabag",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wallabag.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/wallabag.svg",
     composeContent: `services:
   wallabag:
     image: wallabag/wallabag:latest
@@ -583,7 +583,7 @@ export const other: DockerTool[] = [
     category: "Productivity",
     tags: ["Cooking", "Recipes", "Food"],
     githubUrl: "https://github.com/vabene1111/recipes",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/tandoor-recipes.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/tandoor-recipes.svg",
     composeContent: `services:
   tandoor:
     image: vabene1111/recipes:latest
@@ -609,7 +609,7 @@ export const other: DockerTool[] = [
     category: "Productivity",
     tags: ["Files", "Manager", "Sharing"],
     githubUrl: "https://github.com/filebrowser/filebrowser",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/filebrowser.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/filebrowser.svg",
     composeContent: `services:
   filebrowser:
     image: filebrowser/filebrowser:latest
@@ -634,7 +634,7 @@ export const other: DockerTool[] = [
     category: "Development",
     tags: ["IDE", "Editor", "Development"],
     githubUrl: "https://github.com/gitpod-io/openvscode-server",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/vscode.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/vscode.svg",
     composeContent: `services:
   openvscode:
     image: gitpod/openvscode-server:latest
@@ -655,7 +655,7 @@ export const other: DockerTool[] = [
     category: "Finance",
     tags: ["Money", "Budgeting", "Finance"],
     githubUrl: "https://github.com/actualbudget/actual",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/actual-budget.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/actual-budget.svg",
     composeContent: `services:
   actualbudget:
     image: docker.io/actualbudget/actual-server:latest
@@ -691,7 +691,7 @@ export const other: DockerTool[] = [
     category: "Finance",
     tags: ["Money", "Budgeting", "Finance"],
     githubUrl: "https://github.com/firefly-iii/firefly-iii",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/firefly-iii.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/firefly-iii.svg",
     composeContent: `services:
   firefly:
     image: fireflyiii/core:latest
@@ -719,7 +719,7 @@ export const other: DockerTool[] = [
     category: "Productivity",
     tags: ["Dashboard", "Homepage", "UI"],
     githubUrl: "https://github.com/benphelps/homepage",
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/homepage.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/homepage.png",
     composeContent: `services:
   homepage:
     image: ghcr.io/benphelps/homepage:latest
@@ -741,7 +741,7 @@ export const other: DockerTool[] = [
     category: "Media",
     tags: ["eBooks", "Reading", "Library"],
     githubUrl: "https://github.com/janeczku/calibre-web",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/calibre-web.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/calibre-web.svg",
     composeContent: `services:
   calibreweb:
     image: linuxserver/calibre-web:latest
@@ -765,7 +765,7 @@ export const other: DockerTool[] = [
     category: "Media",
     tags: ["eBooks", "Reading", "Library", "Automation"],
     githubUrl: "https://github.com/crocodilestick/Calibre-Web-Automated",
-    icon: "https://raw.githubusercontent.com/crocodilestick/Calibre-Web-Automated/refs/heads/main/README_images/cwa-logo-round-dark.png",
+    icon: "/images/containers/calibre-web-automated.png",
     composeContent: `services:
   calibrewebautomated:
     image: crocodilestick/calibre-web-automated:latest
@@ -790,7 +790,7 @@ export const other: DockerTool[] = [
     category: "Network",
     tags: ["Network", "Management", "Ubiquiti"],
     githubUrl: "https://github.com/jacobalberty/unifi-docker",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/unifi.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/unifi.svg",
     composeContent: `services:
   unifi:
     image: jacobalberty/unifi:latest
@@ -816,7 +816,7 @@ export const other: DockerTool[] = [
     category: "Productivity",
     tags: ["Recipes", "Cooking", "Meal Planning"],
     githubUrl: "https://github.com/hay-kot/mealie",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mealie.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/mealie.svg",
     composeContent: `services:
   mealie:
     image: hkotel/mealie:latest
@@ -919,7 +919,7 @@ export const other: DockerTool[] = [
     category: "Security",
     tags: ["Security", "SSO", "Identity Provider", "OAuth2", "SAML"],
     githubUrl: "https://github.com/goauthentik/authentik",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/authentik.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/authentik.svg",
     composeContent: `services:
   authentik:
     image: ghcr.io/goauthentik/server:latest
@@ -953,7 +953,7 @@ export const other: DockerTool[] = [
     category: "Security",
     tags: ["Security", "SSO", "Identity Provider", "Worker"],
     githubUrl: "https://github.com/goauthentik/authentik",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/authentik.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/authentik.svg",
     composeContent: `services:
   authentik-worker:
     image: ghcr.io/goauthentik/server:latest
@@ -982,7 +982,7 @@ export const other: DockerTool[] = [
     category: "Security",
     tags: ["Security", "Proxy", "Reverse Proxy", "SSO"],
     githubUrl: "https://github.com/goauthentik/authentik",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/authentik.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/authentik.svg",
     composeContent: `services:
   authentik-proxy:
     image: ghcr.io/goauthentik/proxy:latest
@@ -1024,7 +1024,7 @@ export const other: DockerTool[] = [
     category: "Other",
     tags: ["Tools", "Editor", "File Converter"],
     githubUrl: "https://github.com/iib0011/omni-tools",
-    icon: "https://github.com/iib0011/omni-tools/blob/main/public/favicon.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/omni-tools.png",
     composeContent: `services:
   omnitools:
     container_name: \${CONTAINER_PREFIX}omni-tools

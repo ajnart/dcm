@@ -4,7 +4,7 @@ export const SELFHOST_URL = "https://self-host.fyi"
 export const SELFHOST_INSTALL =
   "curl -fsSL https://self-host.fyi/install | bash"
 export const SELFHOST_ICON_BASE =
-  "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/"
+  "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/"
 
 export interface SelfHostEnvVar {
   key: string

@@ -39,7 +39,7 @@ export const management: DockerTool[] = [
     category: "Management",
     tags: ["Management", "UI", "Monitoring"],
     githubUrl: "https://github.com/portainer/portainer",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/portainer.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/portainer.svg",
     composeContent: `services:
   portainer:
     image: portainer/portainer-ce:latest
@@ -62,7 +62,7 @@ export const management: DockerTool[] = [
     category: "Networking",
     tags: ["Proxy", "Load Balancer", "SSL"],
     githubUrl: "https://github.com/traefik/traefik",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/traefik.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/traefik.svg",
     composeContent: `services:
   traefik:
     image: traefik:v3.3
@@ -92,7 +92,7 @@ export const management: DockerTool[] = [
     category: "Networking",
     tags: ["Web Server", "Reverse Proxy", "Load Balancer"],
     githubUrl: "https://github.com/nginx/nginx",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nginx.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/nginx.svg",
     composeContent: `services:
   nginx:
     image: nginx:1-alpine
@@ -115,7 +115,7 @@ export const management: DockerTool[] = [
     category: "Networking",
     tags: ["Ad Blocking", "DNS", "Privacy"],
     githubUrl: "https://github.com/pi-hole/pi-hole",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/pi-hole.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/pi-hole.svg",
     composeContent: `services:
   pihole:
     container_name: \${CONTAINER_PREFIX}pihole
@@ -141,7 +141,7 @@ export const management: DockerTool[] = [
     category: "Networking",
     tags: ["Ad Blocking", "DNS", "Privacy"],
     githubUrl: "https://github.com/AdguardTeam/AdGuardHome",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/adguard-home.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/adguard-home.svg",
     composeContent: `services:
   adguardhome:
     container_name: \${CONTAINER_PREFIX}adguardhome
@@ -167,7 +167,7 @@ export const management: DockerTool[] = [
     category: "Networking",
     tags: ["Web Server", "Reverse Proxy", "HTTPS"],
     githubUrl: "https://github.com/caddyserver/caddy",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/caddy.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/caddy.svg",
     composeContent: `services:
   caddy:
     image: ghcr.io/hotio/caddy:latest
@@ -214,7 +214,7 @@ export const management: DockerTool[] = [
     category: "Management",
     tags: ["Management", "UI", "Monitoring"],
     githubUrl: "https://github.com/louislam/dockge",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/dockge.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/dockge.svg",
     composeContent: `services:
   dockge:
     container_name: \${CONTAINER_PREFIX}dockge
@@ -242,7 +242,7 @@ export const management: DockerTool[] = [
     category: "Networking",
     tags: ["Ad Blocking", "DNS", "Pi-hole", "Sync"],
     githubUrl: "https://github.com/lovelaze/nebula-sync",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nebula-sync.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/pi-hole.svg",
     composeContent: `services:
   nebula-sync:
     image: ghcr.io/lovelaze/nebula-sync:latest
@@ -287,7 +287,7 @@ export const management: DockerTool[] = [
     category: "Management",
     tags: ["Dashboard", "Homepage", "Management", "Services"],
     githubUrl: "https://github.com/Vellis59/panelio",
-    icon: "https://raw.githubusercontent.com/Vellis59/panelio/main/public/logo.svg",
+    icon: "/images/containers/panelio.svg",
     composeContent: `services:
   panelio:
     image: ghcr.io/vellis59/panelio:latest
@@ -313,7 +313,7 @@ export const management: DockerTool[] = [
     category: "Networking",
     tags: ["DNS", "Reverse Proxy", "Automation", "SSL"],
     githubUrl: "https://github.com/mostafa-wahied/autoxpose",
-    icon: "https://github.com/mostafa-wahied/autoxpose/raw/main/packages/frontend/public/autoxpose-logo.svg",
+    icon: "/images/containers/autoxpose.svg",
     composeContent: `services:
   autoxpose:
     image: mostafawahied/autoxpose:latest
@@ -336,7 +336,7 @@ export const management: DockerTool[] = [
     category: "Networking",
     tags: ["Monitoring", "Dashboard", "Network", "Ports", "Docker"],
     githubUrl: "https://github.com/mostafa-wahied/portracker",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/portracker.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/portracker.svg",
     composeContent: `services:
   portracker:
     image: mostafawahied/portracker:latest
@@ -362,7 +362,7 @@ export const management: DockerTool[] = [
     category: "Networking",
     tags: ["Reverse Proxy", "DNS", "SSL", "Network", "Security"],
     githubUrl: "https://github.com/tobychui/zoraxy",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/zoraxy.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/zoraxy.svg",
     composeContent: `services:
   zoraxy:
     image: zoraxydocker/zoraxy:latest
@@ -389,7 +389,7 @@ export const management: DockerTool[] = [
     category: "Management",
     tags: ["UI", "Management", "Docker", "Dashboard"],
     githubUrl: "https://github.com/ofkm/arcane",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/arcane.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/arcane.svg",
     composeContent: `services:
   arcane:
     image: ghcr.io/ofkm/arcane:latest

@@ -9,7 +9,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["TV", "PVR", "Automation"],
     githubUrl: "https://github.com/Sonarr/Sonarr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/sonarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/sonarr.svg",
     composeContent: `services:
   sonarr:
     image: ghcr.io/hotio/sonarr:latest
@@ -40,7 +40,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["Movies", "PVR", "Automation"],
     githubUrl: "https://github.com/Radarr/Radarr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/radarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/radarr.svg",
     composeContent: `services:
   radarr:
     image: ghcr.io/hotio/radarr:latest
@@ -71,7 +71,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["Music", "PVR", "Automation"],
     githubUrl: "https://github.com/Lidarr/Lidarr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/lidarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/lidarr.svg",
     composeContent: `services:
   lidarr:
     image: ghcr.io/hotio/lidarr:latest
@@ -96,7 +96,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["Books", "PVR", "Automation"],
     githubUrl: "https://github.com/Readarr/Readarr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/readarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/readarr.svg",
     composeContent: `services:
   readarr:
     image: ghcr.io/hotio/readarr:latest
@@ -121,7 +121,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["Indexer", "Proxy", "Integration"],
     githubUrl: "https://github.com/Prowlarr/Prowlarr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/prowlarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/prowlarr.svg",
     composeContent: `services:
   prowlarr:
     image: ghcr.io/hotio/prowlarr:latest
@@ -151,7 +151,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["Adult", "Movies", "Automation"],
     githubUrl: "https://github.com/whisparr/whisparr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/whisparr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/whisparr.svg",
     composeContent: `services:
   whisparr:
     image: ghcr.io/hotio/whisparr:latest
@@ -176,7 +176,7 @@ export const automation: DockerTool[] = [
     category: "Download",
     tags: ["Usenet", "Download", "NZB"],
     githubUrl: "https://github.com/nzbget/nzbget",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nzbget.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/nzbget.svg",
     composeContent: `services:
   nzbget:
     image: ghcr.io/hotio/nzbget:latest
@@ -201,7 +201,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["Subtitles", "Media", "Automation"],
     githubUrl: "https://github.com/morpheus65535/bazarr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/bazarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/bazarr.svg",
     composeContent: `services:
   bazarr:
     image: ghcr.io/hotio/bazarr:latest
@@ -226,7 +226,7 @@ export const automation: DockerTool[] = [
     category: "Download",
     tags: ["Indexer", "Proxy", "Torrent"],
     githubUrl: "https://github.com/Jackett/Jackett",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jackett.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/jackett.svg",
     composeContent: `services:
   jackett:
     image: ghcr.io/hotio/jackett:latest
@@ -250,7 +250,7 @@ export const automation: DockerTool[] = [
     category: "Download",
     tags: ["BitTorrent", "Download", "P2P"],
     githubUrl: "https://github.com/qbittorrent/qBittorrent",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/qbittorrent.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/qbittorrent.svg",
     composeContent: `services:
   qbittorrent:
     image: ghcr.io/hotio/qbittorrent:latest
@@ -278,7 +278,7 @@ export const automation: DockerTool[] = [
     category: "Download",
     tags: ["Usenet", "Indexer", "Aggregator"],
     githubUrl: "https://github.com/theotherp/nzbhydra2",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/nzbhydra.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/nzbhydra.png",
     composeContent: `services:
   nzbhydra2:
     image: ghcr.io/hotio/nzbhydra2:latest
@@ -301,7 +301,7 @@ export const automation: DockerTool[] = [
     category: "Download",
     tags: ["BitTorrent", "Management", "Automation"],
     githubUrl: "https://github.com/StuffAnThings/qbit_manage",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/qbittorrent.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/qbittorrent.svg",
     composeContent: `services:
   qbitmanage:
     image: ghcr.io/hotio/qbitmanage:latest
@@ -324,7 +324,7 @@ export const automation: DockerTool[] = [
     category: "Download",
     tags: ["BitTorrent", "Web Interface", "Download"],
     githubUrl: "https://github.com/jesec/flood",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/flood.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/flood.svg",
     composeContent: `services:
   rflood:
     image: ghcr.io/hotio/rflood:latest
@@ -350,7 +350,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["Extraction", "Automation", "Archive"],
     githubUrl: "https://github.com/davidnewhall/unpackerr",
-    icon: "https://unpackerr.zip/img/logo.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/unpackerr.png",
     composeContent: `services:
   unpackerr:
     image: ghcr.io/hotio/unpackerr:latest
@@ -373,7 +373,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["Management", "Radarr", "Sonarr", "Quality Profiles"],
     githubUrl: "https://github.com/Dictionarry-Hub/profilarr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/profilarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/profilarr.svg",
     composeContent: `services:
   profilarr:
     image: santiagosayshey/profilarr:latest
@@ -394,7 +394,7 @@ export const automation: DockerTool[] = [
     category: "Media",
     tags: ["TV", "PVR", "Monitoring", "Automation", "Sonarr", "Radarr"],
     githubUrl: "https://github.com/mescon/healarr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/healarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/healarr.svg",
     composeContent: `services:
   healarr:
     image: ghcr.io/mescon/healarr:latest

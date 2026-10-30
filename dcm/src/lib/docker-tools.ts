@@ -151,7 +151,7 @@ export interface DockerTool {
   category: string
   tags: string[]
   githubUrl?: string
-  /** We recommend following this schema for common icons: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/<Format>/<Name>.<Format> */
+  /** We recommend following this schema for common icons: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@<commit>/<Format>/<Name>.<Format>, or a same-origin path under /images/containers/ when dashboard-icons has no icon */
   icon?: string
   stars?: number
   composeContent?: string

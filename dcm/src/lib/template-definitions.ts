@@ -9,7 +9,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Promoting your other self-hosted services, really? It's almost embarrassing...",
     category: TemplateCategory.MEDIA,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/homarr.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/homarr.png",
     tools: ["homarr"],
   },
   {
@@ -18,7 +18,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Because they're not paranoid if they're really watching you. Tinfoil hat sold separately.",
     category: TemplateCategory.SECURITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/pi-hole.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/pi-hole.png",
     tools: [
       "pihole",
       "wireguard",
@@ -34,7 +34,7 @@ export const templateDefinitions: Template[] = [
     description:
       "The essential family server setup that keeps everyone happy and the Wi-Fi complaints to a minimum",
     category: TemplateCategory.MEDIA,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyfin.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/jellyfin.png",
     tools: ["jellyfin", "nextcloud", "pihole", "homarr", "homeassistant"],
   },
   {
@@ -43,7 +43,7 @@ export const templateDefinitions: Template[] = [
     description:
       "A straightforward media server setup for the 'Netflix is raising prices again?' crowd",
     category: TemplateCategory.MEDIA,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyfin.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/jellyfin.png",
     tools: ["jellyfin", "sonarr", "radarr", "prowlarr", "qbittorrent"],
   },
   {
@@ -52,7 +52,7 @@ export const templateDefinitions: Template[] = [
     description:
       "For the digital dragon who never deletes anything and needs 'just one more hard drive'",
     category: TemplateCategory.MEDIA,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/jellyfin.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/jellyfin.png",
     tools: [
       "jellyfin",
       "sonarr",
@@ -72,7 +72,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Spent 10 hours automating a 2-minute task because 'it's about the principle'",
     category: TemplateCategory.HOME_AUTOMATION,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/home-assistant.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/home-assistant.png",
     tools: [
       "homeassistant",
       "node-red",
@@ -88,7 +88,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Everything you need to work from home without your files becoming hostages to cloud services",
     category: TemplateCategory.PRODUCTIVITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/nextcloud.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/nextcloud.png",
     tools: [
       "nextcloud",
       "mariadb",
@@ -103,7 +103,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Keep your 'homework folder' meticulously organized and automated. We won't judge.",
     category: TemplateCategory.MEDIA,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/stash.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/stash.png",
     tools: ["whisparr", "prowlarr", "transmission", "flaresolverr"],
   },
   {
@@ -112,7 +112,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Spends more time customizing dashboards than using the actual services",
     category: TemplateCategory.MONITORING,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/homepage.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/homepage.png",
     tools: [
       "homepage",
       "grafana",
@@ -128,7 +128,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Basic security setup for those who want to keep their digital life locked up but still find their keys",
     category: TemplateCategory.SECURITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/vaultwarden.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/vaultwarden.png",
     tools: ["vaultwarden", "wireguard", "pihole", "traefik", "authelia"],
   },
   {
@@ -137,7 +137,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Because even digital packrats need to make sure their collection survives a catastrophe",
     category: TemplateCategory.OTHER,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/duplicacy.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/duplicacy.png",
     tools: ["nextcloud", "syncthing", "mariadb"],
   },
   {
@@ -146,7 +146,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Has more dashboard widgets than actual services and rearranges them daily 'for optimal workflow'",
     category: TemplateCategory.MONITORING,
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/homarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/homarr.svg",
     tools: ["homarr", "uptime-kuma", "portainer", "watchtower", "statping-ng"],
   },
   {
@@ -155,7 +155,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Proudly announces they've 'ascended to containerization' after watching one YouTube tutorial",
     category: TemplateCategory.MONITORING,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/portainer.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/portainer.png",
     tools: ["portainer", "watchtower", "homarr", "nginx"],
   },
   {
@@ -164,7 +164,7 @@ export const templateDefinitions: Template[] = [
     description:
       "A solid starter pack for self-hosting that won't have you reading documentation all weekend",
     category: TemplateCategory.OTHER,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/portainer.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/portainer.png",
     tools: ["portainer", "nextcloud", "jellyfin", "pihole"],
   },
   {
@@ -173,7 +173,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Running 17 critical services on a $35 computer with a microSD card that could fail any minute",
     category: TemplateCategory.OTHER,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/pi-hole.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/pi-hole.png",
     tools: ["pihole", "portainer", "nextcloud", "traefik"],
   },
   {
@@ -182,7 +182,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Analyzes kitchen appliance usage patterns to determine the optimal coffee brewing schedule",
     category: TemplateCategory.DATABASE,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/grafana.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/grafana.png",
     tools: [
       "grafana",
       "prometheus",
@@ -198,7 +198,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Has more books than they'll read in 10 lifetimes, but the collection must grow",
     category: TemplateCategory.MEDIA,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/calibre-web.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/calibre-web.png",
     tools: [
       "calibreweb",
       "readarr",
@@ -214,7 +214,7 @@ export const templateDefinitions: Template[] = [
     description:
       "For the small business or home office that wants to keep their data on-premises and save a few bucks",
     category: TemplateCategory.PRODUCTIVITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/nextcloud.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/nextcloud.png",
     tools: [
       "nextcloud",
       "wikijs",
@@ -230,7 +230,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Saves every recipe they'll never cook, but the food pictures look amazing",
     category: TemplateCategory.PRODUCTIVITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/tandoor.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/tandoor-recipes.png",
     tools: ["tandoorrecipes", "mealie", "postgres"],
   },
   {
@@ -239,7 +239,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Tracks every penny spent while hosting $500 worth of services to save $5 per month",
     category: TemplateCategory.FINANCE,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/firefly-iii.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/firefly-iii.png",
     tools: ["firefly", "mariadb", "scrutiny"],
   },
   {
@@ -248,7 +248,7 @@ export const templateDefinitions: Template[] = [
     description:
       "About to discover why everyone keeps mentioning 'backups' in an ominous tone",
     category: TemplateCategory.OTHER,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/nextcloud.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/nextcloud.png",
     tools: ["nextcloud", "jellyfin", "portainer", "pihole", "homarr"],
   },
   {
@@ -257,7 +257,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Turns their home server into a personal knowledge management system they never actually use",
     category: TemplateCategory.PRODUCTIVITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/nextcloud.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/nextcloud.png",
     tools: [
       "nextcloud",
       "bookstack",
@@ -273,7 +273,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Convinces themselves they need enterprise-level CI/CD for their personal projects",
     category: TemplateCategory.DEVELOPMENT,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/vscode.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/vscode.png",
     tools: ["code-server", "gitea", "jenkins", "postgres", "redis", "nginx"],
   },
   {
@@ -282,7 +282,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Set up the perfect stack so family can ask 'is the internet down?' instead of Googling it",
     category: TemplateCategory.OTHER,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/adguard-home.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/adguard-home.png",
     tools: ["pihole", "uptime-kuma", "nextcloud", "jellyfin", "homeassistant"],
   },
   {
@@ -291,7 +291,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Has tried every note-taking app and still can't decide which one to stick with",
     category: TemplateCategory.PRODUCTIVITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/joplin.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/joplin.png",
     tools: ["joplin-server", "wikijs", "bookstack", "logseq", "mariadb"],
   },
   {
@@ -300,7 +300,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Checks status dashboards more than social media and panics over 0.1% downtime",
     category: TemplateCategory.MONITORING,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/uptime-kuma.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/uptime-kuma.png",
     tools: ["uptime-kuma", "statping-ng", "prometheus", "grafana", "netdata"],
   },
   {
@@ -309,7 +309,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Has a git repo of meticulously crafted YAML files that are 'definitely not copied from random GitHub repos'",
     category: TemplateCategory.DEVELOPMENT,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/portainer.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/portainer.png",
     tools: ["portainer", "nginx", "traefik", "watchtower", "homarr"],
   },
   {
@@ -318,7 +318,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Scans every receipt and document while drowning in a sea of actual paper on their desk",
     category: TemplateCategory.PRODUCTIVITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/paperless-ngx.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/paperless-ngx.png",
     tools: ["nextcloud", "mariadb", "redis"],
   },
   {
@@ -327,7 +327,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Documents every single system configuration down to the last SSH key and never refers to it again",
     category: TemplateCategory.PRODUCTIVITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/wikijs.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/wikijs.png",
     tools: ["wikijs", "bookstack", "postgres", "nginx"],
   },
   {
@@ -336,7 +336,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Routes traffic through so many layers of encryption they've forgotten what website they were trying to visit",
     category: TemplateCategory.SECURITY,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/wireguard.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/wireguard.png",
     tools: ["wireguard", "traefik", "pihole", "adguardhome"],
   },
   {
@@ -345,7 +345,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Can explain the difference between Traefik, Nginx, and Caddy in excruciating detail to anyone who makes eye contact",
     category: TemplateCategory.NETWORK,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/traefik.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/traefik.png",
     tools: ["traefik", "nginx", "caddy", "portainer"],
   },
   {
@@ -354,7 +354,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Runs only the 'essential' 25 containers and calls it a 'lightweight setup'",
     category: TemplateCategory.OTHER,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/alpine.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/alpine-linux.png",
     tools: ["nginx", "pihole", "portainer", "nextcloud"],
   },
   {
@@ -363,7 +363,7 @@ export const templateDefinitions: Template[] = [
     description:
       "Has the same files copied across 7 different services 'just to be safe'",
     category: TemplateCategory.OTHER,
-    icon: "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/syncthing.png",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/syncthing.png",
     tools: ["syncthing", "nextcloud", "filebrowser", "mariadb"],
   },
 ]

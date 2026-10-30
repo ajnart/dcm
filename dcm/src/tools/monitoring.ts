@@ -9,7 +9,7 @@ export const monitoring: DockerTool[] = [
     category: "Management",
     tags: ["Dashboard", "Management", "Monitoring"],
     githubUrl: "https://github.com/homarr-labs/homarr",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/homarr.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/homarr.svg",
     composeContent: `services:
   homarr:
     container_name: \${CONTAINER_PREFIX}homarr
@@ -38,7 +38,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["Monitoring", "Metrics", "Alerting"],
     githubUrl: "https://github.com/prometheus/prometheus",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/prometheus.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/prometheus.svg",
     composeContent: `services:
   prometheus:
     image: prom/prometheus:latest
@@ -71,7 +71,7 @@ export const monitoring: DockerTool[] = [
     category: "Maintenance",
     tags: ["Automation", "Updates", "Monitoring"],
     githubUrl: "https://github.com/containrrr/watchtower",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/watchtower.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/watchtower.svg",
     composeContent: `services:
   watchtower:
     image: containrrr/watchtower
@@ -94,7 +94,7 @@ export const monitoring: DockerTool[] = [
     category: "Dashboard",
     tags: ["Dashboard", "Launcher", "Organization"],
     githubUrl: "https://github.com/linuxserver/Heimdall",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/heimdall.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/heimdall.svg",
     composeContent: `services:
   heimdall:
     image: lscr.io/linuxserver/heimdall:latest
@@ -118,7 +118,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["Uptime", "Status", "Alerts"],
     githubUrl: "https://github.com/louislam/uptime-kuma",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/uptime-kuma.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/uptime-kuma.svg",
     composeContent: `services:
   uptime-kuma:
     image: louislam/uptime-kuma:latest
@@ -139,7 +139,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["S.M.A.R.T", "Storage", "Disk Health"],
     githubUrl: "https://github.com/AnalogJ/scrutiny",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/scrutiny.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/scrutiny.svg",
     composeContent: `services:
   scrutiny:
     image: ghcr.io/analogj/scrutiny:latest
@@ -165,7 +165,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["Internet", "Speed", "Tracking"],
     githubUrl: "https://github.com/alexjustesen/speedtest-tracker",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/speedtest.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/speedtest-tracker.png",
     composeContent: `services:
   speedtest-tracker:
     image: ghcr.io/alexjustesen/speedtest-tracker:latest
@@ -189,7 +189,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["Status", "Uptime", "Metrics"],
     githubUrl: "https://github.com/statping-ng/statping-ng",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/statping.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/png/statping-ng.png",
     composeContent: `services:
   statping-ng:
     image: adamboutcher/statping-ng:latest
@@ -211,7 +211,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["System", "Resources", "Metrics"],
     githubUrl: "https://github.com/nicolargo/glances",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/glances.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/glances.svg",
     composeContent: `services:
   glances:
     image: nicolargo/glances:latest
@@ -235,7 +235,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["System", "Performance", "Real-time"],
     githubUrl: "https://github.com/netdata/netdata",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/netdata.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/netdata.svg",
     composeContent: `services:
   netdata:
     image: netdata/netdata:latest
@@ -263,7 +263,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["Network", "SNMP", "Metrics"],
     githubUrl: "https://github.com/librenms/librenms",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/librenms.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/librenms.svg",
     composeContent: `services:
   librenms:
     image: librenms/librenms:latest
@@ -291,7 +291,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["Monitoring", "Dashboard", "Updates"],
     githubUrl: "https://github.com/dockpeek/dockpeek",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/dockpeek.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/dockpeek.svg",
     composeContent: `services:
   dockpeek:
     container_name: \${CONTAINER_PREFIX}dockpeek
@@ -315,7 +315,7 @@ export const monitoring: DockerTool[] = [
     category: "Monitoring",
     tags: ["Monitoring", "Metrics", "OpenTelemetry", "Grafana"],
     githubUrl: "https://github.com/grafana/alloy",
-    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/alloy.svg",
+    icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/alloy.svg",
     composeContent: `services:
   alloy:
     image: grafana/alloy:2.0.5
