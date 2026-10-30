@@ -1,0 +1,25 @@
+dcm/src/components/DockerToolsClient.tsx
+  s_ed8cdcec116a2d::t_abdcddb99f249e 78
+dcm/src/components/TemplateGalleryClient.tsx
+  s_ed8cdcec116a2d::t_a34e2153d1dae2 29
+dcm/src/components/floating-bar.tsx
+  s_ed8cdcec116a2d::t_8924c341fdd520 103
+dcm/src/lib/url-utils.ts
+  s_ed8cdcec116a2d::t_ccb4d400780ade 1,67-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d2c9fcc6fab526c96458fa2532b121dbdcfce4c6",
+  "prompts": {},
+  "sessions": {
+    "s_ed8cdcec116a2d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0f5020e6-7965-416b-99f3-c749f8e00371",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
