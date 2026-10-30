@@ -1,0 +1,23 @@
+dcm/Dockerfile
+  s_8f2b4368f6a141::t_a1051cfff66b46 1-3,11-17,19,22
+dcm/Dockerfile.dockerignore
+  s_8f2b4368f6a141::t_08156082773604 2-4
+dcm/httpd.conf
+  s_8f2b4368f6a141::t_2470552cc6b255 5-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0a279435800ae861c8acd1a5f954e1349795ee6d",
+  "prompts": {},
+  "sessions": {
+    "s_8f2b4368f6a141": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6f40718d-b121-40b3-b281-57597775c541",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
