@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Shared helpers for scripts/migrate/*.sh. Source it; do not run it.
 
+# shellcheck disable=SC2034
 OWNER=ajnart
 YES=false
 
