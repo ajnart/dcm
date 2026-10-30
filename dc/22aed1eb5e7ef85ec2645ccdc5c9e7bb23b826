@@ -1,0 +1,43 @@
+dcm/src/lib/docker-tools.ts
+  s_124226887bc9cc::t_e73d91d8704dab 154
+dcm/src/lib/selfhost.ts
+  s_124226887bc9cc::t_128b9d66ec8529 7
+dcm/src/lib/template-definitions.ts
+  s_124226887bc9cc::t_1dee8ebe4b9529 12,21,37,46,55,75,91,106,115,131,140,149,158,167,176,185,201,217,233,242,251,260,276,285,294,303,312,321,330,339,348,357,366
+dcm/src/tools/automation.ts
+  s_124226887bc9cc::t_6538a64187f410 12,43,74,99,124,154,179,204,229,253,281,304,327,353,376,397
+dcm/src/tools/database.ts
+  s_124226887bc9cc::t_8135ffcbbb4c64 11,42,70,101,132,160,183
+dcm/src/tools/management.ts
+  s_124226887bc9cc::t_3e1d7b1061948a 42,65,95,118,144,170,217,245,290,316,339,365,392
+dcm/src/tools/media.ts
+  s_124226887bc9cc::t_f475a50e9b4631 84,109,138,166,190,214,238,287,310,333,358,387,410,432,457,484,509,530,557,644,737
+dcm/src/tools/monitoring.ts
+  s_124226887bc9cc::t_b8ad2185bb4d06 12,41,74,97,121,142,168,192,214,238,266,294,318
+dcm/src/tools/other.ts
+  s_124226887bc9cc::t_a888e615598ec7 28,51,115,137,174,200,319,351,375,429,453,474,498,521,544,563,586,612,637,658,694,722,744,768,793,819,922,956,985,1027
+site/public/images/containers/autoxpose.svg
+  s_124226887bc9cc::t_c5926c179a74c1 1-176
+site/public/images/containers/panelio.svg
+  s_124226887bc9cc::t_636fd5eb089b81 1-27
+site/public/images/containers/tinyfeed.svg
+  s_124226887bc9cc::t_a9cd9ce05ecfaf 1
+site/src/lib/catalog.ts
+  s_124226887bc9cc::t_2bc0362598d573 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dc22aed1eb5e7ef85ec2645ccdc5c9e7bb23b826",
+  "prompts": {},
+  "sessions": {
+    "s_124226887bc9cc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7af34fa6-5491-492e-a8a1-c7e5eec76572",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
