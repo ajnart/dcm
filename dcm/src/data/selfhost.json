@@ -2861,6 +2861,45 @@
    "notes": "Sign in with the email made of the ADMIN_USER value and @selfhost.local, and the ADMIN_PASSWORD value."
   },
   {
+   "id": "oxynote",
+   "name": "Oxynote",
+   "description": "Write team docs together, with live charts and queries next to the text",
+   "category": "Productivity",
+   "icon": "",
+   "image": "ghcr.io/oxynote/oxynote:latest",
+   "port": 8085,
+   "docs": "https://github.com/oxynote/oxynote/blob/main/docker/prod/README.md",
+   "links": [],
+   "compose": "services:\n  oxynote-init:\n    image: ghcr.io/oxynote/oxynote:latest\n    container_name: ${CONTAINER_PREFIX}oxynote-init\n    user: \"0:0\"\n    network_mode: none\n    read_only: true\n    entrypoint: [\"chown\", \"-R\", \"65532:65532\", \"/owned/data\"]\n    volumes:\n      - ${CONFIG_PATH}/oxynote/data:/owned/data\n\n  oxynote:\n    image: ghcr.io/oxynote/oxynote:latest\n    container_name: ${CONTAINER_PREFIX}oxynote\n    restart: ${RESTART_POLICY}\n    depends_on:\n      oxynote-init:\n        condition: service_completed_successfully\n    environment:\n      OXYNOTE_PUBLIC_URL: http://${LAN_IP}:8085\n    volumes:\n      - ${CONFIG_PATH}/oxynote/data:/oxynote/data\n    ports:\n      - 8085:8080\n    stop_grace_period: 60s\n",
+   "env": [
+    {
+     "key": "CONFIG_PATH",
+     "default": "/opt/appdata/config",
+     "description": "Host folder that holds every App's configuration",
+     "secret": false
+    },
+    {
+     "key": "CONTAINER_PREFIX",
+     "default": "",
+     "description": "Prefix put in front of every container name",
+     "secret": false
+    },
+    {
+     "key": "LAN_IP",
+     "default": "localhost",
+     "description": "Address you open this App at: this machine's IP on your network (for example 192.168.1.20) or a host name. The App uses it to build links it hands out, so the default only works on this machine",
+     "secret": false
+    },
+    {
+     "key": "RESTART_POLICY",
+     "default": "unless-stopped",
+     "description": "Docker restart policy",
+     "secret": false
+    }
+   ],
+   "standalone": true
+  },
+  {
    "id": "pangolin",
    "name": "Pangolin",
    "description": "Reach your apps from outside your home by name, behind a login page",

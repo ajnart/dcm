@@ -372,6 +372,13 @@
   },
   {
     "kind": "app",
+    "id": "oxynote",
+    "apps": [
+      "oxynote"
+    ]
+  },
+  {
+    "kind": "app",
     "id": "pangolin",
     "apps": [
       "pangolin"
