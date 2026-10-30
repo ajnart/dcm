@@ -1,0 +1,21 @@
+dcm/src/components/editors/MonacoEditor.tsx
+  s_55160d9b57c4ef::t_018613056d154d 20-23,58,90
+site/src/styles/shared.css
+  s_55160d9b57c4ef::t_470484955419d4 1-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7c1db459bd5b7f46cbd132a461d70e1841287cb2",
+  "prompts": {},
+  "sessions": {
+    "s_55160d9b57c4ef": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "90f81d7b-4cb4-48fa-a97d-6594a6a198b3",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
