@@ -1,0 +1,39 @@
+scripts/migrate/backport-releases.sh
+  s_be898eab0f0db2::t_89204cd7a1895c 2
+scripts/migrate/rename-repos.sh
+  s_34a4e3e7360ee6::t_35e1fae432a8bb 2,4-12,21,30,38,86-105,130,135-136,141,160-172,194
+scripts/migrate/transfer-issues.sh
+  s_011d3def65e8d1::t_f728ec55c34e87 2,15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38c10352ce04ab5f9bcf57a14abb0b1496eadc5c",
+  "prompts": {},
+  "sessions": {
+    "s_011d3def65e8d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c6157600-657b-40e9-a76c-b53336a4db01",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_34a4e3e7360ee6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19aeda02-96d3-432a-ada6-ac232d2510dd",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_be898eab0f0db2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cce38246-2a26-4ea8-8623-3f49684a9c79",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
