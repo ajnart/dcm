@@ -35,14 +35,14 @@ jobs:
           script: |
             const issue = context.payload.issue;
             const body = issue.body;
-            
+
             // Function to extract value from issue form
             function extractField(body, fieldId) {
               const regex = new RegExp(`### ${fieldId}\\s*([\\s\\S]*?)(?=###|$)`, 'i');
               const match = body.match(regex);
               return match ? match[1].trim() : '';
             }
-            
+
             // Parse the issue body to extract container data
             const containerId = extractField(body, 'Container ID');
             const name = extractField(body, 'Display Name');
@@ -52,15 +52,15 @@ jobs:
             const githubUrl = extractField(body, 'GitHub URL');
             const icon = extractField(body, 'Icon URL');
             const containerData = extractField(body, 'Docker Compose Service Definition');
-            
+
             // Validate required fields
             if (!containerId || !name || !description || !category || !tags || !containerData) {
               throw new Error('Missing required fields in issue');
             }
-            
+
             // Parse tags from comma-separated string
             const tagArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
-            
+
             // Determine which file to update based on category
             let categoryFile = '';
             switch(category.toLowerCase()) {
@@ -82,7 +82,7 @@ jobs:
               default:
                 categoryFile = 'other.ts';
             }
-            
+
             // Store parsed data for next steps
             core.setOutput('container_id', containerId);
             core.setOutput('name', name);
@@ -99,7 +99,7 @@ jobs:
         run: |
           cat > /tmp/add_container.js << 'SCRIPT_EOF'
           const fs = require('fs');
-          
+
           // Read outputs from environment variables
           const containerId = process.env.CONTAINER_ID;
           const name = process.env.CONTAINER_NAME;
@@ -110,7 +110,7 @@ jobs:
           const icon = process.env.ICON;
           const containerData = process.env.CONTAINER_DATA;
           const categoryFile = process.env.CATEGORY_FILE;
-          
+
           // Parse tags with error handling
           let tags;
           try {
@@ -119,7 +119,7 @@ jobs:
             console.error('Failed to parse tags:', e);
             process.exit(1);
           }
-          
+
           // Escape special characters for TypeScript string literals
           function escapeString(str) {
             return str.replace(/\\/g, '\\\\')
@@ -128,14 +128,14 @@ jobs:
                       .replace(/\r/g, '\\r')
                       .replace(/\t/g, '\\t');
           }
-          
+
           // Escape template literal content - properly handle ${ expressions
           function escapeTemplateLiteral(str) {
             return str.replace(/\\/g, '\\\\')
                       .replace(/`/g, '\\`')
                       .replace(/\$\{/g, '\\${');
           }
-          
+
           // Build the container definition
           let containerDef = '  {\n';
           containerDef += `    id: "${escapeString(containerId)}",\n`;
@@ -143,27 +143,27 @@ jobs:
           containerDef += `    description: "${escapeString(description)}",\n`;
           containerDef += `    category: "${escapeString(category)}",\n`;
           containerDef += `    tags: [${tags.map(t => `"${escapeString(t)}"`).join(', ')}],\n`;
-          
+
           if (githubUrl) {
             containerDef += `    githubUrl: "${escapeString(githubUrl)}",\n`;
           }
-          
+
           if (icon) {
             containerDef += `    icon: "${escapeString(icon)}",\n`;
           }
-          
+
           containerDef += `    composeContent: \`${escapeTemplateLiteral(containerData)}\`,\n`;
           containerDef += '  },\n';
-          
+
           // Read the target file
           const filePath = `${process.env.DCM_TOOLS_DIR}/${categoryFile}`;
-          
+
           // Validate file path to prevent directory traversal
           if (categoryFile.includes('..') || categoryFile.includes('/') || !categoryFile.endsWith('.ts')) {
             console.error('Invalid category file:', categoryFile);
             process.exit(1);
           }
-          
+
           let fileContent;
           try {
             fileContent = fs.readFileSync(filePath, 'utf8');
@@ -171,7 +171,7 @@ jobs:
             console.error('Failed to read file:', filePath, e);
             process.exit(1);
           }
-          
+
           // Find the position to insert - look for the export statement closing
           // This is more robust than just finding the last ]
           const exportMatch = fileContent.match(/export const \w+: DockerTool\[\] = \[/);
@@ -179,27 +179,27 @@ jobs:
             console.error('Could not find export statement in file');
             process.exit(1);
           }
-          
+
           // Find the closing bracket after the export statement
           const exportStart = exportMatch.index + exportMatch[0].length;
           const remainingContent = fileContent.slice(exportStart);
           const closingBracketIndex = remainingContent.lastIndexOf(']');
-          
+
           if (closingBracketIndex === -1) {
             console.error('Could not find closing bracket in file');
             process.exit(1);
           }
-          
+
           const insertPosition = exportStart + closingBracketIndex;
-          
+
           // Insert the new container before the closing bracket
           const updatedContent = fileContent.slice(0, insertPosition) + 
                                 containerDef + 
                                 fileContent.slice(insertPosition);
-          
+
           // Write back to file
           fs.writeFileSync(filePath, updatedContent, 'utf8');
-          
+
           console.log('Container added successfully to', filePath);
           SCRIPT_EOF
 
@@ -240,24 +240,24 @@ jobs:
           title: "feat(dcm): add ${{ steps.parse.outputs.name }} container"
           body: |
             ## Auto-generated PR from Issue #${{ steps.parse.outputs.issue_number }}
-            
+
             This PR adds the **${{ steps.parse.outputs.name }}** container to the collection.
-            
+
             **Container Details:**
             - **ID:** `${{ steps.parse.outputs.container_id }}`
             - **Category:** ${{ steps.parse.outputs.category }}
             - **Tags:** ${{ steps.parse.outputs.tags }}
             ${{ steps.parse.outputs.github_url != '' && format('- **GitHub:** {0}', steps.parse.outputs.github_url) || '' }}
-            
+
             **Description:**
             ${{ steps.parse.outputs.description }}
-            
+
             ---
-            
-            $(cat /tmp/validation_message.txt)
-            
+
+            ${{ env.VALIDATION_FAILED == 'true' && '⚠️ Container validation failed.' || '✅ Container validation passed.' }}
+
             ${{ env.VALIDATION_FAILED == 'true' && '⚠️ **Note:** Container validation tests failed. Please review the container definition and make necessary adjustments before merging.' || '' }}
-            
+
             Automatically created from issue #${{ steps.parse.outputs.issue_number }}
           labels: |
             container
