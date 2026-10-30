@@ -1,0 +1,33 @@
+dcm/src/lib/export/env.ts
+  s_124226887bc9cc::t_7d59802709a756 3,7-25,82-86,97-104,107-108,145,151
+dcm/src/lib/export/index.ts
+  s_124226887bc9cc::t_f8d11b237456af 15,65
+dcm/src/lib/export/types.ts
+  s_124226887bc9cc::t_ed5cf2687322d4 26-27,30
+dcm/tests/export.test.ts
+  s_38edb9ae0409b0::t_147493b6dfa4c0 39-46,201,203-208,210,213-216,218-220,222-225,231-292,342
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "32ca7f0c323dba1d5e78932447c2b618d2d24b64",
+  "prompts": {},
+  "sessions": {
+    "s_124226887bc9cc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7af34fa6-5491-492e-a8a1-c7e5eec76572",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_38edb9ae0409b0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5aaa771c-cf7a-477a-881b-fa1313c0ae7b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
