@@ -1,3 +1,53 @@
+const TOP_LEVEL_KEY = /^([A-Za-z0-9_-]+):\s*$/
+const SERVICE_KEY = /^ {2}([^\s#][^:]*):\s*(?:#.*)?$/
+const SERVICE_PROPERTY = /^ {4}([A-Za-z0-9_-]+):/
+
+function rewriteEnvironmentPort(
+  content: string,
+  service: string,
+  from: string,
+  to: number,
+): string {
+  const hostReference = new RegExp(
+    `(\\$\\{LAN_IP(?::?-[^}]*)?\\}):${from}(?!\\d)`,
+    "g",
+  )
+  let inServices = false
+  let inService = false
+  let inEnvironment = false
+
+  return content
+    .split("\n")
+    .map((line) => {
+      const top = line.match(TOP_LEVEL_KEY)
+      if (top) {
+        inServices = top[1] === "services"
+        inService = false
+        inEnvironment = false
+        return line
+      }
+      if (!inServices) return line
+
+      const header = line.match(SERVICE_KEY)
+      if (header) {
+        inService = header[1] === service
+        inEnvironment = false
+        return line
+      }
+      if (!inService) return line
+
+      const property = line.match(SERVICE_PROPERTY)
+      if (property) {
+        inEnvironment = property[1] === "environment"
+        return line
+      }
+      if (!inEnvironment || line.trim().startsWith("#")) return line
+
+      return line.replace(hostReference, `$1:${to}`)
+    })
+    .join("\n")
+}
+
 export function detectAndFixPortConflicts(content: string): {
   fixedContent: string
   conflicts: { fixed: number; conflicts: string[] } | null
@@ -76,6 +126,8 @@ export function detectAndFixPortConflicts(content: string): {
             result.substring(0, match.index) +
             replacement +
             result.substring(match.index + match[0].length)
+
+          result = rewriteEnvironmentPort(result, serviceToFix, port, newPort)
 
           fixedCount++
 
