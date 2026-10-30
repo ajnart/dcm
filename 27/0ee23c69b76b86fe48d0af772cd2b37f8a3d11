@@ -1,0 +1,75 @@
+CONTEXT.md
+  s_42351de99c8602::t_55e6ae70de75a4 192-195
+dcm/src/components/DockerToolsClient.tsx
+  s_19d4260ebccd31::t_25a1420d6060f9 9-10,19,22-24,27-48,50,55,72-80,83,95,97,108-115,119,122-126,128-132,149-150
+dcm/src/components/ModeToggle.tsx
+  s_19d4260ebccd31::t_86651f9fe512a8 2-8,10,17-32,34,36,38-40,48,50,52
+dcm/src/components/TemplateClient.tsx
+  s_19d4260ebccd31::t_f49a0b679d1396 23,47,129
+dcm/src/components/TemplateGalleryClient.tsx
+  s_19d4260ebccd31::t_786fd489e906c6 22-25,29,70
+dcm/src/components/ToolGrid.tsx
+  s_19d4260ebccd31::t_7c920c8689d514 2,10,13-35,41,43-58,61-77
+dcm/src/components/docker-card.tsx
+  s_19d4260ebccd31::t_6064698b64857d 12,15-19,37,134-144
+dcm/src/components/floating-bar.tsx
+  s_19d4260ebccd31::t_1206f601a3636a 8,10-11,191-193,196-197
+dcm/src/hooks/use-catalog-view.ts
+  s_19d4260ebccd31::t_75f07792d013b5 4,7
+dcm/src/lib/analytics.ts
+  s_19d4260ebccd31::t_495ae27b6ed520 1
+dcm/src/lib/catalog.ts
+  s_34a4e3e7360ee6::t_0b8be489e2f801 3,144
+dcm/src/lib/modes.ts
+  s_34a4e3e7360ee6::t_3daa61f173f97c 1-33
+dcm/src/lib/routes.ts
+  s_34a4e3e7360ee6::t_1cdaf85db7c486 2,5-6
+site/src/components/PageLinks.astro
+  s_19d4260ebccd31::t_96c20d9485fcd7 5
+site/src/components/docs/Footer.astro
+  s_19d4260ebccd31::t_98386138218476 9
+site/src/layouts/Compose.astro
+  s_19d4260ebccd31::t_7e52efc90ee12c 17,20,59,61
+site/src/pages/apps/index.astro
+  s_42351de99c8602::t_da346a19cf0cba 2-5,7-8,10-11,22-28
+site/src/pages/compose/index.astro
+  s_19d4260ebccd31::t_e3f15cc944fada 15
+site/src/pages/compose/template/[id].astro
+  s_19d4260ebccd31::t_b7b5b1c9a4eb7d 3,13,17
+site/src/pages/llms.txt.ts
+  s_42351de99c8602::t_523741ffa32acf 2,24-25,39-40,43-75
+site/src/scripts/legacy-mode.ts
+  s_42351de99c8602::t_9df355bf5eb715 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "270ee23c69b76b86fe48d0af772cd2b37f8a3d11",
+  "prompts": {},
+  "sessions": {
+    "s_19d4260ebccd31": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7890a6b6-ce79-48e1-bce3-4c94ee3ec86a",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_34a4e3e7360ee6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "19aeda02-96d3-432a-ada6-ac232d2510dd",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_42351de99c8602": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e0ca4382-2c4f-433f-92ba-cc7fe885fb29",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
