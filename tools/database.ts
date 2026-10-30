@@ -183,7 +183,7 @@ export const databases: DockerTool[] = [
     icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/phpmyadmin.svg",
     composeContent: `services:
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
+    image: phpmyadmin:latest
     container_name: \${CONTAINER_PREFIX}phpmyadmin
     ports:
       - "8080:80"
