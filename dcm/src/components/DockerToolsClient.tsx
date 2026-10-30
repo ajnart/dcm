@@ -145,7 +145,6 @@ function DockerTools({ catalog, mode }: DockerToolsClientProps) {
         selected={selection.ids}
         onToggle={toggle}
         selfHostBadge={!selfHostMode}
-        grouped={selfHostMode}
       />
     </>
   )
