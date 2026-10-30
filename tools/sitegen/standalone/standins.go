@@ -1,4 +1,4 @@
-package main
+package standalone
 
 import (
 	"crypto/sha256"

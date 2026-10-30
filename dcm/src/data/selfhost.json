@@ -1009,7 +1009,7 @@
     }
    ],
    "standalone": true,
-   "notes": "Installation and registration are locked, and self-host creates the first administrator after the first start. With plain Compose run: docker exec -u git <container name> forgejo admin user create --admin --username admin --email admin@example.com --password <password>."
+   "notes": "Installation and registration are locked, and self-host creates the first administrator after the first start. With plain Compose run: docker exec -u git <container name> forgejo admin user create --admin --username selfhost-admin --email admin@forgejo.local --password <password>. Forgejo reserves the username admin, so pick another."
   },
   {
    "id": "freshrss",
@@ -1998,7 +1998,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, turn on authentication in Settings > General (Forms, with a username and password)."
+   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password)."
   },
   {
    "id": "linkwarden",
@@ -3370,7 +3370,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, turn on authentication in Settings > General (Forms, with a username and password). After its first start, self-host also wires it to other Apps (sync indexers to Sonarr; sync indexers to Radarr); plain Compose leaves that to you."
+   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password). After its first start, self-host also wires it to other Apps (sync indexers to Sonarr; sync indexers to Radarr); plain Compose leaves that to you."
   },
   {
    "id": "qbittorrent",
@@ -3434,7 +3434,7 @@
     }
    ],
    "standalone": true,
-   "notes": "The WebUI starts with a temporary administrator password printed in the container logs; sign in with it, set your own and set the default save path to the downloads folder."
+   "notes": "The WebUI starts with a temporary administrator password printed in the container logs; sign in with it, set your own and set the default save path to /downloads."
   },
   {
    "id": "radarr",
@@ -3503,7 +3503,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, turn on authentication in Settings > General (Forms, with a username and password) and add the root folder /media/movies. After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
+   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password) and add the root folder /media/movies. After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
   },
   {
    "id": "renovate",
@@ -3947,7 +3947,7 @@
     }
    ],
    "standalone": true,
-   "notes": "After the first start, turn on authentication in Settings > General (Forms, with a username and password) and add the root folder /media/tv. After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
+   "notes": "After the first start, turn on authentication in Settings > General > Security (Authentication: Forms, with a username and password) and add the root folder /media/tv. After its first start, self-host also wires it to other Apps (download client: qBittorrent); plain Compose leaves that to you."
   },
   {
    "id": "speedtest-tracker",
@@ -4688,7 +4688,7 @@
     }
    ],
    "standalone": true,
-   "notes": "Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value and invite yourself to get an account."
+   "notes": "Signups are closed. Open /admin with the VAULTWARDEN_ADMIN_TOKEN value, choose Invite user, then register with that email on the home page."
   },
   {
    "id": "vector",
