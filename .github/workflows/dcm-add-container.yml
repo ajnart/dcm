@@ -7,6 +7,10 @@ on:
 env:
   DCM_TOOLS_DIR: dcm/src/tools
 
+concurrency:
+  group: dcm-add-container-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
   add-container:
     # Only run when the "accepted" label is added to a container submission issue
@@ -14,6 +18,7 @@ jobs:
       github.event.label.name == 'accepted' &&
       contains(github.event.issue.labels.*.name, 'container')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
       issues: write
@@ -22,6 +27,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -34,7 +41,7 @@ jobs:
         with:
           script: |
             const issue = context.payload.issue;
-            const body = issue.body;
+            const body = issue.body ?? '';
 
             // Function to extract value from issue form
             function extractField(body, fieldId) {
@@ -43,19 +50,46 @@ jobs:
               return match ? match[1].trim() : '';
             }
 
+            function optionalField(body, fieldId) {
+              const value = extractField(body, fieldId);
+              return value === '_No response_' ? '' : value;
+            }
+
+            async function reject(reason) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Could not add this container: ${reason}. Edit the issue and re-add the \`accepted\` label.`
+              });
+              throw new Error(reason);
+            }
+
             // Parse the issue body to extract container data
             const containerId = extractField(body, 'Container ID');
             const name = extractField(body, 'Display Name');
             const description = extractField(body, 'Description');
             const category = extractField(body, 'Category');
             const tags = extractField(body, 'Tags');
-            const githubUrl = extractField(body, 'GitHub URL');
-            const icon = extractField(body, 'Icon URL');
+            const githubUrl = optionalField(body, 'GitHub URL');
+            const icon = optionalField(body, 'Icon URL');
             const containerData = extractField(body, 'Docker Compose Service Definition');
 
             // Validate required fields
             if (!containerId || !name || !description || !category || !tags || !containerData) {
-              throw new Error('Missing required fields in issue');
+              await reject('required fields are missing');
+            }
+
+            if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(containerId)) {
+              await reject('Container ID must match `^[a-z0-9][a-z0-9-]{0,63}$`');
+            }
+
+            if (githubUrl && !githubUrl.startsWith('https://')) {
+              await reject('GitHub URL must start with `https://`');
+            }
+
+            if (icon && !icon.startsWith('https://')) {
+              await reject('Icon URL must start with `https://`');
             }
 
             // Parse tags from comma-separated string
@@ -268,7 +302,7 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: ${{ steps.parse.outputs.issue_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -276,11 +310,11 @@ jobs:
             });
 
       - name: Handle errors
-        if: failure()
+        if: failure() && steps.parse.outcome != 'failure'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,

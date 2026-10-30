@@ -58,7 +58,7 @@ jobs:
           restore-keys: bun-${{ runner.os }}-
       - name: Install
         run: bun install --frozen-lockfile
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .turbo/cache
           key: turbo-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ github.sha }}
@@ -67,6 +67,11 @@ jobs:
         run: bunx turbo run build test test:compose lint check
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always()
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ github.sha }}
 
   native-smoke:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
