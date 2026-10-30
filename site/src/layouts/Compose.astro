@@ -1,4 +1,5 @@
 ---
+import { SPECULATION_RULES } from "../lib/speculation.mjs";
 import "@/styles/global.css";
 import "../styles/shared.css";
 import "../styles/transitions.css";
@@ -56,6 +57,7 @@ if (editor) {
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <script is:inline type="speculationrules" set:html={SPECULATION_RULES} />
     {jsonld && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
     <script>
       import "../scripts/legacy-mode";

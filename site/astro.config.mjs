@@ -10,6 +10,7 @@ import starlightHeadingBadges from "starlight-heading-badges";
 import starlightChangelogs, { makeChangelogsSidebarLinks } from "starlight-changelogs";
 import { changelog } from "./src/lib/changelog";
 import catalog from "./src/data/catalog.json" with { type: "json" };
+import { SPECULATION_RULES } from "./src/lib/speculation.mjs";
 import { cspCheck, starlightInlineScriptHashes, styleAttributeHashes } from "./src/lib/csp.mjs";
 
 export default defineConfig({
@@ -18,7 +19,6 @@ export default defineConfig({
   trailingSlash: "never",
   build: { format: "file", inlineStylesheets: "never" },
   prefetch: { prefetchAll: true, defaultStrategy: "viewport" },
-  experimental: { clientPrerender: true },
   integrations: [
     starlight({
       title: "self-host docs",
@@ -27,7 +27,7 @@ export default defineConfig({
       favicon: "/logo.svg",
       disable404Route: true,
       expressiveCode: false,
-      customCss: ["./src/styles/theme.css", "./src/styles/shared.css", "./src/styles/transitions.css", "./src/styles/docs.css"],
+      customCss: ["./src/styles/theme.css", "./src/styles/shared.css", "./src/styles/docs.css"],
       components: {
         Header: "./src/components/docs/Header.astro",
         SiteTitle: "./src/components/docs/SiteTitle.astro",
@@ -51,6 +51,7 @@ export default defineConfig({
         { tag: "link", attrs: { rel: "apple-touch-icon", href: "/apple-touch-icon.png" } },
         { tag: "link", attrs: { rel: "manifest", href: "/site.webmanifest" } },
         { tag: "link", attrs: { rel: "alternate", type: "text/plain", href: "/llms.txt", title: "llms.txt" } },
+        { tag: "script", attrs: { type: "speculationrules" }, content: SPECULATION_RULES },
       ],
       sidebar: [
         {

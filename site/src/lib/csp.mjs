@@ -49,7 +49,7 @@ export function cspCheck() {
           const allowed = (text) => policy.includes(`'${sha256(text)}'`);
           const styleAttributesOpen = /style-src-attr[^;]*'unsafe-inline'/.test(policy);
           for (const [, attrs, body] of html.matchAll(/<(?:script|style)(\s[^>]*)?>([\s\S]*?)<\/(?:script|style)>/g)) {
-            if (!body || /\ssrc=|application\/ld\+json/.test(attrs ?? "")) continue;
+            if (!body || /\ssrc=|application\/ld\+json|speculationrules/.test(attrs ?? "")) continue;
             if (!allowed(body)) problems.push(`${file}: inline ${body.trim().slice(0, 60)}`);
           }
           if (!styleAttributesOpen) {
