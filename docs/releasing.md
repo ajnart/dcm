@@ -270,7 +270,7 @@ Catalog and `site/src/styles/theme.css` from the Dashboard's dark palette.
 build and the browser playground; the `apps` content collection validates it
 with a schema, so a generator change that breaks the shape fails the build.
 From it Astro renders the landing page, one page per App under `/apps`,
-`/catalog.json` (read by DCM), `/llms.txt`, the sitemap and `robots.txt`.
+`/catalog.json`, `/llms.txt`, the sitemap and `robots.txt`.
 Starlight serves the docs at `/docs` from `src/content/docs/docs/`, plus one
 page per Recipe under `/docs/recipes`; `src/lib/docs-route.ts` strips `.html`
 from its links and adds share tags. `src/pages/og/` renders every page's

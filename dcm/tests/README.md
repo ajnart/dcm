@@ -21,10 +21,10 @@ To run the tests, you need Docker installed on your system and [Bun](https://bun
 bun test
 
 # Run only Docker Compose validation
-bun test:compose
+bun run test:compose
 
 # Run only container schema validation
-bun test:containers
+bun run test:containers
 ```
 
 ### Using npm/pnpm
