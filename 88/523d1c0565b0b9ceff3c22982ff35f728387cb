@@ -1,0 +1,32 @@
+docs/migration/dcm-takeover.md
+  h_d6e478ca18e517 47,49-57,60-61,64-66,68-72,75-76,79-101,103
+docs/releasing.md
+  h_d6e478ca18e517 274-275,292,295-296
+scripts/migrate/agent.sh
+  h_d6e478ca18e517 1-119
+scripts/migrate/lib.sh
+  h_d6e478ca18e517 7,51
+scripts/migrate/push-merged-history.sh
+  h_d6e478ca18e517 105
+scripts/migrate/release.sh
+  h_d6e478ca18e517 1-149
+scripts/migrate/rename-repos.sh
+  h_d6e478ca18e517 21,34
+scripts/migrate/run-all.sh
+  h_d6e478ca18e517 6,10-11,15-16,20-25,35-38,43-46,56-66,81,84,87-88,95-98,106-110,112,116,149-150,153,162-169,171,173-174,177-180,185-186,206-207,234,256,260,263-265,277-279,289-290,292-314
+scripts/publish-homebrew.sh
+  h_d6e478ca18e517 20
+scripts/publish-site.sh
+  h_d6e478ca18e517 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "88523d1c0565b0b9ceff3c22982ff35f728387cb",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
