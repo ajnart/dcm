@@ -1,0 +1,23 @@
+dcm/tests/README.md
+  s_12e2973ba402c3::t_fc231275e216fb 12,53,61-62,67,72
+dcm/tests/export.test.ts
+  s_12e2973ba402c3::t_3053fee9354c2b 1-423
+dcm/tests/validate-compose.test.ts
+  s_12e2973ba402c3::t_bba367cabf1fea 7-8,24-35,45,57-59,63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "abaf520c1d24f2984fbc6ebf7e70488a6eca9851",
+  "prompts": {},
+  "sessions": {
+    "s_12e2973ba402c3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2e90ab90-be6c-4fe1-adb4-1bad94b800f3",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
