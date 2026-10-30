@@ -315,7 +315,7 @@ To turn it off, set `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` (or `true`). 
 
 ## Docker Compose Maker
 
-Prefer to own the YAML? [Docker Compose Maker](https://self-host.fyi/compose) (DCM) turns the Apps you pick into a `docker-compose.yaml` and `.env`, with a Template gallery and community upvotes. It lists every App in the Catalog with the same compose self-host installs, and `All` mode adds containers only DCM defines. It lives in [`dcm/`](dcm/) and also runs standalone: `docker run -p 7576:7576 ghcr.io/ajnart/dcm`.
+Prefer to own the YAML? [Docker Compose Maker](https://self-host.fyi/compose/) (DCM) turns the Apps you pick into a `docker-compose.yaml` and `.env`, with a Template gallery and community upvotes. It lists every App in the Catalog with the same compose self-host installs, and `All` mode adds containers only DCM defines. It lives in [`dcm/`](dcm/) and also runs standalone: `docker run -p 7576:7576 ghcr.io/ajnart/dcm`.
 
 ## Repository layout
 

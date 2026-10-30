@@ -23,7 +23,7 @@ self-host install immich
 
 The install command shows a plan and asks before changing anything. Start with [Getting started](/docs/getting-started) for Docker Compose requirements and the dated platform-verification table; being in the Catalog does not mean an App has passed a launch run on every platform.
 
-Prefer to keep your own `docker-compose.yaml`? [Docker Compose Maker](https://self-host.fyi/compose) generates one, with a `.env`, for the same Apps and for containers outside the Catalog. It does not run Setup or Links.
+Prefer to keep your own `docker-compose.yaml`? [Docker Compose Maker](https://self-host.fyi/compose/) generates one, with a `.env`, for the same Apps and for containers outside the Catalog. It does not run Setup or Links.
 
 ## How Links work
 

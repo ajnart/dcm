@@ -62,5 +62,5 @@ export const LINKS = {
   sponsor: "https://github.com/sponsors/ajnart",
   kofi: "https://ko-fi.com/ajnart",
   awesome: "https://github.com/awesome-selfhosted/awesome-selfhosted",
-  dcm: "/compose",
+  dcm: "/compose/",
 };

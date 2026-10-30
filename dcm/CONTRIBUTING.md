@@ -1,6 +1,6 @@
 # Contributing to Docker Compose Maker
 
-Thank you for your interest in contributing to DCM (Docker Compose Maker)! DCM lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose). This document covers contributing to it, particularly adding new container definitions. For the rest of the repository, see the root [CONTRIBUTING.md](../CONTRIBUTING.md).
+Thank you for your interest in contributing to DCM (Docker Compose Maker)! DCM lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose/). This document covers contributing to it, particularly adding new container definitions. For the rest of the repository, see the root [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 > [!NOTE]
 > The Apps shown in DCM's **self-host** mode come from the self-host Catalog in `internal/apps/`, and their compose lives in the generated `dcm/src/data/selfhost.json`. Edit an App under `internal/apps/` and run `go run ./tools/sitegen`; never edit the JSON by hand. The container definitions below are the ones only DCM defines, shown in **All** mode.

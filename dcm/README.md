@@ -15,7 +15,7 @@
 
 <!-- Links -->
 <p align="center">
-  <a href="https://self-host.fyi/compose">
+  <a href="https://self-host.fyi/compose/">
     <strong>Live Demo 🚀</strong>
   </a>
   •
@@ -41,7 +41,7 @@
 > [!NOTE]
 > 🌟 **Community-Driven Project**: DCM started as a simple tool but aims to become the go-to resource for Docker Compose configurations, powered by the community. We believe everyone has their favorite self-hosted tools, and we'd love for you to share yours! Whether you're using a popular application or a hidden gem, your contribution helps others discover and easily deploy great software.
 
-DCM (Docker Compose Maker) turns a handful of clicks into a ready-to-use `docker-compose.yaml` and `.env` for your self-hosted apps. It lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose).
+DCM (Docker Compose Maker) turns a handful of clicks into a ready-to-use `docker-compose.yaml` and `.env` for your self-hosted apps. It lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose/).
 
 DCM has two modes. **self-host** (the default) lists the Apps of the self-host Catalog, each with a standalone compose generated from the Go code in `internal/apps/`. **All** adds the containers only DCM defines, in `dcm/src/tools/`.
 
@@ -106,7 +106,7 @@ If you want to try DCM for yourself, there are several ways to get started:
 
 ### 🌐 Use the Online Version
 
-Visit [self-host.fyi/compose](https://self-host.fyi/compose) to use the tool immediately without installation. The old `compose.ajnart.dev` address redirects there.
+Visit [self-host.fyi/compose](https://self-host.fyi/compose/) to use the tool immediately without installation. The old `compose.ajnart.dev` address redirects there.
 
 ### 🐳 Run with Docker
 
