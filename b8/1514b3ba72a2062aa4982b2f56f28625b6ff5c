@@ -1,0 +1,27 @@
+AGENTS.md
+  s_46b365c48ffb7f::t_27cd2d043bbf48 13,58,61
+CONTRIBUTING.md
+  s_46b365c48ffb7f::t_09c5e973e01a5e 39
+dcm/CONTRIBUTING.md
+  s_46b365c48ffb7f::t_4fe84a9ba6e7ff 171
+dcm/README.md
+  s_46b365c48ffb7f::t_5a718446161fdb 179,181,189,191,193-195,197,200-201,204,208-209
+docs/agents/dcm.md
+  s_46b365c48ffb7f::t_155d9ae5c97542 3,10-14,16-39,49,57-66,69,73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b81514b3ba72a2062aa4982b2f56f28625b6ff5c",
+  "prompts": {},
+  "sessions": {
+    "s_46b365c48ffb7f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "31dccce5-06cc-4fa0-87f6-8c0450b8be0d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
