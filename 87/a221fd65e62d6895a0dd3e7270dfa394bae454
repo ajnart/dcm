@@ -1,0 +1,29 @@
+docs/agent-skills-research.md
+  s_a91f4b733e8ee4::t_6dc0340ad221b7 105-106,254
+docs/agents/dcm.md
+  s_a91f4b733e8ee4::t_602ea02a8d9655 19,21,25
+docs/releasing.md
+  s_a91f4b733e8ee4::t_2e03ca84c0c27f 294-297,358
+site/src/layouts/Compose.astro
+  s_a91f4b733e8ee4::t_3835a3fb579edc 20
+site/src/lib/seo.mjs
+  s_a91f4b733e8ee4::t_5c0872a3b1b7dd 1,4-8
+site/src/pages/compose/index.astro
+  s_a91f4b733e8ee4::t_cd24d1c2dbc64f 28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87a221fd65e62d6895a0dd3e7270dfa394bae454",
+  "prompts": {},
+  "sessions": {
+    "s_a91f4b733e8ee4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2f0f81a4-3fff-4415-afef-7b285a1a665c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
