@@ -1,6 +1,6 @@
 # DCM (Docker Compose Maker)
 
-`dcm/` is the source of Docker Compose Maker: React components, hooks, libraries, Container definitions, tests and generated data. It has no Astro app of its own. `site/` renders it at `https://self-host.fyi/compose`, and the same site build is published as `ghcr.io/ajnart/dcm`. DCM is AGPL-3.0 (`dcm/LICENSE`); the rest of the repository is Apache-2.0. Use `CONTEXT.md`'s words: DCM, Container, Template, DCM mode.
+`dcm/` is the source of Docker Compose Maker: React components, hooks, libraries, Container definitions, tests and generated data. It has no Astro app of its own. `site/` renders it at `https://self-host.fyi/compose`, and the same site build is published as `ghcr.io/ajnart/dcm`. Use `CONTEXT.md`'s words: DCM, Container, Template, DCM mode.
 
 ## Where things live
 

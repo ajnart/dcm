@@ -80,22 +80,3 @@ export async function latestVersion(): Promise<string> {
 
 export const VERSION = await latestVersion();
 
-function commitSha(): string | undefined {
-	const fromEnv =
-		process.env.SELF_HOST_SITE_COMMIT ||
-		process.env.GITHUB_SHA ||
-		process.env.CF_PAGES_COMMIT_SHA;
-	if (fromEnv) return fromEnv;
-	try {
-		return (
-			execFileSync("git", ["rev-parse", "HEAD"], {
-				encoding: "utf8",
-				stdio: ["ignore", "pipe", "ignore"],
-			}).trim() || undefined
-		);
-	} catch {
-		return undefined;
-	}
-}
-
-export const SOURCE_REF = commitSha() ?? `v${VERSION}`;

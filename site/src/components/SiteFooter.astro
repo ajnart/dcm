@@ -5,7 +5,7 @@ import ExtLink from "./ExtLink.astro";
 ---
 
 <footer class="foot">
-  <span>self-host <span class="muted"><slot name="license">Apache-2.0</slot></span></span>
+  <span>self-host <span class="muted">Apache-2.0</span></span>
   <nav aria-label="Footer">
     <a href="/apps">apps</a><a href="/docs">docs</a><ExtLink href={LINKS.github}>github</ExtLink><ExtLink href={LINKS.discord}>discord</ExtLink><ExtLink href={LINKS.sponsor}>sponsor</ExtLink><ExtLink href={LINKS.kofi}>ko-fi</ExtLink><a href={LINKS.dcm}>compose</a><ExtLink href={LINKS.awesome}>learn more</ExtLink><a href="/llms.txt">llms.txt</a><a href="/telemetry">telemetry</a><slot />
   </nav>

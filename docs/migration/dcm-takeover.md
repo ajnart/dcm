@@ -32,7 +32,7 @@ Nothing here pushes or renames on its own; you run it.
 
 ## Decide first
 
-1. **License.** The old repo is Apache-2.0, dcm is AGPL-3.0 (`dcm/LICENSE`). Check which `LICENSE` sits at the repo root; GitHub displays that one.
+1. **License.** The merged repository is Apache-2.0 (root `LICENSE`); dcm was AGPL-3.0 before the merge.
 2. **`#NNN` references.** Old self-host commit messages cite `#113`-`#615`. In the new repo they link to dcm's issues/PRs (numbers up to #112 resolve to the wrong thing, the rest to nothing), and new issues continue from #113, colliding with old numbers. GitHub cannot change this. Old numbers resolve only in `ajnart/self-host-old`, which stays public once archived.
 3. **Cloudflare Pages strategy** (see Step 9).
 4. **Old repo: archive or private.** Default is archive: it stays public and read-only, so its 5 stars, 315 closed issues, 299 PRs and public release assets stay readable. Private (`archive --private`) erases stars and watchers, hides issues and PRs, and stops anonymous downloads of its release assets; only use it if you want the old repo hidden.

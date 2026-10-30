@@ -368,10 +368,8 @@ The image serves the same site as Pages with these differences:
 - `dcm/httpd.conf` maps the extensions busybox does not know (`.js`, `.json`,
   `.svg`, `.webmanifest`, `.xml`, `.md`, `.txt`, `.pagefind`, `.pf_*`) and
   serves `404.html` for unknown paths.
-- It runs as `USER 65534:65534` and carries `LICENSE-Apache-2.0.txt`,
-  `LICENSE-AGPL-3.0.txt` and `SOURCE.txt` (repository URL and the commit,
-  from the `REVISION` build argument) at `/`. The OCI labels name the licenses
-  (`AGPL-3.0-only AND Apache-2.0`), the source and the revision.
+- It runs as `USER 65534:65534` and carries `LICENSE.txt` at `/`. The OCI
+  labels name the license (`Apache-2.0`), the source and the revision.
 
 To try it locally, after `bun run --cwd site build`:
 

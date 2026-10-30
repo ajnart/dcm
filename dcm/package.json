@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A tool to create docker-compose.yaml files",
   "author": "ajnart",
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "scripts": {

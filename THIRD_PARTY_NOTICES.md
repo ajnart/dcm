@@ -8,12 +8,6 @@ Catalog URLs, container image references, and factual compatibility records iden
 
 Agent marks used on the site and in README artwork have their sources, licenses and modifications recorded in [Agent logos](video/reel/assets/agents/SOURCES.md). They identify compatible agents, not endorsements or verified App installs.
 
-## Docker Compose Maker (AGPL-3.0)
-
-`dcm/` is Docker Compose Maker, licensed under the GNU Affero General Public License v3.0 only (`dcm/LICENSE`). The rest of the repository is Apache-2.0. The `https://self-host.fyi/compose` pages and the `ghcr.io/ajnart/dcm` image include DCM, so they are offered under the AGPL for that part; the image also carries `LICENSE-AGPL-3.0.txt`, `LICENSE-Apache-2.0.txt` and a `SOURCE.txt` naming the commit it was built from.
-
-The corresponding source of both is the repository at [github.com/ajnart/self-host](https://github.com/ajnart/self-host): `dcm/` and the site that renders it in `site/`, at the commit recorded in `/SOURCE.txt` of the image or, for the live site, the latest commit on `main`.
-
 ## OpenClaw pixel lobster
 
 `video/reel/assets/agents/openclaw.svg` and its copies embedded in README artwork come from [OpenClaw](https://github.com/openclaw/openclaw/blob/a3a5cd5f969d54c774ea38a0f180015981aa16e7/docs/assets/pixel-lobster.svg), under its [MIT license](https://github.com/openclaw/openclaw/blob/a3a5cd5f969d54c774ea38a0f180015981aa16e7/LICENSE):

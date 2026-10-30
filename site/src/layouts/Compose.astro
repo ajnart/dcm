@@ -7,9 +7,8 @@ import { routes } from "@/lib/routes";
 import { PlusCircle } from "lucide-react";
 import og from "../assets/og.png";
 import SiteFooter from "../components/SiteFooter.astro";
-import ExtLink from "../components/ExtLink.astro";
 import SiteHeader from "../components/SiteHeader.astro";
-import { LINKS, SOURCE_REF, VERSION } from "../lib/site";
+import { VERSION } from "../lib/site";
 
 interface Props {
   title: string;
@@ -74,9 +73,6 @@ if (editor) {
     <main class="container pt-6 pb-12">
       <slot />
     </main>
-    <SiteFooter>
-      <Fragment slot="license">Apache-2.0 · DCM AGPL-3.0</Fragment>
-      <ExtLink href={`${LINKS.github}/tree/${SOURCE_REF}/dcm`}>DCM source</ExtLink>
-    </SiteFooter>
+    <SiteFooter />
   </body>
 </html>

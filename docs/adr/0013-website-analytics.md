@@ -17,7 +17,7 @@ exactly `self-host.fyi`: local development, previews, forks and the
 `ghcr.io/ajnart/dcm` image send nothing. Browsers that send Do Not Track send
 nothing.
 
-DCM (`dcm/`, AGPL-3.0) never imports PostHog. It reports through
+DCM (`dcm/`) never imports PostHog. It reports through
 `dcm/src/lib/track.ts`, a seam with the `DcmEvent` type and a `track()` that
 calls whichever listener the host registered. The site registers one in
 `initAnalytics`; without a listener, which is every non-production host, the

@@ -291,7 +291,7 @@ More in the [troubleshooting docs](https://self-host.fyi/docs/troubleshooting).
 > [!WARNING]
 > self-host installs and connects software; what you do with it is your responsibility. Download clients, indexers and media automation have legitimate uses: Linux ISOs, public-domain and Creative Commons works, and media you own or are licensed to copy. **We do not condone piracy and do not help anyone find or download content they have no right to.** self-host ships no indexers, trackers or content sources. Follow copyright law where you live and the terms of every service you connect.
 
-The software is provided as is, without warranty (Apache-2.0; `dcm/` is AGPL-3.0). The maintainers are not liable for how it is used.
+The software is provided as is, without warranty (Apache-2.0). The maintainers are not liable for how it is used.
 
 ## Telemetry
 
@@ -323,7 +323,7 @@ Prefer to own the YAML? [Docker Compose Maker](https://self-host.fyi/compose) (D
 | --- | --- |
 | `cmd/`, `internal/` | The Go binary: CLI, Dashboard, the Catalog and every App. |
 | `site/` | The Astro site at self-host.fyi. |
-| `dcm/` | Docker Compose Maker, served at self-host.fyi/compose. AGPL-3.0 ([`dcm/LICENSE`](dcm/LICENSE)). |
+| `dcm/` | Docker Compose Maker, served at self-host.fyi/compose. |
 | `tools/sitegen` | Writes the site's and DCM's data from the Catalog. |
 | `docs/` | Decisions, agent briefs, release notes and proofs. |
 

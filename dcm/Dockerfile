@@ -10,11 +10,7 @@ RUN cd /src \
     done \
     && printf '<!doctype html><meta charset="utf-8"><title>Docker Compose Maker</title><script>location.replace("/compose/"+location.search+location.hash)</script><noscript><meta http-equiv="refresh" content="0;url=/compose/"></noscript>\n' > index.html
 
-COPY --chmod=644 LICENSE /src/LICENSE-Apache-2.0.txt
-COPY --chmod=644 dcm/LICENSE /src/LICENSE-AGPL-3.0.txt
-
-ARG REVISION=unknown
-RUN printf 'Docker Compose Maker is free software under the GNU AGPL-3.0-only (LICENSE-AGPL-3.0.txt).\nThe rest of this image is Apache-2.0 (LICENSE-Apache-2.0.txt).\n\nCorresponding source: https://github.com/ajnart/self-host\nCommit: %s\n' "$REVISION" > /src/SOURCE.txt
+COPY --chmod=644 LICENSE /src/LICENSE.txt
 
 FROM ${BUSYBOX}
 
