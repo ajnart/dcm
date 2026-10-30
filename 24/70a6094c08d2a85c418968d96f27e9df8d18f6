@@ -1,0 +1,43 @@
+dcm/src/components/DockerToolsClient.tsx
+  s_634c8991df5839::t_656874b905d7d6 8-9,27-28
+dcm/src/components/TemplateClient.tsx
+  s_634c8991df5839::t_f3a82eed71f245 1,22-23,52,61,63,145,147,153-154
+dcm/src/components/TemplateGalleryClient.tsx
+  s_634c8991df5839::t_a21530e61b7745 7-8,23-24
+dcm/src/components/container-submission-form.tsx
+  s_46b365c48ffb7f::t_c63c0589982905 86-96,147,162-166,441
+dcm/src/components/suggest-container.tsx
+  s_46b365c48ffb7f::t_785c41d8d2efec 2-3,5-8,10-18,20-45,47
+dcm/src/hooks/use-catalog-view.ts
+  s_634c8991df5839::t_72c9a3c7b061f9 1-17
+dcm/src/hooks/use-mode.ts
+  s_634c8991df5839::t_ddb596c68a3c1d 48-61,63-66,68-74
+site/src/layouts/Compose.astro
+  s_634c8991df5839::t_0a3e1f47b4b993 5,55
+site/src/pages/compose/template/[id].astro
+  s_634c8991df5839::t_ae3a5afa7f7274 3,24-27,30,34,57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2470a6094c08d2a85c418968d96f27e9df8d18f6",
+  "prompts": {},
+  "sessions": {
+    "s_46b365c48ffb7f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "31dccce5-06cc-4fa0-87f6-8c0450b8be0d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_634c8991df5839": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "760fe647-1290-418b-b7c1-619e3f7cd7f3",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
