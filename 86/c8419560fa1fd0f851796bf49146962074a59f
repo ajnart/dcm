@@ -1,0 +1,21 @@
+dcm/src/data/selfhost.json
+  s_a91f4b733e8ee4::t_d1e558a5b85073 2463
+tools/sitegen/selfhost.go
+  s_a91f4b733e8ee4::t_a6e43af75efe60 609-611
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "86c8419560fa1fd0f851796bf49146962074a59f",
+  "prompts": {},
+  "sessions": {
+    "s_a91f4b733e8ee4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2f0f81a4-3fff-4415-afef-7b285a1a665c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
