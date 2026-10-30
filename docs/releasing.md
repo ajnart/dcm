@@ -229,15 +229,15 @@ Cloudflare's GitHub app, rebuilds the site when a push to `main` changes one of
 its watch paths, and makes a preview for other branches. GitHub Actions is
 not involved. Its build settings:
 
-| Setting                | Value                                                                                                                                             |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Production branch      | `main`                                                                                                                                            |
-| Build command          | `bash scripts/build-site-pages.sh`                                                                                                                |
-| Build output directory | `site/dist-pages`                                                                                                                                 |
-| Root directory         | (repository root)                                                                                                                                 |
+| Setting                | Value                                                                                                                                                                      |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Production branch      | `main`                                                                                                                                                                     |
+| Build command          | `bash scripts/build-site-pages.sh`                                                                                                                                         |
+| Build output directory | `site/dist-pages`                                                                                                                                                          |
+| Root directory         | (repository root)                                                                                                                                                          |
 | Build watch paths      | include `site/*`, `dcm/*`, `tools/sitegen/*`, `install.sh`, `scripts/build-*`, `docs/telemetry.md`, `video/reel/assets/agents/*`, `package.json`, `bun.lock`, `turbo.json` |
-| `BUN_VERSION`          | `1.4.3`                                                                                                                                           |
-| `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `vX.Y.Z` tag of the Go CLI from the checkout, since the releases API is private while the repo is |
+| `BUN_VERSION`          | `1.4.3`                                                                                                                                                                    |
+| `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `vX.Y.Z` tag of the Go CLI from the checkout, since the releases API is private while the repo is                          |
 
 A release does not push to `main`, so the site would keep showing the old
 version: `scripts/publish-channels.sh` ends with `scripts/publish-site.sh X.Y.Z`,
@@ -261,7 +261,8 @@ and `bunx turbo run build test test:compose lint check` runs the web checks that
 `site/` is a static Astro project (`bun run dev`, `bun run check` inside
 it) that also renders Docker Compose Maker at `/compose`. Its definitions come from the Go code:
 `go run ./tools/sitegen` writes `site/src/data/catalog.json` from the
-Catalog and `site/src/styles/theme.css` from the Dashboard's dark palette.
+Catalog, `site/src/styles/theme.css` from the Dashboard's dark palette and
+`dcm/src/data/selfhost.json`, one compose per App for DCM.
 `src/lib/catalog.ts` is the one typed model of the catalog, shared by the
 build and the browser playground; the `apps` content collection validates it
 with a schema, so a generator change that breaks the shape fails the build.
@@ -311,12 +312,9 @@ site build and is served by the same Pages project at
 Functions, so there is no `_routes.json` and no binding to configure. The
 `_astro/*` immutable cache rule in the site's `_headers` covers DCM's assets too.
 
-The site's Content Security Policy is the hashed one from `astro.config.mjs`.
-`/compose` alone widens it for Monaco: scripts, styles and fonts from the
-jsDelivr CDN, `data:` fonts, `blob:` workers and `'unsafe-inline'` for
-`style-src-elem` and `style-src-attr`, because Monaco injects `<style>`
-elements and `style` attributes at runtime. `/`, `/apps` and `/docs` keep the
-strict policy; tighten `/compose` only together with self-hosting Monaco.
+The site's Content Security Policy is the hashed one from `astro.config.mjs`;
+which DCM pages widen it, and how, is in `docs/agents/dcm.md` (Content Security
+Policy).
 
 `scripts/publish-site.sh` refuses to deploy a build that has no `/compose` page.
 
@@ -335,10 +333,10 @@ The standalone `dcm` Pages project is retired: its `wrangler.toml` and
 serve their own copy. On each zone add two Single Redirects, 301, "Preserve
 query string", for that host, in this order:
 
-| Rule | When                                     | Redirect to                                                        |
-| ---- | ---------------------------------------- | ------------------------------------------------------------------ |
-| 1    | `http.request.uri.path eq "/"`           | static `https://self-host.fyi/compose`                             |
-| 2    | any other path on the host               | dynamic `concat("https://self-host.fyi/compose", http.request.uri.path)` |
+| Rule | When                           | Redirect to                                                              |
+| ---- | ------------------------------ | ------------------------------------------------------------------------ |
+| 1    | `http.request.uri.path eq "/"` | static `https://self-host.fyi/compose`                                   |
+| 2    | any other path on the host     | dynamic `concat("https://self-host.fyi/compose", http.request.uri.path)` |
 
 The site uses no trailing slash, so the root must not become `/compose/`. DCM's
 own paths (`/template/<id>`) are the same under `/compose`. Check with

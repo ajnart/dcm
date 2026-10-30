@@ -8,7 +8,7 @@
 - Templates: `dcm/src/lib/template-definitions.ts`. The Catalog's Recipes become Templates automatically.
 - Merge logic: `dcm/src/lib/catalog.ts` joins `dcm/src/tools` with `dcm/src/data/selfhost.json`.
 - Export: `dcm/src/lib/export/` owns everything a selection turns into. `buildExport(ids, catalog, settings, { recipe?, secretFor? })` resolves the ids, splits out install-only Apps, dedupes services, fixes port conflicts, writes the compose and `.env` (every secret that has `bytes` in `selfhost.json` is random hex of that many bytes from `crypto.getRandomValues`, in the browser, never sent to analytics; the components pass `pageSecret`, which remembers a key's value for the life of the page so a new selection or setting does not re-roll it, and nothing is persisted; tests pass their own `secretFor(key, bytes)`; values flagged `external` (a token another service issues) stay blank under a comment copied from their description), and returns the notes and the `self-host install` command. Components render the result and call `track()`; they never assemble YAML or env. Settings live in `dcm/src/lib/settings.ts`, and their defaults are read from the `globals` of `selfhost.json`. Its tests are `dcm/tests/export.test.ts`.
-- Pages: `site/src/pages/compose/` (`index.astro`, `templates.astro`, `template/[id].astro`) with the layout `site/src/layouts/Compose.astro`. Output follows the site's `build.format: "file"` (`compose.html`, `compose/templates.html`, `compose/template/<id>.html`), so Cloudflare Pages serves `/compose` and 308-redirects `/compose/` with the query kept.
+- Pages: `site/src/pages/compose/` (`index.astro`, `suggest.astro`, `templates.astro`, `template/[id].astro`) and `site/src/pages/apps/index.astro`, all with the layout `site/src/layouts/Compose.astro`. Output follows the site's `build.format: "file"` (`compose.html`, `compose/templates.html`, `compose/template/<id>.html`), so Cloudflare Pages serves `/compose` and 308-redirects `/compose/` with the query kept.
 - The `@/` alias: in `site/`, `@/` means `dcm/src` (`paths` in `site/tsconfig.json`). `dcm/tsconfig.json` maps `@/` to its own `src` for `tsc` and tests. TypeScript in `dcm/` never imports from `site/`; only `dcm/src/styles/global.css` reaches into it, for the theme tokens and the Tailwind `@source` globs.
 - Links: the prefix is fixed. Use `routes` from `dcm/src/lib/routes.ts` (`routes.compose`, `routes.templates`, `routes.template(id)`); there is no base-path variable.
 - Styling: Tailwind is scoped to `/compose`. `dcm/src/styles/global.css` starts with `@import "tailwindcss" source(none)` and lists its `@source` globs, and only `Compose.astro` imports it, so no Tailwind rule reaches `/`, `/apps` or `/docs`. Header and footer are the site's `SiteHeader` and `SiteFooter`; the layout fills the header slot with a link to `/compose/suggest`, the Suggest container page (`dcm/src/components/suggest-page.tsx`, prompt in `dcm/src/lib/suggest.ts`). Container requests go through an agent prompt or the `dcm-container-submission` issue template, which `.github/workflows/dcm-add-container.yml` consumes by its `container` and `accepted` labels.
@@ -18,13 +18,12 @@
 
 ## Content Security Policy
 
-The site sets one CSP through Astro's `security.csp`, and `site/src/lib/csp.mjs` fails the build when an inline script, style or style attribute is not covered. `Compose.astro` widens it for `/compose` only:
+The site sets one CSP through Astro's `security.csp` (`site/astro.config.mjs`), and `site/src/lib/csp.mjs` fails the build when an inline script, style or style attribute is not covered. Monaco is bundled with the site, so no script, style or font comes from a CDN; the only jsDelivr origin is in `img-src`, for the icons served from the pinned dashboard-icons commit. `Compose.astro` widens the policy:
 
-- `script-src` and `style-src-elem` allow `https://cdn.jsdelivr.net`, where `@monaco-editor/react` loads Monaco from, and `font-src` allows it plus `data:`.
-- `worker-src blob:` lets Monaco start its workers.
-- `style-src-elem` and `style-src-attr` allow `'unsafe-inline'` because Monaco injects `<style>` elements and sets `style` attributes at runtime, which hashes cannot cover. `cspCheck` skips the style-attribute hash check on pages whose policy allows it and still checks every inline script and `<style>`.
+- Every page on that layout gets `style-src-attr 'unsafe-inline'`, because React sets `style` attributes at runtime, which hashes cannot cover.
+- A page that passes `editor` to the layout also gets `style-src-elem 'self' 'unsafe-inline'` (Monaco injects `<style>` elements), `font-src 'self'` (its bundled icon font) and `worker-src 'self'` (its workers). Those pages are `/apps`, `/compose`, `/compose/templates` and `/compose/template/*`; `/compose/suggest` has no editor and keeps the strict policy apart from the style attributes.
 
-`/`, `/apps` and `/docs` keep the strict policy. Tighten `/compose` only together with self-hosting Monaco. `canvas-confetti` works under this policy: it draws with a canvas and needs no worker.
+`cspCheck` skips the style-attribute hash check on pages whose policy allows it and still checks every inline script and `<style>`. `/`, `/docs` and the rest keep the strict policy. `canvas-confetti` works under it: it draws with a canvas and needs no worker.
 
 ## How an App reaches DCM
 

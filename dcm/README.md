@@ -43,7 +43,7 @@
 
 DCM (Docker Compose Maker) turns a handful of clicks into a ready-to-use `docker-compose.yaml` and `.env` for your self-hosted apps. It lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose).
 
-DCM has two modes. **self-host** (the default) lists the Apps of the self-host Catalog, each with a standalone compose generated from the Go code in `internal/apps/`. **All** adds the containers only DCM defines, in `dcm/src/tools/`.
+DCM has two modes, each its own page. **self-host** (`/apps`) lists the Apps of the self-host Catalog, each with a standalone compose generated from the Go code in `internal/apps/`. **docker compose** (`/compose`) adds the containers only DCM defines, in `dcm/src/tools/`.
 
 Every selection shows the matching `self-host install <apps>` command. [self-host](https://self-host.fyi/?ref=dcm) is one Go binary that installs and wires these apps for you, for people and for AI agents. Rather not manage YAML? Use it. Prefer to own the YAML? DCM stays fully usable on its own.
 
@@ -294,7 +294,7 @@ The easiest way to contribute is by adding new container definitions to our grow
 
 ## 📜 License
 
-This project is licensed under the GNU Affero General Public License v3.0 only (AGPL-3.0-only) - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0; see the [LICENSE](../LICENSE) file.
 
 ## 💖 Support
 

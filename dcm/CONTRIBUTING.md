@@ -3,7 +3,7 @@
 Thank you for your interest in contributing to DCM (Docker Compose Maker)! DCM lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose). This document covers contributing to it, particularly adding new container definitions. For the rest of the repository, see the root [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 > [!NOTE]
-> The Apps shown in DCM's **self-host** mode come from the self-host Catalog in `internal/apps/`, and their compose lives in the generated `dcm/src/data/selfhost.json`. Edit an App under `internal/apps/` and run `go run ./tools/sitegen`; never edit the JSON by hand. The container definitions below are the ones only DCM defines, shown in **All** mode.
+> The Apps shown in DCM's **self-host** mode come from the self-host Catalog in `internal/apps/`, and their compose lives in the generated `dcm/src/data/selfhost.json`. Edit an App under `internal/apps/` and run `go run ./tools/sitegen`; never edit the JSON by hand. The container definitions below are the ones only DCM defines, shown in **docker compose** mode.
 
 ## Adding New Containers
 
@@ -38,16 +38,16 @@ Each container is defined as a `DockerTool` object with the following properties
 
 ```typescript
 interface DockerTool {
-  id: string;                // Unique identifier (lowercase, no spaces)
-  name: string;              // Display name
-  description: string;       // Brief description of the container
-  category: string;          // Category (Media, Database, etc.)
-  tags: string[];            // Array of tags for filtering
-  githubUrl?: string;        // Optional GitHub URL for star count
-  icon?: string;             // Optional icon URL (preferably SVG)
-  stars?: number;            // GitHub stars (fetched automatically, don't set manually)
-  composeContent?: string;   // Docker Compose YAML definition
-  isUnsupported?: boolean;   // Optional flag for unsupported containers
+  id: string; // Unique identifier (lowercase, no spaces)
+  name: string; // Display name
+  description: string; // Brief description of the container
+  category: string; // Category (Media, Database, etc.)
+  tags: string[]; // Array of tags for filtering
+  githubUrl?: string; // Optional GitHub URL for star count
+  icon?: string; // Optional icon URL (preferably SVG)
+  stars?: number; // GitHub stars (fetched automatically, don't set manually)
+  composeContent?: string; // Docker Compose YAML definition
+  isUnsupported?: boolean; // Optional flag for unsupported containers
 }
 ```
 
@@ -167,7 +167,7 @@ When writing the `composeContent` for a container:
 
 After adding your container definition:
 
-1. Install at the repository root with `bun install` (one bun workspace; there is no `dcm/bun.lock`), then run `bun run dev` at the root and open http://localhost:4321/compose to verify the container appears in **All** mode.
+1. Install at the repository root with `bun install` (one bun workspace; there is no `dcm/bun.lock`), then run `bun run dev` at the root and open http://localhost:4321/compose to verify the container appears in **docker compose** mode.
 2. Test generating a docker-compose file with your container.
 3. Verify the generated docker-compose file works correctly when deployed.
 4. Run the automated tests from `dcm/` to ensure your container passes validation:
@@ -183,6 +183,7 @@ bun run test:compose
 5. From the repository root, run `bunx turbo run build lint`.
 
 All tests should pass before submitting a pull request. The tests validate:
+
 - That your Docker Compose template is syntactically valid
 - That proper environment variables are used
 - That the container definition follows the required schema
@@ -194,4 +195,4 @@ All tests should pass before submitting a pull request. The tests validate:
 3. Commit your changes with a clear commit message.
 4. Open a pull request, detailing the containers you've added. Use a conventional commit title such as `feat(dcm): add <name>`.
 
-Thank you for helping improve Docker Compose Maker! 
+Thank you for helping improve Docker Compose Maker!
