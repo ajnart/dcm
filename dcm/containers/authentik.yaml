@@ -1,0 +1,3 @@
+name: Authentik
+version: 4.2.0
+description: Authentication and identity provider with SSO, MFA, OAuth2, SAML, and LDAP support

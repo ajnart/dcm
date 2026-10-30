@@ -1,0 +1,70 @@
+name: 🐞 Bug Report
+description: Report that something is broken or not working as intended
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of the bug, as well as what you expected to happen.
+    validations:
+      required: true
+  
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Describe how to reproduce the bug. Steps, code snippets, screenshots, etc.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+  
+  - type: textarea
+    attributes:
+      label: Impact
+      description: How is this bug affecting your usage of the application?
+      placeholder: "Is there any workaround that you've discovered?"
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      description: What browser are you using?
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Opera
+        - Brave
+        - Other (specify in additional information)
+      default: 0
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Windows
+        - MacOS
+        - Linux
+        - Android
+        - iOS
+        - Other (specify in additional information)
+      default: 0
+    validations:
+      required: true
+  
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: Add any other information related to the bug here, such as screenshots or console errors.
+      placeholder: "You can also paste error logs or console output here" 
