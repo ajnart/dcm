@@ -1,0 +1,31 @@
+tools/sitegen/convert.go
+  s_d265f39b23108a::t_733e76ee44ddf7 1-337
+tools/sitegen/notes.go
+  s_d265f39b23108a::t_78ae8275102228 1-205
+tools/sitegen/standins.go
+  s_b049e8b17673a6::t_8c50f24fecc89d 1-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4c372bc95570aa42a7ef977a512acc23d0e133c5",
+  "prompts": {},
+  "sessions": {
+    "s_b049e8b17673a6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6eb88b41-0ef5-45a1-ad3a-3ba126e42021",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_d265f39b23108a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88d0984b-9c53-4c88-a636-b78e46d504e9",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
