@@ -1,0 +1,47 @@
+dcm/src/data/selfhost.json
+  s_0ccc0b5fe43235::t_ecd74d2a943367 1012,2001,3373,3437,3506,3950,4691
+tools/sitegen/selfhost.go
+  s_46ce2b9c6a25e8::t_db5343e1fc6ff8 12,23-33,41,50-51
+tools/sitegen/standalone/compose.go
+  s_46ce2b9c6a25e8::t_9c0997cb51fbab 1,14-15,17-20,23-31,34-35,44,47-59,61-70,72-73,76-224,229-235,237-239,241,246-247,251,262-265,267-268,270-277,279-292,294-296,298-299,302-304,307,309-310,314,317-319,321-331,333-343,346,349-356,358-362,365,367,369-376,378,383,385-389,391-392,395-401,405,411-415,417-456,459,461,463,465,468-470,472-474,477-484,487-511
+tools/sitegen/standalone/notes.go
+  s_46ce2b9c6a25e8::t_8e997530619a57 1,12-13,21-24,31-32,34,49-51,54-56,71-76,79,81-82
+tools/sitegen/standalone/standalone.go
+  s_c625512207bff6::t_ce89ea1ebde872 1-215
+tools/sitegen/standalone/standalone_test.go
+  s_46ce2b9c6a25e8::t_87b1affa97660a 1-209
+tools/sitegen/standalone/standins.go
+  s_46ce2b9c6a25e8::t_03a8d49d1ab253 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a41fe9927ab90e7427037797ed6cd0df736a500c",
+  "prompts": {},
+  "sessions": {
+    "s_0ccc0b5fe43235": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5aa2188f-21d4-4355-a28c-418878c9ab13",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_46ce2b9c6a25e8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "526aab17-03d8-41ea-b00e-b2e769645ffa",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_c625512207bff6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58c0474f-99b1-42a7-854f-4b10a70bc471",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
