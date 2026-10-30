@@ -9,7 +9,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useClipboard } from "@/hooks/use-clipboard"
-import { confetti } from "@/lib/confetti"
 import {
   SELFHOST_INSTALL,
   SELFHOST_URL,
@@ -17,7 +16,6 @@ import {
 } from "@/lib/selfhost"
 import { cn } from "@/lib/utils"
 import { Check, CircleHelp, Copy, ExternalLink } from "lucide-react"
-import { toast } from "sonner"
 
 interface SelfHostCommandProps {
   ids: string[]
@@ -34,13 +32,8 @@ export function SelfHostCommand({
     ? "self-host install <apps…>"
     : buildSelfHostCommand(ids)
 
-  const handleCopy = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    const target = event.currentTarget
-    if (await copy(command)) {
-      confetti(target)
-      return
-    }
-    toast.error("Failed to copy command")
+  const handleCopy = (event: React.MouseEvent<HTMLButtonElement>) => {
+    copy(command, event.currentTarget)
   }
 
   return (
@@ -59,7 +52,13 @@ export function SelfHostCommand({
         <span className="text-accent-text">$</span>
         <span className="truncate">{command}</span>
         {copied ? (
-          <Check className="h-3 w-3 shrink-0 text-ok motion-safe:animate-scale-in" />
+          <span
+            aria-live="polite"
+            className="flex shrink-0 items-center gap-1 text-ok motion-safe:animate-scale-in"
+          >
+            <Check className="h-3 w-3" />
+            Copied
+          </span>
         ) : (
           <Copy className="h-3 w-3 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
         )}

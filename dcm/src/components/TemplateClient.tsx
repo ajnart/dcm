@@ -1,3 +1,4 @@
+import Providers from "@/components/Providers"
 import ActionButtons from "@/components/compose-modal/ActionButtons"
 import PortConflictsAlert from "@/components/compose-modal/PortConflictsAlert"
 import {
@@ -7,8 +8,8 @@ import {
   type MonacoEditorInstance,
   configureMonacoThemes,
 } from "@/components/editors/MonacoEditor"
-import SettingsForm from "@/components/settings/SettingsForm"
 import { SelfHostCommand } from "@/components/selfhost-command"
+import SettingsForm from "@/components/settings/SettingsForm"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -16,18 +17,14 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { confetti } from "@/lib/confetti"
-import {
-  copyToClipboard,
-  downloadFile,
-} from "@/lib/docker-compose/file-operations"
+import { useClipboard } from "@/hooks/use-clipboard"
+import { downloadFile } from "@/lib/docker-compose/file-operations"
 import {
   generateComposeContent,
   generateEnvFile,
 } from "@/lib/docker-compose/generators"
-import Providers from "@/components/Providers"
-import { routes } from "@/lib/routes"
 import type { DockerTool } from "@/lib/docker-tools"
+import { routes } from "@/lib/routes"
 import { useSettings } from "@/lib/settings-context"
 import type { Template } from "@/lib/templates"
 import {
@@ -64,7 +61,7 @@ function TemplateView({
   const [hasMounted, setHasMounted] = useState(false)
   const [activeTab, setActiveTab] = useState("services")
   const [interpolateEnv, setInterpolateEnv] = useState(true)
-  const [copied, setCopied] = useState(false)
+  const { copy, copied, reset } = useClipboard()
   const [portConflicts, setPortConflicts] = useState<{
     fixed: number
     conflicts: string[]
@@ -88,27 +85,13 @@ function TemplateView({
     )
   }
 
-  // Handle copy to clipboard
-  const handleCopy = async () => {
+  const handleCopy = (event: React.MouseEvent<HTMLButtonElement>) => {
     const contentToCopy =
       activeTab === "compose"
         ? composeEditorRef.current?.getValue() || content
         : envEditorRef.current?.getValue() || envContent
 
-    const success = await copyToClipboard(
-      contentToCopy,
-      activeTab as "compose" | "env",
-      templateTools,
-    )
-
-    if (success) {
-      setCopied(true)
-      const button = document.getElementById("copy-button")
-      if (button) confetti(button)
-      setTimeout(() => {
-        setCopied(false)
-      }, 2000)
-    }
+    copy(contentToCopy, event.currentTarget)
   }
 
   const handleComposeEditorDidMount = (editor: MonacoEditorInstance) => {
@@ -143,13 +126,9 @@ function TemplateView({
     setEnvContent(envFileContent)
   }, [templateTools, settings, isLoading, hasMounted, interpolateEnv])
 
-  useEffect(() => {
-    setCopied(false)
-  }, [activeTab])
-
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
-    setCopied(false)
+    reset()
   }
 
   const currentTheme = hasMounted ? "tailwind-dark" : "vs"

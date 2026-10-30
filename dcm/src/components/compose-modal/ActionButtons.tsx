@@ -1,8 +1,9 @@
+import { CopyLabel } from "@/components/copy-label"
 import { Button } from "@/components/ui/button"
-import { Check, Copy, Download } from "lucide-react"
+import { Copy, Download } from "lucide-react"
 
 interface ActionButtonsProps {
-  onCopy: () => void
+  onCopy: (event: React.MouseEvent<HTMLButtonElement>) => void
   onDownload: () => void
   copied: boolean
 }
@@ -26,24 +27,11 @@ export default function ActionButtons({
       </Button>
 
       <Button
-        aria-label={copied ? "Copied" : "Copy to clipboard"}
-        className="relative ml-2 rounded-md"
-        id="copy-button"
+        className="ml-2 rounded-md px-3"
         onClick={onCopy}
-        size="icon"
         variant="outline"
       >
-        <span className="sr-only">{copied ? "Copied" : "Copy"}</span>
-        <Copy
-          className={`h-4 w-4 transition-all duration-300 ${
-            copied ? "scale-0" : "scale-100"
-          }`}
-        />
-        <Check
-          className={`absolute inset-0 m-auto h-4 w-4 transition-all duration-300 ${
-            copied ? "scale-100" : "scale-0"
-          }`}
-        />
+        <CopyLabel copied={copied} icon={<Copy />} label="Copy" />
       </Button>
     </div>
   )

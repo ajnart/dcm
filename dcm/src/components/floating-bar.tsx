@@ -1,3 +1,4 @@
+import { CopyLabel } from "@/components/copy-label"
 import { ServiceCircles } from "@/components/magicui/avatar-circles"
 import { SearchCommand } from "@/components/search-command"
 import { SelfHostCommand } from "@/components/selfhost-command"
@@ -10,13 +11,11 @@ import {
   resolveSelection,
   toSelfHostIds,
 } from "@/lib/catalog"
-import { confetti } from "@/lib/confetti"
 import { buildSelfHostLink } from "@/lib/selfhost"
 import { generateShareUrl } from "@/lib/url-utils"
 import { cn } from "@/lib/utils"
 import { ExternalLink, RefreshCw, Search, Share2 } from "lucide-react"
 import { Suspense, lazy, useEffect, useMemo, useState } from "react"
-import { toast } from "sonner"
 
 const CopyComposeModal = lazy(() =>
   import("@/components/compose-modal/CopyComposeModal").then((mod) => ({
@@ -54,7 +53,7 @@ export default function FloatingBar({
   const [isApple, setIsApple] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [isResetActive, setIsResetActive] = useState(false)
-  const { copy } = useClipboard()
+  const { copy, copied } = useClipboard()
 
   const resolved = useMemo(() => resolveSelection(ids, catalog), [ids, catalog])
   const selfHostIds = useMemo(() => toSelfHostIds(ids, catalog), [ids, catalog])
@@ -98,27 +97,13 @@ export default function FloatingBar({
     }
   }
 
-  const handleShare = async (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleShare = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (shareIds.length === 0) return
 
-    const target = event.currentTarget
-    const success = await copy(generateShareUrl(shareIds))
-
-    if (success) {
-      confetti(target)
-      toast.success("Share URL copied to clipboard!", {
-        description: "Share this link to show your selected services",
-      })
-      return
-    }
-
-    toast.error("Failed to copy URL", {
-      description: "Please ensure you're using HTTPS or try again",
-    })
+    copy(generateShareUrl(shareIds), event.currentTarget)
   }
 
-  const handleCopyCompose = (event: React.MouseEvent<HTMLButtonElement>) => {
-    confetti(event.currentTarget)
+  const handleCopyCompose = () => {
     setIsCopyDialogOpen(true)
   }
 
@@ -247,8 +232,12 @@ export default function FloatingBar({
                   className="flex xs:min-w-16 items-center gap-2 transition-transform motion-safe:hover:scale-105"
                   onClick={handleShare}
                 >
-                  <Share2 className="h-3.5 w-3.5" />
-                  <span className="xs:inline hidden">Share</span>
+                  <CopyLabel
+                    copied={copied}
+                    icon={<Share2 className="h-3.5 w-3.5" />}
+                    label="Share"
+                    labelClassName="xs:inline hidden"
+                  />
                 </Button>
 
                 <Button

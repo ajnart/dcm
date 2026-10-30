@@ -1,46 +1,6 @@
 import type { DockerTool } from "@/lib/docker-tools"
 import { toast } from "sonner"
 
-export async function copyToClipboard(
-  content: string,
-  fileType: "compose" | "env",
-  selectedTools: DockerTool[],
-): Promise<boolean> {
-  try {
-    // Check if we're in a secure context and clipboard API is available
-    if (!navigator.clipboard) {
-      throw new Error(
-        "Clipboard API not available. This feature requires HTTPS or localhost.",
-      )
-    }
-
-    await navigator.clipboard.writeText(content)
-
-    toast.success(
-      `${fileType === "compose" ? "Docker Compose" : ".env"} file copied to clipboard`,
-      {
-        description: `${selectedTools.length} service${selectedTools.length !== 1 ? "s" : ""} configuration copied.`,
-        duration: 3000,
-      },
-    )
-
-    return true
-  } catch (err) {
-    console.error("Failed to copy: ", err)
-
-    const errorMessage =
-      err instanceof Error ? err.message : "An error occurred while copying"
-    toast.error("Failed to copy to clipboard", {
-      description: errorMessage.includes("not available")
-        ? "Please ensure you're using HTTPS or localhost"
-        : errorMessage,
-      duration: 5000,
-    })
-
-    return false
-  }
-}
-
 export function downloadFile(
   content: string,
   fileType: "compose" | "env",

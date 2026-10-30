@@ -1,41 +1,46 @@
-import { useState, useCallback } from "react"
+import { confetti } from "@/lib/confetti"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
+
+const COPIED_MS = 1500
 
 interface UseClipboardReturn {
-  value: string | null
-  copy: (text: string) => Promise<boolean>
+  copy: (text: string, origin?: Element) => Promise<boolean>
   copied: boolean
-  error: Error | null
+  reset: () => void
 }
 
 export function useClipboard(): UseClipboardReturn {
-  const [value, setValue] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  const copy = useCallback(async (text: string): Promise<boolean> => {
-    if (!navigator?.clipboard) {
-      setError(new Error("Clipboard API not available"))
-      return false
-    }
+  useEffect(() => () => clearTimeout(timer.current), [])
 
-    try {
-      await navigator.clipboard.writeText(text)
-      setValue(text)
-      setCopied(true)
-      setError(null)
-
-      // Reset copied state after 2 seconds
-      setTimeout(() => {
-        setCopied(false)
-      }, 2000)
-
-      return true
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("Failed to copy"))
-      setCopied(false)
-      return false
-    }
+  const reset = useCallback(() => {
+    clearTimeout(timer.current)
+    setCopied(false)
   }, [])
 
-  return { value, copy, copied, error }
+  const copy = useCallback(async (text: string, origin?: Element) => {
+    try {
+      if (!navigator.clipboard) {
+        throw new Error("Clipboard API not available")
+      }
+      await navigator.clipboard.writeText(text)
+    } catch (err) {
+      console.error("Failed to copy: ", err)
+      toast.error("Failed to copy to clipboard", {
+        description: "Please ensure you're using HTTPS or localhost",
+      })
+      return false
+    }
+
+    clearTimeout(timer.current)
+    setCopied(true)
+    timer.current = setTimeout(() => setCopied(false), COPIED_MS)
+    if (origin) confetti(origin)
+    return true
+  }, [])
+
+  return { copy, copied, reset }
 }

@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react"
 import { siDocker } from "simple-icons"
 
 import SettingsForm from "@/components/settings/SettingsForm"
+import { useClipboard } from "@/hooks/use-clipboard"
 import type { CatalogEntry } from "@/lib/catalog"
-import { confetti } from "@/lib/confetti"
 import { useSettings } from "@/lib/settings-context"
 
 import {
@@ -28,10 +28,7 @@ import {
   type MonacoEditorInstance,
   configureMonacoThemes,
 } from "@/components/editors/MonacoEditor"
-import {
-  copyToClipboard,
-  downloadFile,
-} from "@/lib/docker-compose/file-operations"
+import { downloadFile } from "@/lib/docker-compose/file-operations"
 import {
   generateComposeContent,
   generateEnvFile,
@@ -60,7 +57,7 @@ export function CopyComposeModal({
   const [composeContent, setComposeContent] = useState<string>("")
   const [envFileContent, setEnvFileContent] = useState<string>("")
   const [activeTab, setActiveTab] = useState<string>("compose")
-  const [copied, setCopied] = useState(false)
+  const { copy, copied, reset } = useClipboard()
   const [mounted, setMounted] = useState(false)
   const [portConflicts, setPortConflicts] = useState<{
     fixed: number
@@ -93,31 +90,16 @@ export function CopyComposeModal({
   }, [isOpen, selectedTools, settings, showInterpolated])
 
   useEffect(() => {
-    setCopied(false)
-  }, [activeTab])
+    reset()
+  }, [activeTab, reset])
 
-  const handleCopy = async () => {
+  const handleCopy = (event: React.MouseEvent<HTMLButtonElement>) => {
     const content =
       activeTab === "compose"
         ? composeEditorRef.current?.getValue() || composeContent
         : envEditorRef.current?.getValue() || envFileContent
 
-    const success = await copyToClipboard(
-      content,
-      activeTab as "compose" | "env",
-      selectedTools,
-    )
-
-    if (success) {
-      setCopied(true)
-
-      const button = document.getElementById("copy-button")
-      if (button) confetti(button)
-
-      setTimeout(() => {
-        setCopied(false)
-      }, 2000)
-    }
+    copy(content, event.currentTarget)
   }
 
   const handleDownload = () => {
