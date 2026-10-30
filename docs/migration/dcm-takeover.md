@@ -27,7 +27,7 @@ Nothing here pushes or renames on its own; you run it.
 - Everything else authenticates from your machine: the GHCR push uses your `docker login`, `publish-aur.sh` your AUR SSH key, `publish-homebrew.sh` and `publish-site.sh` your `gh` and `wrangler` logins. `POSTHOG_PROJECT_KEY` stays unset (see `docs/releasing.md`).
 - Cloudflare Pages: `self-host-fyi` is Git-connected to repo id 1349952104 (old repo), production branch `main`, build `bash scripts/build-site-pages.sh`, output `site/dist-pages`, domains `self-host.fyi` and `self-host-fyi.pages.dev`. `dcm` is direct-upload (no Git source), domains `compose.ajnart.dev`, `compose.homarr.dev`, `docker-compose-maker.pages.dev`.
 - GHCR: package `ghcr.io/ajnart/self-host` is not linked to any repository; `ghcr.io/ajnart/dcm` is linked to `ajnart/dcm` and follows the repo through the rename.
-- GitHub's tag-push rule: no workflow events are created when more than three tags are pushed at once, so the single 39-tag push does not start `release.yml` or `e2e.yml`.
+- GitHub's tag-push rule: no workflow events are created when more than three tags are pushed at once, so the single 39-tag push (the second of the script's two pushes) does not start `release.yml` or `e2e.yml`. The first push (`main`) does start `ci` and `dcm-image`.
 
 ## Decide first
 
@@ -61,9 +61,14 @@ scripts/migrate/push-merged-history.sh            # read it
 scripts/migrate/push-merged-history.sh --yes
 ```
 
-It checks a clean tree and the branch, shows all three root commits (`init` 2025-03-17 is dcm's, `startup` and the scaffold are self-host's), confirms old main and dcm main are ancestors of `HEAD`, confirms every CLI tag is an ancestor and equals the tag on the old repo, then pushes `HEAD:main` and all 39 tags in one push. dcm's `v1` is left alone and the script stops if a tag name clashes with a different commit.
+It checks a clean tree and the branch, shows all three root commits (`init` 2025-03-17 is dcm's, `startup` and the scaffold are self-host's), confirms old main and dcm main are ancestors of `HEAD`, confirms every CLI tag is an ancestor and equals the tag on the old repo, then makes **two pushes**: `HEAD:main` first, then all 39 tags together in one push. dcm's `v1` is left alone and the script stops if a tag name clashes with a different commit.
 
-Check afterwards: `gh run list --repo ajnart/dcm` shows only `ci` for the main push. Cancel anything else. If `release.yml` started on a tag, cancel it: the release assets are published by hand.
+What the pushes start:
+
+- Push 1 (`main`) starts `ci` and also `dcm-image` (`.github/workflows/dcm-image.yml` runs on pushes to `main` that touch `dcm/**`), which publishes `ghcr.io/ajnart/dcm:latest` early. This is expected and harmless: same image name, same content the next dcm change would publish. To stop it anyway: `gh run list --repo ajnart/dcm --workflow dcm-image.yml`, then `gh run cancel RUN_ID`.
+- Push 2 (tags) starts nothing: more than three tags in one push create no workflow events, so `release.yml` and `e2e.yml` do not run. If one did start, cancel it: the release assets are published by hand.
+
+Check afterwards: `gh run list --repo ajnart/dcm` shows `ci` and `dcm-image` for the main push and nothing else.
 
 ## 2. Backport releases to ajnart/dcm (before the rename)
 
@@ -74,7 +79,7 @@ scripts/migrate/backport-releases.sh --old ajnart/self-host --new ajnart/dcm --r
 scripts/migrate/backport-releases.sh --old ajnart/self-host --new ajnart/dcm --rename-dcm-v1 --yes
 ```
 
-Oldest first, `--latest=false` for each, then Latest is set explicitly on the release that is Latest on the old repo (`v1.0.1`). It downloads 2.2 GB, one release at a time, and compares asset names and sizes after each upload. Rerun after any failure; existing releases are skipped. A half-created release (create failed after it started) must be deleted with `gh release delete TAG --repo ajnart/dcm` first.
+Oldest first, `--latest=false` for each, then Latest is set explicitly on the release that is Latest on the old repo (`v1.0.1`). It downloads 2.2 GB, one release at a time, and compares asset names and sizes after each upload. Rerun after any failure: a release that already exists is not skipped blindly, its asset names and sizes are compared with the old repo and missing or different assets are uploaded with `--clobber` (notes, title and flags of an existing release are left alone). A half-created release (create failed after it started) must be deleted with `gh release delete TAG --repo ajnart/dcm` first.
 
 Release dates become the dates of this run; the order stays. Asset URLs and release-note links to `github.com/ajnart/self-host/releases/download/...` start working when the rename lands. Check:
 
@@ -83,9 +88,20 @@ gh release list --repo ajnart/dcm --limit 100 | wc -l        # 40: 39 + v1
 gh release view v1.0.1 --repo ajnart/dcm --json isLatest,assets --jq '[.isLatest, (.assets|length)]'
 ```
 
+The script's summary must read `failed 0`. For an independent parity check of all assets (names and sizes), the output of these two must be identical:
+
+```bash
+for r in ajnart/self-host ajnart/dcm; do
+  for t in $(gh release list --repo "$r" --limit 100 --json tagName --jq '.[].tagName' | sort); do
+    gh release view "$t" --repo "$r" --json assets --jq ".assets[] | \"$t \(.name) \(.size)\""
+  done | grep -v '^v1 ' | sort > "/tmp/assets-${r#*/}.txt"
+done
+diff /tmp/assets-self-host.txt /tmp/assets-dcm.txt && echo "assets match"
+```
+
 ## 3. Rename
 
-Preconditions the script enforces: dcm `main` contains old `main`, every old tag exists on dcm with the same object, every old release exists on dcm.
+Preconditions the script enforces: dcm `main` contains old `main`, every old tag exists on dcm with the same object, every old release exists on dcm with the same asset names and sizes.
 
 ```bash
 scripts/migrate/rename-repos.sh rename
@@ -117,7 +133,9 @@ scripts/migrate/rename-repos.sh configure
 scripts/migrate/rename-repos.sh configure --yes
 ```
 
-Copies from `self-host-old`: description, homepage, topics (20), squash-only merge settings and commit title/message, delete-branch-on-merge, missing labels (`needs-triage`, `ready-for-agent`, `ready-for-human`, `needs-info`, `accessibility`, `dependencies`, `github_actions`), the Actions policy (selected actions), Dependabot security updates, and the `protect main` ruleset. The ruleset goes last because it blocks force pushes with no bypass; to force-push `main` later, disable it first, as was done on 2026-10-27.
+Copies from `self-host-old`: description, homepage, topics (20), squash-only merge settings and commit title/message, delete-branch-on-merge, missing labels (`needs-triage`, `ready-for-agent`, `ready-for-human`, `needs-info`, `accessibility`, `dependencies`, `github_actions`), the Actions policy, Dependabot security updates, and the `protect main` ruleset.
+
+Actions policy: the old repo only allows GitHub-owned actions plus `goreleaser/goreleaser-action@*`, which would block the new workflows. The script keeps `selected` and adds every non-GitHub action found in `.github/workflows/*.yml` of this checkout as `owner/repo@*` (today: `docker/build-push-action`, `docker/login-action`, `docker/metadata-action`, `docker/setup-buildx-action`, `docker/setup-qemu-action`, `goreleaser/goreleaser-action`, `oven-sh/setup-bun`, `peter-evans/create-pull-request`), and prints the list in the dry run. Add a pattern by hand whenever a workflow starts using a new third-party action. It also turns on **"Allow GitHub Actions to create and approve pull requests"** (`can_approve_pull_request_reviews: true`; default token permissions stay read-only), which `peter-evans/create-pull-request` with `GITHUB_TOKEN` in `dcm-add-container.yml` needs. The ruleset goes last because it blocks force pushes with no bypass; to force-push `main` later, disable it first, as was done on 2026-10-27.
 
 Left as dcm has them: wiki and discussions (both on), labels `accepted` and `container`, the `copilot` environment, the two open dcm PRs. Review these two PRs: they target dcm's old tree.
 
@@ -127,7 +145,7 @@ Left as dcm has them: wiki and discussions (both on), labels `accepted` and `con
 scripts/migrate/backport-releases.sh --yes          # defaults: --old ajnart/self-host-old --new ajnart/self-host
 ```
 
-Everything should print `skip`. It also catches any release published on the old repo between steps 2 and 3.
+Everything should print `skip ... assets match`, and the summary `created 0, assets synced 0, ... failed 0`. It also catches any release, or any asset, published on the old repo between steps 2 and 3.
 
 ## 6. Move open issues (optional)
 
@@ -144,7 +162,7 @@ scripts/migrate/rename-repos.sh private
 scripts/migrate/rename-repos.sh private --yes
 ```
 
-It refuses while releases are missing on the new repo or open issues remain. GitHub erases the old repo's stars and watchers (5 stars) and detaches its public forks (none).
+It refuses while releases or their assets are missing on the new repo, or open issues remain. GitHub erases the old repo's stars and watchers (5 stars) and detaches its public forks (none).
 
 ## 8. Package channels
 

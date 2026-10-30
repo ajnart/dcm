@@ -107,14 +107,17 @@ v1_local="$(git rev-parse -q --verify refs/tags/v1 || true)"
 [[ -z "$v1_remote" || "$v1_remote" == "$v1_local" ]] || die "local v1 ($v1_local) differs from dcm's v1 ($v1_remote); fix before pushing"
 
 say "-- plan"
+say "push 1: HEAD -> main"
+say "  triggers .github/workflows/ci.yml, and dcm-image.yml (push to main touching dcm/**): that publishes ghcr.io/ajnart/dcm:latest early."
+say "  Expected and harmless: same image name, same content the next dcm change would publish. To stop it: gh run list --repo $OWNER/dcm --workflow dcm-image.yml, then gh run cancel RUN_ID."
+say "  dcm/.github/workflows is not a root workflow directory and never runs"
 if [[ ${#to_push[@]} -eq 0 ]]; then
-  say "no tags to push"
+  say "push 2: none (no tags to push)"
 elif [[ ${#to_push[@]} -le 3 ]]; then
-  say "note: ${#to_push[@]} tag(s), three or fewer, DO trigger tag workflows (release.yml, e2e.yml); GitHub creates no events only above three"
+  say "push 2: ${#to_push[@]} tag(s) in one push; three or fewer DO trigger tag workflows (release.yml, e2e.yml); GitHub creates no events only above three"
 else
-  say "${#to_push[@]} tags go in ONE push: GitHub creates no workflow events when more than three tags are pushed at once, so release.yml and e2e.yml do not run"
+  say "push 2: ${#to_push[@]} tags in ONE push: GitHub creates no workflow events when more than three tags are pushed at once, so release.yml and e2e.yml do not run"
 fi
-say "main push triggers .github/workflows/ci.yml on dcm; dcm/.github/workflows is not a root workflow directory and never runs"
 
 push_args=(push "$dcm_url")
 $fast_forward || [[ -z "$dcm_main" ]] || push_args+=("--force-with-lease=refs/heads/main:$dcm_main")

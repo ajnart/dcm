@@ -3,7 +3,9 @@
 #
 #   rename     ajnart/self-host -> ajnart/self-host-old, then ajnart/dcm -> ajnart/self-host
 #   configure  copy description, homepage, topics, merge settings, labels, Actions policy and the
-#              'protect main' ruleset from the old repo onto the new one
+#              'protect main' ruleset from the old repo onto the new one. The Actions allow-list is the
+#              old one plus every non-GitHub action used in .github/workflows/*.yml, and the workflow
+#              token may create pull requests (dcm-add-container.yml).
 #   private    make the old repo private (last step; erases its stars and watchers)
 #
 # Ordering: the new name must be free, so the old repo moves first. GitHub then redirects
@@ -44,18 +46,26 @@ repo_id() {
 }
 release_tags() { gh release list --repo "$1" --limit 1000 --json tagName --jq '.[].tagName'; }
 
-# check_release_parity OLD NEW: every release of OLD must exist on NEW, or installers break.
+asset_list() { gh release view "$1" --repo "$2" --json assets --jq '.assets[] | "\(.name) \(.size)"' 2>/dev/null | sort; }
+
+# check_release_parity OLD NEW: every release of OLD must exist on NEW with the same asset names and sizes, or installers break.
 check_release_parity() {
-  local missing=0 t
+  local missing=0 t want got lost
   while read -r t; do
     [[ -n "$t" ]] || continue
-    gh release view "$t" --repo "$2" >/dev/null 2>&1 || { say "  missing on $2: $t"; missing=$((missing + 1)); }
+    if ! gh release view "$t" --repo "$2" >/dev/null 2>&1; then
+      say "  missing on $2: $t"; missing=$((missing + 1)); continue
+    fi
+    want="$(asset_list "$t" "$1")"
+    got="$(asset_list "$t" "$2")"
+    lost="$(comm -23 <(printf '%s\n' "$want") <(printf '%s\n' "$got") | grep . || true)"
+    [[ -z "$lost" ]] || { say "  assets missing or different on $2 for $t: $(tr '\n' ';' <<<"$lost")"; missing=$((missing + 1)); }
   done < <(release_tags "$1")
   if [[ $missing -gt 0 ]]; then
-    $skip_release_check && { say "WARN $missing release(s) missing (--skip-release-check)"; return 0; }
-    die "$missing release(s) of $1 are missing on $2; run backport-releases.sh first (install.sh and self-update read the releases of whichever repo is named ajnart/self-host)"
+    $skip_release_check && { say "WARN $missing release(s) missing or with different assets (--skip-release-check)"; return 0; }
+    die "$missing release(s) of $1 are missing on $2 or differ in assets; run backport-releases.sh first (install.sh and self-update read the releases of whichever repo is named ajnart/self-host)"
   fi
-  say "every release of $1 exists on $2"
+  say "every release of $1 exists on $2 with the same assets"
 }
 
 case "$step" in
@@ -149,15 +159,29 @@ configure)
   done < <(gh api "repos/$old_repo/labels" --paginate --jq '.[] | @json')
 
   say "-- Actions policy"
+  need git
+  workflows="$(git rev-parse --show-toplevel)/.github/workflows"
+  compgen -G "$workflows/*.yml" >/dev/null || die "no workflows in $workflows; run from the merged branch"
+  needed="$(cat "$workflows"/*.yml \
+    | sed -nE 's/^[[:space:]-]*uses:[[:space:]]*([^[:space:]#]+).*/\1/p' \
+    | grep -vE '^(\./|docker://)' | grep -vE '^actions/' \
+    | sed -E 's/@.*$//; s/$/@*/' | sort -u)"
+  say "third-party actions used by $workflows/*.yml (github_owned_allowed covers actions/*):"
+  say "  ${needed//$'\n'/$'\n'  }"
   perms="$(gh api "repos/$old_repo/actions/permissions")"
   allowed="$(jq -r .allowed_actions <<<"$perms")"
   run_json PUT "repos/$new_repo/actions/permissions" "$(jq -c '{enabled, allowed_actions}' <<<"$perms")"
   if [[ "$allowed" == selected ]]; then
-    run_json PUT "repos/$new_repo/actions/permissions/selected-actions" \
-      "$(gh api "repos/$old_repo/actions/permissions/selected-actions" | jq -c '{github_owned_allowed, verified_allowed, patterns_allowed}')"
+    selected="$(gh api "repos/$old_repo/actions/permissions/selected-actions" \
+      | jq -c --arg needed "$needed" '{github_owned_allowed, verified_allowed, patterns_allowed: ((.patterns_allowed // []) + ($needed | split("\n") | map(select(length > 0))) | unique)}')"
+    say "patterns_allowed on $new_repo: $(jq -c .patterns_allowed <<<"$selected")"
+    run_json PUT "repos/$new_repo/actions/permissions/selected-actions" "$selected"
+  else
+    say "allowed_actions is '$allowed' on $old_repo: no allow-list to write"
   fi
+  say "workflow token: read-only by default, and may create pull requests (peter-evans/create-pull-request in dcm-add-container.yml needs it)"
   run_json PUT "repos/$new_repo/actions/permissions/workflow" \
-    "$(gh api "repos/$old_repo/actions/permissions/workflow" | jq -c '{default_workflow_permissions, can_approve_pull_request_reviews}')"
+    "$(gh api "repos/$old_repo/actions/permissions/workflow" | jq -c '{default_workflow_permissions, can_approve_pull_request_reviews: true}')"
 
   say "-- Dependabot security updates"
   if [[ "$(jq -r '.security_and_analysis.dependabot_security_updates.status // "disabled"' <<<"$old_json")" == enabled ]]; then

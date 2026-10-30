@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Step 2 (before the rename) and step 6 (verification after it) of docs/migration/dcm-takeover.md.
 # Recreates every GitHub Release of the old repo on the new one: same tag, title, notes, flags, assets.
-# Dry run unless --yes. Idempotent: releases that already exist on the new repo are skipped.
+# Dry run unless --yes. Idempotent: a release that exists on the new repo has its asset names and sizes
+# compared with the old one, and missing or different assets are uploaded with --clobber.
+# Notes, title and flags of an existing release are not touched.
 #
 # Before the rename:  --old ajnart/self-host      --new ajnart/dcm
 # After the rename:   --old ajnart/self-host-old  --new ajnart/self-host   (the defaults)
@@ -51,13 +53,49 @@ releases="$(gh release list --repo "$old_repo" --limit 1000 --json tagName,isDra
 [[ -n "$releases" ]] || die "no releases on $old_repo"
 
 latest_tag=""
-created=0 skipped=0 failed=0
+created=0 skipped=0 synced=0 failed=0
 while IFS=$'\t' read -r tag is_draft is_latest; do
   [[ -z "$only" || "$only" == "$tag" ]] || continue
   [[ "$is_latest" == true ]] && latest_tag="$tag"
 
-  if gh release view "$tag" --repo "$new_repo" >/dev/null 2>&1; then
-    say "skip   $tag (exists on $new_repo)"; skipped=$((skipped + 1)); continue
+  if have="$(gh release view "$tag" --repo "$new_repo" --json assets 2>/dev/null)"; then
+    want="$(gh release view "$tag" --repo "$old_repo" --json assets)"
+    fix="$(jq -r --argjson have "$have" \
+      '.assets[] | select(.name as $n | .size as $s | ($have.assets | map(select(.name == $n and .size == $s)) | length) == 0) | .name' <<<"$want")"
+    extra="$(jq -r --argjson want "$want" \
+      '.assets[] | select(.name as $n | ($want.assets | map(select(.name == $n)) | length) == 0) | .name' <<<"$have")"
+    [[ -z "$extra" ]] || say "note   $tag: assets only on $new_repo (left alone): $(tr '\n' ' ' <<<"$extra")"
+    if [[ -z "$fix" ]]; then
+      say "skip   $tag (exists on $new_repo, assets match)"; skipped=$((skipped + 1)); continue
+    fi
+    say "sync   $tag: missing or different on $new_repo: $(tr '\n' ' ' <<<"$fix")"
+    if ! $YES; then
+      printf '+ gh release download %q --repo %q --pattern <asset> --dir <tmp>/%q\n' "$tag" "$old_repo" "$tag"
+      printf '+ gh release upload %q --repo %q --clobber <assets>\n' "$tag" "$new_repo"
+      synced=$((synced + 1)); continue
+    fi
+    dir="$work/$tag"
+    mkdir -p "$dir/assets"
+    files=()
+    ok=true
+    while IFS= read -r name; do
+      [[ -n "$name" ]] || continue
+      gh release download "$tag" --repo "$old_repo" --pattern "$name" --dir "$dir/assets" --clobber || ok=false
+      files+=("$dir/assets/$name")
+    done <<<"$fix"
+    if $ok && gh release upload "$tag" "${files[@]}" --repo "$new_repo" --clobber; then
+      got="$(gh release view "$tag" --repo "$new_repo" --json assets --jq '.assets[] | "\(.name) \(.size)"' | sort)"
+      exp="$(jq -r '.assets[] | "\(.name) \(.size)"' <<<"$want" | sort)"
+      if [[ -z "$(comm -23 <(printf '%s\n' "$exp") <(printf '%s\n' "$got"))" ]]; then
+        synced=$((synced + 1))
+      else
+        say "FAIL   $tag: assets still differ after sync"; failed=$((failed + 1))
+      fi
+    else
+      say "FAIL   $tag: asset sync failed; rerun to retry"; failed=$((failed + 1))
+    fi
+    rm -rf "$dir"
+    continue
   fi
   if ! gh api "repos/$new_repo/git/ref/tags/$tag" --jq .object.sha >/dev/null 2>&1; then
     say "FAIL   $tag: tag is not on $new_repo; run push-merged-history.sh"; failed=$((failed + 1)); continue
@@ -122,5 +160,5 @@ if $rename_v1; then
   fi
 fi
 
-say "-- summary: created $created, skipped $skipped, failed $failed"
+say "-- summary: created $created, assets synced $synced, unchanged $skipped, failed $failed"
 [[ $failed -eq 0 ]] || die "$failed release(s) failed"
