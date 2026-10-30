@@ -1,0 +1,64 @@
+---
+import "@/styles/global.css";
+import "../styles/shared.css";
+import "../styles/transitions.css";
+import { ContainerSubmissionForm } from "@/components/container-submission-form";
+import og from "../assets/og.png";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import { VERSION } from "../lib/site";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Astro.site);
+const image = new URL(og.src, Astro.site);
+
+const MONACO_CDN = "https://cdn.jsdelivr.net";
+Astro.csp?.insertScriptResource(MONACO_CDN);
+Astro.csp?.insertDirective(`style-src-elem 'self' ${MONACO_CDN} 'unsafe-inline'`);
+Astro.csp?.insertDirective("style-src-attr 'unsafe-inline'");
+Astro.csp?.insertDirective(`font-src ${MONACO_CDN} data:`);
+Astro.csp?.insertDirective("worker-src blob:");
+---
+
+<!doctype html>
+<html lang="en" class="dark" data-version={VERSION}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#1e1d2a" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="self-host" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <script is:inline defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "048a529692b643f79d0b152c27926bdf"}'></script>
+  </head>
+  <body>
+    <SiteHeader><ContainerSubmissionForm client:idle /></SiteHeader>
+    <main class="container pt-6 pb-12">
+      <slot />
+    </main>
+    <SiteFooter>
+      <Fragment slot="license">Apache-2.0 · compose AGPL-3.0</Fragment>
+      <a href="https://github.com/ajnart/self-host/tree/main/dcm">compose source</a>
+    </SiteFooter>
+  </body>
+</html>

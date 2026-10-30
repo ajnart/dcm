@@ -6,7 +6,7 @@ import { TemplateGallery } from "@/components/template-gallery"
 import { Button } from "@/components/ui/button"
 import { useMode } from "@/hooks/use-mode"
 import { useSelection } from "@/hooks/use-selection"
-import { withBase } from "@/lib/base"
+import { routes } from "@/lib/routes"
 import {
   type Catalog,
   type CatalogEntry,
@@ -72,7 +72,7 @@ function TemplateGalleryView({
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <Button asChild variant="ghost" className="flex items-center gap-2">
-          <a href={withBase("/")}>
+          <a href={routes.compose}>
             <ArrowLeft size={16} />
             Back to Container Selection
           </a>

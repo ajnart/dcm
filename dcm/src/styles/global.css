@@ -1,8 +1,12 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "../../../site/src/styles/theme.css";
 
-@source "../components/ui";
+@source "../components";
+@source "../hooks";
+@source "../lib";
+@source "../../../site/src/layouts/Compose.astro";
+@source "../../../site/src/pages/compose";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -249,65 +253,6 @@
 
 @utility animate-shimmer {
   animation: shimmer 2s infinite;
-}
-
-.site-header a,
-.site-footer a {
-  color: var(--accent-text);
-  text-decoration: none;
-}
-
-.site-header a:hover,
-.site-footer a:hover {
-  color: var(--ink);
-}
-
-.site-header .tag {
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.site-header .pages,
-.site-header .ext {
-  display: flex;
-  align-items: center;
-}
-
-.site-header .pages a {
-  color: var(--muted);
-}
-
-.site-header .pages a[aria-current="page"] {
-  color: var(--ink);
-  text-decoration: underline;
-  text-decoration-color: var(--accent-text);
-  text-underline-offset: 0.4em;
-}
-
-.site-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1.25rem;
-  margin-top: 5rem;
-  padding: 1rem clamp(1rem, 4vw, 3rem);
-  border-top: 1px solid var(--line);
-  font-size: 0.8rem;
-}
-
-.site-footer nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-}
-
-.site-footer a {
-  white-space: nowrap;
-}
-
-.site-footer .muted {
-  color: var(--muted);
 }
 
 @theme inline {

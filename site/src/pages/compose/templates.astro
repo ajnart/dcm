@@ -1,0 +1,17 @@
+---
+import TemplateGalleryClient from "@/components/TemplateGalleryClient";
+import Compose from "../../layouts/Compose.astro";
+import { buildCatalog } from "@/lib/catalog";
+import { withStars } from "@/lib/stars";
+import { templates } from "@/lib/templates";
+import { tools } from "@/tools";
+
+const catalog = withStars(buildCatalog(tools));
+---
+
+<Compose
+  title="Template Gallery · Docker Compose Maker"
+  description="Ready-made Docker Compose stacks: media servers, monitoring, networking and more."
+>
+  <TemplateGalleryClient client:load catalog={catalog} templates={templates} />
+</Compose>

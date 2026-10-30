@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./public/favicon.png" height="80" alt="DCM Logo" />
+  <img src="./assets/favicon.png" height="80" alt="DCM Logo" />
   <h3>DCM - Docker Compose Maker</h3>
 </div>
 
@@ -320,11 +320,11 @@ You can combine multiple templates to create your perfect self-hosted environmen
 
 ### User Interface
 
-![UI Screenshot](./public/ui-demo.png)
+![UI Screenshot](./assets/ui-demo.png)
 
 ### Generated docker compose file
 
-![Generated docker-compose file](./public/compose-output.png)
+![Generated docker-compose file](./assets/compose-output.png)
 
 ## 🤝 Contributing
 

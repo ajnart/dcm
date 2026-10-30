@@ -154,9 +154,14 @@ export function ContainerSubmissionForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          aria-label="Suggest container"
+        >
           <PlusCircle size={16} />
-          Suggest container
+          <span className="max-sm:sr-only">Suggest container</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[95vh] max-w-4xl overflow-y-auto">

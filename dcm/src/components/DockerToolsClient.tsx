@@ -7,7 +7,7 @@ import SettingsPanel from "@/components/settings-panel"
 import { Button } from "@/components/ui/button"
 import { useMode } from "@/hooks/use-mode"
 import { useSelection } from "@/hooks/use-selection"
-import { withBase } from "@/lib/base"
+import { routes } from "@/lib/routes"
 import {
   type Catalog,
   type CatalogMode,
@@ -92,7 +92,7 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
           </p>
         </div>
         <Button asChild className="flex items-center gap-2">
-          <a href={withBase("/templates/")}>
+          <a href={routes.templates}>
             <Palette size={16} />
             Template Gallery
           </a>

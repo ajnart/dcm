@@ -1,10 +1,11 @@
 ---
-import TemplateClient from "../../components/TemplateClient"
-import Layout from "../../layouts/Layout.astro"
-import { buildCatalog } from "../../lib/catalog"
-import { generateComposeContent } from "../../lib/docker-compose/generators"
-import { fetchGitHubStars } from "../../lib/docker-tools"
-import { getToolsFromTemplate, templates } from "../../lib/templates"
+import TemplateClient from "@/components/TemplateClient"
+import { buildCatalog } from "@/lib/catalog"
+import { generateComposeContent } from "@/lib/docker-compose/generators"
+import { withStars } from "@/lib/stars"
+import { getToolsFromTemplate, templates } from "@/lib/templates"
+import { tools } from "@/tools"
+import Compose from "../../../layouts/Compose.astro"
 
 const defaultSettings = {
   configPath: "/path/to/config",
@@ -19,7 +20,7 @@ const defaultSettings = {
 }
 
 export async function getStaticPaths() {
-  const catalog = buildCatalog(await fetchGitHubStars())
+  const catalog = withStars(buildCatalog(tools))
   return [...catalog.recipes, ...templates].map((template) => ({
     params: { id: template.id },
     props: { template, entries: catalog.entries },
@@ -38,7 +39,7 @@ if (template.id.startsWith("recipe-")) {
 }
 ---
 
-<Layout
+<Compose
   title={`${template.name} · Docker Compose Maker`}
   description={template.description}
 >
@@ -50,4 +51,4 @@ if (template.id.startsWith("recipe-")) {
     initialContent={content}
     selfHostRecipeId={selfHostRecipeId}
   />
-</Layout>
+</Compose>

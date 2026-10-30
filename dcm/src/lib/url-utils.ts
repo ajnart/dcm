@@ -1,4 +1,4 @@
-import { withBase } from "@/lib/base"
+import { routes } from "@/lib/routes"
 
 /**
  * Encodes an array of tool IDs into a compressed URL-safe string
@@ -52,7 +52,7 @@ export function decodeShareUrl(shareParam: string): string[] {
  * Generates a full share URL with the encoded tools parameter
  */
 export function generateShareUrl(toolIds: string[]): string {
-  const url = new URL(withBase("/"), window.location.origin)
+  const url = new URL(routes.compose, window.location.origin)
   if (!toolIds.length) return url.toString()
 
   const encoded = encodeShareUrl(toolIds)

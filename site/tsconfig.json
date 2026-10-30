@@ -10,8 +10,13 @@
   "compilerOptions": {
     "allowJs": true,
     "checkJs": false,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "types": [
       "node"
-    ]
+    ],
+    "paths": {
+      "@/*": ["../dcm/src/*"]
+    }
   }
 }

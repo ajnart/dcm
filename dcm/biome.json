@@ -10,7 +10,9 @@
     "ignore": [
       "./src/components/ui",
       "src/data/selfhost.json",
+      "src/data/stars.json",
       "src/**/*.astro",
+      "src/styles/global.css",
       "tsconfig.tsbuildinfo"
     ]
   },

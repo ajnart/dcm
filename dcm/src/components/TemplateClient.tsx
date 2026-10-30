@@ -26,7 +26,7 @@ import {
   generateEnvFile,
 } from "@/lib/docker-compose/generators"
 import Providers from "@/components/Providers"
-import { withBase } from "@/lib/base"
+import { routes } from "@/lib/routes"
 import type { DockerTool } from "@/lib/docker-tools"
 import { useSettings } from "@/lib/settings-context"
 import type { Template } from "@/lib/templates"
@@ -159,7 +159,7 @@ function TemplateView({
       <div>
         <div className="mb-8 flex items-center justify-between">
           <Button asChild className="flex items-center gap-2" variant="ghost">
-            <a href={withBase("/templates/")}>
+            <a href={routes.templates}>
               <ArrowLeft size={16} />
               Back to Templates
             </a>

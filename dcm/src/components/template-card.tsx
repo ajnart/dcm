@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { withBase } from "@/lib/base"
+import { routes } from "@/lib/routes"
 import type { DockerTool } from "@/lib/docker-tools"
 import type { Template } from "@/lib/templates"
 import { getToolsFromTemplate } from "@/lib/templates"
@@ -90,7 +90,7 @@ export function TemplateCard({
   }
 
   // Navigate to template page
-  const templateHref = withBase(`/template/${template.id}/`)
+  const templateHref = routes.template(template.id)
   const handleCardClick = () => {
     window.location.assign(templateHref)
   }

@@ -1,5 +1,7 @@
+import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import starlight from "@astrojs/starlight";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import starlightPageActions from "starlight-page-actions";
 import starlightLinksValidator from "starlight-links-validator";
@@ -80,11 +82,13 @@ export default defineConfig({
         },
       ],
     }),
+    react(),
     sitemap({ filter: (page) => !page.endsWith("/404") }),
     cspCheck(),
   ],
   markdown: { syntaxHighlight: false },
   devToolbar: { enabled: false },
+  vite: { plugins: [tailwindcss()] },
   security: {
     csp: {
       directives: [

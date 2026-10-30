@@ -47,12 +47,15 @@ export function cspCheck() {
           const html = await readFile(file, "utf8");
           const policy = /http-equiv="content-security-policy" content="([^"]*)"/i.exec(html)?.[1] ?? "";
           const allowed = (text) => policy.includes(`'${sha256(text)}'`);
+          const styleAttributesOpen = /style-src-attr[^;]*'unsafe-inline'/.test(policy);
           for (const [, attrs, body] of html.matchAll(/<(?:script|style)(\s[^>]*)?>([\s\S]*?)<\/(?:script|style)>/g)) {
             if (!body || /\ssrc=|application\/ld\+json/.test(attrs ?? "")) continue;
             if (!allowed(body)) problems.push(`${file}: inline ${body.trim().slice(0, 60)}`);
           }
-          for (const [, value] of html.matchAll(/\sstyle="([^"]*)"/g)) {
-            if (!allowed(value)) problems.push(`${file}: style="${value}"`);
+          if (!styleAttributesOpen) {
+            for (const [, value] of html.matchAll(/\sstyle="([^"]*)"/g)) {
+              if (!allowed(value)) problems.push(`${file}: style="${value}"`);
+            }
           }
         }
         if (problems.length) throw new Error(`Content Security Policy blocks:\n${[...new Set(problems)].slice(0, 20).join("\n")}`);

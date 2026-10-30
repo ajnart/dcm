@@ -107,19 +107,6 @@ kbd {
   font-weight: 700;
 }
 
-.bar {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 0.5rem clamp(1rem, 4vw, 3rem);
-  background: color-mix(in oklab, var(--bg) 92%, transparent);
-  border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(6px);
-}
-
 .landing {
   display: grid;
   grid-template-columns: 7rem minmax(0, 1fr);
@@ -285,16 +272,6 @@ h1 {
 
 .hero-notes a:hover {
   color: var(--ink);
-}
-
-.foot nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-}
-
-.foot a {
-  white-space: nowrap;
 }
 
 .herologo {
@@ -1283,16 +1260,6 @@ h2 {
   gap: 0.5rem;
 }
 
-.foot {
-  position: static;
-  margin-top: 5rem;
-  border-top: 1px solid var(--line);
-  border-bottom: 0;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  font-size: 0.8rem;
-  padding-block: 1rem;
-}
 
 @media (max-width: 1100px) {
   .landing {
@@ -1370,10 +1337,6 @@ h2 {
   }
   .keys {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .bar:not(.foot) {
-    flex-wrap: wrap;
-    row-gap: 0.35rem;
   }
   .ext {
     gap: 0.6rem;

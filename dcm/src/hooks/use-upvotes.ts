@@ -1,5 +1,5 @@
 import { useLocalStorage } from "@/hooks/useLocalStorage"
-import { withBase } from "@/lib/base"
+import { routes } from "@/lib/routes"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import * as z from "zod"
@@ -27,7 +27,7 @@ export function useUpvotes() {
     let active = true
     async function load() {
       try {
-        const response = await fetch(withBase("/api/stats"), {
+        const response = await fetch(routes.api("stats"), {
           signal: AbortSignal.timeout(10000),
         })
         if (!response.ok) {
@@ -61,7 +61,7 @@ export function useUpvotes() {
     inFlight.current = true
     setPending(containerId)
     try {
-      const response = await fetch(withBase("/api/vote"), {
+      const response = await fetch(routes.api("vote"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ containerId }),
