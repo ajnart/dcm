@@ -1,0 +1,19 @@
+THIRD_PARTY_NOTICES.md
+  s_bebeaf5c248617::t_00cbedc2e42959 11-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4f86486970213957cab4dbdb8257b3ece78e2ffc",
+  "prompts": {},
+  "sessions": {
+    "s_bebeaf5c248617": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6a436ed6-fd8b-49ae-8b0f-506193f684b2",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
