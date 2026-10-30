@@ -1,0 +1,26 @@
+site/src/components/SeoHead.astro
+  h_d6e478ca18e517 41
+site/src/lib/changelog.ts
+  h_d6e478ca18e517 1,7-8,10-19,23-64
+site/src/lib/docs-route.ts
+  h_d6e478ca18e517 6,55
+site/src/lib/og-assets.ts
+  h_d6e478ca18e517 1-97
+site/src/lib/og.ts
+  h_d6e478ca18e517 3,8-53,56-73,75-76,78-79,81-86,89-120,124-171,174-220,225-229,231-312,314-541
+site/src/lib/seo.mjs
+  h_d6e478ca18e517 1,7-10,19-25,28-35,38-43,46-61,65-69,72-75,78-88,92-102,106-288,292-307
+site/src/pages/og/[...slug].png.ts
+  h_d6e478ca18e517 3,5-40,43-211,215-218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9c59fd02e03fe26cf128a747cf410870a3678206",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
