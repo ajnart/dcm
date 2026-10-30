@@ -1,0 +1,115 @@
+internal/app/app.go
+  s_c625512207bff6::t_b46b3f1b7c250e 174-182
+internal/apps/actualbudget/actualbudget.go
+  s_2ec5d8d9afbe42::t_a67e69802cabf1 154-157
+internal/apps/adguard/adguard.go
+  s_2ec5d8d9afbe42::t_351e962957faf7 38-41
+internal/apps/arr/arr.go
+  s_c625512207bff6::t_9ca94d0f2ee873 87-88
+internal/apps/audiobookshelf/audiobookshelf.go
+  s_2ec5d8d9afbe42::t_788b36a870bc14 33-36
+internal/apps/bazarr/bazarr.go
+  s_2ec5d8d9afbe42::t_742361943bed4d 37-40
+internal/apps/beszel/beszel.go
+  s_2ec5d8d9afbe42::t_db0dba6ae2dcf2 443-447
+internal/apps/bookstack/bookstack.go
+  s_2ec5d8d9afbe42::t_9d93a67feb9391 434-437
+internal/apps/cleanuparr/cleanuparr.go
+  s_c625512207bff6::t_c1520f5c12dc7d 39-42
+internal/apps/deluge/deluge.go
+  s_c625512207bff6::t_91c486fca3d8ec 380-383
+internal/apps/dockge/dockge.go
+  s_2ec5d8d9afbe42::t_f9dc44631d4156 71-74
+internal/apps/docmost/docmost.go
+  s_2ec5d8d9afbe42::t_e2cc77ebb08e65 201-204
+internal/apps/emby/emby.go
+  s_2ec5d8d9afbe42::t_cf54bbc593c010 36-39
+internal/apps/fireflyiii/fireflyiii.go
+  s_2ec5d8d9afbe42::t_ce079b672a4ca2 195-198
+internal/apps/forgejo/forgejo.go
+  s_c625512207bff6::t_2641d21ce03200 16-21,40-45,102,132,149
+internal/apps/freshrss/freshrss.go
+  s_2ec5d8d9afbe42::t_bb9b69e531da21 34-37
+internal/apps/frigate/frigate.go
+  s_2ec5d8d9afbe42::t_b7889c9dc7b2e9 38-41
+internal/apps/homarr/links.go
+  s_c625512207bff6::t_5b6ddae01a5631 150-153
+internal/apps/homeassistant/homeassistant.go
+  s_2ec5d8d9afbe42::t_981c90469495a7 46-49
+internal/apps/homebridge/homebridge.go
+  s_2ec5d8d9afbe42::t_ceb6a0be1c4fe5 33-36
+internal/apps/immich/immich.go
+  s_2ec5d8d9afbe42::t_7fad6af1eef561 215-218
+internal/apps/jellyfin/jellyfin.go
+  s_2ec5d8d9afbe42::t_f30cf2ab6ecbd6 51-54
+internal/apps/lidarr/lidarr.go
+  s_c625512207bff6::t_735c6390276765 36-37
+internal/apps/linkwarden/linkwarden.go
+  s_2ec5d8d9afbe42::t_60aa1a8e8db87d 173-176
+internal/apps/navidrome/navidrome.go
+  s_2ec5d8d9afbe42::t_a8640b5ac2d062 47-50
+internal/apps/netbird/netbird.go
+  s_2ec5d8d9afbe42::t_ee1da990e66b42 249-252
+internal/apps/nginxproxymanager/nginxproxymanager.go
+  s_2ec5d8d9afbe42::t_4aef263206d341 183-186
+internal/apps/ntfy/ntfy.go
+  s_2ec5d8d9afbe42::t_288801d777969c 195-199
+internal/apps/pangolin/pangolin.go
+  s_2ec5d8d9afbe42::t_11ea2dbac46965 296-299
+internal/apps/patchmon/patchmon.go
+  s_2ec5d8d9afbe42::t_7f327629678618 254-257
+internal/apps/plex/plex.go
+  s_2ec5d8d9afbe42::t_773cff26bf91bb 341-344
+internal/apps/qbittorrent/qbittorrent.go
+  s_c625512207bff6::t_991014c2f6346f 254-257
+internal/apps/renovate/renovate.go
+  s_2ec5d8d9afbe42::t_8f12adaf91d218 78-81
+internal/apps/restic/restic.go
+  s_2ec5d8d9afbe42::t_1ffcb9b3f60381 93-96
+internal/apps/sabnzbd/sabnzbd.go
+  s_2ec5d8d9afbe42::t_7ffaf5fca1ce0e 57-60
+internal/apps/scrypted/scrypted.go
+  s_2ec5d8d9afbe42::t_290dfbf5bdfa54 47-50
+internal/apps/servarr/servarr.go
+  s_c625512207bff6::t_abe78ee6af88f3 50-59
+internal/apps/stalwartmail/stalwartmail.go
+  s_2ec5d8d9afbe42::t_326af493c0209b 173-176
+internal/apps/syncthing/syncthing.go
+  s_2ec5d8d9afbe42::t_ff4b4ab9db1400 54-57
+internal/apps/tdarr/tdarr.go
+  s_2ec5d8d9afbe42::t_672fd9309fe860 78-81
+internal/apps/tracearr/tracearr.go
+  s_2ec5d8d9afbe42::t_3ab2c37fd2af95 364-367
+internal/apps/umami/umami.go
+  s_c625512207bff6::t_57725c9202a6c5 207-210
+internal/apps/uptimekuma/uptimekuma.go
+  s_2ec5d8d9afbe42::t_0ca403663a4ebd 70-73
+internal/apps/vaultwarden/vaultwarden.go
+  s_2ec5d8d9afbe42::t_1dd5378881325c 194-197
+internal/apps/wud/wud.go
+  s_2ec5d8d9afbe42::t_532d7b208c8f46 328-331
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5b0c3bf2fdfd2ce292f46dfe4686ef307c732e3c",
+  "prompts": {},
+  "sessions": {
+    "s_2ec5d8d9afbe42": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b29765ba-a0b0-4f80-858b-c11f62889e73",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_c625512207bff6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "58c0474f-99b1-42a7-854f-4b10a70bc471",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
