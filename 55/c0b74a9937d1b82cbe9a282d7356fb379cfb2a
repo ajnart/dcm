@@ -1,0 +1,21 @@
+docs/migration/dcm-takeover.md
+  s_bdf9c7c97b9503::t_18fa2829ae16f6 15,35,156,165,181
+scripts/migrate/lib.sh
+  s_bdf9c7c97b9503::t_5e5a93abc59342 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "55c0b74a9937d1b82cbe9a282d7356fb379cfb2a",
+  "prompts": {},
+  "sessions": {
+    "s_bdf9c7c97b9503": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b3b7be69-a704-4177-942d-ac8c49570b1f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
