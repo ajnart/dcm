@@ -1,0 +1,31 @@
+dcm/package.json
+  s_5013180a90d48a::t_b92cfccf0c9837 11
+dcm/scripts/stars.ts
+  s_38edb9ae0409b0::t_e60d595cf33d6e 2
+dcm/src/components/template-card.tsx
+  s_38edb9ae0409b0::t_6b937060f4d6b3 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c507d66ab42ff8c8c0593c0eae8a3d7ccccf4b7b",
+  "prompts": {},
+  "sessions": {
+    "s_38edb9ae0409b0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5aaa771c-cf7a-477a-881b-fa1313c0ae7b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_5013180a90d48a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e70f1b74-c1de-4a0d-bd9a-1492447bd4ee",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
