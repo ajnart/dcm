@@ -92,7 +92,7 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
           </p>
         </div>
         <Button asChild className="flex items-center gap-2">
-          <a href={withBase("/templates")}>
+          <a href={withBase("/templates/")}>
             <Palette size={16} />
             Template Gallery
           </a>

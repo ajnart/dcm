@@ -90,7 +90,7 @@ export function TemplateCard({
   }
 
   // Navigate to template page
-  const templateHref = withBase(`/template/${template.id}`)
+  const templateHref = withBase(`/template/${template.id}/`)
   const handleCardClick = () => {
     window.location.assign(templateHref)
   }

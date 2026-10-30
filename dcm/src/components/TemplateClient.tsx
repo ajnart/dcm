@@ -159,7 +159,7 @@ function TemplateView({
       <div>
         <div className="mb-8 flex items-center justify-between">
           <Button asChild className="flex items-center gap-2" variant="ghost">
-            <a href={withBase("/templates")}>
+            <a href={withBase("/templates/")}>
               <ArrowLeft size={16} />
               Back to Templates
             </a>
