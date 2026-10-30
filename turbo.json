@@ -5,7 +5,10 @@
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"../docs/telemetry.md",
+				"../docs/images/install-search.png",
 				"../video/reel/assets/agents/*.svg",
+				"../video/reel/assets/icons/*",
+				"../video/reel/thumbs/frames/*.png",
 				"../dcm/src/**",
 				"../dcm/package.json",
 				"../dcm/tsconfig.json"
