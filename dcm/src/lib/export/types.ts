@@ -23,8 +23,11 @@ export interface ExportNote {
   text: string
 }
 
+export type RandomBytes = (length: number) => Uint8Array
+
 export interface ExportOptions {
   recipe?: string
+  randomBytes?: RandomBytes
 }
 
 export interface ExportResult {

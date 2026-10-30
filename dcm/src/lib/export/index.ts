@@ -12,6 +12,7 @@ export type {
   ExportOptions,
   ExportResult,
   PortChange,
+  RandomBytes,
   SkippedService,
 } from "./types"
 
@@ -61,7 +62,7 @@ export function buildExport(
     composable,
     compose: compose.content,
     composeInterpolated: composeInterpolated.content,
-    env: renderEnv(placed, settings),
+    env: renderEnv(placed, settings, options.randomBytes),
     notes: notesOf(entries),
     skipped: placed.flatMap((item) => item.skipped),
     portChanges: compose.changes,

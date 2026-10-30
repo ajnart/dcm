@@ -1,7 +1,27 @@
 import type { DockerSettings } from "@/lib/settings"
 import { type EmittedTool, type PlacedTool, keptContent } from "./compose"
+import type { RandomBytes } from "./types"
 
 const SECRET_PLACEHOLDER = "change-me"
+
+const GENERATE_HINT = /openssl rand -hex (\d+)/
+const MAX_SECRET_BYTES = 64
+
+export const browserRandomBytes: RandomBytes = (length) =>
+  crypto.getRandomValues(new Uint8Array(length))
+
+function secretLength(description: string): number | null {
+  const match = GENERATE_HINT.exec(description)
+  if (!match) return null
+  const length = Math.min(Number(match[1]), MAX_SECRET_BYTES)
+  return length > 0 ? length : null
+}
+
+function randomHex(randomBytes: RandomBytes, length: number): string {
+  return Array.from(randomBytes(length), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("")
+}
 
 const VARIABLE_REFERENCE =
   /(?<!\$)\$\{([A-Za-z_][A-Za-z0-9_]*)(:?[-+?=][^}]*)?\}/g
@@ -59,7 +79,11 @@ NETWORK_MODE=${settings.networkMode}
 `
 }
 
-function appVariables(entry: EmittedTool, existing: string): string {
+function appVariables(
+  entry: EmittedTool,
+  existing: string,
+  randomBytes: RandomBytes,
+): string {
   const content = keptContent(entry)
   const referenced = referencedVariables(content)
   const missing = (entry.tool.env ?? []).filter(
@@ -70,10 +94,18 @@ function appVariables(entry: EmittedTool, existing: string): string {
   const lines = missing.flatMap((variable) => {
     const note = variable.description ? [`# ${variable.description}`] : []
     if (variable.secret) {
+      const length = secretLength(variable.description)
+      if (length === null) {
+        return [
+          ...note,
+          "# Secret: replace before starting",
+          `${variable.key}=${SECRET_PLACEHOLDER}`,
+        ]
+      }
       return [
         ...note,
-        "# Secret: replace before starting",
-        `${variable.key}=${SECRET_PLACEHOLDER}`,
+        "# Secret: generated in your browser, keep it private",
+        `${variable.key}=${randomHex(randomBytes, length)}`,
       ]
     }
     return [...note, `${variable.key}=${variable.default}`]
@@ -110,12 +142,13 @@ function containerVariables(entry: EmittedTool, existing: string): string {
 export function renderEnv(
   placed: PlacedTool[],
   settings: DockerSettings,
+  randomBytes: RandomBytes = browserRandomBytes,
 ): string {
   let env = globalVariables(settings)
   for (const entry of placed) {
     if (entry.kind === "duplicate") continue
     env += entry.tool.verbatim
-      ? appVariables(entry, env)
+      ? appVariables(entry, env, randomBytes)
       : containerVariables(entry, env)
   }
   return env

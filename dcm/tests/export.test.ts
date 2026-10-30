@@ -36,6 +36,14 @@ function exportOf(ids: string[], source: Pick<Catalog, "entries"> = catalog) {
   return buildExport(ids, source, DEFAULT_SETTINGS)
 }
 
+const filledBytes = (length: number) => new Uint8Array(length).fill(0xab)
+
+const GENERATE_HINT = /openssl rand -hex (\d+)/
+
+function envValue(env: string, key: string): string | undefined {
+  return env.match(new RegExp(`^${key}=(.*)$`, "m"))?.[1]
+}
+
 function servicesOf(content: string): Record<string, ComposeService> {
   return parse(content).services
 }
@@ -190,22 +198,96 @@ describe("buildExport: whole catalog", () => {
 })
 
 describe("buildExport: env", () => {
-  test("adds App-specific variables with a secret placeholder and a comment", () => {
+  test("adds App-specific variables with a generated secret and a comment", () => {
     const app = selfHostApps.find(
-      (item) => item.standalone && item.env.some((variable) => variable.secret),
+      (item) =>
+        item.standalone &&
+        item.env.some(
+          (variable) =>
+            variable.secret && GENERATE_HINT.test(variable.description),
+        ),
     )
-    if (!app) throw new Error("no standalone App with a secret")
+    if (!app) throw new Error("no standalone App with a generated secret")
     const entry = composable.find((item) => item.selfhostId === app.id)
     if (!entry) throw new Error(`${app.id} is not in the catalog`)
+    const secret = app.env.find(
+      (variable) => variable.secret && GENERATE_HINT.test(variable.description),
+    )
+    const bytes = Number(secret?.description.match(GENERATE_HINT)?.[1])
 
-    const { env } = exportOf([entry.id])
-    const secret = app.env.find((variable) => variable.secret)
+    const { env } = buildExport([entry.id], catalog, DEFAULT_SETTINGS, {
+      randomBytes: filledBytes,
+    })
     expect(env).toContain(`# ${entry.name} specific environment variables`)
-    expect(env).toContain("# Secret: replace before starting")
-    expect(env).toContain(`${secret?.key}=change-me`)
+    expect(env).toContain(
+      "# Secret: generated in your browser, keep it private",
+    )
+    expect(envValue(env, secret?.key ?? "")).toBe("ab".repeat(bytes))
     for (const key of ["PUID", "PGID", "CONFIG_PATH", "TZ"]) {
       expect(env.match(new RegExp(`^${key}=`, "gm"))?.length).toBe(1)
     }
+  })
+
+  test("generates every secret a standalone App can generate, and only those", () => {
+    let generated = 0
+    let placeholders = 0
+    for (const app of selfHostApps.filter((item) => item.standalone)) {
+      const entry = composable.find((item) => item.selfhostId === app.id)
+      if (!entry) continue
+      const { env } = buildExport([entry.id], catalog, DEFAULT_SETTINGS, {
+        randomBytes: filledBytes,
+      })
+      for (const variable of app.env.filter((item) => item.secret)) {
+        const value = envValue(env, variable.key)
+        if (value === undefined) continue
+        const bytes = variable.description.match(GENERATE_HINT)?.[1]
+        if (bytes) {
+          expect(value).toBe("ab".repeat(Number(bytes)))
+          generated += 1
+        } else {
+          expect(value).toBe("change-me")
+          placeholders += 1
+        }
+      }
+    }
+    expect(generated).toBeGreaterThan(0)
+    expect(placeholders).toBeGreaterThan(0)
+  })
+
+  test("generates the admin password of an App instead of a placeholder", () => {
+    const app = selfHostApps.find(
+      (item) =>
+        item.standalone &&
+        composable.some((entry) => entry.selfhostId === item.id) &&
+        item.env.some((variable) => variable.key === "ADMIN_PASSWORD") &&
+        /^ADMIN_PASSWORD=/m.test(
+          exportOf([
+            composable.find((entry) => entry.selfhostId === item.id)?.id ?? "",
+          ]).env,
+        ),
+    )
+    if (!app) throw new Error("no standalone App exports ADMIN_PASSWORD")
+    const entry = composable.find((item) => item.selfhostId === app.id)
+    const { env } = exportOf([entry?.id ?? ""])
+    expect(envValue(env, "ADMIN_PASSWORD")).toMatch(/^[0-9a-f]{32}$/)
+  })
+
+  test("gives each secret its own value and a new one on every export", () => {
+    const ids = ["authentik", "nextcloud"].filter((id) =>
+      composable.some((entry) => entry.id === id),
+    )
+    const secretsOf = (env: string) =>
+      [
+        ...env.matchAll(
+          /^[A-Z0-9_]*(?:SECRET|PASSWORD|KEY)[A-Z0-9_]*=([0-9a-f]+)$/gm,
+        ),
+      ].map((match) => match[1])
+
+    const first = secretsOf(exportOf(ids).env)
+    const second = secretsOf(exportOf(ids).env)
+    expect(first.length).toBeGreaterThan(1)
+    expect(new Set(first).size).toBe(first.length)
+    expect(first).not.toEqual(second)
   })
 
   test("writes the globals from the given settings", () => {
@@ -257,7 +339,7 @@ describe("buildExport: a Container that overlaps an App", () => {
       expect(env).not.toContain(`# ${worker.name} specific environment`)
       expect(env).not.toContain("REDIS_HOST=")
       expect(env).not.toContain("POSTGRESQL_HOST=")
-      expect(env).toContain("AUTHENTIK_SECRET_KEY=change-me")
+      expect(envValue(env, "AUTHENTIK_SECRET_KEY")).toMatch(/^[0-9a-f]{64}$/)
       expect(env.match(/^AUTHENTIK_SECRET_KEY=/gm)?.length).toBe(1)
     })
   }
