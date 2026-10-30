@@ -7,7 +7,7 @@ import {
   json,
   readVoteBody,
   votingUnavailable,
-} from "../../lib/voting-server"
+} from "../../src/lib/voting-server"
 
 export async function onRequest({ request, env }: VotingContext) {
   if (request.method !== "POST") {

@@ -235,7 +235,7 @@ not involved. Its build settings:
 | Build command          | `bash scripts/build-site-pages.sh`                                                                                                                |
 | Build output directory | `site/dist-pages`                                                                                                                                 |
 | Root directory         | (repository root)                                                                                                                                 |
-| Build watch paths      | include `site/*`, `install.sh`, `scripts/build-installer-site.sh`, `scripts/build-site-pages.sh`                                                  |
+| Build watch paths      | include `site/*`, `dcm/*`, `functions/*`, `tools/sitegen/*`, `install.sh`, `scripts/build-*.sh`, `package.json`, `bun.lock`, `turbo.json`            |
 | `BUN_VERSION`          | `1.4.3`                                                                                                                                           |
 | `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `vX.Y.Z` tag of the Go CLI from the checkout, since the releases API is private while the repo is |
 
@@ -247,14 +247,23 @@ same project with Wrangler. The apex is the project's only custom domain;
 
 ### Manual deploy (Direct Upload)
 
+Run it from the repository root: Wrangler reads Pages Functions from `./functions`
+in the working directory, so a deploy from inside the staged directory would
+ship the site without the upvote API.
+
 ```bash
 stage="$(mktemp -d)"
 bash scripts/build-installer-site.sh "$stage/deploy"
-(cd "$stage/deploy" && wrangler pages deploy --branch main)
+wrangler pages deploy "$stage/deploy/public" --project-name self-host-fyi --branch main
 ```
 
-`site/` is a static Astro project, built with bun (`bun install`, `bun run dev`,
-`bun run check`). Its definitions come from the Go code:
+The repository is a bun workspace (`site`, `dcm`) with turbo at the root:
+`bun install --frozen-lockfile` runs once at the root (`bun.lock` there only),
+and `bunx turbo run build test lint` runs the web checks that `ci.yml`'s `web`
+job also runs, after `go run ./tools/sitegen` and a check that the generated
+`site/src/data`, `dcm/src/data` and `site/src/styles` are committed.
+`site/` is a static Astro project (`bun run dev`, `bun run check` inside
+it). Its definitions come from the Go code:
 `go run ./tools/sitegen` writes `site/src/data/catalog.json` from the
 Catalog and `site/src/styles/theme.css` from the Dashboard's dark palette.
 `src/lib/catalog.ts` is the one typed model of the catalog, shared by the
@@ -294,14 +303,63 @@ with native cross-document view transitions, which need no script and work
 under that policy; Astro's `<ClientRouter />` does not support its CSP.
 `404.astro` makes unknown paths such as `/go.mod` return 404.
 
+### Docker Compose Maker at /compose
+
+`dcm/` (Docker Compose Maker, merged from `ajnart/dcm`) is an Astro site served
+by the same Pages project at `https://self-host.fyi/compose`.
+`scripts/build-installer-site.sh` runs `scripts/build-dcm-pages.sh` with
+`DCM_BASE=/compose` and copies `dcm/dist` into `public/compose/`. The
+site's `_routes.json` is written by the builder and lets only
+`/compose/api/*` invoke Functions; everything else is served as static assets.
+`_headers` gets one extra rule so `/compose/_astro/*` is immutable. The
+site's Content Security Policy only sets `frame-ancestors`, so DCM's Monaco
+editor can still load from the jsDelivr CDN; tighten it only together with
+self-hosting Monaco.
+
+Community upvotes are two Pages Functions, `dcm/functions/api/vote.ts` and
+`stats.ts`. The merged site mounts them through the thin re-exports in
+`functions/compose/api/`, which Pages Git builds (root directory = repository
+root) and a `wrangler pages deploy` run from the root both pick up; the
+standalone DCM project keeps using `dcm/functions` at `/api/*`. Add to the
+`self-host-fyi` Pages project (Settings, Bindings and Variables, production and
+preview):
+
+| Name             | Type                                                         |
+| ---------------- | ------------------------------------------------------------ |
+| `UPVOTES`        | KV namespace binding (reuse the one the `dcm` project uses)  |
+| `VOTE_IP_SECRET` | secret, the same value as in the `dcm` project keeps existing ballots valid |
+
+Without them the API answers 503 and DCM hides the upvote counts. Check
+the functions bundle with `npx wrangler pages functions build functions --outdir "$(mktemp -d)"`.
+
+`scripts/build-dcm-pages.sh [output]` builds DCM alone at base `/` (`DCM_BASE`
+overrides it) for the standalone `dcm` Pages project (`dcm/wrangler.toml`,
+output `dcm/dist`, functions from `dcm/functions`) and for the image below.
+After the merge `compose.ajnart.dev` should not serve its own copy: add a
+Cloudflare redirect rule on the `ajnart.dev` zone sending `compose.ajnart.dev`,
+path and query preserved, to `concat("https://self-host.fyi/compose", http.request.uri.path)`
+with a 301, then check `curl -I https://compose.ajnart.dev/`. DCM's own paths
+(`/template/<id>`) are the same under `/compose`.
+
+The image `ghcr.io/ajnart/dcm` is built by `.github/workflows/dcm-image.yml`
+on pushes to `main` that touch `dcm/**` or `tools/sitegen/**`, on manual runs,
+and on `dcm-v*` tags (`dcm-v1.2.3` pushes `1.2.3`, `1.2`, `1` and `latest`
+comes from `main`). It builds `dcm/` at base `/` with bun, then packs
+`dcm/dist` into a busybox static server on port 7576
+(`dcm/Dockerfile`). CLI `vX.Y.Z` tags never trigger it. Issue-driven
+container submissions are handled by `dcm-add-container.yml`, which adds the
+container to `dcm/src/tools/` and opens a pull request.
+
 The old `selfhost.ajnart.dev` host keeps working for installs already in the
 wild: a Cloudflare redirect rule on the `ajnart.dev` zone sends it, path and
 query preserved, to `concat("https://self-host.fyi", http.request.uri.path)`
 with a 301. A second rule on the `self-host.fyi` zone does the same for `www`.
 Check with `curl -I https://selfhost.ajnart.dev/install.sh`.
 
-The builder needs `bun`. It runs `bun install --frozen-lockfile` and
-`astro build` straight into `public/`, then adds `install`, `install.sh` and
+The builder needs `bun`. It runs `bun install --frozen-lockfile` at the
+repository root and `astro build` straight into `public/`, then builds Docker
+Compose Maker into `public/compose/` (below), writes the combined
+`public/_routes.json`, adds `install`, `install.sh` and
 `install.sh.sha256`, and puts `wrangler.toml` beside it. The showreel reaches
 the build as the committed file `site/public/reel.mp4`, which Astro copies.
 Renders in `video/reel/out/` are git-ignored; after a new render, copy the

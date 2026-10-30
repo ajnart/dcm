@@ -4,7 +4,7 @@ import {
   containerIds,
   json,
   votingUnavailable,
-} from "../../lib/voting-server"
+} from "../../src/lib/voting-server"
 
 export async function onRequest({ request, env, waitUntil }: VotingContext) {
   if (request.method !== "GET") {
@@ -14,7 +14,9 @@ export async function onRequest({ request, env, waitUntil }: VotingContext) {
 
   try {
     const cache = await caches.open("community-upvotes-v1")
-    const cacheKey = new Request(new URL("/api/stats", request.url))
+    const cacheUrl = new URL(request.url)
+    cacheUrl.search = ""
+    const cacheKey = new Request(cacheUrl)
     const cached = await cache.match(cacheKey)
     if (cached) return cached
 

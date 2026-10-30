@@ -13,7 +13,12 @@ case "$output" in
 esac
 mkdir "$output"
 command -v bun >/dev/null || { printf 'bun is required to build the site.\n' >&2; exit 1; }
-(cd "$root/site" && bun install --frozen-lockfile && bun run build --outDir "$output/public")
+(cd "$root" && bun install --frozen-lockfile)
+(cd "$root/site" && bun run build --outDir "$output/public")
+DCM_SKIP_INSTALL=1 DCM_BASE=/compose bash "$root/scripts/build-dcm-pages.sh" "$output/public/compose"
+rm -f "$output/public/compose/_routes.json" "$output/public/compose/_headers"
+printf '{"version":1,"include":["/compose/api/*"],"exclude":[]}\n' > "$output/public/_routes.json"
+printf '\n/compose/_astro/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n' >> "$output/public/_headers"
 command cp "$root/site/wrangler.toml" "$output/wrangler.toml"
 awk -v repo="$repo" '/^DEFAULT_REPO=/ { print "DEFAULT_REPO=\"" repo "\""; next } { print }' "$root/install.sh" > "$output/public/install.sh"
 bash -n "$output/public/install.sh"
