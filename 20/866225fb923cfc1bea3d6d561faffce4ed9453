@@ -1,0 +1,31 @@
+site/src/components/ExtLink.astro
+  s_c9c6b5e9f2f876::t_d6f8de4f4ec0ee 1-9
+site/src/components/ExtLinks.astro
+  s_c9c6b5e9f2f876::t_007b0c5d476565 3,7-9
+site/src/components/SiteFooter.astro
+  s_c9c6b5e9f2f876::t_d30fe20a72487f 4,10
+site/src/components/docs/Footer.astro
+  s_c9c6b5e9f2f876::t_ce8553875777cd 4,9
+site/src/layouts/Compose.astro
+  s_c9c6b5e9f2f876::t_cad0cd1820ab36 8,67
+site/src/styles/header.css
+  s_c9c6b5e9f2f876::t_e65f834e63fa6f 55,59-62
+site/src/styles/shared.css
+  s_c9c6b5e9f2f876::t_ec7efee420f4d4 196-219
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "20866225fb923cfc1bea3d6d561faffce4ed9453",
+  "prompts": {},
+  "sessions": {
+    "s_c9c6b5e9f2f876": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "33989e35-9f30-443a-bbd4-ae5a2bf09548",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
