@@ -1,0 +1,31 @@
+dcm/src/data/selfhost.json
+  s_ed8cdcec116a2d::t_46b2d18ecfb9eb 3207
+docs/catalog/traps/pihole.md
+  s_5013180a90d48a::t_b595e20cdbf225 18
+internal/apps/pihole/pihole.go
+  s_ed8cdcec116a2d::t_37db4f81a821e9 219
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "36c8c4d1f073798a34ba534872db4614dbf0f465",
+  "prompts": {},
+  "sessions": {
+    "s_5013180a90d48a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e70f1b74-c1de-4a0d-bd9a-1492447bd4ee",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_ed8cdcec116a2d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0f5020e6-7965-416b-99f3-c749f8e00371",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
