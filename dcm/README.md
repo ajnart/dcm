@@ -4,18 +4,18 @@
 </div>
 
 <p align="center">
-<img src="https://img.shields.io/github/stars/ajnart/dcm?label=%E2%AD%90%20Stars&style=flat-square?branch=main&kill_cache=1%22">
-<a href="https://github.com/ajnart/dcm/actions">
-  <img title="CI Status" src="https://github.com/ajnart/dcm/actions/workflows/build_image.yml/badge.svg" alt="CI Status">
+<img src="https://img.shields.io/github/stars/ajnart/self-host?label=%E2%AD%90%20Stars&style=flat-square">
+<a href="https://github.com/ajnart/self-host/actions/workflows/dcm-image.yml">
+  <img title="Image build" src="https://github.com/ajnart/self-host/actions/workflows/dcm-image.yml/badge.svg" alt="Image build">
 </a>
-<a href="https://github.com/ajnart/dcm/pkgs/container/dcm">
+<a href="https://github.com/ajnart/self-host/pkgs/container/dcm">
   <img alt="Docker Image" src="https://img.shields.io/badge/🐳_Docker_Image-ghcr.io/ajnart/dcm-blue">
 </a>
 </p>
 
 <!-- Links -->
 <p align="center">
-  <a href="https://compose.ajnart.dev">
+  <a href="https://self-host.fyi/compose">
     <strong>Live Demo 🚀</strong>
   </a>
   •
@@ -41,9 +41,11 @@
 > [!NOTE]
 > 🌟 **Community-Driven Project**: DCM started as a simple tool but aims to become the go-to resource for Docker Compose configurations, powered by the community. We believe everyone has their favorite self-hosted tools, and we'd love for you to share yours! Whether you're using a popular application or a hidden gem, your contribution helps others discover and easily deploy great software.
 
-DCM (Docker Compose Maker) turns a handful of clicks into a ready-to-use `docker-compose.yaml` and `.env` for your self-hosted apps. The catalog merges DCM's own compose definitions with the app catalog of [self-host](https://self-host.fyi/?ref=dcm), so you also see apps DCM has no YAML for yet, marked **self-host only**.
+DCM (Docker Compose Maker) turns a handful of clicks into a ready-to-use `docker-compose.yaml` and `.env` for your self-hosted apps. It lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose).
 
-Every selection shows the matching `self-host install <apps>` command. [self-host](https://self-host.fyi/?ref=dcm) is the sister project: one Go binary that installs and wires these apps for you, for people and for AI agents. Rather not manage YAML? Use it. Prefer to own the YAML? DCM stays fully usable on its own.
+DCM has two modes. **self-host** (the default) lists the Apps of the self-host Catalog, each with a standalone compose generated from the Go code in `internal/apps/`. **All** adds the containers only DCM defines, in `dcm/src/tools/`.
+
+Every selection shows the matching `self-host install <apps>` command. [self-host](https://self-host.fyi/?ref=dcm) is one Go binary that installs and wires these apps for you, for people and for AI agents. Rather not manage YAML? Use it. Prefer to own the YAML? DCM stays fully usable on its own.
 
 > [!TIP]
 > Most containers come pre-configured with best practices and sensible defaults, saving you hours of documentation reading and configuration tweaking.
@@ -104,10 +106,7 @@ If you want to try DCM for yourself, there are several ways to get started:
 
 ### 🌐 Use the Online Version
 
-Visit [compose.ajnart.dev](https://compose.ajnart.dev) to use the tool immediately without installation.
-
-> [!NOTE]
-> The online version includes analytics for usage tracking, while the self-hosted version does not.
+Visit [self-host.fyi/compose](https://self-host.fyi/compose) to use the tool immediately without installation. The old `compose.ajnart.dev` address redirects there.
 
 ### 🐳 Run with Docker
 
@@ -156,22 +155,17 @@ docker-compose up -d
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/ajnart/dcm.git
-cd dcm
+git clone https://github.com/ajnart/self-host.git
+cd self-host
 ```
 
 2. Install dependencies:
 
-First install [Bun](https://bun.sh/) if you haven't already, then run:
+First install [Bun](https://bun.sh/) if you haven't already, then run from the repository root (`dcm/` and `site/` share one bun workspace):
 
 ```bash
-bun install --linker hoisted
+bun install
 ```
-
-> [!NOTE]
-> The hoisted linker is required: the default isolated linker breaks Turbopack.
-
-<!-- -->
 
 > [!WARNING]
 > Using npm instead of Bun may result in longer installation times and potential compatibility issues. We strongly recommend using Bun for development.
@@ -179,13 +173,19 @@ bun install --linker hoisted
 3. Build and start:
 
 ```bash
-bun run build
-bun start
+cd dcm
+bun run dev
 ```
+
+DCM is an Astro app with React islands. `bun run build` writes a static site to `dist/`, and `bun run preview` serves it. The site is mounted at `self-host.fyi/compose`, so build with `DCM_BASE=/compose` to prefix every link, asset and API call; without it the site is served from `/`.
+
+#### Self-host catalog and mode toggle
+
+The home page and the template gallery have a segmented control: **self-host** shows only the Apps from the self-host catalog (plus its Recipes as templates) with a `self-host install <apps>` command front and centre, and **All** shows every DCM container with the self-host ones badged. The choice is stored in `localStorage` (`dcm-mode`) and mirrored in the `?mode=` URL parameter. Selection is shared between both modes.
 
 ### Community upvotes on Cloudflare Pages
 
-The gallery supports anonymous community upvotes through Pages Functions and Workers KV. No accounts, traditional database, or Next.js server are required. Docker, `bun start`, `bun dev`, and other static hosts remain fully usable without an API: upvote buttons show an unavailable state rather than inventing counts. Nothing contacts the public DCM instance.
+The gallery supports anonymous community upvotes through Pages Functions and Workers KV. No accounts, traditional database, or application server are required. Docker, `bun run preview`, `bun run dev`, and other static hosts remain fully usable without an API: upvote buttons show an unavailable state rather than inventing counts. Nothing contacts the public DCM instance.
 
 Voting is opt-in. The default `wrangler.toml` has no KV binding and voting stays disabled until both bindings below exist:
 
@@ -201,21 +201,21 @@ binding = "UPVOTES"
 id = "YOUR_PREVIEW_NAMESPACE_ID"
 ```
 
-2. In the Pages project's **Settings → Variables and Secrets**, add an encrypted runtime secret named `VOTE_IP_SECRET`, independently for production and preview. Generate a random value of at least 32 bytes and keep it stable. Never use a `NEXT_PUBLIC_` variable or commit the secret. Wrangler configuration is the source of truth for KV bindings; do not rely on a dashboard-only KV binding when deploying with this file.
-3. Build and deploy from the repository root with `bun run deploy`. Wrangler includes `functions/` alongside `out/`; uploading only `out/` to a static host does not deploy the API. `public/_routes.json` limits Function invocation to `/api/*`, leaving the gallery and other assets static.
+2. In the Pages project's **Settings → Variables and Secrets**, add an encrypted runtime secret named `VOTE_IP_SECRET`, independently for production and preview. Generate a random value of at least 32 bytes and keep it stable. Never commit the secret. Wrangler configuration is the source of truth for KV bindings; do not rely on a dashboard-only KV binding when deploying with this file.
+3. Build and deploy from `dcm/` with `bun run deploy`. Wrangler includes `functions/` alongside `dist/`; uploading only `dist/` to a static host does not deploy the API. On self-host.fyi the same Functions are mounted at `/compose/api/*` by `functions/compose/api/` at the repository root (see `docs/releasing.md`). `public/_routes.json` limits Function invocation to `/api/*`, leaving the gallery and other assets static.
 
-For local-only development, put `VOTE_IP_SECRET="local-development-only"` in `.dev.vars` (gitignored), build the static export, and run:
+For local-only development, put `VOTE_IP_SECRET="local-development-only"` in `dcm/.dev.vars` (gitignored), build the static site, and run from `dcm/`:
 
 ```bash
 bun run build
-bunx wrangler pages dev out --kv=UPVOTES
+bunx wrangler pages dev dist --kv=UPVOTES
 ```
 
-Wrangler uses local KV storage by default; this does not create or deploy cloud resources. Test the API and gallery through Wrangler's URL, not `next dev`. API calls without Cloudflare's `CF-Connecting-IP` header cannot vote. For manual local requests, provide a test IP in that header and an `Origin` matching the local URL.
+Wrangler uses local KV storage by default; this does not create or deploy cloud resources. Test the API and gallery through Wrangler's URL, not `astro dev`. API calls without Cloudflare's `CF-Connecting-IP` header cannot vote. For manual local requests, provide a test IP in that header and an `Origin` matching the local URL.
 
 #### API and storage
 
-- `GET /api/stats` returns `{ "counts": { "jellyfin": 0, ... } }` for the current merged catalog, including self-host-only entries. One gallery request loads all counts. Responses are cached for 60 seconds in the browser and per Cloudflare edge location; query strings do not bypass the edge cache.
+- `GET /api/stats` returns `{ "counts": { "jellyfin": 0, ... } }` for the current merged catalog, including the Apps taken from self-host. One gallery request loads all counts. Responses are cached for 60 seconds in the browser and per Cloudflare edge location; query strings do not bypass the edge cache.
 - `POST /api/vote` accepts `{ "containerId": "jellyfin" }` as JSON, with a same-origin `Origin` header and a body of at most 1 KiB. IDs must exist in the same catalog used by the gallery. It returns `{ "accepted": true }`, or `{ "accepted": false }` if that network has already voted for the container. Votes cannot be removed.
 - Each vote writes `vote:{containerId}:{HMAC}`. HMAC-SHA-256 uses the server secret, container ID, and Cloudflare-provided IP. Raw IPs are not stored, sent back, or logged by voting code. A separate `rate:{HMAC}` key expires after 60 seconds and limits new votes across containers from the same IP; rejected votes return `429` with `Retry-After`. Changing forwarded-IP headers does not select the voting identity.
 - Browser storage remembers successful votes only as a UX hint; clearing it does not bypass server deduplication. Failed writes do not show a successful vote. Missing bindings, unavailable KV, or exhausted quotas return `503`, without breaking compose generation.
@@ -276,21 +276,23 @@ Each tool includes a detailed description, GitHub star count, and pre-configured
 
 Skip the YAML. [self-host](https://self-host.fyi/?ref=dcm) is one Go binary that installs, wires (API keys, Homarr tiles, download clients) and repairs self-hosted apps with Docker Compose. It has a terminal dashboard for people and `--json` commands for AI agents. DCM links to it from the header, the selection bar and the Copy Compose modal, prefilled with your selected services (`https://self-host.fyi/?apps=<ids>&ref=dcm`).
 
-The self-host catalog is vendored in `lib/selfhost-catalog.json`. Refresh it with `bun run sync:selfhost`.
+The self-host catalog is generated into `src/data/selfhost.json` by `go run ./tools/sitegen` at the repository root; do not edit it by hand. The Apps in self-host mode are edited under `internal/apps/`, not here.
 
 ## 🧪 Testing
 
 DCM uses [Bun](https://bun.sh/) for testing. To run the tests:
 
+From `dcm/` (or `bun run --cwd dcm <script>` from the repository root):
+
 ```bash
 # Run all tests
 bun test
 
-# Run Docker Compose validation tests
-bun test:compose
+# Run Docker Compose validation tests (needs Docker)
+bun run test:compose
 
 # Run container schema validation tests
-bun test:containers
+bun run test:containers
 ```
 
 ## 🔄 Template Gallery
@@ -317,19 +319,19 @@ You can combine multiple templates to create your perfect self-hosted environmen
 
 ### User Interface
 
-![UI Screenshot](/public/ui-demo.png)
+![UI Screenshot](./public/ui-demo.png)
 
 ### Generated docker compose file
 
-![Generated docker-compose file](/public/compose-output.png)
+![Generated docker-compose file](./public/compose-output.png)
 
 ## 🤝 Contributing
 
-We welcome contributions to DCM! Whether you want to add new container definitions, improve documentation, or fix bugs, your help is appreciated.
+We welcome contributions to DCM! Whether you want to add new container definitions, improve documentation, or fix bugs, your help is appreciated. Open issues and pull requests in [ajnart/self-host](https://github.com/ajnart/self-host).
 
 Please check our [CONTRIBUTING.md](CONTRIBUTING.md) guide for detailed instructions on:
 
-- How to add new container definitions
+- How to add new container definitions (`dcm/src/tools/`)
 - Code style guidelines
 - Testing requirements
 - Pull request process
