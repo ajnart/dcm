@@ -1,26 +1,7 @@
 import type { DockerSettings } from "@/lib/settings"
 import { type EmittedTool, type PlacedTool, keptContent } from "./compose"
-import type { RandomBytes } from "./types"
-
-const GENERATE_HINT = /openssl rand -hex (\d+)/
-const MAX_SECRET_BYTES = 64
-const DEFAULT_SECRET_BYTES = 24
-
-export const browserRandomBytes: RandomBytes = (length) =>
-  crypto.getRandomValues(new Uint8Array(length))
-
-function secretLength(description: string): number | null {
-  const match = GENERATE_HINT.exec(description)
-  if (!match) return null
-  const length = Math.min(Number(match[1]), MAX_SECRET_BYTES)
-  return length > 0 ? length : null
-}
-
-function randomHex(randomBytes: RandomBytes, length: number): string {
-  return Array.from(randomBytes(length), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("")
-}
+import { freshSecret } from "./secrets"
+import type { SecretFor } from "./types"
 
 const VARIABLE_REFERENCE =
   /(?<!\$)\$\{([A-Za-z_][A-Za-z0-9_]*)(:?[-+?=][^}]*)?\}/g
@@ -81,7 +62,7 @@ NETWORK_MODE=${settings.networkMode}
 function appVariables(
   entry: EmittedTool,
   existing: string,
-  randomBytes: RandomBytes,
+  secretFor: SecretFor,
 ): string {
   const content = keptContent(entry)
   const referenced = referencedVariables(content)
@@ -99,12 +80,11 @@ function appVariables(
         `${variable.key}=`,
       ]
     }
-    if (variable.secret) {
-      const length = secretLength(variable.description) ?? DEFAULT_SECRET_BYTES
+    if (variable.secret && variable.bytes) {
       return [
         ...note,
         "# Secret: generated in your browser, keep it private",
-        `${variable.key}=${randomHex(randomBytes, length)}`,
+        `${variable.key}=${secretFor(variable.key, variable.bytes)}`,
       ]
     }
     return [...note, `${variable.key}=${variable.default}`]
@@ -141,13 +121,13 @@ function containerVariables(entry: EmittedTool, existing: string): string {
 export function renderEnv(
   placed: PlacedTool[],
   settings: DockerSettings,
-  randomBytes: RandomBytes = browserRandomBytes,
+  secretFor: SecretFor = freshSecret,
 ): string {
   let env = globalVariables(settings)
   for (const entry of placed) {
     if (entry.kind === "duplicate") continue
     env += entry.tool.verbatim
-      ? appVariables(entry, env, randomBytes)
+      ? appVariables(entry, env, secretFor)
       : containerVariables(entry, env)
   }
   return env

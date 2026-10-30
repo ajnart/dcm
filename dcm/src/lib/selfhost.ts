@@ -12,6 +12,7 @@ export interface SelfHostEnvVar {
   description: string
   secret: boolean
   external?: boolean
+  bytes?: number
 }
 
 export interface SelfHostApp {

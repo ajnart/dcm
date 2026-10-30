@@ -23,11 +23,11 @@ export interface ExportNote {
   text: string
 }
 
-export type RandomBytes = (length: number) => Uint8Array
+export type SecretFor = (key: string, bytes: number) => string
 
 export interface ExportOptions {
   recipe?: string
-  randomBytes?: RandomBytes
+  secretFor?: SecretFor
 }
 
 export interface ExportResult {

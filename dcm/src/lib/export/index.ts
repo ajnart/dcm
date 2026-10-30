@@ -6,13 +6,14 @@ import { renderEnv } from "./env"
 import { fixPortConflicts } from "./ports"
 import type { ExportNote, ExportOptions, ExportResult } from "./types"
 
+export { pageSecret } from "./secrets"
 export { EXPORT_FILENAMES } from "./types"
 export type {
   ExportNote,
   ExportOptions,
   ExportResult,
   PortChange,
-  RandomBytes,
+  SecretFor,
   SkippedService,
 } from "./types"
 
@@ -62,7 +63,7 @@ export function buildExport(
     composable,
     compose: compose.content,
     composeInterpolated: composeInterpolated.content,
-    env: renderEnv(placed, settings, options.randomBytes),
+    env: renderEnv(placed, settings, options.secretFor),
     notes: notesOf(entries),
     skipped: placed.flatMap((item) => item.skipped),
     portChanges: compose.changes,

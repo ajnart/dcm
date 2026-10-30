@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { type CatalogEntry, selfHostRecipeId } from "@/lib/catalog"
-import { buildExport } from "@/lib/export"
+import { buildExport, pageSecret } from "@/lib/export"
 import { downloadFile } from "@/lib/export/download"
 import { routes } from "@/lib/routes"
 import { useSettings } from "@/lib/settings-context"
@@ -56,6 +56,7 @@ function TemplateView({ template, templateEntries }: TemplateClientProps) {
     () =>
       buildExport(template.tools, { entries: templateEntries }, settings, {
         recipe,
+        secretFor: pageSecret,
       }),
     [template, templateEntries, settings, recipe],
   )

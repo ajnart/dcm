@@ -5,7 +5,7 @@ import { SelfHostCommand } from "@/components/selfhost-command"
 import { Button } from "@/components/ui/button"
 import { useClipboard } from "@/hooks/use-clipboard"
 import type { Catalog, CatalogEntry } from "@/lib/catalog"
-import { buildExport } from "@/lib/export"
+import { buildExport, pageSecret } from "@/lib/export"
 import type { CatalogMode } from "@/lib/modes"
 import { routes } from "@/lib/routes"
 import { buildSelfHostLink } from "@/lib/selfhost"
@@ -54,7 +54,7 @@ export default function FloatingBar({
 
   const { settings } = useSettings()
   const exported = useMemo(
-    () => buildExport(ids, catalog, settings),
+    () => buildExport(ids, catalog, settings, { secretFor: pageSecret }),
     [ids, catalog, settings],
   )
   const selectedCount = exported.entries.length

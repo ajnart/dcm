@@ -29,6 +29,8 @@ type Env struct {
 	// External marks a value the person supplies from outside, such as a token another
 	// service issues. Leave it blank by default rather than generate one.
 	External bool `json:"external,omitempty"`
+	// Bytes is how many random bytes the export generates for a Secret that is not External.
+	Bytes int `json:"bytes,omitempty"`
 }
 
 // Link is a wiring self-host applies after both Apps run.
@@ -116,9 +118,8 @@ var globals = map[string]Env{
 	"RESTART_POLICY":   {Default: "unless-stopped", Description: "Docker restart policy"},
 	"LAN_IP": {Default: "localhost", Description: "Address you open this App at: this machine's IP on your network (for example 192.168.1.20) or a host name. " +
 		"The App uses it to build links it hands out, so the default only works on this machine"},
-	"ADMIN_USER": {Default: "admin", Description: "Username of the administrator account the App creates on its first start"},
-	"ADMIN_PASSWORD": {Secret: true, Description: "Password of the administrator account the App creates on its first start. " +
-		"Choose a strong one or generate it with: openssl rand -hex 16"},
+	"ADMIN_USER":     {Default: "admin", Description: "Username of the administrator account the App creates on its first start"},
+	"ADMIN_PASSWORD": {Secret: true, Bytes: 16, Description: "Password of the administrator account the App creates on its first start"},
 }
 
 // Globals lists the variables above, sorted by key, for the export to read.
@@ -201,8 +202,8 @@ func envMeta(ap app.App) map[string]variable {
 	if declarer, ok := ap.(app.SecretDeclarer); ok {
 		for _, spec := range declarer.Secrets() {
 			key := service.SecretKey(info.ID, spec.Name)
-			meta[key] = variable{Env: Env{Key: key, Secret: true,
-				Description: fmt.Sprintf("%s secret: %s. Generate one with: openssl rand -hex %d", info.Name, strings.ReplaceAll(spec.Name, "_", " "), (spec.Length+1)/2)}}
+			meta[key] = variable{Env: Env{Key: key, Secret: true, Bytes: (spec.Length + 1) / 2,
+				Description: fmt.Sprintf("%s secret: %s", info.Name, strings.ReplaceAll(spec.Name, "_", " "))}}
 		}
 	}
 	for _, in := range ap.Inputs() {
@@ -238,6 +239,9 @@ func variablesFor(id, compose string, facts facts, meta map[string]variable) ([]
 		entry, found := meta[key]
 		if !found {
 			return nil, fmt.Errorf("%s: ${%s} has no description; declare it or add it to extraEnv", id, key)
+		}
+		if entry.Secret && !entry.External && entry.Bytes == 0 {
+			return nil, fmt.Errorf("%s: secret %s has no Bytes; set Bytes or mark it External", id, key)
 		}
 		if entry.Default == "" && !entry.Secret && facts.bound[key] {
 			// An empty source would not validate. Docker creates a folder at a path that is

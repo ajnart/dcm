@@ -251,3 +251,32 @@ func TestProject(t *testing.T) {
 		})
 	}
 }
+
+func TestSecretsCarryBytes(t *testing.T) {
+	entry, err := Project(fake{compose: shortForm, secrets: []app.SecretSpec{{Name: "token", Length: 16}}, files: tokenFile})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range entry.Env {
+		if v.Key == "FAKE_TOKEN" && v.Bytes != 8 {
+			t.Errorf("FAKE_TOKEN bytes = %d, want 8", v.Bytes)
+		}
+	}
+	for _, g := range Globals() {
+		if g.Secret && !g.External && g.Bytes == 0 {
+			t.Errorf("global secret %s has no Bytes", g.Key)
+		}
+	}
+}
+
+func TestSecretWithoutBytesFails(t *testing.T) {
+	meta := map[string]variable{"TOKEN": {Env: Env{Key: "TOKEN", Secret: true}}}
+	_, err := variablesFor("fake", "token: ${TOKEN}", facts{}, meta)
+	if err == nil || !strings.Contains(err.Error(), "no Bytes") {
+		t.Fatalf("error = %v, want one about missing Bytes", err)
+	}
+	meta["TOKEN"] = variable{Env: Env{Key: "TOKEN", Secret: true, External: true}}
+	if _, err := variablesFor("fake", "token: ${TOKEN}", facts{}, meta); err != nil {
+		t.Fatalf("an external secret needs no Bytes: %v", err)
+	}
+}

@@ -83,8 +83,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -221,20 +222,23 @@
     {
      "key": "AUTHELIA_RESET_SECRET",
      "default": "",
-     "description": "Authelia secret: reset secret. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "Authelia secret: reset secret",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "AUTHELIA_SESSION_SECRET",
      "default": "",
-     "description": "Authelia secret: session secret. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "Authelia secret: session secret",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "AUTHELIA_STORAGE_KEY",
      "default": "",
-     "description": "Authelia secret: storage key. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "Authelia secret: storage key",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "CONFIG_PATH",
@@ -291,8 +295,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -303,20 +308,23 @@
     {
      "key": "AUTHENTIK_BOOTSTRAP_TOKEN",
      "default": "",
-     "description": "Authentik secret: bootstrap token. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Authentik secret: bootstrap token",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "AUTHENTIK_DB_PASSWORD",
      "default": "",
-     "description": "Authentik secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Authentik secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "AUTHENTIK_SECRET_KEY",
      "default": "",
-     "description": "Authentik secret: secret key. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "Authentik secret: secret key",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "CONFIG_PATH",
@@ -472,20 +480,23 @@
     {
      "key": "BOOKSTACK_APP_KEY",
      "default": "",
-     "description": "BookStack secret: app key. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "BookStack secret: app key",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "BOOKSTACK_DB_PASSWORD",
      "default": "",
-     "description": "BookStack secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "BookStack secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "BOOKSTACK_DB_ROOT_PASSWORD",
      "default": "",
-     "description": "BookStack secret: db root password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "BookStack secret: db root password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "CONFIG_PATH",
@@ -548,8 +559,9 @@
     {
      "key": "BORGMATIC_REPOSITORY_PASSPHRASE",
      "default": "",
-     "description": "Borgmatic secret: repository passphrase. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Borgmatic secret: repository passphrase",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "CONFIG_PATH",
@@ -865,14 +877,16 @@
     {
      "key": "DOCMOST_APP_SECRET",
      "default": "",
-     "description": "Docmost secret: app secret. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Docmost secret: app secret",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "DOCMOST_DB_PASSWORD",
      "default": "",
-     "description": "Docmost secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Docmost secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "LAN_IP",
@@ -957,20 +971,23 @@
     {
      "key": "FIREFLY_III_APP_KEY",
      "default": "",
-     "description": "Firefly III secret: app key. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Firefly III secret: app key",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "FIREFLY_III_CRON_TOKEN",
      "default": "",
-     "description": "Firefly III secret: cron token. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Firefly III secret: cron token",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "FIREFLY_III_DB_PASSWORD",
      "default": "",
-     "description": "Firefly III secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Firefly III secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "LAN_IP",
@@ -1095,8 +1112,9 @@
     {
      "key": "FRIGATE_JWT_SECRET",
      "default": "",
-     "description": "Frigate secret: jwt secret. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Frigate secret: jwt secret",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "RESTART_POLICY",
@@ -1244,8 +1262,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -1295,8 +1314,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -1353,8 +1373,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -1650,8 +1671,9 @@
     {
      "key": "HOMARR_SECRET_ENCRYPTION_KEY",
      "default": "",
-     "description": "Homarr secret: secret encryption key. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "Homarr secret: secret encryption key",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "RESTART_POLICY",
@@ -1776,8 +1798,9 @@
     {
      "key": "IMMICH_DB_PASSWORD",
      "default": "",
-     "description": "Immich secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Immich secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "RESTART_POLICY",
@@ -1874,8 +1897,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -1898,8 +1922,9 @@
     {
      "key": "KEYCLOAK_DB_PASSWORD",
      "default": "",
-     "description": "Keycloak secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Keycloak secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "RESTART_POLICY",
@@ -1925,8 +1950,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -1949,8 +1975,9 @@
     {
      "key": "KOPIA_REPOSITORY_PASSWORD",
      "default": "",
-     "description": "Kopia secret: repository password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Kopia secret: repository password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "RESTART_POLICY",
@@ -2059,20 +2086,23 @@
     {
      "key": "LINKWARDEN_AUTH_SECRET",
      "default": "",
-     "description": "Linkwarden secret: auth secret. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Linkwarden secret: auth secret",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "LINKWARDEN_DB_PASSWORD",
      "default": "",
-     "description": "Linkwarden secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Linkwarden secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "LINKWARDEN_SEARCH_KEY",
      "default": "",
-     "description": "Linkwarden secret: search key. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Linkwarden secret: search key",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "RESTART_POLICY",
@@ -2099,8 +2129,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -2123,14 +2154,16 @@
     {
      "key": "LLDAP_JWT_SECRET",
      "default": "",
-     "description": "LLDAP secret: jwt secret. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "LLDAP secret: jwt secret",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "LLDAP_KEY_SEED",
      "default": "",
-     "description": "LLDAP secret: key seed. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "LLDAP secret: key seed",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "PGID",
@@ -2215,8 +2248,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -2239,20 +2273,23 @@
     {
      "key": "MAYAN_EDMS_BROKER_PASSWORD",
      "default": "",
-     "description": "Mayan EDMS secret: broker password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Mayan EDMS secret: broker password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "MAYAN_EDMS_DB_PASSWORD",
      "default": "",
-     "description": "Mayan EDMS secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Mayan EDMS secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "MAYAN_EDMS_REDIS_PASSWORD",
      "default": "",
-     "description": "Mayan EDMS secret: redis password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Mayan EDMS secret: redis password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "PGID",
@@ -2291,8 +2328,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -2463,8 +2501,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -2493,14 +2532,16 @@
     {
      "key": "NEXTCLOUD_DB_PASSWORD",
      "default": "",
-     "description": "Nextcloud secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Nextcloud secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "NEXTCLOUD_DB_ROOT_PASSWORD",
      "default": "",
-     "description": "Nextcloud secret: db root password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Nextcloud secret: db root password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "RESTART_POLICY",
@@ -2560,8 +2601,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "CONFIG_PATH",
@@ -2676,8 +2718,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -2778,8 +2821,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -2802,8 +2846,9 @@
     {
      "key": "OPEN_WEBUI_SECRET_KEY",
      "default": "",
-     "description": "Open WebUI secret: secret key. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "Open WebUI secret: secret key",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "RESTART_POLICY",
@@ -2842,14 +2887,16 @@
     {
      "key": "PANGOLIN_SERVER_SECRET",
      "default": "",
-     "description": "Pangolin secret: server secret. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Pangolin secret: server secret",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "PANGOLIN_SETUP_TOKEN",
      "default": "",
-     "description": "Pangolin secret: setup token. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Pangolin secret: setup token",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "RESTART_POLICY",
@@ -2882,8 +2929,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -2906,14 +2954,16 @@
     {
      "key": "PAPERLESS_NGX_APP_KEY",
      "default": "",
-     "description": "Paperless-ngx secret: app key. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "Paperless-ngx secret: app key",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "PAPERLESS_NGX_DB_PASSWORD",
      "default": "",
-     "description": "Paperless-ngx secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Paperless-ngx secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "PGID",
@@ -2963,32 +3013,37 @@
     {
      "key": "PATCHMON_AI_ENCRYPTION_KEY",
      "default": "",
-     "description": "PatchMon secret: ai encryption key. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "PatchMon secret: ai encryption key",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "PATCHMON_DB_PASSWORD",
      "default": "",
-     "description": "PatchMon secret: db password. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "PatchMon secret: db password",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "PATCHMON_JWT_SECRET",
      "default": "",
-     "description": "PatchMon secret: jwt secret. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "PatchMon secret: jwt secret",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "PATCHMON_REDIS_PASSWORD",
      "default": "",
-     "description": "PatchMon secret: redis password. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "PatchMon secret: redis password",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "PATCHMON_SESSION_SECRET",
      "default": "",
-     "description": "PatchMon secret: session secret. Generate one with: openssl rand -hex 32",
-     "secret": true
+     "description": "PatchMon secret: session secret",
+     "secret": true,
+     "bytes": 32
     },
     {
      "key": "PGID",
@@ -3027,8 +3082,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -3072,8 +3128,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -3117,8 +3174,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "CONFIG_PATH",
@@ -3256,8 +3314,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -3594,8 +3653,9 @@
     {
      "key": "RESTIC_REPOSITORY_PASSWORD",
      "default": "",
-     "description": "restic secret: repository password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "restic secret: repository password",
+     "secret": true,
+     "bytes": 24
     }
    ],
    "standalone": true,
@@ -3708,8 +3768,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -3744,20 +3805,23 @@
     {
      "key": "SEAFILE_DB_PASSWORD",
      "default": "",
-     "description": "Seafile secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Seafile secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "SEAFILE_DB_ROOT_PASSWORD",
      "default": "",
-     "description": "Seafile secret: db root password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Seafile secret: db root password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "SEAFILE_JWT_PRIVATE_KEY",
      "default": "",
-     "description": "Seafile secret: jwt private key. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Seafile secret: jwt private key",
+     "secret": true,
+     "bytes": 24
     }
    ],
    "standalone": true,
@@ -3821,8 +3885,9 @@
     {
      "key": "SEERR_API_KEY",
      "default": "",
-     "description": "Seerr secret: api key. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Seerr secret: api key",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "TZ",
@@ -3849,8 +3914,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -3897,8 +3963,9 @@
     {
      "key": "SLSKD_API_KEY",
      "default": "",
-     "description": "Slskd secret: api key. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Slskd secret: api key",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "SLSKD_SOULSEEK_PASSWORD",
@@ -4002,8 +4069,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -4281,8 +4349,9 @@
     {
      "key": "TDARR_API_KEY_SEED",
      "default": "",
-     "description": "Tdarr secret: api key seed. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Tdarr secret: api key seed",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "TZ",
@@ -4309,8 +4378,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "CONFIG_PATH",
@@ -4367,26 +4437,30 @@
     {
      "key": "TRACEARR_AUTH_SECRET",
      "default": "",
-     "description": "Tracearr secret: auth secret. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Tracearr secret: auth secret",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "TRACEARR_COOKIE_SECRET",
      "default": "",
-     "description": "Tracearr secret: cookie secret. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Tracearr secret: cookie secret",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "TRACEARR_DB_PASSWORD",
      "default": "",
-     "description": "Tracearr secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Tracearr secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "TRACEARR_JWT_SECRET",
      "default": "",
-     "description": "Tracearr secret: jwt secret. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Tracearr secret: jwt secret",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "TZ",
@@ -4413,8 +4487,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "CONFIG_PATH",
@@ -4453,8 +4528,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -4541,20 +4617,23 @@
     {
      "key": "UMAMI_APP_SECRET",
      "default": "",
-     "description": "Umami secret: app secret. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Umami secret: app secret",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "UMAMI_DB_PASSWORD",
      "default": "",
-     "description": "Umami secret: db password. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Umami secret: db password",
+     "secret": true,
+     "bytes": 24
     },
     {
      "key": "UMAMI_TWO_FACTOR_KEY",
      "default": "",
-     "description": "Umami secret: two factor key. Generate one with: openssl rand -hex 16",
-     "secret": true
+     "description": "Umami secret: two factor key",
+     "secret": true,
+     "bytes": 16
     }
    ],
    "standalone": true,
@@ -4730,8 +4809,9 @@
     {
      "key": "VAULTWARDEN_ADMIN_TOKEN",
      "default": "",
-     "description": "Vaultwarden secret: admin token. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "Vaultwarden secret: admin token",
+     "secret": true,
+     "bytes": 24
     }
    ],
    "standalone": true,
@@ -4819,8 +4899,9 @@
     {
      "key": "ADMIN_PASSWORD",
      "default": "",
-     "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-     "secret": true
+     "description": "Password of the administrator account the App creates on its first start",
+     "secret": true,
+     "bytes": 16
     },
     {
      "key": "ADMIN_USER",
@@ -4895,8 +4976,9 @@
     {
      "key": "ZEROTIER_API_SECRET",
      "default": "",
-     "description": "ZeroTier secret: api secret. Generate one with: openssl rand -hex 24",
-     "secret": true
+     "description": "ZeroTier secret: api secret",
+     "secret": true,
+     "bytes": 24
     }
    ],
    "standalone": false,
@@ -4992,8 +5074,9 @@
   {
    "key": "ADMIN_PASSWORD",
    "default": "",
-   "description": "Password of the administrator account the App creates on its first start. Choose a strong one or generate it with: openssl rand -hex 16",
-   "secret": true
+   "description": "Password of the administrator account the App creates on its first start",
+   "secret": true,
+   "bytes": 16
   },
   {
    "key": "ADMIN_USER",
