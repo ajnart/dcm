@@ -1,0 +1,21 @@
+AGENTS.md
+  s_a3a9aabc23e9a1::t_fa9ffa7229c1c4 58,61
+docs/agents/dcm.md
+  s_a3a9aabc23e9a1::t_b78551580176ad 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "184b1df65c1eab15284bde1aba9ba629f10c2ce8",
+  "prompts": {},
+  "sessions": {
+    "s_a3a9aabc23e9a1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8018f5e-5f27-4e77-80b1-dfe78e40bdb1",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
