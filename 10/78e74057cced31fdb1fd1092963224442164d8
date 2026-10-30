@@ -1,0 +1,19 @@
+dcm/src/lib/suggest.ts
+  s_ed8cdcec116a2d::t_19b6ba36bdc2af 15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1078e74057cced31fdb1fd1092963224442164d8",
+  "prompts": {},
+  "sessions": {
+    "s_ed8cdcec116a2d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0f5020e6-7965-416b-99f3-c749f8e00371",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
