@@ -15,6 +15,7 @@ acceptance remain unproved. Earlier dated evidence retains its original scope.
 ## Security
 
 - Keep administration private and confirm DNS/DHCP ownership before publishing network ports.
+- Pi-hole answers every network that can reach port 53; do not forward port 53 from the internet.
 
 ## Homarr Link (#292)
 

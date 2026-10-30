@@ -216,5 +216,5 @@ func (App) Check(ctx context.Context, h *helpers.H) error {
 func (App) Links() []app.Link { return nil }
 
 func (App) StandaloneGuide() string {
-	return "Sign in with the ADMIN_PASSWORD value. If systemd-resolved already holds port 53 on the host, the container cannot bind it: turn off its DNSStubListener."
+	return "Sign in with the ADMIN_PASSWORD value. If systemd-resolved already holds port 53 on the host, the container cannot bind it: turn off its DNSStubListener. Pi-hole answers every network that can reach port 53, so do not forward port 53 from the internet."
 }
