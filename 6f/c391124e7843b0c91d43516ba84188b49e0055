@@ -1,0 +1,27 @@
+site/astro.config.mjs
+  s_a91f4b733e8ee4::t_63b204dc71ff71 13,30,54
+site/src/layouts/Base.astro
+  s_a91f4b733e8ee4::t_ac81dea5bec199 2,72
+site/src/layouts/Compose.astro
+  s_a91f4b733e8ee4::t_556a4c892ea6c3 2,60
+site/src/lib/csp.mjs
+  s_a91f4b733e8ee4::t_4aaf0efa4efca3 52
+site/src/lib/speculation.mjs
+  s_a91f4b733e8ee4::t_7dbd7e93ab3e05 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6fc391124e7843b0c91d43516ba84188b49e0055",
+  "prompts": {},
+  "sessions": {
+    "s_a91f4b733e8ee4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2f0f81a4-3fff-4415-afef-7b285a1a665c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
