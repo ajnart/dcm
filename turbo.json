@@ -11,7 +11,7 @@
 				"../dcm/tsconfig.json"
 			],
 			"outputs": ["dist/**"],
-			"env": ["SELF_HOST_SITE_VERSION"],
+			"env": ["SELF_HOST_SITE_VERSION", "SELF_HOST_SITE_COMMIT"],
 			"passThroughEnv": ["GITHUB_TOKEN"]
 		},
 		"self-host-site#check": {
