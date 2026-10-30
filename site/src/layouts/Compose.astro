@@ -15,21 +15,22 @@ interface Props {
   title: string;
   description: string;
   jsonld?: Record<string, unknown>;
+  editor?: boolean;
 }
 
-const { title, description, jsonld } = Astro.props;
+const { title, description, jsonld, editor = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Astro.site);
 const image = new URL(og.src, Astro.site);
 
 type CspDirective = Parameters<NonNullable<typeof Astro.csp>["insertDirective"]>[0];
 const insertDirective = (directive: string) => Astro.csp?.insertDirective(directive as CspDirective);
 
-const MONACO_CDN = "https://cdn.jsdelivr.net";
-Astro.csp?.insertScriptResource(MONACO_CDN);
-insertDirective(`style-src-elem 'self' ${MONACO_CDN} 'unsafe-inline'`);
 insertDirective("style-src-attr 'unsafe-inline'");
-insertDirective(`font-src ${MONACO_CDN} data:`);
-insertDirective("worker-src blob:");
+if (editor) {
+  insertDirective("style-src-elem 'self' 'unsafe-inline'");
+  insertDirective("font-src 'self'");
+  insertDirective("worker-src 'self'");
+}
 ---
 
 <!doctype html>

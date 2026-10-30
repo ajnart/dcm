@@ -34,6 +34,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",
     "lucide-react": "^1.52.0",
+    "monaco-editor": "^0.57.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "simple-icons": "^14.15.0",
