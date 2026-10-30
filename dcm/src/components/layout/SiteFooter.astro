@@ -1,7 +1,7 @@
 ---
 import { withBase } from "../../lib/base"
 
-const SELFHOST = "https://self-host.fyi"
+const SELFHOST = import.meta.env.DEV ? "http://localhost:4321" : "https://self-host.fyi"
 
 const links = [
   { href: `${SELFHOST}/apps`, label: "apps" },

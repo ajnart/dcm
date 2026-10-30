@@ -10,6 +10,7 @@
 - Pages: `dcm/src/pages/`. Prefix every internal link with `withBase()` from `dcm/src/lib/base.ts`: the same build serves `/compose` (`DCM_BASE=/compose`) and `/` (image, standalone Pages project).
 - Upvotes: `dcm/functions/api/{vote,stats}.ts`, re-exported by `functions/compose/api/` for the self-host-fyi Pages project. Setup of the KV binding and secret is in `docs/releasing.md`.
 - Tests: `dcm/tests`, run with `bun test`.
+- Dev: root `bun run dev` starts the site on :4321 and DCM on :4322 at `/compose/`; in dev each links to the other's port. They cannot share one origin: Astro serves Vite's own paths (`/@vite/client`, `/src/…`, `/@fs/…`) outside `base`, so a proxy mixes both apps' modules. Astro 7 daemonizes `astro dev` without a TTY: stop strays with `bunx astro dev stop` in `site/` or `dcm/`.
 
 ## How an App reaches DCM
 

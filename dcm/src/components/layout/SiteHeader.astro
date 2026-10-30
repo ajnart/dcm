@@ -3,7 +3,7 @@ import "../../../../site/src/styles/header.css"
 import { withBase } from "../../lib/base"
 import { ContainerSubmissionForm } from "../container-submission-form"
 
-const SELFHOST = "https://self-host.fyi"
+const SELFHOST = import.meta.env.DEV ? "http://localhost:4321" : "https://self-host.fyi"
 
 const base = withBase("/").replace(/\/$/, "")
 const here = Astro.url.pathname.slice(base.length).replace(/\/$/, "") || "/"

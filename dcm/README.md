@@ -173,9 +173,10 @@ bun install
 3. Build and start:
 
 ```bash
-cd dcm
 bun run dev
 ```
+
+From the repository root this starts both apps: the self-host site at http://localhost:4321 and DCM at http://localhost:4322/compose/, linked to each other. `bun run dev` inside `dcm/` starts DCM alone.
 
 DCM is an Astro app with React islands. `bun run build` writes a static site to `dist/`, and `bun run preview` serves it. The site is mounted at `self-host.fyi/compose`, so build with `DCM_BASE=/compose` to prefix every link, asset and API call; without it the site is served from `/`.
 

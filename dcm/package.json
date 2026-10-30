@@ -7,7 +7,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "DCM_BASE=/compose astro dev --port 4322",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
