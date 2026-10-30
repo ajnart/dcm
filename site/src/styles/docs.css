@@ -71,7 +71,9 @@ body {
 
 @media (max-width: 49.99rem) {
   :root[data-has-sidebar] .site-header {
-    padding-inline-end: calc(var(--site-header-gutter) + var(--sl-menu-button-size) + 1rem);
+    padding-inline-end: calc(
+      var(--site-header-gutter) + var(--sl-menu-button-size) + 1rem
+    );
   }
 }
 
@@ -81,7 +83,7 @@ body {
 }
 
 .site-title .pages {
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .sl-markdown-content h2 {
