@@ -1,0 +1,53 @@
+bun.lock
+  s_931a5f7cfa2191::t_07dae1a0a67b7f 54
+dcm/package.json
+  s_931a5f7cfa2191::t_3f16be04bfd351 62-63
+dcm/src/components/TemplateClient.tsx
+  s_931a5f7cfa2191::t_6202c54e13edb5 6-7,73-75,114,118,122,231-239
+dcm/src/components/compose-modal/CopyComposeModal.tsx
+  s_931a5f7cfa2191::t_7986c74a4f5e7e 28,42,70-71,132,136,172-173
+dcm/src/components/compose-modal/SelfHostCallout.tsx
+  s_931a5f7cfa2191::t_b712ed34c6ee87 16
+dcm/src/components/compose-modal/SelfHostNotes.tsx
+  s_931a5f7cfa2191::t_0ae94ff0431bda 1-38
+dcm/src/components/docker-card.tsx
+  s_931a5f7cfa2191::t_3bd36d45646f44 105-113,162-181
+dcm/src/components/editors/MonacoEditor.tsx
+  s_931a5f7cfa2191::t_c374fd8aed947f 1,4-7,27,29
+dcm/src/components/template-viewer.tsx
+  s_931a5f7cfa2191::t_edd7b6f25f5731 3-4,27,33,37
+dcm/src/lib/catalog.ts
+  s_931a5f7cfa2191::t_dace600d87dbaf 1,30,39,47-48,51,61,69-75,81-93,130-132,154-166
+dcm/src/lib/docker-compose/generators.ts
+  s_931a5f7cfa2191::t_d1376f663036eb 5,217-242,253-255,258-260,262,264-283
+dcm/src/lib/docker-compose/services.ts
+  s_011d3def65e8d1::t_e665f31d26a6f1 1-46
+dcm/src/lib/selfhost.ts
+  s_011d3def65e8d1::t_d6736a0f01b55f 28
+dcm/tests/compose-dedupe.test.ts
+  s_931a5f7cfa2191::t_e848656c4f4f83 1-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b384df1c77f69ae459ab0104710c32ef359f1b45",
+  "prompts": {},
+  "sessions": {
+    "s_011d3def65e8d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c6157600-657b-40e9-a76c-b53336a4db01",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_931a5f7cfa2191": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "69c69f34-bcd2-44ed-87b1-75efcbecc66f",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
