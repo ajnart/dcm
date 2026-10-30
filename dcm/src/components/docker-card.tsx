@@ -10,13 +10,11 @@ import { StarCount } from "@/components/ui/star-count"
 import { TruncatedText } from "@/components/ui/truncated-text"
 import type { CatalogEntry } from "@/lib/catalog"
 import { cn } from "@/lib/utils"
-import type { ReactNode } from "react"
 
 interface DockerCardProps {
   entry: CatalogEntry
   isSelected: boolean
   onSelect: () => void
-  upvote?: ReactNode
   selfHostBadge?: boolean
 }
 
@@ -24,14 +22,12 @@ export default function DockerCard({
   entry,
   isSelected,
   onSelect,
-  upvote,
   selfHostBadge = false,
 }: DockerCardProps) {
   const handleCardClick = (e: React.MouseEvent) => {
     if (
       (e.target as Element).closest(".github-link") ||
       (e.target as Element).closest(".description-expand") ||
-      (e.target as Element).closest(".container-upvote") ||
       entry.isUnsupported
     ) {
       e.stopPropagation()
@@ -128,7 +124,6 @@ export default function DockerCard({
             </Badge>
           ))}
         </div>
-        {upvote}
       </CardContent>
     </Card>
   )

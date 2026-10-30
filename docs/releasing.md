@@ -235,7 +235,7 @@ not involved. Its build settings:
 | Build command          | `bash scripts/build-site-pages.sh`                                                                                                                |
 | Build output directory | `site/dist-pages`                                                                                                                                 |
 | Root directory         | (repository root)                                                                                                                                 |
-| Build watch paths      | include `site/*`, `dcm/*`, `functions/*`, `tools/sitegen/*`, `install.sh`, `scripts/build-*.sh`, `package.json`, `bun.lock`, `turbo.json`            |
+| Build watch paths      | include `site/*`, `dcm/*`, `tools/sitegen/*`, `install.sh`, `scripts/build-*.sh`, `package.json`, `bun.lock`, `turbo.json`            |
 | `BUN_VERSION`          | `1.4.3`                                                                                                                                           |
 | `GITHUB_TOKEN` secret  | optional; without it the build reads the newest `vX.Y.Z` tag of the Go CLI from the checkout, since the releases API is private while the repo is |
 
@@ -246,10 +246,6 @@ same project with Wrangler. The apex is the project's only custom domain;
 `www` is a zone redirect rule to the apex.
 
 ### Manual deploy (Direct Upload)
-
-Run it from the repository root: Wrangler reads Pages Functions from `./functions`
-in the working directory, so a deploy from inside the staged directory would
-ship the site without the upvote API.
 
 ```bash
 stage="$(mktemp -d)"
@@ -309,10 +305,10 @@ under that policy; Astro's `<ClientRouter />` does not support its CSP.
 Docker Compose Maker (`dcm/`, merged from `ajnart/dcm`) is part of the one
 site build and is served by the same Pages project at
 `https://self-host.fyi/compose`: its pages are `site/src/pages/compose/` and
-`dcm/` holds the components, libraries and Functions they use.
+`dcm/` holds the components and libraries they use.
 `scripts/build-installer-site.sh` builds the site once, straight into
-`public/`, and writes `_routes.json`, which lets only `/compose/api/*` invoke
-Functions; everything else is served as static assets. The `_astro/*`
+`public/`. The site is fully static: there are no Pages Functions, so there is
+no `_routes.json` and no binding to configure. The `_astro/*`
 immutable cache rule in the site's `_headers` covers DCM's assets too.
 
 The site's Content Security Policy is the hashed one from `astro.config.mjs`.
@@ -322,23 +318,7 @@ jsDelivr CDN, `data:` fonts, `blob:` workers and `'unsafe-inline'` for
 elements and `style` attributes at runtime. `/`, `/apps` and `/docs` keep the
 strict policy; tighten `/compose` only together with self-hosting Monaco.
 
-Community upvotes are two Pages Functions, `dcm/functions/api/vote.ts` and
-`stats.ts`. The site mounts them through the thin re-exports in
-`functions/compose/api/`, which Pages Git builds (root directory = repository
-root) and a `wrangler pages deploy` run from the root both pick up. Add to the
-`self-host-fyi` Pages project (Settings, Bindings and Variables, production and
-preview):
-
-| Name             | Type                                                         |
-| ---------------- | ------------------------------------------------------------ |
-| `UPVOTES`        | KV namespace binding (reuse the one the `dcm` project uses)  |
-| `VOTE_IP_SECRET` | secret, the same value as in the `dcm` project keeps existing ballots valid |
-
-Without them the API answers 503 and DCM hides the upvote control. Check
-the functions bundle with `npx wrangler pages functions build functions --outdir "$(mktemp -d)"`,
-and try voting locally as described in `docs/agents/dcm.md`.
-`scripts/publish-site.sh` refuses to deploy a build that has no `/compose`
-page, no `/compose/api/*` route or no `functions/compose/api/vote.ts`.
+`scripts/publish-site.sh` refuses to deploy a build that has no `/compose` page.
 
 GitHub star counts are committed, not fetched at build time:
 `.github/workflows/stars.yml` runs `bun run stars` weekly (and on demand) and
@@ -358,8 +338,7 @@ on pushes to `main` that touch `dcm/**`, `site/**` or `tools/sitegen/**`, on
 manual runs, and on `dcm-v*` tags (`dcm-v1.2.3` pushes `1.2.3`, `1.2`, `1` and
 `latest` comes from `main`). It builds the site with bun, then packs
 `site/dist` (the named build context `site`) into a busybox static server on
-port 7576 (`dcm/Dockerfile`): `/` forwards to `/compose`, and the image has no
-Functions, so the upvote control is hidden. CLI `vX.Y.Z` tags never trigger
+port 7576 (`dcm/Dockerfile`): `/` forwards to `/compose`. CLI `vX.Y.Z` tags never trigger
 it. Issue-driven container submissions are handled by
 `dcm-add-container.yml`, which adds the container to `dcm/src/tools/` and
 opens a pull request.
@@ -371,9 +350,8 @@ with a 301. A second rule on the `self-host.fyi` zone does the same for `www`.
 Check with `curl -I https://selfhost.ajnart.dev/install.sh`.
 
 The builder needs `bun`. It runs `bun install --frozen-lockfile` at the
-repository root and `astro build` straight into `public/`, then builds Docker
-Compose Maker into `public/compose/` (below), writes the combined
-`public/_routes.json`, adds `install`, `install.sh` and
+repository root and `astro build` straight into `public/` (DCM included, under
+`public/compose/`), adds `install`, `install.sh` and
 `install.sh.sha256`, and puts `wrangler.toml` beside it. The showreel reaches
 the build as the committed file `site/public/reel.mp4`, which Astro copies.
 Renders in `video/reel/out/` are git-ignored; after a new render, copy the

@@ -1,5 +1,5 @@
 {
-  "include": ["src/**/*", "tests/**/*", "functions/**/*", "scripts/**/*"],
+  "include": ["src/**/*", "tests/**/*", "scripts/**/*"],
   "exclude": ["node_modules"],
   "compilerOptions": {
     "target": "ESNext",

@@ -11,7 +11,4 @@ gh release view "v$version" -R ajnart/self-host --json isDraft --jq '.isDraft' |
 bash scripts/build-site-pages.sh
 grep -q "v$version" site/dist-pages/index.html || { echo "the site build does not show v$version" >&2; exit 1; }
 test -f site/dist-pages/compose.html || { echo "the site build has no Docker Compose Maker at /compose" >&2; exit 1; }
-grep -q '"/compose/api/\*"' site/dist-pages/_routes.json || { echo "the site build does not route /compose/api/* to Pages Functions" >&2; exit 1; }
-test -f functions/compose/api/vote.ts || { echo "the upvote Pages Functions are missing from ./functions" >&2; exit 1; }
-# Run from the repository root: Pages Functions come from ./functions (upvotes at /compose/api/*).
 wrangler pages deploy site/dist-pages --project-name self-host-fyi --branch main --commit-dirty=true

@@ -1,6 +1,6 @@
 # DCM (Docker Compose Maker)
 
-`dcm/` is the source of Docker Compose Maker: React components, hooks, libraries, Container definitions, tests, the upvote Functions and generated data. It has no Astro app of its own. `site/` renders it at `https://self-host.fyi/compose`, and the same site build is published as `ghcr.io/ajnart/dcm`. DCM is AGPL-3.0 (`dcm/LICENSE`); the rest of the repository is Apache-2.0. Use `CONTEXT.md`'s words: DCM, Container, Template, DCM mode.
+`dcm/` is the source of Docker Compose Maker: React components, hooks, libraries, Container definitions, tests and generated data. It has no Astro app of its own. `site/` renders it at `https://self-host.fyi/compose`, and the same site build is published as `ghcr.io/ajnart/dcm`. DCM is AGPL-3.0 (`dcm/LICENSE`); the rest of the repository is Apache-2.0. Use `CONTEXT.md`'s words: DCM, Container, Template, DCM mode.
 
 ## Where things live
 
@@ -8,8 +8,8 @@
 - Templates: `dcm/src/lib/template-definitions.ts`. The Catalog's Recipes become Templates automatically.
 - Merge logic: `dcm/src/lib/catalog.ts` joins `dcm/src/tools` with `dcm/src/data/selfhost.json`.
 - Pages: `site/src/pages/compose/` (`index.astro`, `templates.astro`, `template/[id].astro`) with the layout `site/src/layouts/Compose.astro`. Output follows the site's `build.format: "file"` (`compose.html`, `compose/templates.html`, `compose/template/<id>.html`), so Cloudflare Pages serves `/compose` and 308-redirects `/compose/` with the query kept.
-- The `@/` alias: in `site/`, `@/` means `dcm/src` (`paths` in `site/tsconfig.json`). `dcm/tsconfig.json` maps `@/` to its own `src` for `tsc`, tests and the Pages Functions bundle. TypeScript in `dcm/` never imports from `site/`; only `dcm/src/styles/global.css` reaches into it, for the theme tokens and the Tailwind `@source` globs.
-- Links: the prefix is fixed. Use `routes` from `dcm/src/lib/routes.ts` (`routes.compose`, `routes.templates`, `routes.template(id)`, `routes.api("stats" | "vote")`); there is no base-path variable.
+- The `@/` alias: in `site/`, `@/` means `dcm/src` (`paths` in `site/tsconfig.json`). `dcm/tsconfig.json` maps `@/` to its own `src` for `tsc` and tests. TypeScript in `dcm/` never imports from `site/`; only `dcm/src/styles/global.css` reaches into it, for the theme tokens and the Tailwind `@source` globs.
+- Links: the prefix is fixed. Use `routes` from `dcm/src/lib/routes.ts` (`routes.compose`, `routes.templates`, `routes.template(id)`); there is no base-path variable.
 - Styling: Tailwind is scoped to `/compose`. `dcm/src/styles/global.css` starts with `@import "tailwindcss" source(none)` and lists its `@source` globs, and only `Compose.astro` imports it, so no Tailwind rule reaches `/`, `/apps` or `/docs`. Header and footer are the site's `SiteHeader` and `SiteFooter`; the layout fills the header slot with the Suggest container button.
 - Stars: `dcm/src/data/stars.json` (Containers) and `site/src/data/stars.json` (Apps) are committed. `bun run stars` at the root refreshes both with `GITHUB_TOKEN` set; `.github/workflows/stars.yml` does it weekly and opens a pull request. Never fetch stars at build time.
 - Tests: `dcm/tests`, run with `bun test`.
@@ -24,19 +24,6 @@ The site sets one CSP through Astro's `security.csp`, and `site/src/lib/csp.mjs`
 - `style-src-elem` and `style-src-attr` allow `'unsafe-inline'` because Monaco injects `<style>` elements and sets `style` attributes at runtime, which hashes cannot cover. `cspCheck` skips the style-attribute hash check on pages whose policy allows it and still checks every inline script and `<style>`.
 
 `/`, `/apps` and `/docs` keep the strict policy. Tighten `/compose` only together with self-hosting Monaco. `canvas-confetti` works under this policy: it draws with a canvas and needs no worker.
-
-## Upvotes
-
-`dcm/functions/api/{vote,stats}.ts` are Pages Functions, mounted at `/compose/api/*` by the re-exports in `functions/compose/api/`. `site/dist-pages/_routes.json` lets only `/compose/api/*` invoke Functions. When the API is unavailable (no KV binding, a static host, the image) the upvote control is hidden, not disabled. Setup of the KV binding and secret is in `docs/releasing.md`; the API and its limits are in `dcm/README.md`.
-
-Test voting locally against the real artifact, from the repository root:
-
-```bash
-SELF_HOST_SITE_VERSION=0.0.0 bash scripts/build-site-pages.sh
-bunx wrangler pages dev site/dist-pages --kv=UPVOTES --binding VOTE_IP_SECRET=local-development-only
-```
-
-`astro dev` serves no Functions, so voting only works through Wrangler's URL. `POST /compose/api/vote` needs a `CF-Connecting-IP` header and an `Origin` matching the Wrangler URL. `GET /compose/api/stats` is cached for 60 seconds (Cache API, `max-age=60`), so a count lags a vote by up to 60 seconds. Leave out `--kv` to check that the control disappears.
 
 ## How an App reaches DCM
 
@@ -56,7 +43,7 @@ Issues with the `container` label and then `accepted` make `.github/workflows/dc
 
 ## The image
 
-`dcm/Dockerfile` packs the built site (`site/dist`, passed as the named build context `site`) into busybox httpd on port 7576. busybox cannot map `/compose` to `compose.html`, so the first stage, which runs on the build platform and never under QEMU, moves every `X.html` to `X/index.html`, drops the heavy social images and reel, and writes a `/` page that forwards to `/compose` with the query kept. httpd then redirects `/compose` to `/compose/` and keeps the query. `dcm/httpd.conf` holds the MIME types and `E404:404.html` (the path must be relative; an absolute one is ignored). The image has no Functions, so the upvote control is hidden. Build and try it locally:
+`dcm/Dockerfile` packs the built site (`site/dist`, passed as the named build context `site`) into busybox httpd on port 7576. busybox cannot map `/compose` to `compose.html`, so the first stage, which runs on the build platform and never under QEMU, moves every `X.html` to `X/index.html`, drops the heavy social images and reel, and writes a `/` page that forwards to `/compose` with the query kept. httpd then redirects `/compose` to `/compose/` and keeps the query. `dcm/httpd.conf` holds the MIME types and `E404:404.html` (the path must be relative; an absolute one is ignored). Build and try it locally:
 
 ```bash
 SELF_HOST_SITE_VERSION=0.0.0 bun run --cwd site build

@@ -184,42 +184,6 @@ DCM has no Astro app of its own: its pages are `site/src/pages/compose/`, and `b
 
 The home page and the template gallery have a segmented control: **self-host** shows only the Apps from the self-host catalog (plus its Recipes as templates) with a `self-host install <apps>` command front and centre, and **All** shows every DCM container with the self-host ones badged. The choice is stored in `localStorage` (`dcm-mode`) and mirrored in the `?mode=` URL parameter. Selection is shared between both modes.
 
-### Community upvotes on Cloudflare Pages
-
-The gallery supports anonymous community upvotes through Pages Functions and Workers KV. No accounts, traditional database, or application server are required. Docker, `bun run dev`, and other static hosts remain fully usable without an API: the upvote control is hidden rather than showing invented counts. Nothing contacts the public DCM instance.
-
-Voting is opt-in: it stays disabled until both bindings below exist on the `self-host-fyi` Pages project.
-
-1. Create a Workers KV namespace for votes in your Cloudflare account and bind it as `UPVOTES`. Use a separate namespace for preview deployments so previews cannot change production votes.
-2. Add an encrypted runtime secret named `VOTE_IP_SECRET`, independently for production and preview. Generate a random value of at least 32 bytes and keep it stable. Never commit the secret.
-3. Deploy from the repository root: `bash scripts/publish-site.sh X.Y.Z` builds the site and runs `wrangler pages deploy`, which includes the root `functions/` alongside the static output. `functions/compose/api/` re-exports `dcm/functions/api/{vote,stats}.ts` at `/compose/api/*`, and the site's `_routes.json` limits Function invocation to `/compose/api/*`, leaving the pages and assets static. See `docs/releasing.md`.
-
-For local-only development, build the site and serve it through Wrangler with a local KV store, from the repository root:
-
-```bash
-SELF_HOST_SITE_VERSION=0.0.0 bash scripts/build-site-pages.sh
-bunx wrangler pages dev site/dist-pages --kv=UPVOTES --binding VOTE_IP_SECRET=local-development-only
-```
-
-Wrangler uses local KV storage by default; this does not create or deploy cloud resources. Test the API and gallery through Wrangler's URL, not `astro dev`, which serves no Functions. API calls without Cloudflare's `CF-Connecting-IP` header cannot vote. For manual local requests, provide a test IP in that header and an `Origin` matching the local URL. `GET /compose/api/stats` is cached for 60 seconds, so a count lags a vote by up to a minute.
-
-#### API and storage
-
-- `GET /compose/api/stats` returns `{ "counts": { "jellyfin": 0, ... } }` for the current merged catalog, including the Apps taken from self-host. One gallery request loads all counts. Responses are cached for 60 seconds in the browser and per Cloudflare edge location; query strings do not bypass the edge cache.
-- `POST /compose/api/vote` accepts `{ "containerId": "jellyfin" }` as JSON, with a same-origin `Origin` header and a body of at most 1 KiB. IDs must exist in the same catalog used by the gallery. It returns `{ "accepted": true }`, or `{ "accepted": false }` if that network has already voted for the container. Votes cannot be removed.
-- Each vote writes `vote:{containerId}:{HMAC}`. HMAC-SHA-256 uses the server secret, container ID, and Cloudflare-provided IP. Raw IPs are not stored, sent back, or logged by voting code. A separate `rate:{HMAC}` key expires after 60 seconds and limits new votes across containers from the same IP; rejected votes return `429` with `Retry-After`. Changing forwarded-IP headers does not select the voting identity.
-- Browser storage remembers successful votes only as a UX hint; clearing it does not bypass server deduplication. Failed writes do not show a successful vote. Missing bindings, unavailable KV, or exhausted quotas return `503`, without breaking compose generation.
-
-#### Limitations and costs
-
-KV has no atomic increments or transactions. Counting durable, deterministic ballot keys avoids losing distinct votes during concurrent counter updates, and repeated writes for the same IP/container still count once. However, KV reads and listings are eventually consistent: counts can lag by 60 seconds or more, plus the response cache. The UI increments after acknowledgement, so a refreshed page can temporarily show an older count. Parallel reads can miss a recent ballot or throttle marker; the throttle is best-effort, not a strict abuse-prevention boundary. A failed ballot write after the throttle write can require waiting 60 seconds before retrying.
-
-This is a community signal, not verified ratings or a guarantee that a container works. Shared public IPs share a vote; changing IP/VPN can evade deduplication. Rotating `VOTE_IP_SECRET` permits new votes from previously seen networks, while existing votes remain counted. Ballots do not expire and contain pseudonymous identifiers; restrict namespace access and consider your privacy/retention obligations.
-
-An accepted vote normally uses two KV reads and two writes. A cold stats response lists every ballot in pages of 1,000, with no per-ballot reads; costs grow with total votes and active edge locations. The API fails unavailable rather than returning partial counts if listing exceeds 50 pages (about 50,000 ballots). Monitor KV **list**, read, write, storage, and Pages Functions quotas: free-tier operation is not guaranteed, and listing quotas can be reached before read quotas. For higher traffic or strict throttling/count consistency, move aggregation and coordination to a Durable Object rather than adding non-atomic counters.
-
-Cloudflare references: [Pages bindings and secrets](https://developers.cloudflare.com/pages/functions/bindings/), [Wrangler Pages configuration](https://developers.cloudflare.com/pages/functions/wrangler-configuration/), [KV listing and pagination](https://developers.cloudflare.com/kv/api/list-keys/), and [KV consistency](https://developers.cloudflare.com/kv/concepts/how-kv-works/).
-
 ## 🧰 Supported Tools
 
 DCM includes configuration for many popular self-hosted applications, including:
