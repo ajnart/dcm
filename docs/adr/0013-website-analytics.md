@@ -32,7 +32,7 @@ template, search, settings and Suggest container actions. Properties are
 Catalog and Container ids, counts and fixed enums.
 
 **What is never sent.** Typed text, the search query, Compose or `.env`
-content, settings values, Suggest container form fields, and anything about
+content, settings values, what you type on the Suggest container page, and anything about
 the person or their machine.
 
 A new event goes into `AnalyticsEvent`, which fixes its name and fields in the

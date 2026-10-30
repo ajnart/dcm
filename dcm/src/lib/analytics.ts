@@ -35,7 +35,8 @@ export type AnalyticsEvent =
   | { name: "dcm_search_opened" }
   | { name: "dcm_settings_opened" }
   | { name: "dcm_suggest_opened" }
-  | { name: "dcm_suggest_submitted" }
+  | { name: "dcm_suggest_prompt_copied" }
+  | { name: "dcm_suggest_issue_opened" }
 
 type Capture = PostHog["capture"]
 

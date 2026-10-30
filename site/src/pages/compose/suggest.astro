@@ -1,0 +1,11 @@
+---
+import SuggestClient from "@/components/suggest-page";
+import Compose from "../../layouts/Compose.astro";
+---
+
+<Compose
+  title="Suggest a container · Docker Compose Maker"
+  description="Add a missing app to Docker Compose Maker with an AI coding agent, or open an issue."
+>
+  <SuggestClient client:load />
+</Compose>

@@ -2,7 +2,9 @@
 import "@/styles/global.css";
 import "../styles/shared.css";
 import "../styles/transitions.css";
-import { SuggestContainer } from "@/components/suggest-container";
+import { buttonVariants } from "@/components/ui/button";
+import { routes } from "@/lib/routes";
+import { PlusCircle } from "lucide-react";
 import og from "../assets/og.png";
 import SiteFooter from "../components/SiteFooter.astro";
 import ExtLink from "../components/ExtLink.astro";
@@ -58,7 +60,12 @@ insertDirective("worker-src blob:");
     </script>
   </head>
   <body>
-    <SiteHeader><SuggestContainer client:idle /></SiteHeader>
+    <SiteHeader>
+      <a href={routes.suggest} class={buttonVariants({ variant: "outline", size: "sm" })} aria-label="Suggest container">
+        <PlusCircle size={16} />
+        <span class="max-sm:sr-only">Suggest container</span>
+      </a>
+    </SiteHeader>
     <main class="container pt-6 pb-12">
       <slot />
     </main>
