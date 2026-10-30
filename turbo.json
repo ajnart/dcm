@@ -18,6 +18,35 @@
 			"dependsOn": ["self-host-site#build"],
 			"passThroughEnv": ["SELF_HOST_SITE_VERSION"]
 		},
+		"dcm#check": {
+			"inputs": [
+				"src/**",
+				"tests/**",
+				"scripts/**",
+				"tsconfig.json",
+				"package.json",
+				"$TURBO_ROOT$/site/src/data/stars.json"
+			]
+		},
+		"dcm#lint": {
+			"inputs": ["src/**", "tests/**", "scripts/**", "biome.json"]
+		},
+		"dcm#test": {
+			"inputs": [
+				"src/**",
+				"tests/**",
+				"package.json",
+				"$TURBO_ROOT$/site/src/data/stars.json"
+			]
+		},
+		"dcm#test:compose": {
+			"inputs": [
+				"src/**",
+				"tests/**",
+				"package.json",
+				"$TURBO_ROOT$/site/src/data/stars.json"
+			]
+		},
 		"check": {},
 		"lint": {},
 		"test": {},
