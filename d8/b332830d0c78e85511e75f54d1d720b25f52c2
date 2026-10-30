@@ -1,0 +1,21 @@
+dcm/src/components/DockerToolsClient.tsx
+  s_9d7feaf3ca7bcc::t_39cbea6704e4e6 67-68,72
+dcm/src/lib/url-utils.ts
+  s_9d7feaf3ca7bcc::t_f0e4542985d72a 26-28,30-31,33-37,49-50,52-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d8b332830d0c78e85511e75f54d1d720b25f52c2",
+  "prompts": {},
+  "sessions": {
+    "s_9d7feaf3ca7bcc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "eec62015-2bcb-4aba-8224-2b5584c3914d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
