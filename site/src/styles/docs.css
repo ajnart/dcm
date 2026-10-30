@@ -115,6 +115,12 @@ body {
   background: var(--accent);
 }
 
+@media (min-width: 50rem) {
+  .sidebar-pane {
+    view-transition-name: docs-sidebar;
+  }
+}
+
 .site-foot {
   margin-top: 3rem;
   padding-top: 1rem;

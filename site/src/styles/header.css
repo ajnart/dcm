@@ -11,6 +11,7 @@
 }
 
 .site-header {
+  view-transition-name: site-header;
   --ink: var(--site-header-ink);
   --muted: var(--site-header-muted);
   --dim: var(--site-header-muted);

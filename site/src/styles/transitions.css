@@ -2,30 +2,36 @@
   navigation: auto;
 }
 
-.site-header {
-  view-transition-name: site-header;
-}
-
-.site-header .tag {
-  view-transition-name: site-logo;
-}
-
-.apphead .ico,
-.applist .ico {
-  view-transition-name: auto;
+main h1:not(.sl-markdown-content h1) {
+  view-transition-name: page-title;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) {
-    animation: 200ms cubic-bezier(0.4, 0, 1, 1) both vt-out;
+  ::view-transition-group(*) {
+    animation-duration: 180ms;
+    animation-timing-function: ease-out;
   }
-  ::view-transition-new(root) {
-    animation: 340ms cubic-bezier(0.2, 0.8, 0.2, 1) 60ms both vt-in;
+
+  ::view-transition-old(root),
+  ::view-transition-old(page-title) {
+    animation: 180ms ease-out both vt-out;
   }
+
+  ::view-transition-new(root),
+  ::view-transition-new(page-title) {
+    animation: 180ms ease-out both vt-in;
+  }
+
   ::view-transition-group(site-header),
-  ::view-transition-group(site-logo) {
-    animation-duration: 340ms;
-    animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  ::view-transition-group(docs-sidebar),
+  ::view-transition-new(site-header),
+  ::view-transition-new(docs-sidebar) {
+    animation: none;
+  }
+
+  ::view-transition-old(site-header),
+  ::view-transition-old(docs-sidebar) {
+    display: none;
   }
 }
 
@@ -38,15 +44,11 @@
 @keyframes vt-out {
   to {
     opacity: 0;
-    transform: translateY(-16px) scale(0.99);
-    filter: blur(2px);
   }
 }
 
 @keyframes vt-in {
   from {
     opacity: 0;
-    transform: translateY(24px);
-    filter: blur(2px);
   }
 }

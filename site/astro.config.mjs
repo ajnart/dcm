@@ -28,7 +28,7 @@ export default defineConfig({
       favicon: "/logo.svg",
       disable404Route: true,
       expressiveCode: false,
-      customCss: ["./src/styles/theme.css", "./src/styles/shared.css", "./src/styles/docs.css"],
+      customCss: ["./src/styles/theme.css", "./src/styles/shared.css", "./src/styles/docs.css", "./src/styles/transitions.css"],
       components: {
         Header: "./src/components/docs/Header.astro",
         SiteTitle: "./src/components/docs/SiteTitle.astro",
