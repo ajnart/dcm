@@ -1,11 +1,12 @@
 ---
 import "../styles/footer.css";
 import { LINKS } from "../lib/site";
+import ExtLink from "./ExtLink.astro";
 ---
 
 <footer class="foot">
   <span>self-host <span class="muted"><slot name="license">Apache-2.0</slot></span></span>
   <nav aria-label="Footer">
-    <a href="/apps">apps</a><a href="/docs">docs</a><a href={LINKS.github}>github</a><a href={LINKS.discord}>discord</a><a href={LINKS.sponsor}>sponsor</a><a href={LINKS.kofi}>ko-fi</a><a href={LINKS.dcm}>compose</a><a href={LINKS.awesome}>learn more</a><a href="/llms.txt">llms.txt</a><a href="/telemetry">telemetry</a><slot />
+    <a href="/apps">apps</a><a href="/docs">docs</a><ExtLink href={LINKS.github}>github</ExtLink><ExtLink href={LINKS.discord}>discord</ExtLink><ExtLink href={LINKS.sponsor}>sponsor</ExtLink><ExtLink href={LINKS.kofi}>ko-fi</ExtLink><a href={LINKS.dcm}>compose</a><ExtLink href={LINKS.awesome}>learn more</ExtLink><a href="/llms.txt">llms.txt</a><a href="/telemetry">telemetry</a><slot />
   </nav>
 </footer>

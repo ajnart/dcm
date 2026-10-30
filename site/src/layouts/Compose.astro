@@ -5,6 +5,7 @@ import "../styles/transitions.css";
 import { SuggestContainer } from "@/components/suggest-container";
 import og from "../assets/og.png";
 import SiteFooter from "../components/SiteFooter.astro";
+import ExtLink from "../components/ExtLink.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import { VERSION } from "../lib/site";
 
@@ -63,7 +64,7 @@ insertDirective("worker-src blob:");
     </main>
     <SiteFooter>
       <Fragment slot="license">Apache-2.0 · compose AGPL-3.0</Fragment>
-      <a href="https://github.com/ajnart/self-host/tree/main/dcm">compose source</a>
+      <ExtLink href="https://github.com/ajnart/self-host/tree/main/dcm">compose source</ExtLink>
     </SiteFooter>
   </body>
 </html>

@@ -193,6 +193,30 @@
   color: var(--accent-text);
 }
 
+a.ext-link {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.ext-arrow {
+  display: inline-block;
+  margin-left: 0.2em;
+  font-size: 0.85em;
+  text-decoration: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .ver {
   color: var(--dim);
   text-decoration: none;

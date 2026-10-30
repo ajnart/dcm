@@ -52,7 +52,12 @@
 
 .site-header .ext {
   gap: 1rem;
+  margin-left: 0;
   font-size: inherit;
+}
+
+.site-header-tools:empty + .ext {
+  margin-left: auto;
 }
 
 .site-header-tools {

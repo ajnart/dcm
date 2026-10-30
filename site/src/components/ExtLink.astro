@@ -1,0 +1,9 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+type Props = Omit<HTMLAttributes<"a">, "target" | "rel"> & { href: string };
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<a {...rest} class:list={["ext-link", className]} target="_blank" rel="noopener"><slot /><span class="ext-arrow" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
