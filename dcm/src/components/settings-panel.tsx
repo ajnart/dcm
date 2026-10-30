@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { track } from "@/lib/analytics"
+import { track } from "@/lib/track"
 import { useEffect, useState } from "react"
 
 interface SettingsPanelProps {

@@ -1,4 +1,4 @@
-import { track } from "@/lib/analytics";
+import { track } from "../lib/analytics";
 import { copy } from "./util.js";
 
 const trackCopy = (block) => {

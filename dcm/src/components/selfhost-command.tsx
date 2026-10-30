@@ -9,8 +9,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useClipboard } from "@/hooks/use-clipboard"
-import { track } from "@/lib/analytics"
 import { SELFHOST_INSTALL, SELFHOST_URL } from "@/lib/selfhost"
+import { track } from "@/lib/track"
 import { cn } from "@/lib/utils"
 import { Check, CircleHelp, Copy, ExternalLink } from "lucide-react"
 import { useRef } from "react"

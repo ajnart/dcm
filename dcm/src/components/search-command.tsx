@@ -7,8 +7,8 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { DialogTitle } from "@/components/ui/dialog"
-import { track } from "@/lib/analytics"
 import type { CatalogEntry } from "@/lib/catalog"
+import { track } from "@/lib/track"
 import { Check } from "lucide-react"
 import { useEffect, useState } from "react"
 

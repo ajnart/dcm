@@ -52,13 +52,17 @@ only on `self-host.fyi`: a local copy of the site, a preview or the
 `ghcr.io/ajnart/dcm` image sends nothing. This is separate from the CLI
 Telemetry above, and `SELF_HOST_NO_TELEMETRY` does not control it.
 
-Every page sends `$pageview` (the page URL, the referrer, and the browser, OS and
-screen size PostHog adds to every event). The named events carry Catalog or
-Container ids, counts and fixed values only:
+Every page sends `$pageview`. PostHog's browser library adds properties to every
+event: the page URL, referrer and path (query string and fragment removed before
+sending), browser name and version, OS, device type, viewport and screen size,
+time zone, language and library version. The request also reaches the proxy
+with your IP address, as any request does; the site does not rely on a
+server-side IP setting. The named events carry Catalog or Container ids, counts
+and fixed values only:
 
 | Event                         | Sent when                                                   | Properties                          |
 | ----------------------------- | ----------------------------------------------------------- | ----------------------------------- |
-| `install_command_copied`      | you copy the install command on the home or 404 page        | `method` (curl, wget, ...)          |
+| `install_command_copied`      | you copy the install command on the home or 404 page        | `method` (`curl`, `wget`, ...)      |
 | `app_install_copied`          | you copy `self-host install <app>` on an App page           | `app`                               |
 | `recipe_install_copied`       | you copy a Recipe's install command on an App page          | `recipe`                            |
 | `share_link_copied`           | you copy the share link of the home page selection          | `count`                             |
@@ -78,8 +82,8 @@ Container ids, counts and fixed values only:
 | `dcm_suggest_issue_opened`    | you open the issue template from the Suggest container page | none                                |
 
 `file` is `compose` or `env`. Never sent: what you type, the search
-query, Compose or `.env` content, settings values and the app name and
-repository you type on the Suggest container page. See [ADR 0013](https://github.com/ajnart/self-host/blob/main/docs/adr/0013-website-analytics.md).
+query, query strings and fragments, Compose or `.env` content, settings values
+and the app name and repository you type on the Suggest container page. See [ADR 0013](https://github.com/ajnart/self-host/blob/main/docs/adr/0013-website-analytics.md).
 
 ## What is never sent automatically
 

@@ -1,4 +1,3 @@
-import { track } from "@/lib/analytics"
 import {
   CATALOG_MODES,
   type CatalogMode,
@@ -6,6 +5,7 @@ import {
   MODE_PATHS,
   modeHref,
 } from "@/lib/modes"
+import { track } from "@/lib/track"
 import { cn } from "@/lib/utils"
 import type { MouseEvent } from "react"
 

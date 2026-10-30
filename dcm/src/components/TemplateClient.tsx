@@ -19,13 +19,13 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useClipboard } from "@/hooks/use-clipboard"
-import { track } from "@/lib/analytics"
 import { type CatalogEntry, selfHostRecipeId } from "@/lib/catalog"
 import { buildExport } from "@/lib/export"
 import { downloadFile } from "@/lib/export/download"
 import { routes } from "@/lib/routes"
 import { useSettings } from "@/lib/settings-context"
 import type { Template } from "@/lib/templates"
+import { track } from "@/lib/track"
 import {
   AlertTriangle,
   ArrowLeft,

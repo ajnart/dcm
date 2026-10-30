@@ -1,4 +1,4 @@
-import { track } from "@/lib/analytics";
+import { track } from "../lib/analytics";
 import { apps as APPS, appById, starLabel } from "../lib/catalog";
 import { selection } from "./selection.js";
 import { $, copy, esc, iconEl, toast } from "./util.js";

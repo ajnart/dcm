@@ -1,14 +1,14 @@
 ---
 import { highlightLines } from "../lib/codeblock.mjs";
 
-type Variant = { label: string; code: string; lang?: string };
+type Variant = { label: string; slug?: string; code: string; lang?: string };
 
 interface Props {
   code?: string;
   lang?: string;
   label?: string;
   id?: string;
-  variants?: Variant[];
+  variants?: readonly Variant[];
   track?: "install" | "app" | "recipe";
   trackId?: string;
 }
@@ -24,7 +24,7 @@ const variants = Astro.props.variants ?? [{ label: label ?? lang, code }];
       variants.length > 1 ? (
         <select class="variant" aria-label={label ?? "Variant"}>
           {variants.map((v, i) => (
-            <option value={i} data-method={slug(v.label)}>{v.label}</option>
+            <option value={i} data-method={v.slug ?? slug(v.label)}>{v.label}</option>
           ))}
         </select>
       ) : (

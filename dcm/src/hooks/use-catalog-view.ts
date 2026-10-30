@@ -1,7 +1,7 @@
 import { useSelection } from "@/hooks/use-selection"
-import { track } from "@/lib/analytics"
 import { type Catalog, entriesForMode, partitionSelection } from "@/lib/catalog"
 import type { CatalogMode } from "@/lib/modes"
+import { track } from "@/lib/track"
 import { useMemo } from "react"
 
 export function useCatalogView(catalog: Catalog, mode: CatalogMode) {

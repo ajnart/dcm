@@ -4,7 +4,7 @@ import { siDocker } from "simple-icons"
 
 import SettingsForm from "@/components/settings/SettingsForm"
 import { useClipboard } from "@/hooks/use-clipboard"
-import { track } from "@/lib/analytics"
+import { track } from "@/lib/track"
 
 import {
   AlertDialog,
