@@ -15,10 +15,10 @@ Run this from the repository root and paste the result in the pull request:
 
 ```bash
 export GOFLAGS=-buildvcs=false
-gofmt -l .
+gofmt -l .                       # must print nothing
 go build ./... && go vet ./... && go vet -tags e2e ./e2e/
 go test ./...
-go test -race ./internal/tui/ ./internal/activity/
+go test -race ./internal/tui/ ./internal/activity/   # plus any package with goroutines you touched
 bash -n install.sh
 ```
 
@@ -36,10 +36,10 @@ For optional workflow execution on macOS, see [Local CI with act](docs/local-ci.
 ```bash
 bun install --frozen-lockfile
 go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/src/styles
-bunx turbo run build test lint
+bunx turbo run build test lint check
 ```
 
-`dcm/tests/validate-compose.test.ts` needs Docker; CI runs it.
+`bun test` in `dcm/` needs no Docker: `turbo run test` skips `dcm/tests/validate-compose.test.ts` because it runs `docker compose config`, which CI runs as `test:compose` (`cd dcm && bun run test:compose`, Docker required). Turbo caches every task and the site build reads the release version and changelog from git and GitHub, which it cannot hash: set `SELF_HOST_SITE_VERSION=0.0.0` (as CI does) or add `--force` so a cache hit does not show a stale release.
 
 ## Pull requests
 
