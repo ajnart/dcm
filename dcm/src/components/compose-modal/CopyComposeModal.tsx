@@ -34,7 +34,7 @@ import {
 } from "@/lib/docker-compose/file-operations"
 import {
   generateComposeContent,
-  generateEnvFileContent,
+  generateEnvFile,
 } from "@/lib/docker-compose/generators"
 import ActionButtons from "./ActionButtons"
 import PortConflictsAlert from "./PortConflictsAlert"
@@ -79,7 +79,7 @@ export function CopyComposeModal({
   useEffect(() => {
     if (!isOpen) return
 
-    const envContent = generateEnvFileContent(settings)
+    const envContent = generateEnvFile(selectedTools, settings)
     setEnvFileContent(envContent)
 
     const { content, portConflicts } = generateComposeContent(

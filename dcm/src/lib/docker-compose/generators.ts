@@ -8,9 +8,28 @@ type ComposeSource = DockerTool & { env?: SelfHostEnvVar[] }
 
 const SECRET_PLACEHOLDER = "change-me"
 
+const VARIABLE_REFERENCE =
+  /(?<!\$)\$\{([A-Za-z_][A-Za-z0-9_]*)(:?[-+?=][^}]*)?\}/g
+
+function hasKey(content: string, key: string): boolean {
+  return new RegExp(`^${key}=`, "m").test(content)
+}
+
+function requiredVariables(content: string): string[] {
+  const names = new Set<string>()
+  for (const line of content.split("\n")) {
+    if (line.trim().startsWith("#")) continue
+    for (const match of line.matchAll(VARIABLE_REFERENCE)) {
+      const operator = match[2]?.replace(/^:/, "")[0]
+      if (!operator || operator === "?") names.add(match[1])
+    }
+  }
+  return [...names]
+}
+
 function selfHostEnvBlock(tool: ComposeSource, existing: string): string {
   const missing = (tool.env ?? []).filter(
-    (variable) => !new RegExp(`^${variable.key}=`, "m").test(existing),
+    (variable) => !hasKey(existing, variable.key),
   )
   if (missing.length === 0) return ""
   const lines = missing.flatMap((variable) => {
@@ -27,7 +46,7 @@ function selfHostEnvBlock(tool: ComposeSource, existing: string): string {
   return `\n# ${tool.name} specific environment variables\n${lines.join("\n")}\n`
 }
 
-export function generateEnvFileContent(settings: DockerSettings): string {
+function generateEnvFileContent(settings: DockerSettings): string {
   return `# Docker Compose Environment Variables
 # These can be overridden by setting them in your shell or in a .env file
 
@@ -51,58 +70,44 @@ NETWORK_MODE=${settings.networkMode}
 `
 }
 
+function composeEnvBlock(tool: ComposeSource, existing: string): string {
+  const content = tool.composeContent ?? ""
+  const lines: string[] = []
+  const has = (key: string) =>
+    hasKey(existing, key) || lines.some((line) => line.startsWith(`${key}=`))
+
+  if (/environment:(?:\s*-\s*([A-Z0-9_]+)=.+)+/ms.test(content)) {
+    for (const match of content.matchAll(/^\s*-\s*([A-Z0-9_]+)=(.+)$/gm)) {
+      const value = match[2].trim().replace(/^(["'])(.*)\1$/, "$2")
+      if (value.includes("${") || has(match[1])) continue
+      lines.push(`${match[1]}=${value}`)
+    }
+  }
+
+  const required = requiredVariables(content).filter((name) => !has(name))
+  if (required.length > 0) {
+    lines.push(
+      "# Required: set a value before starting",
+      ...required.map((name) => `${name}=`),
+    )
+  }
+
+  if (lines.length === 0) return ""
+  return `\n# ${tool.name} specific environment variables\n${lines.join("\n")}\n`
+}
+
 export function generateEnvFile(
   selectedTools: ComposeSource[],
   settings: DockerSettings,
 ): string {
-  // Start with the base environment variables
   let envContent = generateEnvFileContent(settings)
 
-  // Extract any custom environment variables from the tools
-  selectedTools.forEach((tool) => {
-    if (!tool.composeContent) return
-
-    if (tool.verbatim) {
-      envContent += selfHostEnvBlock(tool, envContent)
-      return
-    }
-
-    // Look for environment variables in the compose content
-    const envMatches = tool.composeContent.match(
-      /environment:(?:\s*-\s*([A-Z0-9_]+)=.+)+/gms,
-    )
-
-    if (envMatches && envMatches.length > 0) {
-      envContent += `\n# ${tool.name} specific environment variables\n`
-
-      // Extract each variable
-      const varMatches = tool.composeContent.match(
-        /\s*-\s*([A-Z0-9_]+)=([^\n]+)/g,
-      )
-      if (varMatches) {
-        varMatches.forEach((match) => {
-          const parts = match.match(/\s*-\s*([A-Z0-9_]+)=([^\n]+)/)
-          if (parts && parts.length >= 3) {
-            const varName = parts[1]
-            let varValue = parts[2].trim()
-
-            // Remove any quotes from the value
-            if (
-              (varValue.startsWith('"') && varValue.endsWith('"')) ||
-              (varValue.startsWith("'") && varValue.endsWith("'"))
-            ) {
-              varValue = varValue.substring(1, varValue.length - 1)
-            }
-
-            // Only add if it's not already a system variable we provide
-            if (!envContent.includes(`${varName}=`)) {
-              envContent += `${varName}=${varValue}\n`
-            }
-          }
-        })
-      }
-    }
-  })
+  for (const tool of selectedTools) {
+    if (!tool.composeContent) continue
+    envContent += tool.verbatim
+      ? selfHostEnvBlock(tool, envContent)
+      : composeEnvBlock(tool, envContent)
+  }
 
   return envContent
 }
