@@ -1,0 +1,21 @@
+site/src/styles/docs.css
+  s_1a7479eea066df::t_ba7e986ff6a889 74-76,86
+site/src/styles/header.css
+  s_1a7479eea066df::t_b22a1481233c74 50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cdea2d89e192511734000410786434f47f59207c",
+  "prompts": {},
+  "sessions": {
+    "s_1a7479eea066df": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e74437a-7eab-47ac-ae87-562599ce118d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
