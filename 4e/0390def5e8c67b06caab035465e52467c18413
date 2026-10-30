@@ -1,0 +1,29 @@
+.github/ISSUE_TEMPLATE/dcm-container-submission.yml
+  s_38edb9ae0409b0::t_73cb255c7c31e3 106,108
+README.md
+  s_38edb9ae0409b0::t_044c90474eb361 318
+dcm/CONTRIBUTING.md
+  s_38edb9ae0409b0::t_7ef067aa93b342 3,67-73,75-77,84,86,104
+dcm/README.md
+  s_38edb9ae0409b0::t_4bb9daa6a7237a 18,44,109,181,185,229
+dcm/tests/README.md
+  s_38edb9ae0409b0::t_442287e641cf23 12
+docs/agents/dcm.md
+  s_38edb9ae0409b0::t_7dedf536f33b70 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4e0390def5e8c67b06caab035465e52467c18413",
+  "prompts": {},
+  "sessions": {
+    "s_38edb9ae0409b0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5aaa771c-cf7a-477a-881b-fa1313c0ae7b",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
