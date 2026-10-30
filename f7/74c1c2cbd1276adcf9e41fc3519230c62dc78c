@@ -1,0 +1,43 @@
+dcm/src/components/suggest-page.tsx
+  s_1a7479eea066df::t_fdf5df06222d2e 1-2,4-6,8-11,13-17,19,21,24-27,29-109
+dcm/src/lib/analytics.ts
+  s_1a7479eea066df::t_012e2b04c7116e 38-39
+dcm/src/lib/routes.ts
+  s_1a7479eea066df::t_8cd8c19f8e7b31 6
+dcm/src/lib/suggest.ts
+  s_1a7479eea066df::t_e0287ab134403d 1-21
+docs/adr/0013-website-analytics.md
+  s_1a7479eea066df::t_36d7ee677b1b15 35
+docs/agents/dcm.md
+  s_1a7479eea066df::t_742069ce9f98f9 14
+docs/telemetry.md
+  s_1a7479eea066df::t_44823c4009d606 59-78,81-82
+site/src/layouts/Compose.astro
+  s_1a7479eea066df::t_9ef80b2911b413 5-7,63-68
+site/src/pages/compose/suggest.astro
+  s_0ccc0b5fe43235::t_ad499ca7e9deb8 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f774c1c2cbd1276adcf9e41fc3519230c62dc78c",
+  "prompts": {},
+  "sessions": {
+    "s_0ccc0b5fe43235": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5aa2188f-21d4-4355-a28c-418878c9ab13",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    },
+    "s_1a7479eea066df": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1e74437a-7eab-47ac-ae87-562599ce118d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
