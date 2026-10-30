@@ -15,7 +15,6 @@ mkdir "$output"
 command -v bun >/dev/null || { printf 'bun is required to build the site.\n' >&2; exit 1; }
 (cd "$root" && bun install --frozen-lockfile)
 (cd "$root/site" && bun run build --outDir "$output/public")
-command cp "$root/site/wrangler.toml" "$output/wrangler.toml"
 awk -v repo="$repo" '/^DEFAULT_REPO=/ { print "DEFAULT_REPO=\"" repo "\""; next } { print }' "$root/install.sh" > "$output/public/install.sh"
 bash -n "$output/public/install.sh"
 (cd "$output/public" && shasum -a 256 install.sh > install.sh.sha256 && command cp install.sh install)
