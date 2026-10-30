@@ -32,7 +32,6 @@
 html {
   scroll-behavior: smooth;
   overflow-x: clip;
-  scrollbar-color: var(--control-border) var(--bg);
 }
 
 body {

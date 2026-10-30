@@ -17,6 +17,10 @@ export const configureMonacoThemes = (monaco: Monaco) => {
       "editorLineNumber.foreground": "#9995a6",
       "editor.selectionBackground": "#2b2140",
       "editor.inactiveSelectionBackground": "#23222f",
+      "scrollbar.shadow": "#00000000",
+      "scrollbarSlider.background": "#777185",
+      "scrollbarSlider.hoverBackground": "#aaa8b5",
+      "scrollbarSlider.activeBackground": "#aaa8b5",
     },
   })
 }
@@ -51,6 +55,7 @@ export const ComposeEditor = memo(
         minimap: { enabled: false },
         readOnly,
         scrollBeyondLastLine: false,
+        scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
         wordWrap: "on",
       }}
       theme={theme}
@@ -82,6 +87,7 @@ export const EnvEditor = memo(
         minimap: { enabled: false },
         readOnly,
         scrollBeyondLastLine: false,
+        scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
         wordWrap: "on",
       }}
       theme={theme}
