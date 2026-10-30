@@ -1,0 +1,14 @@
+turbo.json
+  h_d6e478ca18e517 8,10-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a5a58e0d749fb0270b35b0f38f6af32ac03e6ebd",
+  "prompts": {},
+  "humans": {
+    "h_d6e478ca18e517": {
+      "author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
