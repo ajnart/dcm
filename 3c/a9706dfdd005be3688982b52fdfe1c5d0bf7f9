@@ -1,0 +1,23 @@
+.github/workflows/dcm-image.yml
+  s_5013180a90d48a::t_1c66d5b0abff94 63
+scripts/build-site-pages.sh
+  s_5013180a90d48a::t_aaf94ad7c9ec56 8
+turbo.json
+  s_5013180a90d48a::t_6fa170c45103e5 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3ca9706dfdd005be3688982b52fdfe1c5d0bf7f9",
+  "prompts": {},
+  "sessions": {
+    "s_5013180a90d48a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e70f1b74-c1de-4a0d-bd9a-1492447bd4ee",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
