@@ -1,0 +1,19 @@
+.github/workflows/dcm-add-container.yml
+  s_a91f4b733e8ee4::t_e34da7923a3810 38,45,55,60,63,85,102,113,122,131,138,146,150,154,157,160,166,174,182,187,192,194,199,202,243,245,251,254,256-258,260
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "48cdf670efa213d876802d501f353378dedaf27b",
+  "prompts": {},
+  "sessions": {
+    "s_a91f4b733e8ee4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2f0f81a4-3fff-4415-afef-7b285a1a665c",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
