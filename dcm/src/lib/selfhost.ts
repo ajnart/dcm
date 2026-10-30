@@ -11,6 +11,7 @@ export interface SelfHostEnvVar {
   default: string
   description: string
   secret: boolean
+  external?: boolean
 }
 
 export interface SelfHostApp {
@@ -38,6 +39,7 @@ export interface SelfHostRecipe {
 
 export const selfHostApps: SelfHostApp[] = data.apps
 export const selfHostRecipes: SelfHostRecipe[] = data.recipes
+export const selfHostGlobals: SelfHostEnvVar[] = data.globals
 
 const appIds = new Set(selfHostApps.map((app) => app.id))
 

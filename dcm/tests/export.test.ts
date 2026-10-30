@@ -228,30 +228,73 @@ describe("buildExport: env", () => {
     }
   })
 
-  test("generates every secret a standalone App can generate, and only those", () => {
+  test("generates every secret a standalone App owns and blanks the ones another service issues", () => {
     let generated = 0
-    let placeholders = 0
+    let external = 0
     for (const app of selfHostApps.filter((item) => item.standalone)) {
       const entry = composable.find((item) => item.selfhostId === app.id)
       if (!entry) continue
       const { env } = buildExport([entry.id], catalog, DEFAULT_SETTINGS, {
         randomBytes: filledBytes,
       })
+      expect(env).not.toContain("change-me")
       for (const variable of app.env.filter((item) => item.secret)) {
         const value = envValue(env, variable.key)
         if (value === undefined) continue
-        const bytes = variable.description.match(GENERATE_HINT)?.[1]
-        if (bytes) {
-          expect(value).toBe("ab".repeat(Number(bytes)))
-          generated += 1
-        } else {
-          expect(value).toBe("change-me")
-          placeholders += 1
+        if (variable.external) {
+          expect(value).toBe("")
+          expect(env).toContain(`# ${variable.description}`)
+          external += 1
+          continue
         }
+        const bytes = variable.description.match(GENERATE_HINT)?.[1]
+        expect(value).toBe("ab".repeat(bytes ? Number(bytes) : 24))
+        generated += 1
       }
     }
     expect(generated).toBeGreaterThan(0)
-    expect(placeholders).toBeGreaterThan(0)
+    expect(external).toBeGreaterThan(0)
+  })
+
+  describe("a secret with no generate hint", () => {
+    const synthetic: CatalogEntry = {
+      id: "synthetic",
+      name: "Synthetic",
+      description: "",
+      category: "Test",
+      tags: [],
+      verbatim: true,
+      composeContent:
+        "services:\n  synthetic:\n    image: synthetic\n    environment:\n      - OWNED=${OWNED}\n      - ISSUED=${ISSUED}\n",
+      env: [
+        { key: "OWNED", default: "", description: "", secret: true },
+        {
+          key: "ISSUED",
+          default: "",
+          description: "Token the hub shows when you add a system",
+          secret: true,
+          external: true,
+        },
+      ],
+    }
+    const { env } = exportOf(["synthetic"], { entries: [synthetic] })
+
+    test("gets random hex", () => {
+      expect(envValue(env, "OWNED")).toMatch(/^[0-9a-f]{48}$/)
+    })
+
+    test("is blank with the description when another service issues it", () => {
+      expect(envValue(env, "ISSUED")).toBe("")
+      expect(env).toContain(
+        "# Token the hub shows when you add a system\n# External value: not generated, get it from the service it belongs to\nISSUED=",
+      )
+    })
+  })
+
+  test("derives the settings defaults from the shared globals", () => {
+    const { env } = exportOf([])
+    expect(envValue(env, "CONFIG_PATH")).toBe(DEFAULT_SETTINGS.configPath)
+    expect(envValue(env, "TZ")).toBe(DEFAULT_SETTINGS.timezone)
   })
 
   test("generates the admin password of an App instead of a placeholder", () => {

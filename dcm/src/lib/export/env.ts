@@ -2,10 +2,9 @@ import type { DockerSettings } from "@/lib/settings"
 import { type EmittedTool, type PlacedTool, keptContent } from "./compose"
 import type { RandomBytes } from "./types"
 
-const SECRET_PLACEHOLDER = "change-me"
-
 const GENERATE_HINT = /openssl rand -hex (\d+)/
 const MAX_SECRET_BYTES = 64
+const DEFAULT_SECRET_BYTES = 24
 
 export const browserRandomBytes: RandomBytes = (length) =>
   crypto.getRandomValues(new Uint8Array(length))
@@ -93,15 +92,15 @@ function appVariables(
   if (missing.length === 0) return ""
   const lines = missing.flatMap((variable) => {
     const note = variable.description ? [`# ${variable.description}`] : []
+    if (variable.external) {
+      return [
+        ...note,
+        "# External value: not generated, get it from the service it belongs to",
+        `${variable.key}=`,
+      ]
+    }
     if (variable.secret) {
-      const length = secretLength(variable.description)
-      if (length === null) {
-        return [
-          ...note,
-          "# Secret: replace before starting",
-          `${variable.key}=${SECRET_PLACEHOLDER}`,
-        ]
-      }
+      const length = secretLength(variable.description) ?? DEFAULT_SECRET_BYTES
       return [
         ...note,
         "# Secret: generated in your browser, keep it private",

@@ -1,3 +1,5 @@
+import { selfHostGlobals } from "./selfhost"
+
 export interface DockerSettings {
   configPath: string
   dataPath: string
@@ -10,14 +12,20 @@ export interface DockerSettings {
   containerNamePrefix: string
 }
 
+function globalDefault(key: string): string {
+  const entry = selfHostGlobals.find((variable) => variable.key === key)
+  if (!entry) throw new Error(`selfhost.json has no global ${key}`)
+  return entry.default
+}
+
 export const DEFAULT_SETTINGS: DockerSettings = {
-  configPath: "/opt/appdata/config",
-  dataPath: "/opt/appdata/data",
-  timezone: "UTC",
-  puid: "1000",
-  pgid: "1000",
-  umask: "022",
-  restartPolicy: "unless-stopped",
+  configPath: globalDefault("CONFIG_PATH"),
+  dataPath: globalDefault("DATA_PATH"),
+  timezone: globalDefault("TZ"),
+  puid: globalDefault("PUID"),
+  pgid: globalDefault("PGID"),
+  umask: globalDefault("UMASK"),
+  restartPolicy: globalDefault("RESTART_POLICY"),
   networkMode: "bridge",
-  containerNamePrefix: "",
+  containerNamePrefix: globalDefault("CONTAINER_PREFIX"),
 }
