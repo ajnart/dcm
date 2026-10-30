@@ -1,6 +1,9 @@
 # Contributing to Docker Compose Maker
 
-Thank you for your interest in contributing to DCM (Docker Compose Maker)! This document provides guidelines for contributing to the project, particularly for adding new container definitions.
+Thank you for your interest in contributing to DCM (Docker Compose Maker)! DCM lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose). This document covers contributing to it, particularly adding new container definitions. For the rest of the repository, see the root [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+> [!NOTE]
+> The Apps shown in DCM's **self-host** mode come from the self-host Catalog in `internal/apps/`, and their compose lives in the generated `dcm/src/data/selfhost.json`. Edit an App under `internal/apps/` and run `go run ./tools/sitegen`; never edit the JSON by hand. The container definitions below are the ones only DCM defines, shown in **All** mode.
 
 ## Adding New Containers
 
@@ -8,18 +11,18 @@ The easiest way to contribute is by adding new container definitions! We now hav
 
 ### Option 1: Use the GitHub Issue Template (Recommended)
 
-1. [Open a new Container Submission issue](https://github.com/ajnart/dcm/issues/new?template=container-submission.yml)
+1. [Open a new Container Submission issue](https://github.com/ajnart/self-host/issues/new?template=dcm-container-submission.yml)
 2. Fill out all required fields following the examples provided
 3. Submit the issue
-4. When a maintainer tags the issue as "accepted", a GitHub Action will automatically create a pull request with your container definition!
+4. When a maintainer tags the issue as "accepted", the `dcm-add-container` GitHub Action will automatically create a pull request with your container definition!
 
 ### Option 2: Contribute Directly
 
-The project organizes container definitions in the `tools/` directory. Each file represents a category of tools, and all tools are exported from the `tools/index.ts` file.
+The project organizes container definitions in the `dcm/src/tools/` directory. Each file represents a category of tools, and all tools are exported from `dcm/src/tools/index.ts`.
 
 ### File Structure
 
-The `tools/` directory contains the following files (as of 2025-03-20):
+The `dcm/src/tools/` directory contains the following files:
 
 - `automation.ts` - Home automation and related containers
 - `database.ts` - Database containers (MySQL, PostgreSQL, etc.)
@@ -50,13 +53,13 @@ interface DockerTool {
 
 ### How to Add a New Container
 
-1. Identify the appropriate category file in the `tools/` directory.
+1. Identify the appropriate category file in `dcm/src/tools/`.
 2. Add your container definition to the appropriate array.
-3. Ensure the `tools/index.ts` file includes your category file (if it's a new category).
+3. Ensure `dcm/src/tools/index.ts` includes your category file (if it's a new category).
 
 #### Example: Adding a New Media Container
 
-1. Open `tools/media.ts`
+1. Open `dcm/src/tools/media.ts`
 2. Add your definition to the `media` array:
 
 ```typescript
@@ -88,7 +91,7 @@ interface DockerTool {
 
 #### Example: Adding a Database Container
 
-1. Open `tools/database.ts`
+1. Open `dcm/src/tools/database.ts`
 2. Add your definition to the `databases` array:
 
 ```typescript
@@ -121,7 +124,7 @@ interface DockerTool {
 
 If you need to create a new category:
 
-1. Create a new file in the `tools/` directory (e.g., `newcategory.ts`)
+1. Create a new file in `dcm/src/tools/` (e.g., `newcategory.ts`)
 2. Define your array:
 
 ```typescript
@@ -132,7 +135,7 @@ export const newcategory: DockerTool[] = [
 ];
 ```
 
-3. Add the new category to `tools/index.ts`:
+3. Add the new category to `dcm/src/tools/index.ts`:
 
 ```typescript
 import { newcategory } from "./newcategory";
@@ -165,18 +168,20 @@ When writing the `composeContent` for a container:
 
 After adding your container definition:
 
-1. Run the application locally to verify it appears correctly.
+1. Install at the repository root with `bun install` (one bun workspace; there is no `dcm/bun.lock`), then run `bun run --cwd dcm dev` to verify the container appears in **All** mode.
 2. Test generating a docker-compose file with your container.
 3. Verify the generated docker-compose file works correctly when deployed.
-4. Run the automated tests to ensure your container passes validation:
+4. Run the automated tests from `dcm/` to ensure your container passes validation:
 
 ```bash
-# Test your container's Docker Compose validation
-bun test:compose
-
 # Test your container passes the schema validation
-bun test:containers
+bun run test:containers
+
+# Test your container's Docker Compose validation (needs Docker)
+bun run test:compose
 ```
+
+5. From the repository root, run `bunx turbo run build lint`.
 
 All tests should pass before submitting a pull request. The tests validate:
 - That your Docker Compose template is syntactically valid
@@ -185,9 +190,9 @@ All tests should pass before submitting a pull request. The tests validate:
 
 ## Submitting Your Changes
 
-1. Create a fork of the repository.
+1. Create a fork of [ajnart/self-host](https://github.com/ajnart/self-host).
 2. Create a branch for your changes.
 3. Commit your changes with a clear commit message.
-4. Open a pull request, detailing the containers you've added.
+4. Open a pull request, detailing the containers you've added. Use a conventional commit title such as `feat(dcm): add <name>`.
 
 Thank you for helping improve Docker Compose Maker! 

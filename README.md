@@ -291,7 +291,7 @@ More in the [troubleshooting docs](https://self-host.fyi/docs/troubleshooting).
 > [!WARNING]
 > self-host installs and connects software; what you do with it is your responsibility. Download clients, indexers and media automation have legitimate uses: Linux ISOs, public-domain and Creative Commons works, and media you own or are licensed to copy. **We do not condone piracy and do not help anyone find or download content they have no right to.** self-host ships no indexers, trackers or content sources. Follow copyright law where you live and the terms of every service you connect.
 
-The software is provided as is, without warranty (Apache-2.0). The maintainers are not liable for how it is used.
+The software is provided as is, without warranty (Apache-2.0; `dcm/` is AGPL-3.0). The maintainers are not liable for how it is used.
 
 ## Telemetry
 
@@ -312,6 +312,22 @@ Nothing is stored to link one run to another. The maintainers use it to see whic
 To turn it off, set `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` (or `true`). The full list is on the [telemetry page](https://self-host.fyi/telemetry).
 
 </details>
+
+## Docker Compose Maker
+
+Prefer to own the YAML? [Docker Compose Maker](https://self-host.fyi/compose) (DCM) turns the Apps you pick into a `docker-compose.yaml` and `.env`, with a Template gallery and community upvotes. It lists every App in the Catalog with the same compose self-host installs, and `All` mode adds containers only DCM defines. It lives in [`dcm/`](dcm/) and also runs standalone: `docker run -p 7576:7576 ghcr.io/ajnart/dcm`.
+
+## Repository layout
+
+| Path | What it is |
+| --- | --- |
+| `cmd/`, `internal/` | The Go binary: CLI, Dashboard, the Catalog and every App. |
+| `site/` | The Astro site at self-host.fyi. |
+| `dcm/` | Docker Compose Maker, served at self-host.fyi/compose. AGPL-3.0 ([`dcm/LICENSE`](dcm/LICENSE)). |
+| `tools/sitegen` | Writes the site's and DCM's data from the Catalog. |
+| `docs/` | Decisions, agent briefs, release notes and proofs. |
+
+`site/` and `dcm/` are one bun workspace: run `bun install` at the root. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Community and support
 

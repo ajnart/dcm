@@ -170,6 +170,29 @@ or Easy names claims a port. `--extra` opts into slower resource,
 connectivity, filesystem and temporary Docker resource checks; the temporary
 network and volume have unique names and are removed before the report ends.
 
+**DCM**:
+Docker Compose Maker, the web app at `self-host.fyi/compose` (source in `dcm/`)
+that turns picked Containers into a `docker-compose.yaml` and `.env` for people
+who keep their own YAML. It is also published as the `ghcr.io/ajnart/dcm`
+image. It shows every App's standalone compose, generated from the Catalog,
+next to the Containers only DCM defines.
+_Avoid_: compose maker (alone), generator
+
+**Container**:
+One entry in DCM's gallery: a compose service definition in `dcm/src/tools/`,
+or an App taken from the Catalog. Distinct from a Docker container.
+_Avoid_: tool (the code's `DockerTool` type), App (that is a Catalog entry with Setup)
+
+**Template**:
+A named set of Containers DCM adds to the selection in one click. A Recipe from
+the Catalog shows up as a Template in DCM.
+_Avoid_: stack, preset
+
+**DCM mode**:
+**self-host** (default) lists only the Catalog's Apps; **All** adds the Containers
+only DCM defines. Chosen with `?mode=all` and remembered in the browser.
+_Avoid_: view, filter
+
 **Telemetry**:
 Anonymous data sent to the project's PostHog (through `hog.ajnart.dev`), on by
 default in releases and mentioned on Onboarding's Welcome step with a link to
@@ -274,6 +297,7 @@ single key changes an App or the Project.
 ## Relationships
 
 - A **Recipe** selects one or more **Apps**; an **App** can belong to many **Recipes**
+- **DCM** lists every **App** of the **Catalog** as a **Container**, plus its own; a **Recipe** is a **Template** there
 - A **Backup** covers one or more **Apps**; a **Restore** can target any single **App** inside it
 - The **Dashboard** shows every **App** with one **Status**; each **Needs attention** item points at one **App** (or the host) and one **Action**
 - A failing **Link** makes its consuming **App** need attention, not its target

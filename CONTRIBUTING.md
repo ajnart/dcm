@@ -26,6 +26,21 @@ Docker, e2e and browser runs happen only when the ticket asks.
 
 For optional workflow execution on macOS, see [Local CI with act](docs/local-ci.md).
 
+## Web and DCM
+
+`site/` (self-host.fyi) and `dcm/` (Docker Compose Maker, self-host.fyi/compose) are one bun workspace. Run `bun install` at the root only; there is one `bun.lock`. Read `docs/agents/dcm.md` first.
+
+- To add a container to DCM, edit `dcm/src/tools/` (or open a Container submission issue). An App in the Catalog is edited under `internal/apps/`, then `go run ./tools/sitegen` regenerates `site/src/data`, `dcm/src/data` and `site/src/styles`; never hand-edit those.
+- Run when you touch `site/`, `dcm/` or `tools/sitegen/`:
+
+```bash
+bun install --frozen-lockfile
+go run ./tools/sitegen && git diff --exit-code site/src/data dcm/src/data site/src/styles
+DCM_BASE=/compose bunx turbo run build test lint
+```
+
+`dcm/tests/validate-compose.test.ts` needs Docker; CI runs it.
+
 ## Pull requests
 
 Use conventional commit titles, one ticket per branch, and end the body with `Closes #<n>`. Disclose material AI assistance. Keep secrets, private hosts and session data out of every file and screenshot.

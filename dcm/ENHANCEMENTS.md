@@ -9,9 +9,9 @@ This document lists potential enhancements, bug fixes, and improvements that cou
 **Description:** A GitHub Action that automatically creates pull requests when a container submission issue is tagged as "accepted" by maintainers.
 
 **Files:**
-- `.github/workflows/auto-add-container.yml` - New workflow
-- `.github/ISSUE_TEMPLATE/container-submission.yml` - Enhanced with better instructions
-- `CONTRIBUTING.md` - Updated to mention automated workflow
+- `.github/workflows/dcm-add-container.yml` (repository root) - Workflow that adds the container under `dcm/src/tools/`
+- `.github/ISSUE_TEMPLATE/dcm-container-submission.yml` (repository root) - Container submission form
+- `dcm/CONTRIBUTING.md` - Mentions the automated workflow
 
 **Benefits:**
 - Reduces manual work for maintainers
@@ -23,9 +23,9 @@ This document lists potential enhancements, bug fixes, and improvements that cou
 **Description:** Fixed spelling of `managment.ts` → `management.ts`
 
 **Files:**
-- `tools/managment.ts` → `tools/management.ts`
-- `tools/index.ts` - Updated import
-- `CONTRIBUTING.md` - Updated reference
+- `dcm/src/tools/managment.ts` → `dcm/src/tools/management.ts`
+- `dcm/src/tools/index.ts` - Updated import
+- `dcm/CONTRIBUTING.md` - Updated reference
 
 ## Potential Future Enhancements 🚀
 
@@ -278,7 +278,7 @@ This document lists potential enhancements, bug fixes, and improvements that cou
 
 ### 1. Pre-existing Linting Issues
 **Priority:** Low  
-**Description:** Several CSS class sorting issues in `app/template/[id]/template-client.tsx`
+**Description:** Several CSS class sorting issues in `dcm/src/components/TemplateClient.tsx`
 - Not critical as they're style-related
 - Can be auto-fixed with `biome format --write`
 
@@ -286,8 +286,10 @@ This document lists potential enhancements, bug fixes, and improvements that cou
 
 If you'd like to work on any of these enhancements, please:
 
-1. Create a new issue referencing this document
+1. Open an issue in [ajnart/self-host](https://github.com/ajnart/self-host) referencing this document
 2. Discuss the approach with maintainers
-3. Submit a pull request following the CONTRIBUTING.md guidelines
+3. Submit a pull request following `dcm/CONTRIBUTING.md`
+
+Apps in DCM's self-host mode come from `internal/apps/` and are edited there; DCM-only containers live in `dcm/src/tools/`.
 
 For questions or suggestions, please open an issue or start a discussion.
