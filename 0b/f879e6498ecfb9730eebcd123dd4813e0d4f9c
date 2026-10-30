@@ -1,0 +1,47 @@
+site/src/components/SeoHead.astro
+  s_e4c0dda40a95f7::t_c179389a965c1d 1-51
+site/src/layouts/Base.astro
+  s_e4c0dda40a95f7::t_8e8fbada038ce9 9,28
+site/src/layouts/Compose.astro
+  s_e4c0dda40a95f7::t_76e2c17b203226 9,39
+site/src/lib/docs-route.ts
+  s_e4c0dda40a95f7::t_21ff542503c060 1-4,6-7,15-18,21-70,74-79,81-91,93-112,114-125,127-134
+site/src/lib/meta.ts
+  s_e4c0dda40a95f7::t_4556c3cb907c8a 1-22
+site/src/pages/apps/[id].astro
+  s_e4c0dda40a95f7::t_c5ef10e7d3c835 8,17-32,35
+site/src/pages/apps/index.astro
+  s_e4c0dda40a95f7::t_360b2594ecf33f 3,10,14
+site/src/pages/compose/index.astro
+  s_e4c0dda40a95f7::t_e23be821caedca 6,8,11-25,28
+site/src/pages/compose/suggest.astro
+  s_e4c0dda40a95f7::t_5f2a334ce6b268 3,5-7,13
+site/src/pages/compose/template/[id].astro
+  s_e4c0dda40a95f7::t_9e5e2d057fdb98 3-4,9,13,21-30,36-37
+site/src/pages/compose/templates.astro
+  s_e4c0dda40a95f7::t_305587cd579d0b 7,9,12,19
+site/src/pages/docs/recipes/[id].astro
+  s_e4c0dda40a95f7::t_e7ffff59a2973a 5,13-19,28
+site/src/pages/index.astro
+  s_e4c0dda40a95f7::t_b5078bda1abdc5 18-33
+site/src/pages/og/[...slug].png.ts
+  s_e4c0dda40a95f7::t_5c8989f7958166 3-5,11,14-17,20
+site/src/pages/telemetry.astro
+  s_e4c0dda40a95f7::t_8ef58535fe5180 4-6,9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0bf879e6498ecfb9730eebcd123dd4813e0d4f9c",
+  "prompts": {},
+  "sessions": {
+    "s_e4c0dda40a95f7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7b2a0644-5e7f-4741-8fcb-06672c1d0f5e",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
