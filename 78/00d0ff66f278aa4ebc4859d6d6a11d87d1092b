@@ -1,0 +1,21 @@
+bun.lock
+  s_9d7feaf3ca7bcc::t_134a32a255a2b8 58
+site/package.json
+  s_9d7feaf3ca7bcc::t_942a6c4ead288c 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7800d0ff66f278aa4ebc4859d6d6a11d87d1092b",
+  "prompts": {},
+  "sessions": {
+    "s_9d7feaf3ca7bcc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "eec62015-2bcb-4aba-8224-2b5584c3914d",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
