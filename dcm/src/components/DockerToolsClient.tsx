@@ -64,14 +64,12 @@ function DockerTools({ catalog, mode }: DockerToolsClientProps) {
     if (!share) return
     processedShareRef.current = true
 
-    const ids = decodeShareUrl(share)
+    const knownIds = new Set(catalog.entries.map((entry) => entry.id))
+    const ids = decodeShareUrl(share, knownIds)
     const selfHostIds = new Set(
       entriesForMode(catalog, "self-host").map((entry) => entry.id),
     )
-    const knownIds = new Set(catalog.entries.map((entry) => entry.id))
-    const needsCompose = ids.some(
-      (id) => knownIds.has(id) && !selfHostIds.has(id),
-    )
+    const needsCompose = ids.some((id) => !selfHostIds.has(id))
     if (selfHostMode && needsCompose) {
       window.location.replace(`${routes.compose}${url.search}${url.hash}`)
       return

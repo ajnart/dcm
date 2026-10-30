@@ -23,11 +23,18 @@ export function encodeShareUrl(toolIds: string[]): string {
   }
 }
 
+const MAX_SHARE_PARAM_LENGTH = 16_000
+const MAX_SHARED_IDS = 200
+
 /**
- * Decodes a share parameter back into an array of tool IDs
+ * Decodes a share parameter back into the tool IDs the catalog knows, without
+ * duplicates and at most MAX_SHARED_IDS of them
  */
-export function decodeShareUrl(shareParam: string): string[] {
-  if (!shareParam) return []
+export function decodeShareUrl(
+  shareParam: string,
+  knownIds: ReadonlySet<string>,
+): string[] {
+  if (!shareParam || shareParam.length > MAX_SHARE_PARAM_LENGTH) return []
 
   try {
     // Make the base64 URL-safe format back to regular base64
@@ -39,9 +46,15 @@ export function decodeShareUrl(shareParam: string): string[] {
 
     // Decode and parse JSON
     const jsonString = atob(paddedBase64)
-    const toolIds = JSON.parse(jsonString)
+    const parsed: unknown = JSON.parse(jsonString)
+    if (!Array.isArray(parsed)) return []
 
-    return Array.isArray(toolIds) ? toolIds : []
+    const ids = new Set<string>()
+    for (const value of parsed) {
+      if (typeof value === "string" && knownIds.has(value)) ids.add(value)
+      if (ids.size === MAX_SHARED_IDS) break
+    }
+    return [...ids]
   } catch (error) {
     console.error("Error decoding share URL:", error)
     return []
