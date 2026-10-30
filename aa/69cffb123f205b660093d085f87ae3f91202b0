@@ -1,0 +1,23 @@
+dcm/src/components/compose-modal/CopyComposeModal.tsx
+  s_da91a0fb617146::t_88a4e40ab03095 37,82
+dcm/src/lib/docker-compose/generators.ts
+  s_da91a0fb617146::t_13952a7c7d0e1f 11-29,32,49,73-98,105-110
+dcm/tests/compose-env.test.ts
+  s_da91a0fb617146::t_66e313c76a4b0b 1-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aa69cffb123f205b660093d085f87ae3f91202b0",
+  "prompts": {},
+  "sessions": {
+    "s_da91a0fb617146": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "95cf1bcd-e35c-449d-82cf-fcb23d2a26a6",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
