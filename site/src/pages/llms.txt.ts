@@ -1,5 +1,5 @@
-import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
+import type { APIRoute } from "astro";
 import { apps, recipes } from "../lib/catalog";
 import { INSTALL, LINKS } from "../lib/site";
 
@@ -21,6 +21,8 @@ Agents: run \`self-host skill\` and follow the guide it prints. Every change fol
 
 const references = `- [README](${LINKS.github}/blob/main/README.md): install, quick start, Links, commands, Access, Backup
 - [Agent skill](${LINKS.github}/blob/main/skills/self-host/SKILL.md): the discoverable skill, a router to \`self-host skill\`
+- [Apps](https://self-host.fyi/apps): every App by category, each one \`self-host install <app>\` away
+- [Docker Compose Maker](https://self-host.fyi/compose): the same Apps, plus other containers, as a docker-compose.yaml and .env
 - [Catalog JSON](https://self-host.fyi/catalog.json): every App and Recipe, with ports, images and Links
 - [Releases](${LINKS.releases}): CLI archives and checksums.txt
 - [Discord](${LINKS.discord}): community and help
@@ -34,16 +36,41 @@ const references = `- [README](${LINKS.github}/blob/main/README.md): install, qu
 - \`self-host debug <app>\`: failed steps, hints and masked logs
 `;
 
-const docOrder = (d: { data: { sidebar: { order?: number } } }) => d.data.sidebar.order ?? 0;
+const docOrder = (d: { data: { sidebar: { order?: number } } }) =>
+	d.data.sidebar.order ?? 0;
 
 export const GET: APIRoute = async () => {
-  const docs = (await getCollection("docs")).sort((a, b) => docOrder(a) - docOrder(b));
-  const docLines = [
-    ...docs.map((d) => `- [${d.data.title}](https://self-host.fyi/${d.id}): ${d.data.description}`),
-    `- [Recipes](https://self-host.fyi/docs/recipes): every Recipe, with one page each`,
-  ];
-  const recipeLines = recipes.map((r) => `- [\`${r.id}\`](https://self-host.fyi/docs/recipes/${r.id}) (${r.name}): ${r.description}. Apps: ${r.apps.join(", ")}`);
-  const appLines = apps.map((a) => `- [\`${a.id}\`](https://self-host.fyi/apps/${a.id}) (${a.name}, ${a.category}): ${a.description}${a.links.length ? `. Links to ${a.links.map((l) => l.to).join(", ")}` : ""}`);
-  const body = [intro + docLines.join("\n"), references, "## Recipes", "", ...recipeLines, "", "## Apps", "", ...appLines, ""].join("\n");
-  return new Response(body, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+	const docs = (await getCollection("docs")).sort(
+		(a, b) => docOrder(a) - docOrder(b),
+	);
+	const docLines = [
+		...docs.map(
+			(d) =>
+				`- [${d.data.title}](https://self-host.fyi/${d.id}): ${d.data.description}`,
+		),
+		`- [Recipes](https://self-host.fyi/docs/recipes): every Recipe, with one page each`,
+	];
+	const recipeLines = recipes.map(
+		(r) =>
+			`- [\`${r.id}\`](https://self-host.fyi/docs/recipes/${r.id}) (${r.name}): ${r.description}. Apps: ${r.apps.join(", ")}`,
+	);
+	const appLines = apps.map(
+		(a) =>
+			`- [\`${a.id}\`](https://self-host.fyi/apps/${a.id}) (${a.name}, ${a.category}): ${a.description}${a.links.length ? `. Links to ${a.links.map((l) => l.to).join(", ")}` : ""}`,
+	);
+	const body = [
+		intro + docLines.join("\n"),
+		references,
+		"## Recipes",
+		"",
+		...recipeLines,
+		"",
+		"## Apps",
+		"",
+		...appLines,
+		"",
+	].join("\n");
+	return new Response(body, {
+		headers: { "Content-Type": "text/plain; charset=utf-8" },
+	});
 };

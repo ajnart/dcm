@@ -189,8 +189,10 @@ the Catalog shows up as a Template in DCM.
 _Avoid_: stack, preset
 
 **DCM mode**:
-**self-host** (default) lists only the Catalog's Apps; **All** adds the Containers
-only DCM defines. Chosen with `?mode=all` and remembered in the browser.
+**self-host** (`/apps`) lists only the Catalog's Apps and leads with the
+`self-host install` command; **docker compose** (`/compose`) adds the Containers
+only DCM defines, with settings and discovery. Chosen by the URL; the selection
+carries over between the two.
 _Avoid_: view, filter
 
 **Telemetry**:

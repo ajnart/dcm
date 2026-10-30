@@ -62,7 +62,7 @@ Container ids, counts and fixed values only:
 | `app_install_copied`          | you copy `self-host install <app>` on an App page           | `app`                               |
 | `recipe_install_copied`       | you copy a Recipe's install command on an App page          | `recipe`                            |
 | `share_link_copied`           | you copy the share link of the home page selection          | `count`                             |
-| `dcm_mode_changed`            | you switch Docker Compose Maker between self-host and All   | `mode`                              |
+| `dcm_mode_changed`            | you switch between the self-host and docker compose pages   | `mode` (`self-host` or `compose`)   |
 | `dcm_item_selected`           | you select a container                                      | `id`, `source` (`self-host`, `dcm`) |
 | `dcm_item_unselected`         | you unselect a container                                    | `id`, `source`                      |
 | `dcm_compose_copied`          | you copy the Compose file or the `.env`                     | `count`, `ids`, `file`              |

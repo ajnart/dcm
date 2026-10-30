@@ -1,13 +1,14 @@
 ---
+import DockerToolsClient from "@/components/DockerToolsClient";
+import { buildCatalog } from "@/lib/catalog";
+import { withStars } from "@/lib/stars";
+import { tools } from "@/tools";
 import { getCollection } from "astro:content";
-import AppIcon from "../../components/AppIcon.astro";
-import SectionHead from "../../components/SectionHead.astro";
-import Base from "../../layouts/Base.astro";
-import { byPopularity, linkCount, starLabel } from "../../lib/catalog";
+import Compose from "../../layouts/Compose.astro";
+import { linkCount } from "../../lib/catalog";
 
-const apps = (await getCollection("apps")).sort((a, b) => byPopularity(a.data, b.data));
-const byCategory = Map.groupBy(apps, (a) => a.data.category);
-const categories = [...byCategory.keys()].sort();
+const count = (await getCollection("apps")).length;
+const catalog = withStars(buildCatalog(tools));
 const jsonld = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
@@ -18,41 +19,10 @@ const jsonld = {
 };
 ---
 
-<Base title={`${apps.length} self-hosted Apps · self-host`} description={`Every App self-host installs, signs in and wires together: ${apps.length} Apps and ${linkCount} Links, each one command away.`} jsonld={jsonld}>
-  <main class="page">
-    <section id="all-apps" aria-labelledby="all-apps-title">
-      <SectionHead id="all-apps" num="◆" title="Apps">
-        {apps.length} Apps, {linkCount} Links. Each one is <code>self-host install &lt;app&gt;</code> away. <a href="/#apps">Pick some in the playground →</a>
-      </SectionHead>
-      {
-        categories.map((category) => (
-          <div class="category">
-            <h3>{category}</h3>
-            <ul class="apps applist">
-              {byCategory.get(category)?.map((app) => (
-                <li class="cardbox">
-                  <a class="card" href={`/apps/${app.id}`}>
-                    <span class="t">
-                      <span class="who">
-                        <AppIcon name={app.data.name} icon={app.data.icon} id={`app-${app.id}`} />
-                        <b>{app.data.name}</b>
-                      </span>
-                      <span class="muted">{app.data.port ? `:${app.data.port}` : "no ui"}</span>
-                    </span>
-                    <small>{app.data.description}</small>
-                  </a>
-                  {app.data.repo && (
-                    <a class="stars" href={`https://github.com/${app.data.repo}`} target="_blank" rel="noopener" title={`${app.data.stars.toLocaleString("en")} stars on GitHub`}>
-                      <span class="star" aria-hidden="true">★</span>
-                      {starLabel(app.data.stars)}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))
-      }
-    </section>
-  </main>
-</Base>
+<Compose
+  title={`${count} self-hosted Apps · self-host`}
+  description={`Every App self-host installs, signs in and wires together: ${count} Apps and ${linkCount} Links, each one command away.`}
+  jsonld={jsonld}
+>
+  <DockerToolsClient client:load catalog={catalog} mode="self-host" />
+</Compose>

@@ -1,4 +1,3 @@
-import { ModeToggle } from "@/components/ModeToggle"
 import Providers from "@/components/Providers"
 import ActionButtons from "@/components/compose-modal/ActionButtons"
 import PortConflictsAlert from "@/components/compose-modal/PortConflictsAlert"
@@ -20,13 +19,8 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useClipboard } from "@/hooks/use-clipboard"
-import { useMode } from "@/hooks/use-mode"
 import { track } from "@/lib/analytics"
-import {
-  type CatalogEntry,
-  type CatalogMode,
-  selfHostRecipeId,
-} from "@/lib/catalog"
+import { type CatalogEntry, selfHostRecipeId } from "@/lib/catalog"
 import { buildExport } from "@/lib/export"
 import { downloadFile } from "@/lib/export/download"
 import { routes } from "@/lib/routes"
@@ -48,15 +42,9 @@ import { siDocker } from "simple-icons"
 interface TemplateClientProps {
   template: Template
   templateEntries: CatalogEntry[]
-  counts: Record<CatalogMode, number>
 }
 
-function TemplateView({
-  template,
-  templateEntries,
-  counts,
-}: TemplateClientProps) {
-  const [mode, setMode] = useMode()
+function TemplateView({ template, templateEntries }: TemplateClientProps) {
   const { settings } = useSettings()
   const [hasMounted, setHasMounted] = useState(false)
   const [activeTab, setActiveTab] = useState("services")
@@ -138,14 +126,13 @@ function TemplateView({
       <div>
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <Button asChild className="flex items-center gap-2" variant="ghost">
-            <a href={`${routes.templates}?mode=${mode}`}>
+            <a href={routes.templates}>
               <ArrowLeft size={16} />
               Back to Templates
             </a>
           </Button>
 
           <div className="flex flex-wrap items-center gap-2">
-            <ModeToggle mode={mode} counts={counts} onChange={setMode} />
             <Button
               className="flex items-center gap-2"
               onClick={handleDownload}

@@ -5,8 +5,10 @@ import { SelfHostCommand } from "@/components/selfhost-command"
 import { Button } from "@/components/ui/button"
 import { useClipboard } from "@/hooks/use-clipboard"
 import { track } from "@/lib/analytics"
-import type { Catalog, CatalogEntry, CatalogMode } from "@/lib/catalog"
+import type { Catalog, CatalogEntry } from "@/lib/catalog"
 import { buildExport } from "@/lib/export"
+import type { CatalogMode } from "@/lib/modes"
+import { routes } from "@/lib/routes"
 import { buildSelfHostLink } from "@/lib/selfhost"
 import { useSettings } from "@/lib/settings-context"
 import { generateShareUrl } from "@/lib/url-utils"
@@ -27,7 +29,6 @@ interface FloatingBarProps {
   ids: string[]
   shareIds: string[]
   hiddenCount: number
-  onShowAll: () => void
   onToggle: (id: string) => void
   onClear: () => void
   scrollPosition?: number
@@ -40,7 +41,6 @@ export default function FloatingBar({
   ids,
   shareIds,
   hiddenCount,
-  onShowAll,
   onToggle,
   onClear,
   scrollPosition = 200,
@@ -188,14 +188,13 @@ export default function FloatingBar({
               {hiddenCount > 0 && (
                 <span className="ml-2 text-muted-foreground text-xs">
                   {hiddenCount} selected item{hiddenCount !== 1 ? "s" : ""}{" "}
-                  hidden in this mode.{" "}
-                  <button
-                    type="button"
-                    onClick={onShowAll}
+                  hidden in self-host mode.{" "}
+                  <a
+                    href={routes.compose}
                     className="font-medium text-accent-text hover:underline"
                   >
-                    Show all
-                  </button>
+                    Switch to docker compose
+                  </a>
                 </span>
               )}
               <div className="sm:w-auto">

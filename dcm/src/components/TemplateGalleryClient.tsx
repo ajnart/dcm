@@ -1,4 +1,3 @@
-import { ModeToggle } from "@/components/ModeToggle"
 import Providers from "@/components/Providers"
 import FloatingBar from "@/components/floating-bar"
 import SettingsPanel from "@/components/settings-panel"
@@ -20,19 +19,14 @@ function TemplateGalleryView({
   catalog,
   templates,
 }: TemplateGalleryClientProps) {
-  const { mode, setMode, selection, entries, visibleIds, hiddenCount } =
-    useCatalogView(catalog)
+  const { selection, entries, visibleIds, hiddenCount } = useCatalogView(
+    catalog,
+    "compose",
+  )
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([])
 
   const visibleTemplates = useMemo(
-    () => allTemplates(catalog, templates, mode),
-    [catalog, templates, mode],
-  )
-  const counts = useMemo(
-    () => ({
-      "self-host": allTemplates(catalog, templates, "self-host").length,
-      all: allTemplates(catalog, templates, "all").length,
-    }),
+    () => allTemplates(catalog, templates, "compose"),
     [catalog, templates],
   )
 
@@ -64,7 +58,6 @@ function TemplateGalleryView({
             Back to Container Selection
           </a>
         </Button>
-        <ModeToggle mode={mode} counts={counts} onChange={setMode} />
       </div>
 
       <div className="[animation-delay:300ms] motion-safe:animate-slide-down">
@@ -74,11 +67,10 @@ function TemplateGalleryView({
       <FloatingBar
         catalog={catalog}
         entries={entries}
-        mode={mode}
+        mode="compose"
         ids={visibleIds}
         shareIds={selection.ids}
         hiddenCount={hiddenCount}
-        onShowAll={() => setMode("all")}
         onToggle={selection.toggle}
         onClear={handleClear}
       />

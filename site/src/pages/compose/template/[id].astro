@@ -1,6 +1,6 @@
 ---
 import TemplateClient from "@/components/TemplateClient"
-import { allTemplates, buildCatalog } from "@/lib/catalog"
+import { buildCatalog } from "@/lib/catalog"
 import { withStars } from "@/lib/stars"
 import { getToolsFromTemplate, templates } from "@/lib/templates"
 import { tools } from "@/tools"
@@ -8,17 +8,13 @@ import Compose from "../../../layouts/Compose.astro"
 
 export async function getStaticPaths() {
   const catalog = withStars(buildCatalog(tools))
-  const counts = {
-    "self-host": allTemplates(catalog, templates, "self-host").length,
-    all: allTemplates(catalog, templates, "all").length,
-  }
   return [...catalog.recipes, ...templates].map((template) => ({
     params: { id: template.id },
-    props: { template, entries: catalog.entries, counts },
+    props: { template, entries: catalog.entries },
   }))
 }
 
-const { template, entries, counts } = Astro.props
+const { template, entries } = Astro.props
 const templateEntries = getToolsFromTemplate(template, entries)
 ---
 
@@ -30,6 +26,5 @@ const templateEntries = getToolsFromTemplate(template, entries)
     client:load
     template={template}
     templateEntries={templateEntries}
-    counts={counts}
   />
 </Compose>

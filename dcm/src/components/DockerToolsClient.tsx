@@ -6,7 +6,8 @@ import FloatingBar from "@/components/floating-bar"
 import SettingsPanel from "@/components/settings-panel"
 import { Button } from "@/components/ui/button"
 import { useCatalogView } from "@/hooks/use-catalog-view"
-import { type Catalog, type CatalogMode, entriesForMode } from "@/lib/catalog"
+import { type Catalog, entriesForMode } from "@/lib/catalog"
+import type { CatalogMode } from "@/lib/modes"
 import { routes } from "@/lib/routes"
 import { SELFHOST_URL } from "@/lib/selfhost"
 import { decodeShareUrl } from "@/lib/url-utils"
@@ -15,23 +16,43 @@ import { useEffect, useMemo, useRef } from "react"
 
 interface DockerToolsClientProps {
   catalog: Catalog
+  mode: CatalogMode
 }
 
-const INTRO: Record<CatalogMode, string> = {
-  "self-host":
-    "Pick apps, then run one self-host command. Prefer plain YAML? Copy the Compose file instead.",
-  all: "Every container DCM knows about. Apps with a self-host badge install with one command.",
+const TITLE: Record<CatalogMode, string> = {
+  "self-host": "Self-hosted Apps",
+  compose: "Docker Compose Maker",
 }
 
-function DockerTools({ catalog }: DockerToolsClientProps) {
-  const { mode, setMode, selection, entries, visibleIds, hiddenCount } =
-    useCatalogView(catalog)
+function Intro({ mode }: { mode: CatalogMode }) {
+  if (mode === "self-host")
+    return (
+      <>
+        Pick Apps, then run one{" "}
+        <code className="font-mono">self-host install</code> command. Prefer
+        plain YAML? Switch to docker compose.
+      </>
+    )
+  return (
+    <>
+      Every container DCM knows about. Apps with a self-host badge install with
+      one command.
+    </>
+  )
+}
+
+function DockerTools({ catalog, mode }: DockerToolsClientProps) {
+  const { selection, entries, visibleIds, hiddenCount } = useCatalogView(
+    catalog,
+    mode,
+  )
   const processedShareRef = useRef(false)
+  const selfHostMode = mode === "self-host"
 
   const counts = useMemo(
     () => ({
       "self-host": entriesForMode(catalog, "self-host").length,
-      all: catalog.entries.length,
+      compose: catalog.entries.length,
     }),
     [catalog],
   )
@@ -44,17 +65,22 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
     processedShareRef.current = true
 
     const ids = decodeShareUrl(share)
-    selection.set(ids)
-
     const selfHostIds = new Set(
       entriesForMode(catalog, "self-host").map((entry) => entry.id),
     )
     const knownIds = new Set(catalog.entries.map((entry) => entry.id))
+    const needsCompose = ids.some(
+      (id) => knownIds.has(id) && !selfHostIds.has(id),
+    )
+    if (selfHostMode && needsCompose) {
+      window.location.replace(`${routes.compose}${url.search}${url.hash}`)
+      return
+    }
+
+    selection.set(ids)
     url.searchParams.delete("share")
     window.history.replaceState(window.history.state, "", url)
-    if (ids.some((id) => knownIds.has(id) && !selfHostIds.has(id)))
-      setMode("all", { persist: false })
-  }, [catalog, selection.set, setMode])
+  }, [catalog, selection.set, selfHostMode])
 
   const toggle = (id: string) => {
     const entry = catalog.entries.find((item) => item.id === id)
@@ -66,9 +92,9 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
     <>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-bold text-3xl">Docker Compose Maker</h1>
+          <h1 className="font-bold text-3xl">{TITLE[mode]}</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground text-sm">
-            {INTRO[mode]}{" "}
+            <Intro mode={mode} />{" "}
             <a
               href={SELFHOST_URL}
               target="_blank"
@@ -79,25 +105,31 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
             </a>
           </p>
         </div>
-        <Button asChild className="flex items-center gap-2">
-          <a href={routes.templates}>
-            <Palette size={16} />
-            Template Gallery
-          </a>
-        </Button>
+        {!selfHostMode && (
+          <Button asChild className="flex items-center gap-2">
+            <a href={routes.templates}>
+              <Palette size={16} />
+              Template Gallery
+            </a>
+          </Button>
+        )}
       </div>
 
       <div className="mb-6">
-        <ModeToggle mode={mode} counts={counts} onChange={setMode} />
+        <ModeToggle mode={mode} counts={counts} />
       </div>
 
-      <div className="[animation-delay:300ms] motion-safe:animate-slide-down">
-        <SettingsPanel />
-      </div>
+      {!selfHostMode && (
+        <>
+          <div className="[animation-delay:300ms] motion-safe:animate-slide-down">
+            <SettingsPanel />
+          </div>
 
-      <div className="[animation-delay:450ms] motion-safe:animate-slide-down">
-        <DiscoveryPanel />
-      </div>
+          <div className="[animation-delay:450ms] motion-safe:animate-slide-down">
+            <DiscoveryPanel />
+          </div>
+        </>
+      )}
 
       <FloatingBar
         catalog={catalog}
@@ -106,7 +138,6 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
         ids={visibleIds}
         shareIds={selection.ids}
         hiddenCount={hiddenCount}
-        onShowAll={() => setMode("all")}
         onToggle={toggle}
         onClear={selection.clear}
       />
@@ -115,7 +146,8 @@ function DockerTools({ catalog }: DockerToolsClientProps) {
         entries={entries}
         selected={selection.ids}
         onToggle={toggle}
-        selfHostBadge={mode === "all"}
+        selfHostBadge={!selfHostMode}
+        grouped={selfHostMode}
       />
     </>
   )

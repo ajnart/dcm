@@ -28,7 +28,7 @@ The site sets one CSP through Astro's `security.csp`, and `site/src/lib/csp.mjs`
 
 ## How an App reaches DCM
 
-`go run ./tools/sitegen` reads the Go Catalog (`internal/apps/`, `internal/catalog/`) and writes `dcm/src/data/selfhost.json`: per App a standalone compose, ports, env and notes, plus the Recipes. DCM's **self-host** mode lists only those Apps; **All** adds the Containers defined in `dcm/src/tools`. A tool whose `id` equals an App's `id` (or an alias in `dcm/src/lib/selfhost.ts`) takes the App's compose, so a Container never competes with its App.
+`go run ./tools/sitegen` reads the Go Catalog (`internal/apps/`, `internal/catalog/`) and writes `dcm/src/data/selfhost.json`: per App a standalone compose, ports, env and notes, plus the Recipes. DCM's **self-host** mode (`/apps`) lists only those Apps, grouped by category; **docker compose** (`/compose`) adds the Containers defined in `dcm/src/tools`, with the settings and discovery panels. The mode comes from the URL (`dcm/src/lib/modes.ts`); `?mode=all` and `?mode=self-host` links redirect to the right page, and the selection is shared between the two in the browser. The template pages are docker compose only. A tool whose `id` equals an App's `id` (or an alias in `dcm/src/lib/selfhost.ts`) takes the App's compose, so a Container never competes with its App.
 
 To change an App's compose or metadata in DCM, change the App under `internal/apps/<id>/` and rerun sitegen. Never hand-edit `dcm/src/data/selfhost.json`; CI fails on drift.
 

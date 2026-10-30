@@ -1,5 +1,6 @@
 import type { DockerTool } from "@/lib/docker-tools"
 import { serviceNames } from "@/lib/export/services"
+import type { CatalogMode } from "@/lib/modes"
 import {
   type SelfHostApp,
   type SelfHostEnvVar,
@@ -10,16 +11,8 @@ import {
 } from "@/lib/selfhost"
 import type { Template } from "@/lib/templates"
 
-export type CatalogMode = "self-host" | "all"
-
-export const CATALOG_MODES: CatalogMode[] = ["self-host", "all"]
-export const DEFAULT_MODE: CatalogMode = "self-host"
 export const RECIPE_CATEGORY = "self-host Recipe"
 const RECIPE_PREFIX = "recipe-"
-
-export function parseMode(value: string | null | undefined): CatalogMode {
-  return value === "all" || value === "self-host" ? value : DEFAULT_MODE
-}
 
 export interface CatalogEntry extends DockerTool {
   selfhostId?: string
@@ -148,7 +141,7 @@ export function entriesForMode(
   catalog: Catalog,
   mode: CatalogMode,
 ): CatalogEntry[] {
-  if (mode === "all") return catalog.entries
+  if (mode === "compose") return catalog.entries
   return catalog.entries.filter((entry) => entry.selfhostId)
 }
 

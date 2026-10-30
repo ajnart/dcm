@@ -14,9 +14,10 @@ import { VERSION } from "../lib/site";
 interface Props {
   title: string;
   description: string;
+  jsonld?: Record<string, unknown>;
 }
 
-const { title, description } = Astro.props;
+const { title, description, jsonld } = Astro.props;
 const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Astro.site);
 const image = new URL(og.src, Astro.site);
 
@@ -55,7 +56,9 @@ insertDirective("worker-src blob:");
     <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    {jsonld && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
     <script>
+      import "../scripts/legacy-mode";
       import "../scripts/analytics";
     </script>
   </head>

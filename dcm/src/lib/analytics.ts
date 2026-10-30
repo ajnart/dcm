@@ -1,4 +1,4 @@
-import type { CatalogMode } from "@/lib/catalog"
+import type { CatalogMode } from "@/lib/modes"
 import type { PostHog } from "posthog-js"
 
 const PROJECT_KEY = "phc_zY6Yg8ePwEfXC8FadEqkCcoCgzzy2u2VHjpaPTooBDfg"

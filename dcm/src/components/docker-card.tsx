@@ -9,7 +9,13 @@ import {
 import { StarCount } from "@/components/ui/star-count"
 import { TruncatedText } from "@/components/ui/truncated-text"
 import type { CatalogEntry } from "@/lib/catalog"
+import { routes } from "@/lib/routes"
 import { cn } from "@/lib/utils"
+
+function portLabel(entry: CatalogEntry): string {
+  if (entry.port) return `:${entry.port}`
+  return "no ui"
+}
 
 interface DockerCardProps {
   entry: CatalogEntry
@@ -28,6 +34,7 @@ export default function DockerCard({
     if (
       (e.target as Element).closest(".github-link") ||
       (e.target as Element).closest(".description-expand") ||
+      (e.target as Element).closest(".app-link") ||
       entry.isUnsupported
     ) {
       e.stopPropagation()
@@ -124,6 +131,17 @@ export default function DockerCard({
             </Badge>
           ))}
         </div>
+        {entry.selfhostId && (
+          <div className="mt-3 flex items-center justify-between text-muted-foreground text-xs">
+            <span className="font-mono">{portLabel(entry)}</span>
+            <a
+              href={routes.app(entry.selfhostId)}
+              className="app-link font-medium text-accent-text hover:underline"
+            >
+              details →
+            </a>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

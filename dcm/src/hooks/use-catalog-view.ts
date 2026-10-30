@@ -1,11 +1,10 @@
-import { useMode } from "@/hooks/use-mode"
 import { useSelection } from "@/hooks/use-selection"
 import { track } from "@/lib/analytics"
 import { type Catalog, entriesForMode, partitionSelection } from "@/lib/catalog"
+import type { CatalogMode } from "@/lib/modes"
 import { useMemo } from "react"
 
-export function useCatalogView(catalog: Catalog) {
-  const [mode, setMode] = useMode()
+export function useCatalogView(catalog: Catalog, mode: CatalogMode) {
   const selection = useSelection()
 
   const entries = useMemo(() => entriesForMode(catalog, mode), [catalog, mode])
@@ -27,8 +26,6 @@ export function useCatalogView(catalog: Catalog) {
   }
 
   return {
-    mode,
-    setMode,
     selection: { ...selection, toggle },
     entries,
     visibleIds,
