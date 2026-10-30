@@ -15,7 +15,7 @@
 
 <!-- Links -->
 <p align="center">
-  <a href="https://self-host.fyi/compose/">
+  <a href="https://self-host.fyi/compose">
     <strong>Live Demo 🚀</strong>
   </a>
   •
@@ -41,7 +41,7 @@
 > [!NOTE]
 > 🌟 **Community-Driven Project**: DCM started as a simple tool but aims to become the go-to resource for Docker Compose configurations, powered by the community. We believe everyone has their favorite self-hosted tools, and we'd love for you to share yours! Whether you're using a popular application or a hidden gem, your contribution helps others discover and easily deploy great software.
 
-DCM (Docker Compose Maker) turns a handful of clicks into a ready-to-use `docker-compose.yaml` and `.env` for your self-hosted apps. It lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose/).
+DCM (Docker Compose Maker) turns a handful of clicks into a ready-to-use `docker-compose.yaml` and `.env` for your self-hosted apps. It lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose).
 
 DCM has two modes. **self-host** (the default) lists the Apps of the self-host Catalog, each with a standalone compose generated from the Go code in `internal/apps/`. **All** adds the containers only DCM defines, in `dcm/src/tools/`.
 
@@ -106,7 +106,7 @@ If you want to try DCM for yourself, there are several ways to get started:
 
 ### 🌐 Use the Online Version
 
-Visit [self-host.fyi/compose](https://self-host.fyi/compose/) to use the tool immediately without installation. The old `compose.ajnart.dev` address redirects there.
+Visit [self-host.fyi/compose](https://self-host.fyi/compose) to use the tool immediately without installation. A redirect from the old `compose.ajnart.dev` address is still to be added.
 
 ### 🐳 Run with Docker
 
@@ -178,11 +178,11 @@ bun run dev
 
 From the repository root this starts the self-host site, which also serves DCM, at http://localhost:4321: the home page at `/` and DCM at http://localhost:4321/compose. Edits under `dcm/src` hot-reload there.
 
-DCM has no Astro app of its own: its pages are `site/src/pages/compose/`, and `bun run build` in `site/` writes the whole static site, DCM included, to `site/dist/`. `bun run preview` in `site/` serves it. Every link, asset and API call lives under the fixed `/compose` prefix (`dcm/src/lib/routes.ts`).
+DCM has no Astro app of its own: its pages are `site/src/pages/compose/` and `site/src/pages/apps/`, and `bun run build` in `site/` writes the whole static site, DCM included, to `site/dist/`. `bun run preview` in `site/` serves it. Every link and asset goes through `dcm/src/lib/routes.ts`: `/apps` and `/compose` are the two catalog pages, and the template pages live under `/compose`.
 
 #### Self-host catalog and mode toggle
 
-The home page and the template gallery have a segmented control: **self-host** shows only the Apps from the self-host catalog (plus its Recipes as templates) with a `self-host install <apps>` command front and centre, and **All** shows every DCM container with the self-host ones badged. The choice is stored in `localStorage` (`dcm-mode`) and mirrored in the `?mode=` URL parameter. Selection is shared between both modes.
+DCM has two pages over one catalog. [self-host.fyi/apps](https://self-host.fyi/apps) (**self-host** mode) lists only the Apps from the self-host Catalog with a `self-host install <apps>` command front and centre. [self-host.fyi/compose](https://self-host.fyi/compose) (**docker compose** mode) adds the containers only DCM defines, plus the settings and discovery panels. The mode is the URL: the toggle in the header is a link, and old `?mode=all` and `?mode=self-host` links redirect to the right page. The selection is stored in `localStorage` and shared between both pages, and a share link that holds compose-only ids opens on `/compose`. The template pages are docker compose only.
 
 ## 🧰 Supported Tools
 
@@ -226,7 +226,7 @@ Each tool includes a detailed description, GitHub star count, and pre-configured
 ## 🎁 Want it installed for you?
 
 > [!NOTE]
-> self-host is in preview: public downloads are not available yet, so the install command only works with access to its repository. The in-browser playground works for everyone.
+> The in-browser playground needs no install. The install command needs the self-host binary: `curl -fsSL https://self-host.fyi/install | bash`.
 
 Skip the YAML. [self-host](https://self-host.fyi/?ref=dcm) is one Go binary that installs, wires (API keys, Homarr tiles, download clients) and repairs self-hosted apps with Docker Compose. It has a terminal dashboard for people and `--json` commands for AI agents. DCM links to it from the header, the selection bar and the Copy Compose modal, prefilled with your selected services (`https://self-host.fyi/?apps=<ids>&ref=dcm`).
 

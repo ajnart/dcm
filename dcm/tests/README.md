@@ -9,7 +9,7 @@ The tests perform the following validations:
 1. **Individual Service Validation**: Tests each service individually to ensure the Docker Compose configuration for each service is valid.
 2. **Combined Services Validation**: Tests all services together to ensure they work properly when combined in a single Docker Compose file.
 3. **Container Schema Validation**: Tests that all container definitions meet the required schema and use proper environment variables.
-4. **Export**: `export.test.ts` tests `buildExport` (`src/lib/export`): selection, install-only Apps, service dedupe, port conflicts, `.env` generation, notes and the self-host command.
+4. **Export**: `export.test.ts` tests `buildExport` (`src/lib/export`): selection, install-only Apps, service dedupe, port conflicts, `.env` generation (generated secrets from an injected `randomBytes`), notes and the self-host command.
 
 ## Running the Tests
 

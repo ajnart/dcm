@@ -103,9 +103,9 @@ body:
       label: Icon URL
       description: |
         URL to an SVG icon for this container. We recommend using dashboard-icons for consistency.
-        **Example:** `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/sonarr.svg`
+        **Example:** `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/sonarr.svg`
         Search available icons at: https://github.com/homarr-labs/dashboard-icons
-      placeholder: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/example.svg"
+      placeholder: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/example.svg"
   
   - type: textarea
     id: containerData

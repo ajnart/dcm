@@ -1,6 +1,6 @@
 # Contributing to Docker Compose Maker
 
-Thank you for your interest in contributing to DCM (Docker Compose Maker)! DCM lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose/). This document covers contributing to it, particularly adding new container definitions. For the rest of the repository, see the root [CONTRIBUTING.md](../CONTRIBUTING.md).
+Thank you for your interest in contributing to DCM (Docker Compose Maker)! DCM lives in the [self-host repository](https://github.com/ajnart/self-host) under `dcm/` and is served at [self-host.fyi/compose](https://self-host.fyi/compose). This document covers contributing to it, particularly adding new container definitions. For the rest of the repository, see the root [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 > [!NOTE]
 > The Apps shown in DCM's **self-host** mode come from the self-host Catalog in `internal/apps/`, and their compose lives in the generated `dcm/src/data/selfhost.json`. Edit an App under `internal/apps/` and run `go run ./tools/sitegen`; never edit the JSON by hand. The container definitions below are the ones only DCM defines, shown in **All** mode.
@@ -64,27 +64,26 @@ interface DockerTool {
 
 ```typescript
 {
-  id: "jellyfin",
-  name: "Jellyfin",
-  description: "A free software media system that puts you in control of managing and streaming your media. It is an alternative to the proprietary Emby and Plex, with no premium features behind a paywall.",
-  category: "Media",
-  tags: ["Streaming", "Media Server", "Transcoding"],
-  githubUrl: "https://github.com/jellyfin/jellyfin",
-  icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyfin.svg",
+  id: "tautulli",
+  name: "Tautulli",
+  description: "A monitoring application for Plex Media Server that provides statistics and analytics for your media library.",
+  category: "Monitoring",
+  tags: ["Plex", "Monitoring", "Statistics"],
+  githubUrl: "https://github.com/Tautulli/Tautulli",
+  icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/tautulli.svg",
   composeContent: `services:
-  jellyfin:
-    image: ghcr.io/hotio/jellyfin:latest
-    container_name: \${CONTAINER_PREFIX}jellyfin
+  tautulli:
+    image: ghcr.io/hotio/tautulli:latest
+    container_name: \${CONTAINER_PREFIX}tautulli
     environment:
       - PUID=\${PUID}
       - PGID=\${PGID}
       - TZ=\${TZ}
       - UMASK=\${UMASK}
     volumes:
-      - \${CONFIG_PATH}/jellyfin:/config
-      - \${DATA_PATH}/media:/data/media
+      - \${CONFIG_PATH}/tautulli:/config
     ports:
-      - 8096:8096
+      - 8181:8181
     restart: \${RESTART_POLICY}`
 }
 ```
@@ -102,7 +101,7 @@ interface DockerTool {
   category: "Database",
   tags: ["Database", "SQL", "Relational"],
   githubUrl: "https://github.com/postgres/postgres",
-  icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/postgres.svg",
+  icon: "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@83f32e08257b66fbd971ac8d7645f5b38d52e85d/svg/postgres.svg",
   composeContent: `services:
   postgres:
     image: postgres:16-alpine
