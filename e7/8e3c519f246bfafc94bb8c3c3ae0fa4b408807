@@ -1,0 +1,53 @@
+dcm/src/components/ModeToggle.tsx
+  s_083df46f63aec4::t_c21819fd44a30c 8
+dcm/src/components/TemplateClient.tsx
+  s_083df46f63aec4::t_b361b737811dde 28
+dcm/src/components/compose-modal/CopyComposeModal.tsx
+  s_083df46f63aec4::t_faad1f9841df13 7
+dcm/src/components/floating-bar.tsx
+  s_083df46f63aec4::t_380c022c06d338 13
+dcm/src/components/search-command.tsx
+  s_083df46f63aec4::t_26bb77364db275 11
+dcm/src/components/selfhost-command.tsx
+  s_083df46f63aec4::t_37811ec4586a8b 13
+dcm/src/components/settings-panel.tsx
+  s_083df46f63aec4::t_9d45b12398c267 9
+dcm/src/components/suggest-page.tsx
+  s_083df46f63aec4::t_f6f355659380ad 9
+dcm/src/hooks/use-catalog-view.ts
+  s_083df46f63aec4::t_0fe5d1e0ce43ea 4
+dcm/src/lib/track.ts
+  s_083df46f63aec4::t_3309f3a88b228f 3,7,9-10,14,20,24,33,35,37-38,41-42
+docs/adr/0013-website-analytics.md
+  s_083df46f63aec4::t_49f2e2eb2aa847 12-24,31-36,38,41-47,50-52,54-57
+docs/telemetry.md
+  s_083df46f63aec4::t_ae6e957dc72fc8 55-61,65,85-86
+site/src/components/CodeBlock.astro
+  s_083df46f63aec4::t_5c8b137d399d60 4,11,27
+site/src/lib/analytics.ts
+  s_083df46f63aec4::t_91801bdbd724a7 1-97
+site/src/lib/site.ts
+  s_083df46f63aec4::t_5a27e635a1cd13 10-12,15,22,29,32,42,49,55,59-61
+site/src/scripts/analytics.ts
+  s_083df46f63aec4::t_485540bb750f67 1
+site/src/scripts/catalog-view.js
+  s_083df46f63aec4::t_2bec5c01e5b804 1
+site/src/scripts/codeblock.js
+  s_083df46f63aec4::t_3e37710157b50e 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e78e3c519f246bfafc94bb8c3c3ae0fa4b408807",
+  "prompts": {},
+  "sessions": {
+    "s_083df46f63aec4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bddf89dc-371d-4633-9a1b-342733d02a35",
+        "model": "unknown"
+      },
+      "human_author": "Thomas Camlong <thomas@ajnart.fr>"
+    }
+  }
+}
