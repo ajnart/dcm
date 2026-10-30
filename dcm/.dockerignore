@@ -1,4 +1,2 @@
 *
-!dist
-!dist/**
 !httpd.conf

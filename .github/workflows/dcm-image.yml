@@ -6,8 +6,8 @@ on:
     tags: ["dcm-v*"]
     paths:
       - "dcm/**"
-      - "site/src/styles/theme.css"
-      - "site/src/styles/header.css"
+      - "site/**"
+      - "tools/sitegen/**"
       - "bun.lock"
       - ".github/workflows/dcm-image.yml"
   workflow_dispatch:
@@ -42,10 +42,9 @@ jobs:
         run: bun run --cwd dcm test
       - name: Validate generated Compose files
         run: bun run --cwd dcm test:compose
-      - name: Build
-        run: bun run --cwd dcm build
+      - name: Build the site
+        run: bun run --cwd site build
         env:
-          DCM_BASE: /
           GITHUB_TOKEN: ${{ github.token }}
       - name: Image metadata
         id: meta
@@ -70,6 +69,7 @@ jobs:
         with:
           context: dcm
           file: dcm/Dockerfile
+          build-contexts: site=site/dist
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: ${{ steps.meta.outputs.tags }}

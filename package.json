@@ -9,7 +9,8 @@
     "check": "turbo run check",
     "test": "turbo run test",
     "test:compose": "turbo run test:compose",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "stars": "go run ./tools/sitegen -stars && bun run --cwd dcm stars"
   },
   "devDependencies": {
     "turbo": "^2.11.10"
