@@ -148,7 +148,7 @@ func (App) Setup(ctx context.Context, h *helpers.H) error {
 			return signIn(ctx, h, h.Session(), h.AdminPassword())
 		},
 		Do: func(ctx context.Context) error { return takeOver(ctx, h) },
-		Hint: "Open " + h.URL + ", sign in as " + email + " with the password " + defaultPassword +
+		Hint: "Open " + publicURL(h.Settings, h.Settings["LAN_IP"], h.Port) + ", sign in as " + email + " with the password " + defaultPassword +
 			" and change it in the account settings to the Admin password shown by `self-host credentials`, then run: self-host setup oxynote",
 		Credential: "admin",
 	})
