@@ -694,6 +694,16 @@
    "il": "svg/open-webui-light.svg"
   },
   {
+   "id": "oxynote",
+   "name": "Oxynote",
+   "d": "Write team docs together, with live charts and queries next to the text",
+   "c": "Productivity",
+   "img": "ghcr.io/oxynote/oxynote:latest",
+   "p": 8085,
+   "l": [],
+   "lt": []
+  },
+  {
    "id": "pangolin",
    "name": "Pangolin",
    "d": "Reach your apps from outside your home by name, behind a login page",

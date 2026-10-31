@@ -64,6 +64,7 @@ var icons = map[string]string{
 	"nzbget":               "svg/nzbget.svg",
 	"ollama":               "svg/ollama.svg",
 	"open-webui":           "svg/open-webui.svg",
+	"oxynote":              "",
 	"pangolin":             "svg/pangolin.svg",
 	"paperless-ngx":        "svg/paperless-ngx.svg",
 	"passbolt":             "",

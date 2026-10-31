@@ -14,7 +14,7 @@
   <a href="https://github.com/ajnart/self-host/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ajnart/self-host?style=flat-square&label=release&color=7a57d3&labelColor=14121e"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-7a57d3?style=flat-square&labelColor=14121e"></a>
   <img alt="Platforms: Linux, macOS, WSL2" src="https://img.shields.io/badge/platforms-Linux%20%C2%B7%20macOS%20%C2%B7%20WSL2-7a57d3?style=flat-square&labelColor=14121e">
-  <a href="https://self-host.fyi/apps"><img alt="93 Apps in the Catalog" src="https://img.shields.io/badge/Apps-93-00d787?style=flat-square&labelColor=14121e"></a>
+  <a href="https://self-host.fyi/apps"><img alt="94 Apps in the Catalog" src="https://img.shields.io/badge/Apps-94-00d787?style=flat-square&labelColor=14121e"></a>
 </p>
 
 <p align="center">
@@ -79,7 +79,7 @@ If it isn't for you, run `self-host remove immich`. That removes its containers 
 
 If you like it, keep running it here or set it up yourself with Docker Compose. You can try the App before deciding how much time you want to spend on your setup.
 
-Browse the 93 Apps in the [Catalog](https://self-host.fyi/apps). See [Platforms and support](#platforms-and-support) for what has been verified.
+Browse the 94 Apps in the [Catalog](https://self-host.fyi/apps). See [Platforms and support](#platforms-and-support) for what has been verified.
 
 ## What gets set up
 
@@ -106,7 +106,7 @@ The Compose files and App configuration live in `~/.self-host`. You can read the
 
 | ✅ Does                                                                         | ❌ Doesn't                                                                      |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Ships the Catalog inside the binary: 93 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                           |
+| Ships the Catalog inside the binary: 94 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                           |
 | Sets up accounts, API keys and settings where supported.                        | Change another Project's Compose files or App configuration.                    |
 | Wires Apps together with Links, and gives Homarr native tiles.                  | Back up media libraries or data outside App folders.                            |
 | Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows. Use WSL2.                                                |

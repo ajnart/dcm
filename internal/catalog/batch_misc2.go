@@ -7,6 +7,7 @@ import (
 	"github.com/ajnart/self-host/internal/apps/cleanuparr"
 	"github.com/ajnart/self-host/internal/apps/deluge"
 	"github.com/ajnart/self-host/internal/apps/nginxproxymanager"
+	"github.com/ajnart/self-host/internal/apps/oxynote"
 	"github.com/ajnart/self-host/internal/apps/pihole"
 	"github.com/ajnart/self-host/internal/apps/plex"
 	"github.com/ajnart/self-host/internal/apps/tailscale"
@@ -22,6 +23,7 @@ func init() {
 		cleanuparr.App{},
 		deluge.App{},
 		nginxproxymanager.App{},
+		oxynote.App{},
 		pihole.App{},
 		plex.App{},
 		tailscale.App{},

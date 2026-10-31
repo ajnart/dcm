@@ -65,6 +65,7 @@ var repos = map[string]string{
 	"nzbget":               "nzbgetcom/nzbget",
 	"ollama":               "ollama/ollama",
 	"open-webui":           "open-webui/open-webui",
+	"oxynote":              "oxynote/oxynote",
 	"pangolin":             "fosrl/pangolin",
 	"paperless-ngx":        "paperless-ngx/paperless-ngx",
 	"passbolt":             "passbolt/passbolt_api",
