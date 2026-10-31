@@ -23,7 +23,90 @@
 
 <p align="center"><a href="https://self-host.fyi/#reel"><img src="docs/assets/readme/hero-lockup.png" width="880" alt="Stop renting your software. self-host: $92 a month becomes $0 with curl -fsSL self-host.fyi/install | bash."></a></p>
 
-Run self-hosted Apps on your home server or homelab without learning Docker Compose. One binary installs and runs them, with a terminal Dashboard for you and plain commands for your agent.
+Self-hosted Apps for you and your AI agent. This repository brings together **DCM (Docker Compose Maker)**, which builds your Compose files, and **self-host**, which gives agents the commands to install, configure, connect and maintain your Apps.
+
+| Tool | Start here | What you get |
+| --- | --- | --- |
+| **DCM** | [Build a Compose file](https://self-host.fyi/compose) | A `docker-compose.yaml` and `.env` to run with Docker Compose. |
+| **self-host** | [Start with an agent](#with-an-agent) | One binary with App Setup, Links, backups, diagnostics and `--json` commands. |
+
+## DCM: Docker Compose Maker
+
+DCM is the project originally known as [`ajnart/dcm`](https://github.com/ajnart/dcm), the Compose builder behind `compose.ajnart.dev`. Its history and source now live in this repository under [`dcm/`](dcm/), and the builder is at **[self-host.fyi/compose](https://self-host.fyi/compose)**.
+
+Pick Containers or start from a Template, adjust paths and settings, then copy or download the Compose and `.env` files. Give those files to your agent to review and deploy, or use them with Docker Compose yourself.
+
+| Page | What it includes |
+| --- | --- |
+| [docker compose mode](https://self-host.fyi/compose) | The self-host Catalog plus Containers defined only in DCM, settings and the Template gallery. |
+| [self-host mode](https://self-host.fyi/apps) | The Apps from the self-host Catalog, with a matching `self-host install` command for your selection. |
+
+Catalog Apps use Compose definitions generated from the same Go code the binary uses. Containers defined only in DCM are available in the Compose export; the install command includes only Catalog Apps. Exporting YAML does not run the CLI's App Setup or Links.
+
+Use DCM in your browser without installing anything, or run it locally:
+
+```bash
+docker run --rm -p 127.0.0.1:7576:7576 ghcr.io/ajnart/dcm
+```
+
+Open <http://localhost:7576/compose/>. The image serves the builder; it needs no Docker socket. See the [DCM README](dcm/README.md) for Templates, exports and development.
+
+## self-host: install and operate Apps
+
+Give your agent a toolkit for your home server or homelab. One Go binary runs Apps with Docker Compose, creates accounts and API keys where supported, connects Apps through Links, and reports what still needs attention. Ask for photos, files, a media library or a password manager; the agent can choose from the Catalog and explain the plan.
+
+The same operations are available through a terminal Dashboard. People and agents work on the same Project in `~/.self-host`.
+
+### With an agent
+
+<p align="center"><img src="docs/assets/readme/with-an-agent.svg" width="880" alt="With an agent. One self-host skill for Claude Code, Codex, OpenCode, Pi, Hermes Agent and OpenClaw."></p>
+
+Paste this into Claude Code, Codex, OpenCode, Pi, Hermes Agent, OpenClaw or another agent that can run commands on your server:
+
+```text
+Use https://self-host.fyi/llms.txt to help me replace Google Photos with my own photo server. Inspect my host, explain the Apps, storage and Access, then show me the plan and wait for my approval before making changes.
+```
+
+If self-host is already installed, make its skill discoverable by the agents on this machine:
+
+```bash
+self-host skill install
+```
+
+Invoke it with `$self-host` in Codex, `/self-host` in Claude Code, or ask your agent to use the self-host skill. The guide comes from `self-host skill` and matches the installed binary.
+
+Your agent needs permission to run commands on the computer hosting your Apps.
+See [With an agent](https://self-host.fyi/docs/agents), including the OpenClaw section.
+
+<details>
+<summary><b>Agent reference</b></summary>
+
+The one public skill, [`skills/self-host/SKILL.md`](skills/self-host/SKILL.md), only routes to the guide built into the binary. Print it with `self-host skill`. Agents also read <https://self-host.fyi/llms.txt>.
+
+Agents follow **inspect → plan → approval → apply → verify**. Loading the skill is intent, never approval: every change needs the person's explicit yes.
+
+```bash
+self-host status --json
+self-host doctor --json
+self-host apps list --json
+self-host apps info ntfy --json
+# only after the person approves:
+self-host install ntfy --exposure local --yes --json
+self-host status --json
+```
+
+With no Project yet, `status` reports "no Project yet"; read `self-host profile --json` and continue with Doctor and the Catalog. `--json` gives agents structured documents for inspection and newline-delimited events for operations.
+
+- Pass secrets with `--set-file app.key=/path`, never as arguments. They land only in the Project's `secrets.env`.
+- Retry unfinished Setup with `self-host setup <app> --json`; inspect failures with `self-host debug <app> --json`.
+- Exit codes: `0` success, `1` error, `2` incomplete Setup, `3` only Manual steps remain.
+- A running container or HTTP 200 is not acceptance. Check that the App does its job.
+
+All flags, events and the isolated Project setup are in the [agent docs](https://self-host.fyi/docs/agents).
+
+</details>
+
+### Install self-host
 
 ```bash
 curl -fsSL https://self-host.fyi/install | bash
@@ -61,7 +144,7 @@ Update with `self-host self-update` for the script and the archive. Homebrew, Do
 
 To read the install script first: `curl -fsSL https://self-host.fyi/install -o install.sh`, compare `shasum -a 256 install.sh` with `https://self-host.fyi/install.sh.sha256`, then `bash install.sh`. It verifies the archive against `checksums.txt` and installs to `~/.local/bin`. Version, folder and fork options are in the [docs](https://self-host.fyi/docs/getting-started#install).
 
-## What it replaces
+### What it replaces
 
 <p align="center"><img src="docs/assets/readme/replaces-meet.svg" width="600" alt="What it replaces: Netflix to Jellyfin, Spotify to Navidrome, Drive to Nextcloud, Dropbox to Syncthing, Photos to Immich, 1Password to Vaultwarden, Notion to Docmost, ChatGPT to Open WebUI. Every App is in the Catalog, with 82 more."></p>
 
@@ -69,7 +152,7 @@ Choose Jellyfin for your media library, Immich for photos, Nextcloud for files o
 
 <p align="center"><img src="docs/assets/readme/hero-command.svg" width="880" alt="The install command, curl -fsSL self-host.fyi/install | bash, wired to nine Apps with data pulses travelling the wires: Jellyfin, Sonarr, Radarr, Immich, Nextcloud, Homarr, Vaultwarden, Navidrome and Home Assistant."></p>
 
-## What it does and doesn't do
+### What it does and doesn't do
 
 > [!IMPORTANT]
 > Nothing installs without your approval. Onboarding writes nothing until you approve its plan, and no single Dashboard key changes an App.
@@ -83,7 +166,7 @@ Choose Jellyfin for your media library, Immich for photos, Nextcloud for files o
 | ✅ Does                                                                         | ❌ Doesn't                                                                      |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Ships the Catalog inside the binary: 93 Apps and 7 Recipes.                     | Install Docker for you. `self-host doctor` checks it.                           |
-| Runs headless Setup for each App: accounts, API keys, settings.                 | Touch anything outside its one Compose Project in `~/.self-host`.               |
+| Sets up accounts, API keys and settings where supported.                      | Touch anything outside its one Compose Project in `~/.self-host`.               |
 | Wires Apps together with Links, and gives Homarr native tiles.                  | Back up media libraries or data outside App folders.                            |
 | Shows a five-tab Dashboard (Overview, Apps, Activity, Catalog, Settings).       | Run on native Windows. Use WSL2.                                                |
 | Offers Access from the Home network to Tailscale, Cloudflare or your own proxy. | Ship indexers, trackers or content sources.                                     |
@@ -94,49 +177,7 @@ A **Recipe** is a pre-wired bundle: `media` is qBittorrent, Sonarr, Radarr, Prow
 
 </details>
 
-## With an agent
-
-<p align="center"><img src="docs/assets/readme/with-an-agent.svg" width="880" alt="With an agent. One self-host skill for Claude Code, Codex, OpenCode, Pi, Hermes Agent and OpenClaw."></p>
-
-Paste this into Claude Code, Codex, OpenCode, OpenClaw or any coding agent:
-
-```text
-Use https://self-host.fyi/llms.txt to help me set up my own home server. Ask what I want to run, explain the plan, and wait for my approval before installing.
-```
-
-Or write the shared skill and dedicated folders for supported agents installed on the machine:
-
-```bash
-self-host skill install
-```
-
-Your agent needs permission to run commands on the computer hosting your Apps.
-See [With an agent](https://self-host.fyi/docs/agents), including the OpenClaw section.
-
-<details>
-<summary><b>Agent reference</b></summary>
-
-The one public skill, [`skills/self-host/SKILL.md`](skills/self-host/SKILL.md), only routes to the guide built into the binary. Print it with `self-host skill`. Agents also read <https://self-host.fyi/llms.txt>.
-
-Agents follow **inspect → plan → approval → apply → verify**. Loading the skill is intent, never approval: every change needs the person's explicit yes.
-
-```bash
-self-host doctor --json
-self-host apps list --json
-# only after the person approves:
-self-host install ntfy --exposure local --yes --json
-self-host status --json
-```
-
-- Pass secrets with `--set-file app.key=/path`, never as arguments. They land only in the Project's `secrets.env`.
-- Exit codes: `0` success, `1` error, `2` incomplete Setup, `3` only Manual steps remain.
-- A running container or HTTP 200 is not acceptance. Check that the App does its job.
-
-All flags, events and the isolated Project setup are in the [agent docs](https://self-host.fyi/docs/agents).
-
-</details>
-
-## Reaching your Apps
+### Reaching your Apps
 
 Home network by default. Each change needs your approval.
 
@@ -160,7 +201,7 @@ Cannot reach an App from another device? Run `self-host debug <app>`, then see [
 
 </details>
 
-## Backup and Restore
+### Backup and Restore
 
 > [!NOTE]
 > Backups include App folders, Host settings, state and secrets, so keep the archive and its passphrase apart. Media libraries and data outside App folders are not included.
@@ -177,7 +218,7 @@ self-host restore <archive> [app]
 
 </details>
 
-## Commands
+### Commands
 
 Everything the Dashboard does is also a plain command.
 
@@ -217,16 +258,16 @@ A Compose folder you add by hand under `~/.self-host/extra/<name>/` is an Unmana
 
 </details>
 
-## Links: Apps that wire themselves
+### Links: Apps that wire themselves
 
 <p align="center"><img src="docs/assets/readme/links-graph.svg" width="880" alt="Apps that wire themselves. Apps appear and arrows draw between them: Sonarr and Radarr to qBittorrent, Prowlarr to Sonarr and Radarr, Seerr to Jellyfin, Sonarr and Radarr, Cleanuparr to Sonarr, Radarr and qBittorrent, and Homarr to a row of tiles for the other Apps."></p>
 
-Every App gets headless Setup, and Links connect them: Sonarr and Radarr get qBittorrent, Seerr gets Jellyfin, Homarr gets native tiles.
+Setup configures Apps where supported, and Links connect them: Sonarr and Radarr get qBittorrent, Seerr gets Jellyfin, Homarr gets native tiles.
 
 <details>
 <summary><b>Which Apps link to which</b></summary>
 
-Each App gets automatic, headless Setup (accounts, API keys, settings). A **Link** is the part that connects one App to another. It belongs to the consuming App and runs once both have finished Setup.
+Setup configures accounts, API keys and settings where supported; browser-only work stays a Manual step. A **Link** is the part that connects one App to another. It belongs to the consuming App and runs once both have finished Setup.
 
 | Consumer       | Linked to                                         |
 | -------------- | ------------------------------------------------- |
@@ -240,7 +281,7 @@ A failing Link marks the consuming App as needing attention, not its target. Bro
 
 </details>
 
-## Platforms and support
+### Platforms and support
 
 <details>
 <summary><b>Requirements, validated platforms and the runtime matrix</b></summary>
@@ -269,7 +310,7 @@ Docker socket denied? Run `sudo "$(command -v self-host)"`. The Project, config 
 
 </details>
 
-## Troubleshooting
+### Troubleshooting
 
 <details>
 <summary><b>Common fixes</b></summary>
@@ -286,14 +327,14 @@ More in the [troubleshooting docs](https://self-host.fyi/docs/troubleshooting).
 
 </details>
 
-## Responsible use
+### Responsible use
 
 > [!WARNING]
 > self-host installs and connects software; what you do with it is your responsibility. Download clients, indexers and media automation have legitimate uses: Linux ISOs, public-domain and Creative Commons works, and media you own or are licensed to copy. **We do not condone piracy and do not help anyone find or download content they have no right to.** self-host ships no indexers, trackers or content sources. Follow copyright law where you live and the terms of every service you connect.
 
 The software is provided as is, without warranty (Apache-2.0). The maintainers are not liable for how it is used.
 
-## Telemetry
+### Telemetry
 
 Anonymous, on by default, and easy to turn off.
 
@@ -313,10 +354,6 @@ To turn it off, set `SELF_HOST_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` (or `true`). 
 
 </details>
 
-## Docker Compose Maker
-
-Prefer to own the YAML? [Docker Compose Maker](https://self-host.fyi/compose) (DCM) turns the Apps you pick into a `docker-compose.yaml` and `.env`, with a Template gallery. [self-host.fyi/apps](https://self-host.fyi/apps) lists every App in the Catalog with the same compose self-host installs, and [self-host.fyi/compose](https://self-host.fyi/compose) adds containers only DCM defines. It lives in [`dcm/`](dcm/) and also runs standalone: `docker run -p 7576:7576 ghcr.io/ajnart/dcm`.
-
 ## Repository layout
 
 | Path | What it is |
@@ -324,6 +361,7 @@ Prefer to own the YAML? [Docker Compose Maker](https://self-host.fyi/compose) (D
 | `cmd/`, `internal/` | The Go binary: CLI, Dashboard, the Catalog and every App. |
 | `site/` | The Astro site at self-host.fyi. |
 | `dcm/` | Docker Compose Maker, served at self-host.fyi/compose. |
+| `skills/self-host/`, `internal/skill/` | The discoverable skill and the guide embedded in the binary. |
 | `tools/sitegen` | Writes the site's and DCM's data from the Catalog. |
 | `docs/` | Decisions, agent briefs, release notes and proofs. |
 

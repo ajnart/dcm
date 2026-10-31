@@ -45,12 +45,20 @@ DCM (Docker Compose Maker) turns a handful of clicks into a ready-to-use `docker
 
 DCM has two modes, each its own page. **self-host** (`/apps`) lists the Apps of the self-host Catalog, each with a standalone compose generated from the Go code in `internal/apps/`. **docker compose** (`/compose`) adds the containers only DCM defines, in `dcm/src/tools/`.
 
-Every selection shows the matching `self-host install <apps>` command. [self-host](https://self-host.fyi/?ref=dcm) is one Go binary that installs and wires these apps for you, for people and for AI agents. Rather not manage YAML? Use it. Prefer to own the YAML? DCM stays fully usable on its own.
+Selections containing Catalog Apps also show a matching `self-host install <apps>` command. It includes only Catalog Apps; Containers defined only in DCM stay in the Compose export. [self-host](https://self-host.fyi/?ref=dcm) is one Go binary that installs and wires these apps for you, for people and for AI agents. Rather not manage YAML? Use it. Prefer to own the YAML? DCM stays fully usable on its own.
 
 > [!TIP]
 > Most containers come pre-configured with best practices and sensible defaults, saving you hours of documentation reading and configuration tweaking.
 
 > 💡 **Share Your Stack**: Using a great tool that's not listed here? We'd love to include it! Check out our [contribution guide](CONTRIBUTING.md) to help others discover and use your favorite containers.
+
+## With an AI agent
+
+DCM builds the files; your agent can review the selected Containers, paths, ports and environment variables before deploying them. Start at [self-host.fyi/compose](https://self-host.fyi/compose), export `docker-compose.yaml` and `.env`, and ask your agent to explain the configuration before it runs anything. Keep the `.env` private.
+
+For Catalog Apps that declare generated secrets, DCM creates them in your browser and keeps them stable while the page is open. External tokens stay blank for you to supply. Review the export notes: some Apps require the self-host CLI and cannot be exported as standalone YAML.
+
+For automatic App Setup, Links and ongoing maintenance, use [self-host's agent workflow](../README.md#with-an-agent). Its skill calls `self-host skill` for the guide matching the installed binary; plain commands and `--json` let the agent work without driving the Dashboard. DCM-only Containers remain Compose exports and do not gain the CLI's Setup or Links.
 
 ## 🔧 How to Use DCM
 
@@ -106,17 +114,17 @@ If you want to try DCM for yourself, there are several ways to get started:
 
 ### 🌐 Use the Online Version
 
-Visit [self-host.fyi/compose](https://self-host.fyi/compose) to use the tool immediately without installation. The old `compose.ajnart.dev` address and its redirect are covered in `docs/releasing.md`.
+Visit [self-host.fyi/compose](https://self-host.fyi/compose) to use the tool immediately without installation. DCM originally lived at `ajnart/dcm` and `compose.ajnart.dev`; its source and history now live here. See the [release guide](../docs/releasing.md) for the image and domain setup.
 
 ### 🐳 Run with Docker
 
 Run with a single command:
 
 ```bash
-docker run -p 7576:7576 --name dcm --rm ghcr.io/ajnart/dcm
+docker run -p 127.0.0.1:7576:7576 --name dcm --rm ghcr.io/ajnart/dcm
 ```
 
-Then visit `http://localhost:7576` in your browser.
+Then visit `http://localhost:7576/compose/` in your browser. The image serves the builder and needs no Docker socket.
 
 The Docker image is available for multiple platforms:
 
@@ -134,7 +142,7 @@ services:
     image: ghcr.io/ajnart/dcm
     container_name: dcm
     ports:
-      - "7576:7576"
+      - "127.0.0.1:7576:7576"
     restart: unless-stopped
 ```
 
